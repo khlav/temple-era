@@ -13,11 +13,12 @@ import {
   timestamp,
   varchar,
   text,
-  boolean,
+  boolean, pgMaterializedView,
 } from "drizzle-orm/pg-core";
-import {relations, SQL, sql} from "drizzle-orm";
+import {eq, relations, SQL, sql} from "drizzle-orm";
 import { DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
 import { users } from "~/server/db/models/auth-schema";
+import {isNotNull} from "drizzle-orm/sql/expressions/conditions";
 
 // ERD
 // https://dbdiagram.io/d/Temple-Raid-Attendance-ERD-676ef1de5406798ef7c860a0
@@ -159,17 +160,16 @@ export const characters = tableCreator(
     ...DefaultTimestamps, // Auto-generate created_at and updated_at columns
   },
   (table) => ({
-    idIdx: uniqueIndex("character__id_idx").on(table.characterId), // Index on canonicalCharacterId
-    canonicalCharacterIdFK: foreignKey({
+    primaryCharacterIdFK: foreignKey({
       columns: [table.primaryCharacterId],
       foreignColumns: [table.characterId],
-      name: "character__canonical_character_id_fk",
+      name: "character__primary_character_id_fk",
     }),
   })
 );
 
 export const charactersRelations = relations(characters, ({one}) => ({
-  canonicalCharacter: one(characters, {
+  primaryCharacter: one(characters, {
     fields: [characters.primaryCharacterId],
     references: [characters.characterId],
   }),
@@ -178,8 +178,6 @@ export const charactersRelations = relations(characters, ({one}) => ({
     references: [users.characterId]
   })
 }));
-
-// VIEWS
 
 // export const raidAttendeesMap = pgView(
 //   "raid_attendee_map",
@@ -192,7 +190,7 @@ export const charactersRelations = relations(characters, ({one}) => ({
 CREATE OR REPLACE VIEW public."raid_attendee_map" AS
 SELECT DISTINCT
     raid_log.raid_id,
-    raid_log_attendee_map.character_id
+    COALESCE(raid_log_attendee_map.primary_character_id, raid_log_attendee_map.character_id)
 FROM raid_log
 LEFT JOIN raid_log_attendee_map
     ON raid_log.id = raid_log_attendee_map.raid_log_id;
