@@ -23,7 +23,7 @@ export const {
   characters,
 
   // Views
-  // raidAttendeesMap,
+  raidAttendeesMap,
 
   // Relations
   raidsRelations,

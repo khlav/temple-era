@@ -63,7 +63,7 @@ export const raidLogs = tableCreator(
   {
     raidLogId: varchar("raid_log_id", { length: 64 }).primaryKey(),
     raidId: integer("raid_id")
-      .references(() => raids.raidId, { onDelete: 'cascade'}),
+      .references(() => raids.raidId, { onDelete: 'set null'}),
     name: varchar("name", { length: 256 }).notNull(),
     kills: text("kills").array().notNull().default(sql`ARRAY[]::text[]`),
     killCount: integer("killCount").generatedAlwaysAs((): SQL => sql`cardinality(${raidLogs.kills})`),
@@ -179,13 +179,13 @@ export const charactersRelations = relations(characters, ({one}) => ({
   })
 }));
 
-// export const raidAttendeesMap = pgView(
-//   "raid_attendee_map",
-//   {
-//     raidId: integer("raid_id").references(() => raids.raidId),
-//     characterId: integer("character_id").references(() => characters.characterId),
-//   }
-// ).existing();
+export const raidAttendeeMap = pgView(
+  "raid_attendee_map",
+  {
+    raidId: integer("raid_id").references(() => raids.raidId),
+    primaryCharacterId: integer("primary_character_id").references(() => characters.characterId),
+  }
+).existing();
 /*
 CREATE OR REPLACE VIEW public."raid_attendee_map" AS
 SELECT DISTINCT
