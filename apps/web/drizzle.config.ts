@@ -8,5 +8,6 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["temple-raid-t3_*"],
+  // tablesFilter: ["*"],
+  // schemaFilter: ["public", "auth"]
 } satisfies Config;
