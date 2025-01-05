@@ -1,5 +1,5 @@
-import {RaidDetail} from "~/app/ui/raids/raiddetail";
-import BackButton from "~/app/ui/nav/backbutton";
+import {RaidDetail} from "~/app/_components/raids/raid-detail";
+import BackButton from "~/app/_components/nav/backbutton";
 
 export default async function RaidPage({params} : {params: { raidId: number } }) {
   const p = await params;

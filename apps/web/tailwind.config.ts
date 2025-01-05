@@ -9,6 +9,12 @@ export default {
         sans: ["var(--font-geist-sans)", ...fontFamily.sans],
       },
     },
+
+  },
+  variants: {
+    extend: {
+      opacity: ['disabled'],
+    }
   },
   plugins: [],
 } satisfies Config;

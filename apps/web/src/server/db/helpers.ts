@@ -1,6 +1,6 @@
 import {timestamp, uuid} from 'drizzle-orm/pg-core';
 import {sql} from "drizzle-orm";
-import {users} from "~/server/db/schema";
+import {users} from "~/server/db/models/auth-schema";
 
 export const IdPkAsUUID = {
   id: uuid('id')

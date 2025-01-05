@@ -1,6 +1,5 @@
 import {
   pgTableCreator,
-  pgView,
   pgEnum,
 
   primaryKey,
@@ -10,10 +9,11 @@ import {
 
   serial,
   integer,
+  date,
   timestamp,
   varchar,
   text,
-  boolean, pgMaterializedView,
+  boolean, pgSchema,
 } from "drizzle-orm/pg-core";
 import {eq, relations, SQL, sql} from "drizzle-orm";
 import { DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
@@ -35,7 +35,7 @@ export const raids = tableCreator(
   {
     raidId: serial("raid_id").primaryKey(),
     name: varchar("name", { length: 256 }).notNull(),
-    date: timestamp("date").notNull(), // Date of the raids
+    date: date("date").notNull(), // Date of the raids
     attendanceWeight: integer("attendance_weight").default(1).notNull(),
     ...CreatedBy,
     ...UpdatedBy,
@@ -48,7 +48,7 @@ export const raids = tableCreator(
 
 export const raidsRelations = relations(raids, ({one, many}) => ({
   raidLogs: many(raidLogs),
-  // TO-DO: raidAttendeeMap: many(raidAttendeesMap) // Distincted view of raids attendees across all raids logs
+  // TO-DO: raidAttendeeMap: many(raidAttendeeMap) // Distincted view of raids attendees across all raids logs
 
   // NOTE: Does not work!!!!
   // ------------------------
@@ -178,31 +178,3 @@ export const charactersRelations = relations(characters, ({one}) => ({
     references: [users.characterId]
   })
 }));
-
-export const raidAttendeeMap = pgView(
-  "raid_attendee_map",
-  {
-    raidId: integer("raid_id").references(() => raids.raidId),
-    primaryCharacterId: integer("primary_character_id").references(() => characters.characterId),
-  }
-).existing();
-/*
-CREATE OR REPLACE VIEW public."raid_attendee_map" AS
-SELECT DISTINCT
-    raid_log.raid_id,
-    COALESCE(raid_log_attendee_map.primary_character_id, raid_log_attendee_map.character_id)
-FROM raid_log
-LEFT JOIN raid_log_attendee_map
-    ON raid_log.id = raid_log_attendee_map.raid_log_id;
- */
-
-// export const raidAttendeesMapRelations = relations(raidAttendeesMap, ({one}) => ({
-//   raids: one(raidLogs, {
-//     fields: [raidAttendeesMap.[raidId]],
-//     references: [raidLogs.[raidId]]
-//   }),
-//   character: one(characters, {
-//     fields: [raidAttendeesMap.characterId],
-//     references: [characters.characterId]
-//   }),
-// }));

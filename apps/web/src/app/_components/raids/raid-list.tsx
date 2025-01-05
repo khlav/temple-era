@@ -1,10 +1,11 @@
 "use client";
 import {api} from "~/trpc/react";
 import Link from "next/link";
-import LabeledArrayCodeBlock from "~/app/ui/misc/codeblock";
+import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
+import UserAvatar from "~/app/_components/nav/user-avatar";
 
-export function CharacterList() {
-  const {data: players, isLoading, isError, error} = api.character.getCharacters.useQuery();
+export function RaidList() {
+  const {data: raids, isLoading, isError, error} = api.raid.getRaids.useQuery();
 
   return (
     <div>
@@ -20,7 +21,7 @@ export function CharacterList() {
         </div>
       )}
 
-      {players && (
+      {raids && (
         <div>
           <table className="min-w-full table-auto border-collapse rounded-lg border border-gray-300 shadow-sm">
             <thead>
@@ -29,46 +30,53 @@ export function CharacterList() {
                   Name
                 </th>
                 <th className="border-b border-gray-200 px-6 py-3 text-left">
-                  server
+                  Raid ID
                 </th>
                 <th className="border-b border-gray-200 px-6 py-3 text-left">
-                  Slug
+                  Date
                 </th>
                 <th className="border-b border-gray-200 px-6 py-3 text-left">
-                  Character ID
+                  Attendance Weight
+                </th>
+                <th className="border-b border-gray-200 px-6 py-3 text-left">
+                  Created By
                 </th>
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => (
+              {raids.map((raid) => (
                 <tr
-                  key={player.characterId}
+                  key={raid.raidId}
                   className="border-b border-gray-200 hover:bg-gray-50"
                 >
                   <td className="px-6 py-3 text-gray-800">
                     <Link
-                      href={`/players/${player.characterId}`}
-                      className="inline-block rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                      href={`/raids/${raid.raidId}`}
+                      className="inline-block rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                     >
-                      {player.name}
+                      {raid.name}
                     </Link>
                   </td>
-
+                  <td className="px-6 py-3 text-gray-800">{raid.raidId}</td>
                   <td className="px-6 py-3 text-gray-800">
-                    {player.server}
+                    {new Date(raid.date).toLocaleString()}
                   </td>
                   <td className="px-6 py-3 text-gray-800">
-                    {player.slug}
+                    {raid.attendanceWeight}
                   </td>
                   <td className="px-6 py-3 text-gray-800">
-                    {player.characterId}
+                    <UserAvatar
+                      name={raid.creator?.name ?? ""}
+                      image={raid.creator?.image ?? ""}
+                      extraInfo={raid.creator?.character?.name ?? undefined}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="mt-8">
-            <LabeledArrayCodeBlock label="Players" value={players} />
+            <LabeledArrayCodeBlock label="Raids" value={raids} />
           </div>
         </div>
       )}

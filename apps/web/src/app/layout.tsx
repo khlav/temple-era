@@ -1,14 +1,10 @@
 import "~/app/ui/globals.css";
 
-import { inter } from "~/app/ui/fonts";
 import { type Metadata } from "next";
-
-import { Theme } from "@radix-ui/themes";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
-import "@radix-ui/themes/styles.css";
-import SideNav from "~/app/ui/nav/sidenav";
+import SideNav from "~/app/_components/nav/sidenav";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance",
@@ -19,9 +15,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.className} antialiasing`}>
+    <html lang="en" className="">
       <body>
-        <Theme accentColor="jade" grayColor="slate">
           <TRPCReactProvider>
             <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
               <div className="w-full flex-none md:w-64">
@@ -32,7 +27,6 @@ export default function RootLayout({
               </div>
             </div>
           </TRPCReactProvider>
-        </Theme>
       </body>
     </html>
   );

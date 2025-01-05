@@ -1,5 +1,5 @@
-import BackButton from "~/app/ui/nav/backbutton";
-import {CharacterDetail} from "~/app/ui/players/characterdetail";
+import BackButton from "~/app/_components/nav/backbutton";
+import {CharacterDetail, CharacterRaids} from "~/app/_components/players/characterdetail";
 
 export default async function PlayersPage({params} : {params: { characterId: number } }) {
   const p = await params;
@@ -9,6 +9,7 @@ export default async function PlayersPage({params} : {params: { characterId: num
     <div>
       <div className="mb-4"> <BackButton label="Back"/></div>
       <CharacterDetail characterId={characterId} />
+      <CharacterRaids characterId={characterId} />
     </div>
   );
 }

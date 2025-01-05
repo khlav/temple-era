@@ -43,11 +43,13 @@ export const env = createEnv({
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
-    NODE_ENV: process.env.NODE_ENV,
+
     WCL_CLIENT_ID: process.env.WCL_CLIENT_ID,
     WCL_CLIENT_SECRET: process.env.WCL_CLIENT_SECRET,
     WCL_OAUTH_URL: process.env.WCL_OAUTH_URL,
     WCL_API_URL: process.env.WCL_API_URL,
+
+    NODE_ENV: process.env.NODE_ENV,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

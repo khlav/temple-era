@@ -1,7 +1,7 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import { RaidImporter } from "~/app/ui/raids/raid";
+import { RaidImporter } from "~/app/_components/raids/raid-importer";
 
 export default async function RaidPage() {
   const session = await auth();
