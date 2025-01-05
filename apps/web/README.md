@@ -6,15 +6,11 @@ Raid Attendance tracking (and other tools) for Temple, a Horde guild on the Worl
 - All users
   - [x] Login using [Discord](www.discord.com)
   - [ ] Calculate rolling 6 week raid attendance.
-  - [ ] Map multiple characters to a main/primary for credit across toons.
 - Admins
   - [ ] Create a new Raid event including characters+attendance using [Warcraft Log](https://vanilla.warcraftlogs.com/) URLs.
-  - [ ] Mark raid for attendance credit (+1), optional (+0), or a custom weight (+0.3333333).
+  - [ ] Mark raid for attendance credit (`+1`), optional (`+0`), or a custom weight (`+0.3333333`).
   - [ ] Add benched characters.  Leave no toon behind.
-
-
-
-
+  - [ ] Map multiple characters to a main/primary for credit across toons.
 
 
 --- 

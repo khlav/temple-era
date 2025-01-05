@@ -4,7 +4,7 @@ import {
   publicProcedure,
   adminProcedure,
 } from "~/server/api/trpc";
-import {raidLogs, characters, raidLogAttendeeMap, raids} from "~/server/db/schema";
+import {raidLogs, raidAttendeeMap, characters, raidLogAttendeeMap, raids} from "~/server/db/schema";
 import anyAscii from "any-ascii";
 import {eq} from "drizzle-orm";
 
@@ -42,7 +42,7 @@ import {eq} from "drizzle-orm";
 
 export const Slugify = (value: string) => { return anyAscii(value).toLowerCase(); };
 
-export const raidRouter = createTRPCRouter({
+export const raid = createTRPCRouter({
 
   getRaids: publicProcedure.query( async ({ ctx }) => {
     const raids = await ctx.db.query.raids.findMany({
@@ -97,20 +97,18 @@ export const raidRouter = createTRPCRouter({
   getRaidAttendeesByRaidId: publicProcedure
     .input(z.number())
     .query( async ({ ctx, input }) => {
+
       const attendees = await ctx.db
-        .selectDistinctOn(
-          [characters.slug],
-          {
-            name: characters.name,
-            slug: characters.slug,
-            isPrimary: characters.isPrimary,
-          }
-        )
+        .select({
+          name: characters.name,
+          slug: characters.slug,
+          characterCount: raidAttendeeMap.characterCount,
+          characterNames: raidAttendeeMap.characterNames,
+        })
         .from(characters)
-        .leftJoin(raidLogAttendeeMap, eq(characters.characterId, raidLogAttendeeMap.characterId))
-        .leftJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
-        .leftJoin(raids, eq(raidLogs.raidId, raids.raidId))
-        .where(eq(raids.raidId, input))
+        .leftJoin(raidAttendeeMap, eq(characters.characterId, raidAttendeeMap.primaryCharacterId))
+        .where(eq(raidAttendeeMap.raidId, input))
+        .orderBy(characters.slug)
       return attendees ?? null;
     }),
 
@@ -129,7 +127,8 @@ export const raidRouter = createTRPCRouter({
         startTimeUTC: z.date(),
         endTimeUTC: z.date(),
         createdVia: z.string(),
-        participants: z.array(
+        participants: z.record(
+          z.string(),
           z.object({
             characterId: z.number(),
             name: z.string(),
@@ -157,7 +156,7 @@ export const raidRouter = createTRPCRouter({
         .onConflictDoNothing();
 
       await ctx.db.insert(characters)
-        .values(input.participants.map((participant) => {
+        .values(Object.values(input.participants).map((participant) => {
           return {
               characterId: participant.characterId,
               name: participant.name,
@@ -173,7 +172,7 @@ export const raidRouter = createTRPCRouter({
         .onConflictDoNothing({target: characters.characterId});
 
       await ctx.db.insert(raidLogAttendeeMap)
-        .values(input.participants.map((participant) => {
+        .values(Object.values(input.participants).map((participant) => {
           return {
             raidLogId: input.raidLogId,
             characterId: participant.characterId,

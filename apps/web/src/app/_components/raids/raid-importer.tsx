@@ -3,7 +3,7 @@
 import type {FormEvent } from "react";
 import { useState} from "react";
 import { api } from "~/trpc/react";
-import LabeledArrayCodeBlock from "~/app/ui/misc/codeblock";
+import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
 
 const exampleRaidLogIds = [
   "kY1KV3jMgPzQaXFW",
@@ -67,7 +67,7 @@ export function RaidImporter() {
     isLoading,
     isError,
     error,
-  } = api.wcl.getRaidbyId.useQuery(
+  } = api.wcl.getRaidById.useQuery(
     { id: submittedReportId },
     { enabled: !!submittedReportId } // Fetch only if a reportId is submitted
   );
@@ -80,7 +80,7 @@ export function RaidImporter() {
   const handleSave = () => {
     if (raidReport) {
       saveRaid({
-        raidLogId: raidReport.logId,
+        raidLogId: raidReport.raidLogId,
         name: raidReport.title,
         raidId: undefined,
         kills: raidReport.kills,

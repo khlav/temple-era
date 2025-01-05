@@ -1,7 +1,7 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import {CharacterList} from "~/app/ui/players/characterlist";
+import {CharacterList} from "~/app/_components/players/characterlist";
 
 export default async function PlayersIndex() {
   const session = await auth();

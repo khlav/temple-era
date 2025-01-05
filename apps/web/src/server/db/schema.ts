@@ -1,5 +1,8 @@
 import * as AuthSchema from "~/server/db/models/auth-schema";
 import * as RaidSchema from "~/server/db/models/raid-schema";
+import * as ViewsSchema from "~/server/db/models/views-schema";
+
+// NOTE: views-schema is defined but not imported due to Drizzle
 
 export const {
   // Tables
@@ -22,9 +25,6 @@ export const {
   raidBenchMap,
   characters,
 
-  // Views
-  raidAttendeesMap,
-
   // Relations
   raidsRelations,
   raidLogsRelations,
@@ -36,3 +36,7 @@ export const {
   createdViaEnum,
   updatedViaEnum,
 } = RaidSchema;
+
+export const {
+  raidAttendeeMap,
+} = ViewsSchema;
