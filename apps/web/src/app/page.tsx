@@ -63,26 +63,26 @@ const attendanceData: AttendanceData[] = [
 const AttendanceTable: React.FC = () => {
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Rolling 6 Week Attendance (11/21 - 01/03) <span className="text-lg text-slate-400">[STATIC EXAMPLE]</span> </h1>
-      <table className="max-w-lg border border-gray-300 text-left text-nowrap">
+      <h2 className="text-2xl font-bold mb-4">Rolling 6 Week Attendance (11/21 - 01/03) <span className="text-lg ">[STATIC EXAMPLE]</span> </h2>
+      <table className="max-w-lg border  text-left text-nowrap">
         <thead>
-        <tr className="bg-gray-200">
-          <th className="border border-gray-300 px-4 py-2">Character</th>
-          <th className="border border-gray-300 px-4 py-2">Raid Count</th>
-          <th className="border border-gray-300 px-4 py-2">Raid Attended</th>
-          <th className="border border-gray-300 px-4 py-2">Attendance Pct</th>
+        <tr className="">
+          <th className="border  px-4 py-2">Character</th>
+          <th className="border  px-4 py-2">Raid Count</th>
+          <th className="border  px-4 py-2">Raid Attended</th>
+          <th className="border  px-4 py-2">Attendance Pct</th>
         </tr>
         </thead>
         <tbody>
         {attendanceData.map((item, index) => (
           <tr
             key={index}
-            className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+            className={index % 2 === 0 ? "" : ""}
           >
-            <td className="border border-gray-300 px-4 py-2 text-left">{item.character}</td>
-            <td className="border border-gray-300 px-4 py-2 text-right">{item.raidCount}</td>
-            <td className="border border-gray-300 px-4 py-2 text-right">{item.raidAttended}</td>
-            <td className="border border-gray-300 px-4 py-2 text-right">{item.attendancePct.toFixed(1)}%</td>
+            <td className="border  px-4 py-2 text-left">{item.character}</td>
+            <td className="border  px-4 py-2 text-right">{item.raidCount}</td>
+            <td className="border  px-4 py-2 text-right">{item.raidAttended}</td>
+            <td className="border  px-4 py-2 text-right">{item.attendancePct.toFixed(1)}%</td>
           </tr>
         ))}
         </tbody>
@@ -94,8 +94,8 @@ const AttendanceTable: React.FC = () => {
 export default async function HomePage() {
   return (
     <main>
-      <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem] text-center">
-        Home
+      <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem] mb-8">
+        Dashboard
       </h1>
       <AttendanceTable />
     </main>

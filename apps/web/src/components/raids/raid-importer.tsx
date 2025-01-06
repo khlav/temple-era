@@ -3,7 +3,7 @@
 import type {FormEvent } from "react";
 import { useState} from "react";
 import { api } from "~/trpc/react";
-import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
+import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 
 const exampleRaidLogIds = [
   "kY1KV3jMgPzQaXFW",

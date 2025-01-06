@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
+import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 
 export function CharacterDetail({characterId}: {characterId: number}) {
   const { data: character, isLoading, isError, error } = api.character.getCharacterById.useQuery(characterId);

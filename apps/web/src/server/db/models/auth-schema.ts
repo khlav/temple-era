@@ -11,7 +11,6 @@ import {
   varchar,
   boolean, uniqueIndex,
 } from "drizzle-orm/pg-core";
-import {IdPkAsUUID } from "~/server/db/helpers";
 import { type AdapterAccount } from "next-auth/adapters";
 import {characters} from "~/server/db/models/raid-schema";
 /*
@@ -19,21 +18,25 @@ import {characters} from "~/server/db/models/raid-schema";
  */
 const tableCreator = pgTableCreator((name) => `auth_${name}`)
 
-export const users = tableCreator("user", {
-  ...IdPkAsUUID,
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).notNull(),
-  emailVerified: timestamp("email_verified", {
-    mode: "date",
-    withTimezone: true,
-  }).default(sql`CURRENT_TIMESTAMP`),
-  image: varchar("image", { length: 255 }),
-  isAdmin: boolean("is_admin").default(false),
-  characterId: integer("character_id"),
-},
+export const users = tableCreator(
+  "user",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: varchar("name", { length: 255 }),
+    email: varchar("email", { length: 255 }),
+    emailVerified: timestamp("email_verified", {
+      mode: "date",
+      withTimezone: true,
+    }).default(sql`CURRENT_TIMESTAMP`),
+    image: varchar("image", { length: 255 }),
+    isAdmin: boolean("is_admin").default(false),
+    characterId: integer("character_id"),
+  },
   (user) => ({
-    idIdx: uniqueIndex("user__id_idx").on(user.id)
-  })
+    idIdx: uniqueIndex("user__id_idx").on(user.id),
+  }),
 );
 
 export const usersRelations = relations(users, ({ one, many }) => ({

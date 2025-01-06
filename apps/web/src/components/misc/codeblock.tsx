@@ -4,7 +4,7 @@ export default function LabeledArrayCodeBlock({ label, value }: { label: string;
       <strong>
         {label}{ value.length ? ` (${value.length})` : ""}:
       </strong>
-      <code className="block bg-gray-100 p-2 rounded">
+      <code className="block p-2 rounded whitespace-pre overflow-auto bg-secondary">
         {JSON.stringify(value, null, 2)}
       </code>
     </div>

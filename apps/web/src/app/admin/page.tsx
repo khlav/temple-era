@@ -4,9 +4,9 @@ import { auth } from "~/server/auth";
 export default function AdminPage() {
   return (
       <main>
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem] text-center">
+          <h2 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
             Admin
-          </h1>
+          </h2>
       </main>
   );
 }

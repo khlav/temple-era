@@ -2,7 +2,6 @@
 
 import type { FormEvent } from "react";
 import { useState} from "react";
-import { RaidLogReport } from "~/server/api/interfaces/raid";
 import { api } from "~/trpc/react";
 
 interface Raid {
@@ -13,7 +12,7 @@ interface Raid {
 }
 
 
-export function CreateRaid() {
+export function EditRaid() {
 
   return (
     <></>
