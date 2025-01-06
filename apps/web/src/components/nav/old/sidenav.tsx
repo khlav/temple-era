@@ -1,7 +1,7 @@
 import Link from "next/link";
-import NavLinks from "~/app/_components/nav/nav-links";
-import AdminLinks from "~/app/_components/nav/admin-links";
-import UserAvatar from "~/app/_components/nav/user-avatar";
+import NavLinks from "~/components/nav/old/nav-links";
+import AdminLinks from "~/components/nav/old/admin-links";
+import UserAvatar from "~/components/ui/user-avatar";
 
 import { PowerIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { auth } from "~/server/auth";

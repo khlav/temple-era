@@ -1,8 +1,8 @@
 "use client";
 import { api } from "~/trpc/react";
-import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
+import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 
-export function RaidDetail({raidId}: {raidId: number}) {
+export function RaidInfo({raidId}: {raidId: number}) {
   const { data: raidDetail, isLoading, isError, error } = api.raid.getRaidById.useQuery(raidId);
   const { data: raidLogs } = api.raid.getRaidLogsByRaidId.useQuery(raidId);
   const { data: attendees } = api.raid.getRaidAttendeesByRaidId.useQuery(raidId);

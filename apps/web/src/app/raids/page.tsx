@@ -1,30 +1,27 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import { RaidList } from "~/app/_components/raids/raid-list";
+import { RaidList } from "~/components/raids/raid-list";
 import Link from "next/link";
+import { Button } from "~/components/ui/button";
 
 export default async function RaidIndex() {
   const session = await auth();
 
-
   return (
     <HydrateClient>
       <main className="w-full px-4">
-        <h1 className="text-center text-5xl font-extrabold tracking-tight sm:text-[5rem] mb-8">
+        <h1 className="mb-8 text-5xl font-extrabold tracking-tight sm:text-[5rem]">
           Raids
         </h1>
         <div className="w-full">
-          { session?.user?.isAdmin && (
-          <div className="pl-2 pb-4">
-            <Link
-              href={`/raids/new`}
-              className="rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-            >
-             + New Raid from WCL link
-            </Link>
-          </div>
-            )}
+          {session?.user?.isAdmin && (
+            <div className="pb-4 pl-2">
+              <Button asChild className="accent-accent">
+                <Link href={`/raids/new`}> + New Raid from WCL link</Link>
+              </Button>
+            </div>
+          )}
           <RaidList />
         </div>
       </main>

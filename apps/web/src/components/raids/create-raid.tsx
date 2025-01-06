@@ -3,7 +3,7 @@
 import {FormEvent, useEffect} from "react";
 import {useState} from "react";
 import {api} from "~/trpc/react";
-import LabeledArrayCodeBlock from "~/app/_components/misc/codeblock";
+import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import {
   Raid,
   RaidLogCollection,
@@ -195,12 +195,12 @@ return (
         <div className="mt-8">
           <div className="space-y-8 p-4">
             {/* Raid Detail Input */}
-            <div className="mx-auto max-w-xl rounded-lg bg-white p-6 shadow-md">
+            <div className="mx-auto max-w-xl rounded-lg p-6 shadow-md">
               <form>
                 <div className="mb-4">
                   <label
                     htmlFor="raidName"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium "
                   >
                     Raid Name
                   </label>
@@ -226,7 +226,7 @@ return (
                         className="border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         onChange={handleWeightChange}
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm ">
                           Attendance Raid
                         </span>
                     </label>
@@ -238,7 +238,7 @@ return (
                         className="border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         onChange={handleWeightChange}
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm ">
                           Optional Raid
                         </span>
                     </label>
@@ -251,7 +251,7 @@ return (
                         id="customWeightRadio"
                         onChange={handleWeightChange}
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm ">
                           Custom
                         </span>
                     </label>
@@ -275,7 +275,7 @@ return (
                 <div className="mb-4">
                   <label
                     htmlFor="raidDate"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium "
                   >
                     Date
                   </label>
@@ -292,7 +292,7 @@ return (
                 <div className="mt-6">
                   <button
                     type="submit"
-                    className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                    className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
                     onClick={(e) => {
                       e.preventDefault();
                     }}
@@ -303,8 +303,8 @@ return (
               </form>
             </div>
             {/* General Information */}
-            <div className="rounded-md bg-gray-100 p-6 shadow-md">
-              <h2 className="mb-4 text-lg font-bold text-gray-800">
+            <div className="rounded-md p-6 shadow-md ">
+              <h2 className="mb-4 text-lg font-bold ">
                 WCL Raid Report Info
               </h2>
               <p>
@@ -325,7 +325,7 @@ return (
                 {new Date(endTimeUTC).toLocaleString()}
               </p>
               <div className="mt-4">
-                <h3 className="text-md font-semibold text-gray-700">
+                <h3 className="font-semibold ">
                   Kills:
                 </h3>
                 <ul className="list-inside list-disc">
@@ -337,24 +337,24 @@ return (
             </div>
 
             {/* Participants Table */}
-            <div className="rounded-md bg-white p-6 shadow-md">
-              <h2 className="mb-4 text-lg font-bold text-gray-800">
+            <div className="rounded-md p-6 shadow-md">
+              <h2 className="mb-4 text-lg font-bold ">
                 Participants
               </h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 border border-gray-300 text-left text-sm">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y  border  text-left text-sm">
+                  <thead className="">
                   <tr>
-                    <th className="px-4 py-2 font-semibold text-gray-700">
+                    <th className="px-4 py-2 font-semibold ">
                       Name
                     </th>
-                    <th className="px-4 py-2 font-semibold text-gray-700">
+                    <th className="px-4 py-2 font-semibold ">
                       Class
                     </th>
-                    <th className="px-4 py-2 font-semibold text-gray-700">
+                    <th className="px-4 py-2 font-semibold ">
                       Class Detail
                     </th>
-                    <th className="px-4 py-2 font-semibold text-gray-700">
+                    <th className="px-4 py-2 font-semibold ">
                       Server
                     </th>
                   </tr>
@@ -365,7 +365,7 @@ return (
                     .map((participant) => (
                       <tr
                         key={participant.characterId}
-                        className="odd:bg-gray-50 even:bg-gray-100"
+                        className=""
                       >
                         <td className="px-4 py-2">{participant.name}</td>
                         <td className="px-4 py-2">{participant.class}</td>

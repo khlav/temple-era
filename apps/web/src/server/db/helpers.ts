@@ -10,14 +10,12 @@ export const IdPkAsUUID = {
 
 export const CreatedBy = {
   createdById: uuid("created_by")
-      .notNull()
-      .references(() => users.id)
+      .references(() => users.id, { onDelete: 'set null'})
 };
 
 export const UpdatedBy = {
   updatedById: uuid("updated_by")
-    .notNull()
-    .references(() => users.id)
+    .references(() => users.id, { onDelete: 'set null'})
 };
 
 

@@ -1,32 +1,61 @@
-import "~/app/ui/globals.css";
+import "~/app/globals.css";
 
 import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
-import SideNav from "~/app/_components/nav/sidenav";
+import { ThemeProvider } from "~/components/ui/theme-provider";
+import { AppSidebar } from "~/components/nav/app-sidebar";
+import {SidebarInset, SidebarProvider, SidebarTrigger} from "~/components/ui/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import {Separator} from "~/components/ui/separator";
+import { GeistSans } from "geist/font/sans";
+import {cookies} from "next/headers";
+import {AppHeader} from "~/components/nav/app-header";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance",
   icons: [{ rel: "icon", url: "/favicon/favicon.ico" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
+
   return (
-    <html lang="en" className="">
-      <body>
+    <html
+      lang="en"
+      className={GeistSans.className}
+      suppressHydrationWarning={true}
+    >
+      <body className="flex h-screen">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <TRPCReactProvider>
-            <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
-              <div className="w-full flex-none md:w-64">
-                <SideNav />
-              </div>
-              <div className="flex-grow p-6 md:overflow-y-auto md:p-12">
-                {children}
-              </div>
-            </div>
+            <SidebarProvider defaultOpen={defaultOpen}>
+              <AppSidebar side="left" collapsible="icon"  />
+              <SidebarInset>
+                <AppHeader />
+                <div className="flex-1 flex-col gap-4 p-4 pt-0">
+                  {children}
+                </div>
+              </SidebarInset>
+            </SidebarProvider>
           </TRPCReactProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
