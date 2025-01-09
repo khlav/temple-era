@@ -4,7 +4,7 @@ import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 
 export function RaidInfo({raidId}: {raidId: number}) {
   const { data: raidDetail, isLoading, isError, error } = api.raid.getRaidById.useQuery(raidId);
-  const { data: raidLogs } = api.raid.getRaidLogsByRaidId.useQuery(raidId);
+  const { data: raidLogs } = api.raidLog.getRaidLogsByRaidId.useQuery(raidId);
   const { data: attendees } = api.raid.getRaidAttendeesByRaidId.useQuery(raidId);
 
   return (
@@ -29,6 +29,5 @@ export function RaidInfo({raidId}: {raidId: number}) {
         </div>
       )}
     </div>
-  )
-    ;
+  );
 }

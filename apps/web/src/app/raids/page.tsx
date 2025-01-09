@@ -1,9 +1,10 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import { RaidList } from "~/components/raids/raid-list";
+import { RaidList } from "~/components/raids/old/raid-list";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
+import { AllRaids } from "~/components/raids/all-raids";
 
 export default async function RaidIndex() {
   const session = await auth();
@@ -11,19 +12,17 @@ export default async function RaidIndex() {
   return (
     <HydrateClient>
       <main className="w-full px-4">
-        <h1 className="mb-8 text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-          Raids
-        </h1>
-        <div className="w-full">
-          {session?.user?.isAdmin && (
-            <div className="pb-4 pl-2">
+        <div className="flex gap-4">
+          <div className="grow-0 pb-4 text-3xl font-bold">Raids</div>
+          <div className="grow">
+            {session?.user?.isAdmin && (
               <Button asChild className="accent-accent">
-                <Link href={`/raids/new`}> + New Raid from WCL link</Link>
+                <Link href={`/raids/new`}> + New from Warcraft Logs link</Link>
               </Button>
-            </div>
-          )}
-          <RaidList />
+            )}
+          </div>
         </div>
+        <AllRaids />
       </main>
     </HydrateClient>
   );

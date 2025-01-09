@@ -74,6 +74,7 @@ export default {
   variants: {
     extend: {
       opacity: ['disabled'],
+			display: ["group-hover"],
     }
   },
   plugins: [require("tailwindcss-animate")],

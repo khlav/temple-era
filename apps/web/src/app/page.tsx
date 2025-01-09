@@ -63,7 +63,7 @@ const attendanceData: AttendanceData[] = [
 const AttendanceTable: React.FC = () => {
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Rolling 6 Week Attendance (11/21 - 01/03) <span className="text-lg ">[STATIC EXAMPLE]</span> </h2>
+      <div className="text-xl font-bold mb-4">Rolling 6 Week Attendance (11/21 - 01/03) <span className="text-lg ">[STATIC EXAMPLE]</span> </div>
       <table className="max-w-lg border  text-left text-nowrap">
         <thead>
         <tr className="">
@@ -94,9 +94,9 @@ const AttendanceTable: React.FC = () => {
 export default async function HomePage() {
   return (
     <main>
-      <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem] mb-8">
+      <div className="text-3xl font-bold mb-4">
         Dashboard
-      </h1>
+      </div>
       <AttendanceTable />
     </main>
   );

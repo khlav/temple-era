@@ -41,7 +41,7 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem >
-              <Image src="/img/temple_256.jpeg" width={512} height={512} alt={"Temple"} className="rounded-xl"/>
+              <Image src="/img/temple_256.jpeg" width={512} height={512} alt={"Temple"} className="rounded-xl" priority/>
               <div className="py-2 px-1 font-bold whitespace-nowrap overflow-hidden text-center group-data-[collapsible=icon]:hidden">Temple Raid Tracking</div>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -13,6 +13,7 @@ import {
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {ChartBarSquareIcon} from "@heroicons/react/24/outline";
+import React from "react";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -27,7 +28,7 @@ export const AppHeader = () => {
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem key="home">
+          <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link href="/">
                 <ChartBarSquareIcon width={20} height={20} />
@@ -35,20 +36,20 @@ export const AppHeader = () => {
             </BreadcrumbLink>
           </BreadcrumbItem>
           {parentPathParts.map((part, i) => (
-            <>
-              <BreadcrumbSeparator className="hidden md:block" key={`sep_${i}`}/>
-              <BreadcrumbItem className="hidden md:block" key={part+i.toString()}>
+            <React.Fragment key={`breadcrumb_${i}`}>
+              <BreadcrumbSeparator className="hidden md:block"/>
+              <BreadcrumbItem className="hidden md:block" >
                 <BreadcrumbLink asChild>
                   <Link href={"/" + pathParts.slice(0, i + 1).join("/")}>
                     {capitalize(part)}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-            </>
+            </React.Fragment >
           ))}
           {currentPathPart ? (
             <>
-              <BreadcrumbSeparator key={`sep_current`}/>
+              <BreadcrumbSeparator/>
               <BreadcrumbItem key={currentPathPart}>
                 <BreadcrumbPage>{capitalize(currentPathPart)}</BreadcrumbPage>
               </BreadcrumbItem>

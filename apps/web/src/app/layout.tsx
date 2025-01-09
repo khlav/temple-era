@@ -6,19 +6,15 @@ import { TRPCReactProvider } from "~/trpc/react";
 
 import { ThemeProvider } from "~/components/ui/theme-provider";
 import { AppSidebar } from "~/components/nav/app-sidebar";
-import {SidebarInset, SidebarProvider, SidebarTrigger} from "~/components/ui/sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import {Separator} from "~/components/ui/separator";
+  SidebarInset,
+  SidebarProvider,
+} from "~/components/ui/sidebar";
 import { GeistSans } from "geist/font/sans";
-import {cookies} from "next/headers";
-import {AppHeader} from "~/components/nav/app-header";
+import { cookies } from "next/headers";
+import { AppHeader } from "~/components/nav/app-header";
+import { Toaster } from "~/components/ui/toaster";
+import { TooltipProvider } from "~/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance",
@@ -28,8 +24,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const cookieStore = await cookies()
-  const defaultOpen = cookieStore.get("sidebar:state")?.value === "true"
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar:state")?.value === "true";
 
   return (
     <html
@@ -45,15 +41,16 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TRPCReactProvider>
-            <SidebarProvider defaultOpen={defaultOpen}>
-              <AppSidebar side="left" collapsible="icon"  />
-              <SidebarInset>
-                <AppHeader />
-                <div className="flex-1 flex-col gap-4 p-4 pt-0">
-                  {children}
-                </div>
-              </SidebarInset>
-            </SidebarProvider>
+            <TooltipProvider>
+              <SidebarProvider defaultOpen={defaultOpen}>
+                <AppSidebar side="left" collapsible="icon" />
+                <SidebarInset>
+                  <AppHeader />
+                  <div className="max-w-screen-xl pl-4">{children}</div>
+                </SidebarInset>
+                <Toaster duration={5000} />
+              </SidebarProvider>
+            </TooltipProvider>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

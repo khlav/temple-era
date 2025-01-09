@@ -25,10 +25,36 @@ const handler = (req: NextRequest) =>
       env.NODE_ENV === "development"
         ? ({ path, error }) => {
             console.error(
-              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
+              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
             );
           }
         : undefined,
+
+    // TO-DO : Caching queries -- https://trpc.io/docs/server/caching
+    // Below is a modified/simplified version we created then commented out.
+    // Be sure to invalidate mutations (just to be safe).
+
+    // responseMeta(opts) {
+    //   const { errors, type } = opts;
+    //   // checking that no procedures errored
+    //   const allOk = errors.length === 0;
+    //   // checking we're doing a query request
+    //   const isQuery = type === "query";
+    //   // Modified!
+    //   if (allOk && isQuery) {
+    //     // cache request for 1 day + revalidate once every second
+    //     const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
+    //     return {
+    //       headers: new Headers([
+    //         [
+    //           "cache-control",
+    //           `s-maxage=1, stale-while-revalidate=${ONE_DAY_IN_SECONDS}`,
+    //         ],
+    //       ]),
+    //     };
+    //   }
+    //   return {};
+    // },
   });
 
 export { handler as GET, handler as POST };

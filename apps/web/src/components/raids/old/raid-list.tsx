@@ -56,7 +56,6 @@ export function RaidList() {
                     <UserAvatar
                       name={raid.creator?.name ?? ""}
                       image={raid.creator?.image ?? ""}
-                      extraInfo={raid.creator?.character?.name ?? undefined}
                     />
                   </td>
                 </tr>

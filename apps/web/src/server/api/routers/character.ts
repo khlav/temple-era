@@ -3,10 +3,21 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {eq, sql} from "drizzle-orm";
 import anyAscii from "any-ascii";
 import {characters, raidLogAttendeeMap, raidLogs, raids} from "~/server/db/schema";
-
+import {RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
 export const Slugify = (value: string) => {
   return anyAscii(value).toLowerCase();
 };
+
+export const convertParticipantArrayToCollection = (
+  participants: RaidParticipant[],
+) => {
+  return participants.reduce((acc, rel) => {
+    const participant = rel;
+    acc[participant.characterId] = participant;
+    return acc;
+  }, {} as RaidParticipantCollection);
+};
+
 
 export const character = createTRPCRouter({
   getCharacters: publicProcedure.query(async ({ ctx }) => {
@@ -19,8 +30,9 @@ export const character = createTRPCRouter({
         class: true,
         characterId: true,
       },
-    });
-    return characters ?? null;
+    }) as RaidParticipant[];
+
+    return convertParticipantArrayToCollection(characters) ?? null;
   }),
 
   getCharacterById: publicProcedure

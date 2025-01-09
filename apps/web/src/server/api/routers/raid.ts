@@ -4,9 +4,16 @@ import {
   publicProcedure,
   adminProcedure,
 } from "~/server/api/trpc";
-import {raidLogs, raidAttendeeMap, characters, raidLogAttendeeMap, raids} from "~/server/db/schema";
+import {
+  raidLogs,
+  raidAttendeeMap,
+  characters,
+  raidLogAttendeeMap,
+  raids,
+} from "~/server/db/schema";
+import { EmptyRaid, Raid } from "~/server/api/interfaces/raid";
 import anyAscii from "any-ascii";
-import {eq} from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // TO-DO -- look into this solution for updating insert conflicts:
 
@@ -40,12 +47,13 @@ import {eq} from "drizzle-orm";
 //     target: column.id,
 //   });
 
-export const Slugify = (value: string) => { return anyAscii(value).toLowerCase(); };
+export const Slugify = (value: string) => {
+  return anyAscii(value).toLowerCase();
+};
 
 export const raid = createTRPCRouter({
-
-  getRaids: publicProcedure.query( async ({ ctx }) => {
-    const raids = await ctx.db.query.raids.findMany({
+  getRaids: publicProcedure.query(async ({ ctx }) => {
+    const raids = (await ctx.db.query.raids.findMany({
       orderBy: (raids, { desc }) => [desc(raids.date)],
       columns: {
         createdById: false,
@@ -57,47 +65,46 @@ export const raid = createTRPCRouter({
         creator: {
           columns: {
             name: true,
-            image: true
-          },
-          with: {
-            character: {
-              columns: {
-                name: true,
-                slug: true,
-                isPrimary: true
-              },
-            },
+            image: true,
           },
         },
       },
-    });
+    })) as Raid[];
     return raids ?? null;
   }),
 
   getRaidById: publicProcedure
     .input(z.number())
-    .query( async ({ ctx, input }) => {
-      const raid = await ctx.db
-        .select()
+    .query(async ({ ctx, input }) => {
+      const initialRaidResult = await ctx.db
+        .select({
+          raidId: raids.raidId,
+          name: raids.name,
+          date: raids.date,
+          zone: raids.zone,
+          attendanceWeight: raids.attendanceWeight,
+        })
         .from(raids)
         .where(eq(raids.raidId, input))
-      return raid ?? null;
-    }),
+        .limit(1);
 
-  getRaidLogsByRaidId: publicProcedure
-    .input(z.number())
-    .query( async ({ ctx, input }) => {
-      const logs = await ctx.db
-        .select()
+      const raidLogsResult = await ctx.db
+        .select({
+          raidLogId: raidLogs.raidLogId,
+        })
         .from(raidLogs)
-        .where(eq(raidLogs.raidId, input))
-      return logs ?? null;
+        .where(eq(raidLogs.raidId, input));
+      console.log(raidLogsResult);
+
+      return {
+        ...(initialRaidResult[0] ?? EmptyRaid()),
+        raidLogIds: raidLogsResult.map(({ raidLogId }) => raidLogId),
+    } as Raid;
     }),
 
   getRaidAttendeesByRaidId: publicProcedure
     .input(z.number())
-    .query( async ({ ctx, input }) => {
-
+    .query(async ({ ctx, input }) => {
       const attendees = await ctx.db
         .select({
           name: characters.name,
@@ -106,9 +113,12 @@ export const raid = createTRPCRouter({
           characterNames: raidAttendeeMap.characterNames,
         })
         .from(characters)
-        .leftJoin(raidAttendeeMap, eq(characters.characterId, raidAttendeeMap.primaryCharacterId))
+        .leftJoin(
+          raidAttendeeMap,
+          eq(characters.characterId, raidAttendeeMap.primaryCharacterId),
+        )
         .where(eq(raidAttendeeMap.raidId, input))
-        .orderBy(characters.slug)
+        .orderBy(characters.slug);
       return attendees ?? null;
     }),
 
@@ -116,70 +126,4 @@ export const raid = createTRPCRouter({
     const raidLogs = await ctx.db.query.raidLogs.findMany();
     return raidLogs ?? null;
   }),
-
-  insertRaidLogWithAttendees: adminProcedure
-    .input(
-      z.object({
-        raidLogId: z.string().min(1),
-        name: z.string().min(1),
-        raidId: z.number().optional(),
-        kills: z.array(z.string()),
-        startTimeUTC: z.date(),
-        endTimeUTC: z.date(),
-        createdVia: z.string(),
-        participants: z.record(
-          z.string(),
-          z.object({
-            characterId: z.number(),
-            name: z.string(),
-            class: z.string(),
-            classDetail: z.string(),
-            server: z.string()
-          })
-        )
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      // Insert the raids log
-      await ctx.db.insert(raidLogs)
-        // @ts-expect-error Ignore mapping issue
-        .values({
-          raidLogId: input.raidLogId,
-          name: input.name,
-          raidId: input.raidId,
-          kills: input.kills,
-          startTimeUTC: input.startTimeUTC,
-          endTimeUTC: input.endTimeUTC,
-          createdById: ctx.session.user.id,
-          updatedById: ctx.session.user.id,
-        })
-        .onConflictDoNothing();
-
-      await ctx.db.insert(characters)
-        .values(Object.values(input.participants).map((participant) => {
-          return {
-              characterId: participant.characterId,
-              name: participant.name,
-              class: participant.class,
-              classDetail: participant.classDetail,
-              server: participant.server,
-              slug: Slugify(participant.name + '-' + participant.server),
-              createdById: ctx.session.user.id,
-              createdVia: input.createdVia,
-              updatedById: ctx.session.user.id,
-            };
-          }))
-        .onConflictDoNothing({target: characters.characterId});
-
-      await ctx.db.insert(raidLogAttendeeMap)
-        .values(Object.values(input.participants).map((participant) => {
-          return {
-            raidLogId: input.raidLogId,
-            characterId: participant.characterId,
-          };
-        }))
-        .onConflictDoNothing();
-
-
-    }),
 });
