@@ -3,8 +3,9 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import {CreateRaid} from "~/components/raids/create-raid";
+import {redirect} from "next/navigation";
 
-export default async function RaidIndex() {
+export default async function RaidNewPage() {
   const session = await auth();
 
   const sampleLinks = [
@@ -15,6 +16,9 @@ export default async function RaidIndex() {
     "https://vanilla.warcraftlogs.com/reports/vVw7CH2RDc6tn4Pb",
   ];
 
+  if(!session?.user?.isAdmin) {
+    redirect('/raids');
+  }
 
   return (
     <HydrateClient>

@@ -142,7 +142,7 @@ export function RaidEditor({
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 List of characters appearing in WCL logs. <br />
-                Alts are mapped to primary characters when calc'ing attendance.
+                Alts are mapped to primary characters when calc&apos;ing attendance.
               </div>
             </div>
 
