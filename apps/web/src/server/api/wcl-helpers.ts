@@ -95,7 +95,9 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
     })
       return acc;
     }  , {} as RaidParticipantCollection)
-  
+
+  console.log(Object.keys(participantsFromFights).length)
+
   const newReport: RaidLog = {
     name: rawReport.title,
     raidLogId: rawReport.code,
