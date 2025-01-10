@@ -37,6 +37,7 @@ export const raids = tableCreator(
     name: varchar("name", { length: 256 }).notNull(),
     date: date("date").notNull(), // Date of the raids
     attendanceWeight: integer("attendance_weight").default(1).notNull(),
+    zone: varchar("zone").notNull(),
     ...CreatedBy,
     ...UpdatedBy,
     ...DefaultTimestamps,
@@ -48,10 +49,6 @@ export const raids = tableCreator(
 
 export const raidsRelations = relations(raids, ({one, many}) => ({
   raidLogs: many(raidLogs),
-  // TO-DO: raidAttendeeMap: many(raidAttendeeMap) // Distincted view of raids attendees across all raids logs
-
-  // NOTE: Does not work!!!!
-  // ------------------------
   creator: one(users, {
     fields: [raids.createdById],
     references: [users.id]
@@ -65,6 +62,7 @@ export const raidLogs = tableCreator(
     raidId: integer("raid_id")
       .references(() => raids.raidId, { onDelete: 'set null'}),
     name: varchar("name", { length: 256 }).notNull(),
+    zone: varchar("zone"),
     kills: text("kills").array().notNull().default(sql`ARRAY[]::text[]`),
     killCount: integer("killCount").generatedAlwaysAs((): SQL => sql`cardinality(${raidLogs.kills})`),
     startTimeUTC: timestamp("start_time_utc"),
@@ -78,7 +76,12 @@ export const raidLogs = tableCreator(
 );
 
 export const raidLogsRelations = relations(raidLogs, ({one, many}) => ({
-  raid: one(raids),
+  raid: one(raids, {
+    fields: [raidLogs.raidId],
+    references: [raids.raidId],
+  }
+),
+  participants: many(raidLogAttendeeMap),
   raidLogAttendeeMap: many(raidLogAttendeeMap),
   raidBenchMap: many(raidBenchMap),
 }));
@@ -90,7 +93,7 @@ export const raidLogAttendeeMap = tableCreator(
       .references(() => raidLogs.raidLogId, { onDelete: 'cascade' })
       .notNull(),
     characterId: integer("character_id")
-      .references(() => characters.characterId)
+      .references(() => characters.characterId, { onDelete: 'cascade' })
       .notNull(),
     isIgnored: boolean("is_ignored").default(false),
   },
@@ -146,9 +149,9 @@ export const characters = tableCreator(
     characterId: integer("character_id").primaryKey(),
     name: varchar("name", { length: 128 }).notNull(),
     server: varchar("server", { length: 128 }).notNull(),
-    slug: varchar("slug", { length: 256 }),
-    class: varchar("class", { length: 128 }),
-    classDetail: varchar("class_detail", { length: 256 }),
+    slug: varchar("slug", { length: 256 }).notNull(),
+    class: varchar("class", { length: 128 }).notNull(),
+    classDetail: varchar("class_detail", { length: 256 }).notNull(),
     primaryCharacterId: integer("primary_character_id"),
     isPrimary: boolean("is_primary").generatedAlwaysAs((): SQL => {
       return sql`(${characters.characterId} = COALESCE(${characters.primaryCharacterId}, 0)) OR ${characters.primaryCharacterId} IS NULL`
@@ -168,7 +171,7 @@ export const characters = tableCreator(
   })
 );
 
-export const charactersRelations = relations(characters, ({one}) => ({
+export const charactersRelations = relations(characters, ({one, many}) => ({
   primaryCharacter: one(characters, {
     fields: [characters.primaryCharacterId],
     references: [characters.characterId],
@@ -176,5 +179,6 @@ export const charactersRelations = relations(characters, ({one}) => ({
   user: one(users, {
     fields: [characters.characterId],
     references: [users.characterId]
-  })
+  }),
+  bench: many(raidBenchMap)
 }));

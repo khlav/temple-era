@@ -1,7 +1,7 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { wcl} from "~/server/api/routers/wcl";
 import { raid } from "~/server/api/routers/raid";
 import { character } from "~/server/api/routers/character";
+import { raidLog } from "~/server/api/routers/raidlog";
 
 /**
  * This is the primary router for your server.
@@ -9,8 +9,8 @@ import { character } from "~/server/api/routers/character";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  wcl: wcl,
   raid: raid,
+  raidLog: raidLog,
   character: character,
 });
 

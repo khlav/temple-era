@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import BackButton from "~/components/nav/old/back-button";
 
 export default function NotFound() {
   return (
@@ -9,7 +8,6 @@ export default function NotFound() {
         <p className="mt-2 text-md text-gray-600">
           The page you are looking for cannot be found.
         </p>
-        <BackButton label="Back to safety"/>
       </div>
     </div>
   );
