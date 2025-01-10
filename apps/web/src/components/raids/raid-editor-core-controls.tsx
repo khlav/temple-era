@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import {ChangeEvent, FormEvent} from "react";
+import { ChangeEvent, FormEvent } from "react";
+import { PrettyPrintDate } from "~/lib/helpers";
 
 export function RaidEditorCoreControls({
   raidData,
@@ -60,6 +61,9 @@ export function RaidEditorCoreControls({
             onChange={handleInputChangeAction}
             autoComplete="off"
           />
+          <div className="text-center text-xs text-muted-foreground">
+            {PrettyPrintDate(new Date(raidData.date), true)}
+          </div>
         </div>
         <div className="my-auto w-28 grow-0 text-center">
           <Button
@@ -69,8 +73,10 @@ export function RaidEditorCoreControls({
           >
             {isSendingData ? (
               <Loader className="animate-spin" />
+            ) : editingMode === "existing" ? (
+              "Save raid"
             ) : (
-              (editingMode === "existing" ? "Save raid" : "Create raid")
+              "Create raid"
             )}
           </Button>
 

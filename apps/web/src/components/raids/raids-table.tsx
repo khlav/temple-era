@@ -16,7 +16,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { Badge } from "~/components/ui/badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { GenerateWCLReportUrl } from "~/lib/helpers";
+import {GenerateWCLReportUrl, PrettyPrintDate} from "~/lib/helpers";
 
 export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
   return (
@@ -27,10 +27,11 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
         </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-5/12">Raid</TableHead>
-            <TableHead className="w-1/6">Date</TableHead>
-            <TableHead className="w-1/6">Attendance Tracking</TableHead>
-            <TableHead className="w-1/6">Created By</TableHead>
+            <TableHead className="w-4/12">Raid</TableHead>
+            <TableHead className="w-2/12">Zone</TableHead>
+            <TableHead className="w-2/12">Date</TableHead>
+            <TableHead className="w-2/12">Attendance</TableHead>
+            <TableHead className="w-1/12">Created By</TableHead>
             <TableHead className="w-1/12 text-center">WCL</TableHead>
           </TableRow>
         </TableHeader>
@@ -49,12 +50,10 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                     {(r.raidLogIds ?? []).length == 0 && <Badge variant="destructive" className="ml-2">Error: No logs found</Badge>}
                   </TableCell>
                   <TableCell>
-                    {new Date(r.date).toLocaleDateString("en-US", {
-                      timeZone: "UTC",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {r.zone}
+                  </TableCell>
+                  <TableCell>
+                    {PrettyPrintDate(new Date(r.date), true)}
                   </TableCell>
                   <TableCell>
                     <RaidAttendenceWeightBadge
