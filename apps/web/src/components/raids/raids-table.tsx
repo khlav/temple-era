@@ -20,7 +20,7 @@ import {GenerateWCLReportUrl, PrettyPrintDate} from "~/lib/helpers";
 
 export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
   return (
-    <div className="max-h-[600px] overflow-y-auto overflow-x-hidden">
+    <div className="min-h-[600px] max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden">
       <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
         <TableCaption>
           Note: Only Tracked raids are considered for attendance restrictions.
