@@ -1,22 +1,39 @@
-"use client"
+"use client";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import type { Raid } from "~/server/api/interfaces/raid";
+import { Loader, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
+import {ChangeEvent, FormEvent} from "react";
 
 export function RaidEditorCoreControls({
   raidData,
+  isSendingData,
+  editingMode = "new",
   handleInputChangeAction,
   handleWeightChangeAction,
   handleSubmitAction,
-  handleClearAction,
+  handleDeleteAction,
 }: {
   raidData: Raid;
-  handleInputChangeAction?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleWeightChangeAction?: (e: React.FormEvent<HTMLButtonElement>) => void;
+  isSendingData: boolean;
+  editingMode: "new" | "existing";
+  handleInputChangeAction?: (e: ChangeEvent<HTMLInputElement>) => void;
+  handleWeightChangeAction?: (e: FormEvent<HTMLButtonElement>) => void;
   handleSubmitAction: () => void;
-  handleClearAction: () => void;
+  handleDeleteAction: () => void;
   debug?: boolean;
 }) {
   return (
@@ -45,19 +62,44 @@ export function RaidEditorCoreControls({
           />
         </div>
         <div className="my-auto w-28 grow-0 text-center">
-          <Button className="mb-2 w-full" onClick={handleSubmitAction}>
-            {raidData.raidId ? "Save" : "Create"} Raid
+          <Button
+            className="mb-2 w-full"
+            onClick={handleSubmitAction}
+            disabled={isSendingData}
+          >
+            {isSendingData ? (
+              <Loader className="animate-spin" />
+            ) : (
+              (editingMode === "existing" ? "Save raid" : "Create raid")
+            )}
           </Button>
-          {handleClearAction && (
-            <Button
-              size="sm"
-              className="bg-red-950"
-              variant="destructive"
-              onClick={handleClearAction}
-            >
-              Clear Data
-            </Button>
-          )}
+
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <span className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground rounded bg-red-950 px-2 py-1 text-xs transition-colors">
+                {editingMode === "existing" ? "Delete raid" : "Reset"}
+              </span>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Raid info will be lost. <br />
+                  Logs and characters will be hidden until they are used
+                  elsewhere.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-red-800 hover:bg-blend-lighten"
+                  onClick={handleDeleteAction}
+                >
+                  Yes, delete raid information
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <div className="flex gap-4">

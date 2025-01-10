@@ -97,7 +97,8 @@ export default async function HomePage() {
       <div className="text-3xl font-bold mb-4">
         Dashboard
       </div>
-      <AttendanceTable />
+      <div>Dashboard results/calculations pages are not (yet) developed. Stay tuned.</div>
+      {/*<AttendanceTable />*/}
     </main>
   );
 }

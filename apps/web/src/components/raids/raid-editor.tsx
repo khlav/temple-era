@@ -1,4 +1,5 @@
 "use client";
+
 import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import {
   type Raid,
@@ -13,9 +14,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
-import {ChevronsLeft, ChevronsRight, ExternalLinkIcon} from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
-import { useState } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { api } from "~/trpc/react";
 import { CharactersTable } from "~/components/players/characters-table";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
@@ -24,32 +25,71 @@ import Link from "next/link";
 
 export function RaidEditor({
   raidData,
-  handleInputChangeAction,
-  handleWeightChangeAction,
+  setRaidDataAction,
+  isSendingData,
+
+  editingMode = "new",
+
   handleSubmitAction,
-  handleClearAction,
-  handleBenchSelectAction,
-  handleBenchRemoveAction,
+  handleDeleteAction,
   debug,
 }: {
   raidData: Raid;
-  handleInputChangeAction: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleWeightChangeAction: (e: React.FormEvent<HTMLButtonElement>) => void;
+  setRaidDataAction: Dispatch<SetStateAction<Raid>>;
+  isSendingData: boolean;
+
+  editingMode: "new" | "existing";
+
   handleSubmitAction: () => void;
-  handleClearAction: () => void;
-  handleBenchSelectAction: (character: RaidParticipant) => void;
-  handleBenchRemoveAction: (character: RaidParticipant) => void;
+  handleDeleteAction: () => void;
   debug?: boolean;
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const {
-    data: raidParticipants,
-    isSuccess: isSuccessParticipants,
-  } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-    raidData.raidLogIds ?? [],
-    { enabled: (raidData?.raidLogIds ?? []).length > 0 },
-  );
+  // Added functions
+  const handleInputChangeAction = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRaidDataAction((raidData) => ({
+      ...raidData,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleWeightChangeAction = (e: React.FormEvent<HTMLButtonElement>) => {
+    setRaidDataAction((raidData) => ({
+      ...raidData,
+      // @ts-expect-error Value exists, but IDE says not found
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      attendanceWeight: parseInt(e.target.value) ?? 0,
+    }));
+  };
+
+  const handleBenchSelectAction = (character: RaidParticipant) => {
+    setRaidDataAction((raidData) => ({
+      ...raidData,
+      bench: {
+        ...raidData.bench,
+        [character.characterId]: character,
+      },
+    }));
+  };
+
+  const handleBenchRemoveAction = (character: RaidParticipant) => {
+    const newBench = raidData.bench ?? {};
+    delete newBench[character.characterId.toString()];
+
+    setRaidDataAction((raidData) => ({
+      ...raidData,
+      bench: newBench,
+    }));
+  };
+
+  // END added functions
+
+  const { data: raidParticipants, isSuccess: isSuccessParticipants } =
+    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
+      raidData.raidLogIds ?? [],
+      { enabled: (raidData?.raidLogIds ?? []).length > 0 },
+    );
 
   return (
     <>
@@ -57,22 +97,34 @@ export function RaidEditor({
         <div className="w-full">
           <RaidEditorCoreControls
             raidData={raidData}
+            isSendingData={isSendingData}
+            editingMode={editingMode}
             handleInputChangeAction={handleInputChangeAction}
             handleWeightChangeAction={handleWeightChangeAction}
             handleSubmitAction={handleSubmitAction}
-            handleClearAction={handleClearAction}
+            handleDeleteAction={handleDeleteAction}
           />
           <Separator className="my-3" />
           <div className="flex gap-4 xl:flex-nowrap">
-            <div className="grow-0 text-sm text-nowrap">WCL reports:</div>
+            <div className="grow-0 text-nowrap text-sm">WCL reports:</div>
             <div className="shrink overflow-x-hidden">
               {(raidData.raidLogIds ?? []).map((raidLogId) => {
-                const reportUrl = GenerateWCLReportUrl(raidLogId)
+                const reportUrl = GenerateWCLReportUrl(raidLogId);
                 return (
-                  <div key={raidLogId} className="text-muted-foreground text-sm hover:underline hover:text-primary transition-all duration-100 group">
-                    <Link href={reportUrl} target="_blank" rel="noopener noreferrer">
+                  <div
+                    key={raidLogId}
+                    className="text-muted-foreground hover:text-primary group text-sm transition-all duration-100 hover:underline"
+                  >
+                    <Link
+                      href={reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       {reportUrl}
-                      <ExternalLinkIcon className="hidden group-hover:inline-block ml-1 align-text-top " size={15}/>
+                      <ExternalLinkIcon
+                        className="ml-1 hidden align-text-top group-hover:inline-block"
+                        size={15}
+                      />
                     </Link>
                   </div>
                 );
@@ -93,6 +145,9 @@ export function RaidEditor({
                 Alts are mapped to primary characters when calc'ing attendance.
               </div>
             </div>
+
+            <Separator className="my-1 xl:hidden" />
+
             <div className="w-full xl:w-1/2">
               <div className="grow-0">Benched Characters:</div>
               <div className="grow">
@@ -110,11 +165,12 @@ export function RaidEditor({
       <div className="w-full">
         <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
           <CollapsibleTrigger>
-            <div className="inline-flex">
+            <div className="text-primary inline-flex">
               Preview {previewOpen ? <ChevronsLeft /> : <ChevronsRight />}
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent>
+            <Separator className="mx-auto my-2 w-[90%]" />
             <RaidDetailBase raidData={raidData} isPreview />
           </CollapsibleContent>
         </Collapsible>

@@ -29,8 +29,9 @@ const coreItems = [
   { title: "Players", url: "/players", icon: UserGroupIcon },
 ];
 
+const adminSectionTitle = "Admin Tools";
 const adminLinks = [
-  { title: "Import Raid Log", url: "/admin/logimport", icon: ArrowDownTrayIcon },
+  { title: "Import/Refresh WCL Log", url: "/admin/logimport", icon: ArrowDownTrayIcon },
 ];
 
 export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -40,9 +41,18 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
     <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem >
-              <Image src="/img/temple_256.jpeg" width={512} height={512} alt={"Temple"} className="rounded-xl" priority/>
-              <div className="py-2 px-1 font-bold whitespace-nowrap overflow-hidden text-center group-data-[collapsible=icon]:hidden">Temple Raid Tracking</div>
+          <SidebarMenuItem>
+            <Image
+              src="/img/temple_256.jpeg"
+              width={512}
+              height={512}
+              alt={"Temple"}
+              className="rounded-xl"
+              priority
+            />
+            <div className="overflow-hidden whitespace-nowrap px-1 py-2 text-center font-bold group-data-[collapsible=icon]:hidden">
+              Temple Raid Tracking
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -65,7 +75,7 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
         </SidebarGroup>
         {session?.user?.isAdmin ? (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel>{adminSectionTitle}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminLinks.map((item) => (
@@ -86,7 +96,9 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
         )}
       </SidebarContent>
       <SidebarFooter>
-        <div className="m-auto"><ModeToggle /></div>
+        <div className="m-auto">
+          <ModeToggle />
+        </div>
         <AppSidebarLogin session={session} />
       </SidebarFooter>
     </Sidebar>

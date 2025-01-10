@@ -1,20 +1,90 @@
 "use client";
 
-import type { FormEvent } from "react";
-import { useState} from "react";
+import {FormEvent, useEffect} from "react";
+import { useState } from "react";
 import { api } from "~/trpc/react";
+import { RaidEditor } from "~/components/raids/raid-editor";
+import {EmptyRaid, Raid, RaidParticipant} from "~/server/api/interfaces/raid";
+import {useRouter} from "next/navigation";
+import {toastRaidDeleted} from "~/components/raids/raid-toasts";
+import {useToast} from "~/hooks/use-toast";
 
-interface Raid {
-  name: string;
-  date: Date;
-  attendance_weight: number;
-  raidLogs: Raid
-}
+export function EditRaid({ raidId }: { raidId: number }) {
+  const router = useRouter();
+  const utils = api.useUtils();
+  const {toast} = useToast();
 
+  const [sendingData, setSendingData] = useState(false);
+  const [raidData, setRaidData] = useState<Raid>(EmptyRaid());
 
-export function EditRaid() {
+  const updateRaid = api.raid.updateRaid.useMutation({
+    onError: (error) => {
+      alert(error.message);
+      setSendingData(false);
+    },
+    onSuccess: async (result) => {
+      await utils.invalidate(undefined, { refetchType: "all"});
+      router.push(result.raid ? `/raids/${result.raid.raidId}` : "/raids");
+    },
+  });
+
+  const deleteRaid = api.raid.delete.useMutation({
+    onError: (error) => {
+      alert(error.message);
+      setSendingData(false);
+    },
+    onSuccess: async (result) => {
+      await utils.invalidate(undefined, { refetchType: "all"});
+      toastRaidDeleted(toast, raidData)
+      router.push("/raids");
+    },
+  });
+
+  const handleSubmitAction = () => {
+    setSendingData(true);
+    updateRaid.mutate({
+      raidId: raidData.raidId ?? -1,
+      name: raidData.name,
+      date: raidData.date,
+      zone: raidData.zone,
+      attendanceWeight: raidData.attendanceWeight,
+      raidLogIds: raidData.raidLogIds ?? [],
+      bench: raidData.bench,
+    });
+  };
+
+  const handleDeleteAction = () => {
+    setSendingData(true);
+    deleteRaid.mutate(raidData.raidId ?? -1);
+  };
+  const {
+    data: fetchedRaidData,
+    isSuccess,
+  } = api.raid.getRaidById.useQuery(raidId);
+
+  useEffect(() => {
+    if (isSuccess && fetchedRaidData) {
+      setRaidData(fetchedRaidData);
+    }
+  }, [isSuccess, fetchedRaidData]);
+
 
   return (
-    <></>
+    <>
+      {fetchedRaidData ? (
+        <RaidEditor
+          raidData={raidData}
+          setRaidDataAction={setRaidData}
+          isSendingData={sendingData}
+          editingMode="existing"
+          handleSubmitAction={handleSubmitAction}
+          handleDeleteAction={handleDeleteAction}
+        />
+      ) : (
+        <div>
+          <div></div>
+        </div>
+      )}
+    </>
   );
 }

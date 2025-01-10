@@ -39,7 +39,14 @@ export const character = createTRPCRouter({
     .input(z.number())
     .query(async ({ ctx, input }) => {
       const character = await ctx.db
-        .select()
+        .select({
+          characterId: characters.characterId,
+          name: characters.name,
+          server: characters.server,
+          slug: characters.slug,
+          class: characters.class,
+          classDetail: characters.classDetail,
+        })
         .from(characters)
         .where(eq(characters.characterId, input));
       return character ?? null;

@@ -46,7 +46,7 @@ export default async function RootLayout({
                 <AppSidebar side="left" collapsible="icon" />
                 <SidebarInset>
                   <AppHeader />
-                  <div className="max-w-screen-xl pl-4">{children}</div>
+                  <div className="max-w-screen-xl p-4">{children}</div>
                 </SidebarInset>
                 <Toaster duration={5000} />
               </SidebarProvider>

@@ -76,7 +76,11 @@ export const raidLogs = tableCreator(
 );
 
 export const raidLogsRelations = relations(raidLogs, ({one, many}) => ({
-  raid: one(raids),
+  raid: one(raids, {
+    fields: [raidLogs.raidId],
+    references: [raids.raidId],
+  }
+),
   participants: many(raidLogAttendeeMap),
   raidLogAttendeeMap: many(raidLogAttendeeMap),
   raidBenchMap: many(raidBenchMap),
@@ -89,7 +93,7 @@ export const raidLogAttendeeMap = tableCreator(
       .references(() => raidLogs.raidLogId, { onDelete: 'cascade' })
       .notNull(),
     characterId: integer("character_id")
-      .references(() => characters.characterId)
+      .references(() => characters.characterId, { onDelete: 'cascade' })
       .notNull(),
     isIgnored: boolean("is_ignored").default(false),
   },
@@ -167,7 +171,7 @@ export const characters = tableCreator(
   })
 );
 
-export const charactersRelations = relations(characters, ({one}) => ({
+export const charactersRelations = relations(characters, ({one, many}) => ({
   primaryCharacter: one(characters, {
     fields: [characters.primaryCharacterId],
     references: [characters.characterId],
@@ -175,5 +179,6 @@ export const charactersRelations = relations(characters, ({one}) => ({
   user: one(users, {
     fields: [characters.characterId],
     references: [users.characterId]
-  })
+  }),
+  bench: many(raidBenchMap)
 }));

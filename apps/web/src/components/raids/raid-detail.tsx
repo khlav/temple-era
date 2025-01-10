@@ -1,10 +1,16 @@
-"use client"
+"use client";
 
 import { EmptyRaid, Raid } from "~/server/api/interfaces/raid";
 import { api } from "~/trpc/react";
 import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 
-export function RaidDetail({ raidId }: { raidId: number }) {
+export function RaidDetail({
+  raidId,
+  showEditButton,
+}: {
+  raidId: number;
+  showEditButton?: boolean;
+}) {
   const {
     data: raidData,
     isSuccess,
@@ -14,7 +20,7 @@ export function RaidDetail({ raidId }: { raidId: number }) {
 
   return (
     <div>
-      {isSuccess && <RaidDetailBase raidData={raidData ?? EmptyRaid()} />}
+      {isSuccess && <RaidDetailBase raidData={raidData ?? EmptyRaid()} showEditButton={showEditButton} />}
     </div>
   );
 }

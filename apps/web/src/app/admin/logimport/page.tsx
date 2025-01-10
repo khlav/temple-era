@@ -5,7 +5,6 @@ import { RaidLogLoader } from "~/components/raids/raidlog-loader";
 export default async function RaidPage() {
   const session = await auth();
 
-
   return (
     <HydrateClient>
       <main className="w-full px-4">
@@ -13,7 +12,7 @@ export default async function RaidPage() {
           Raid Log Import
         </h2>
         <div className="w-full">
-          <RaidLogLoader label="Enter a WCL report URL below to add it (and its characters) to the DB." />
+          <RaidLogLoader label="Enter a WCL report URL to add/refresh the log and participating characters." forceRefresh/>
         </div>
       </main>
     </HydrateClient>

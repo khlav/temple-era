@@ -9,7 +9,7 @@ import {
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import anyAscii from "any-ascii";
 import type { db } from "~/server/db";
-import {eq, inArray} from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
 import {
   GetWCLGraphQLQuery,
@@ -161,24 +161,20 @@ const mutateInsertRaidLogWithAttendees = async (
   await db
     .insert(characters)
     .values(
-      Object.values(input.participants).map((participant) => {
-        return {
-          characterId: participant.characterId,
-          name: participant.name,
-          class: participant.class,
-          classDetail: participant.classDetail,
-          server: participant.server,
-          slug: Slugify(
-            [
-              participant.name,
-              participant.server,
-              participant.characterId.toString(),
-            ].join("-"),
-          ),
-          createdById: session.user.id,
-          updatedById: session.user.id,
-        };
-      }),
+      Object.values(input.participants).map((participant) => ({
+        characterId: participant.characterId,
+        name: participant.name,
+        class: participant.class,
+        classDetail: participant.classDetail,
+        server: participant.server,
+        slug: Slugify(
+          [
+            participant.name,
+            participant.server,
+            participant.characterId.toString(),
+          ].join("-"),
+        ),
+      })),
     )
     .onConflictDoNothing({ target: characters.characterId });
 
@@ -269,24 +265,11 @@ export const raidLog = createTRPCRouter({
         .where(inArray(raidLogAttendeeMap.raidLogId, input));
       return convertParticipantArrayToCollection(allCharacters);
     }),
-  /*
-    Admin procedures
-   */
-  getWclLogById: adminProcedure
-    .input(z.string())
-    .query(async ({ input }) => await queryGetWclLogById(input)),
 
-  importAndGetRaidLogByRaidLogId: adminProcedure
-    .input(z.string())
-    .query(async ({ ctx, input }) => {
-      const logExistsInDb = await queryRaidLogExists(ctx.db, input);
-
-      if (!logExistsInDb) {
-        const wclLog = await queryGetWclLogById(input);
-        await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
-      }
-      return await queryGetRaidLogById(ctx.db, input);
-    }),
+  getRaidLogs: publicProcedure.query(async ({ ctx }) => {
+    const raidLogs = await ctx.db.query.raidLogs.findMany();
+    return raidLogs ?? null;
+  }),
 
   getRaidLogsByRaidId: publicProcedure
     .input(z.number())
@@ -296,6 +279,31 @@ export const raidLog = createTRPCRouter({
         .from(raidLogs)
         .where(eq(raidLogs.raidId, input));
       return logs ?? null;
+    }),
+
+
+  /*
+    Admin procedures
+   */
+  getWclLogById: adminProcedure
+    .input(z.string())
+    .query(async ({ input }) => await queryGetWclLogById(input)),
+
+  importAndGetRaidLogByRaidLogId: adminProcedure
+    .input(
+      z.object({
+        raidLogId: z.string(),
+        forceRaidLogRefresh: z.boolean().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const logExistsInDb = await queryRaidLogExists(ctx.db, input.raidLogId);
+
+      if (!logExistsInDb || input.forceRaidLogRefresh) {
+        const wclLog = await queryGetWclLogById(input.raidLogId);
+        await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
+      }
+      return await queryGetRaidLogById(ctx.db, input.raidLogId);
     }),
 
   insertRaidLogWithAttendees: adminProcedure

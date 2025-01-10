@@ -1,6 +1,7 @@
+"use server";
+
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
-import { RaidLogLoader } from "~/components/raids/raidlog-loader";
 import {CreateRaid} from "~/components/raids/create-raid";
 
 export default async function RaidIndex() {
@@ -13,6 +14,7 @@ export default async function RaidIndex() {
     "https://vanilla.warcraftlogs.com/reports/dWL8TKrRFD9jkvAb",
     "https://vanilla.warcraftlogs.com/reports/vVw7CH2RDc6tn4Pb",
   ];
+
 
   return (
     <HydrateClient>

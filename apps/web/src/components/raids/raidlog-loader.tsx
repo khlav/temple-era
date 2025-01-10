@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Check, XIcon } from "lucide-react";
@@ -9,17 +9,18 @@ import { RaidLog } from "~/server/api/interfaces/raid";
 
 interface RaidLogLoaderProps {
   label?: string;
-  onDataLoaded?: (raidLog: RaidLog | null) => void; // onLoad callback function
-  resultValidator?: (raidLog: RaidLog | null) => void;
+  onDataLoaded?: (raidLog: RaidLog | undefined) => void; // onLoad callback function
+  forceRefresh?: boolean;
 }
 
 export function RaidLogLoader({
   label,
   onDataLoaded,
-  resultValidator
+  forceRefresh,
 }: RaidLogLoaderProps): React.ReactNode {
   const [urlInput, setUrlInput] = useState<string>("");
   const [raidLogId, setRaidLogId] = useState<string>("");
+  const utils = api.useUtils();
 
   const {
     data: raidLog,
@@ -27,10 +28,15 @@ export function RaidLogLoader({
     isSuccess,
     isError,
   } = api.raidLog.importAndGetRaidLogByRaidLogId.useQuery(
-    raidLogId,
-    { enabled: !!raidLogId }, // Fetch only if a raidLogId is present
+    {
+      raidLogId: raidLogId,
+      forceRaidLogRefresh: forceRefresh,
+    },
+    {
+      enabled: !!raidLogId,
+      staleTime: 0, // Ensures no caching and always fetches from the server
+    }, // Fetch only if a raidLogId is present
   );
-
   const onUrlInputChange = (value: string) => {
     const reportIdRegex = /([a-zA-Z0-9]{16})/;
     const match = reportIdRegex.exec(value);
@@ -45,6 +51,8 @@ export function RaidLogLoader({
 
   useEffect(() => {
     if (isSuccess && raidLog && onDataLoaded) {
+      setUrlInput("");
+      setRaidLogId("");
       onDataLoaded(raidLog);
     }
   }, [isSuccess, raidLog, onDataLoaded]);
@@ -63,7 +71,8 @@ export function RaidLogLoader({
             placeholder="e.g. https://vanilla.warcraftlogs.com/reports/bmThXYVCxyFPARta"
             onChange={(e) => onUrlInputChange(e.target.value)}
             disabled={isLoading}
-            className="pr-10" /* Add padding to the right to avoid overlap with the checkmark */
+            className="pr-10"
+            autoComplete="off"
           />
           {isSuccess && (
             <Check
