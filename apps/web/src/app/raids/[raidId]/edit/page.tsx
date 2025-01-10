@@ -11,7 +11,7 @@ export default async function RaidEditPage({params} : {params: Promise<{ raidId:
   const session = await auth();
 
   if(!session?.user?.isAdmin) {
-    redirect('/');
+    redirect('/raids');
   }
 
   return (
