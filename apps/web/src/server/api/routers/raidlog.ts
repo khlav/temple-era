@@ -158,6 +158,7 @@ const mutateInsertRaidLogWithAttendees = async (
     })
     .onConflictDoNothing();
 
+
   await db
     .insert(characters)
     .values(

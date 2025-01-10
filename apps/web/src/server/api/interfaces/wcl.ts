@@ -1,3 +1,5 @@
+import {RaidParticipant} from "~/server/api/interfaces/raid";
+
 export interface RawFightResult {
   id: string;
   name: string;
@@ -22,6 +24,8 @@ export interface RawActorResult {
   subType: string;
   icon: string;
 }
+
+export type RawActorResultCollection = Record<string, RawActorResult>;
 
 export interface RawRaidLogReportResult {
   code: string;

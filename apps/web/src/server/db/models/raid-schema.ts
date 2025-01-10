@@ -148,7 +148,7 @@ export const characters = tableCreator(
   {
     characterId: integer("character_id").primaryKey(),
     name: varchar("name", { length: 128 }).notNull(),
-    server: varchar("server", { length: 128 }).notNull(),
+    server: varchar("server", { length: 128 }).default("Unknown").notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
     class: varchar("class", { length: 128 }).notNull(),
     classDetail: varchar("class_detail", { length: 256 }).notNull(),

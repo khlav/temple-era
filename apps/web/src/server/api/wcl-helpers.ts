@@ -1,4 +1,4 @@
-import {RawActorResult, RawRaidReportRequestResult} from "~/server/api/interfaces/wcl";
+import {RawActorResult, RawActorResultCollection, RawRaidReportRequestResult} from "~/server/api/interfaces/wcl";
 import {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {env} from "~/env";
 import {NextResponse} from "next/server";
@@ -81,6 +81,21 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
   const rawReport = apiData.data.reportData.report;
   const kills = rawReport.fights.filter((fight) => fight.kill);
 
+  const localIdActorCollection = rawReport.masterData.actors
+    .reduce((acc, actor) => {
+      acc[actor.id] = actor;
+      return acc;
+    }, {} as RawActorResultCollection)
+
+  const participantsFromFights = rawReport.fights.reduce((acc, rel) => {
+    rel.friendlyPlayers.map((actorId) => {
+      const actor = localIdActorCollection[actorId] ?? {} as RawActorResult;
+      const newParticipant = ActorToRaidParticipant(actor);
+      acc[newParticipant.characterId] = newParticipant;
+    })
+      return acc;
+    }  , {} as RaidParticipantCollection)
+  
   const newReport: RaidLog = {
     name: rawReport.title,
     raidLogId: rawReport.code,
@@ -88,11 +103,7 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
     endTimeUTC: new Date(rawReport.endTime),
     zone: rawReport.zone.name,
     kills: kills.map((fight)=> fight.name),
-    participants: rawReport.masterData.actors.reduce((acc, actor) => {
-      const newParticipant = ActorToRaidParticipant(actor);
-      acc[newParticipant.characterId] = newParticipant;
-      return acc;
-    }, {} as RaidParticipantCollection)
+    participants: participantsFromFights,
   };
 
   return newReport;
