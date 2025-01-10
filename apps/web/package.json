@@ -19,7 +19,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
 
-    "postbuild": "drizzle-kit push",
+    "postbuild": "drizzle-kit push"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.2",
