@@ -22,6 +22,8 @@ export function RaidLogLoader({
   const [raidLogId, setRaidLogId] = useState<string>("");
   const utils = api.useUtils();
 
+  const invalidateResult = async () => {await utils.invalidate()};
+
   const {
     data: raidLog,
     isLoading,
