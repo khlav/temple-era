@@ -1,36 +1,42 @@
 "use client";
 
-import { RaidLogLoader } from "~/components/raids/raidlog-loader";
-import { useState } from "react";
+import {RaidLogLoader} from "~/components/raids/raidlog-loader";
+import {useState} from "react";
 import {
   EmptyRaid,
   type Raid,
   type RaidLog,
 } from "~/server/api/interfaces/raid";
-import { useToast } from "~/hooks/use-toast";
-import { RaidEditor } from "~/components/raids/raid-editor";
-import { api } from "~/trpc/react";
-import { useRouter } from "next/navigation";
+import {useToast} from "~/hooks/use-toast";
+import {RaidEditor} from "~/components/raids/raid-editor";
+import {api} from "~/trpc/react";
+import {useRouter} from "next/navigation";
 import {
   toastRaidLogInUse,
   toastRaidLogLoaded,
   toastRaidSaved,
 } from "~/components/raids/raid-toasts";
 
-const getDefaultAttendanceWeight = (zoneName: string) => {
+const getDefaultAttendanceWeight = (zoneName: string, date: Date) => {
   const attendanceWeightedZones = [
     "Naxxramas",
     "Temple of Ahn'Qiraj",
     "Blackwing Lair",
   ]; // All other zones default to Optional (weight = 0)
-  return attendanceWeightedZones.includes(zoneName) ? 1 : 0;
+
+  const attendanceDays = [1, 2, 3]
+  return (
+    (attendanceWeightedZones.includes(zoneName) && attendanceDays.includes(date.getDay()))
+      ? 1
+      : 0
+  );
 };
 
 export function CreateRaid() {
   const router = useRouter();
   const utils = api.useUtils();
 
-  const { toast } = useToast();
+  const {toast} = useToast();
   const [raidData, setRaidData] = useState<Raid>(EmptyRaid());
   const [needsInitialRaidLog, setNeedsInitialRaidLog] = useState<boolean>(true);
   const [sendingData, setSendingData] = useState<boolean>(false);
@@ -42,7 +48,7 @@ export function CreateRaid() {
     },
     onSuccess: async (result) => {
       toastRaidSaved(toast, raidData, result.raid?.raidId ?? -1);
-      await utils.invalidate(undefined, { refetchType: "all"});
+      await utils.invalidate(undefined, {refetchType: "all"});
       router.push("/raids");
     },
   });
@@ -64,7 +70,7 @@ export function CreateRaid() {
           name: initialRaidLog.name,
           date: raidDate.toISOString().split("T")[0] ?? "",
           zone: initialRaidLog.zone ?? "",
-          attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone),
+          attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone, raidDate),
           raidLogIds: [initialRaidLog.raidLogId],
         }));
 
@@ -91,14 +97,13 @@ export function CreateRaid() {
       raidLogIds: raidData.raidLogIds ?? [],
       bench: raidData.bench,
     });
-
   };
 
   return (
     <>
       <div className="pb-4 text-3xl font-bold">Create new raid event</div>
       {needsInitialRaidLog ? (
-        <RaidLogLoader onDataLoaded={handleInitialRaidLog} />
+        <RaidLogLoader onDataLoaded={handleInitialRaidLog}/>
       ) : (
         ""
       )}

@@ -5,6 +5,7 @@ import { ToastAction } from "@radix-ui/react-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
+import {PrettyPrintDate} from "~/lib/helpers";
 
 export const toastRaidLogLoaded = (
   toast: typeof toastType,
@@ -87,6 +88,7 @@ export const toastRaidSaved = (
             : raidData.attendanceWeight == 1
               ? "Tracked Raid"
               : "Other"}
+          - {PrettyPrintDate(new Date(raidData.date),true)}
         </div>
       </>
     ),

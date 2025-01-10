@@ -12,7 +12,7 @@ export default async function RaidPage() {
           Raid Log Import
         </h2>
         <div className="w-full">
-          <RaidLogLoader label="Enter a WCL report URL to add/refresh the log and participating characters." forceRefresh/>
+          <RaidLogLoader label="Enter a WCL report URL to add/refresh the log and participating characters, without creating or altering raid entries." forceRefresh/>
         </div>
       </main>
     </HydrateClient>
