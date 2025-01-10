@@ -13,7 +13,7 @@ import {
   timestamp,
   varchar,
   text,
-  boolean, pgSchema,
+  boolean, pgSchema, decimal, real,
 } from "drizzle-orm/pg-core";
 import {eq, relations, SQL, sql} from "drizzle-orm";
 import { DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
@@ -36,7 +36,7 @@ export const raids = tableCreator(
     raidId: serial("raid_id").primaryKey(),
     name: varchar("name", { length: 256 }).notNull(),
     date: date("date").notNull(), // Date of the raids
-    attendanceWeight: integer("attendance_weight").default(1).notNull(),
+    attendanceWeight: real("attendance_weight").default(1).notNull(),
     zone: varchar("zone").notNull(),
     ...CreatedBy,
     ...UpdatedBy,

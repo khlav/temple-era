@@ -116,7 +116,7 @@ export function CreateRaid() {
             editingMode="new"
             handleSubmitAction={handleSubmitAction}
             handleDeleteAction={handleClear}
-            
+
           />
         </>
       )}
