@@ -23,9 +23,9 @@ export function RaidInfo({raidId}: {raidId: number}) {
 
       {raidDetail && raidLogs && attendees && (
         <div>
-          <LabeledArrayCodeBlock label="Raids" value={raidDetail}/>
-          <LabeledArrayCodeBlock label="WCL Logs" value={raidLogs}/>
-          <LabeledArrayCodeBlock label="Raid Attendees" value={attendees} />
+          <LabeledArrayCodeBlock label="Raids" value={JSON.stringify(raidDetail, null, 2)}/>
+          <LabeledArrayCodeBlock label="WCL Logs" value={JSON.stringify(raidLogs, null, 2)}/>
+          <LabeledArrayCodeBlock label="Raid Attendees" value={JSON.stringify(attendees, null, 2)} />
         </div>
       )}
     </div>

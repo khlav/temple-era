@@ -380,7 +380,7 @@ return (
             </div>
           </div>
         </div>
-        <LabeledArrayCodeBlock label="Result" value={wclReport}/>
+        <LabeledArrayCodeBlock label="Result" value={JSON.stringify(wclReport, null, 2)}/>
       </div>
     )}
   </div>

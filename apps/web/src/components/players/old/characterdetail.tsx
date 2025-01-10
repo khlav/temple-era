@@ -22,7 +22,7 @@ export function CharacterDetail({characterId}: {characterId: number}) {
 
       {character && (
         <div>
-          <LabeledArrayCodeBlock label="Character" value={character}/>
+          <LabeledArrayCodeBlock label="Character" value={JSON.stringify(character, null, 2)}/>
         </div>
       )}
     </div>
@@ -49,7 +49,7 @@ export function CharacterRaids({characterId}: {characterId: number}) {
 
       {raidsAttended && (
         <div>
-          <LabeledArrayCodeBlock label="Raids Attended" value={raidsAttended}/>
+          <LabeledArrayCodeBlock label="Raids Attended" value={JSON.stringify(raidsAttended, null, 2)}/>
         </div>
       )}
     </div>

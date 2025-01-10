@@ -63,7 +63,7 @@ export function RaidList() {
             </tbody>
           </table>
           <div className="mt-8">
-            <LabeledArrayCodeBlock label="Raids" value={raids} />
+            <LabeledArrayCodeBlock label="Raids" value={JSON.stringify(raids,null,2)} />
           </div>
         </div>
       )}

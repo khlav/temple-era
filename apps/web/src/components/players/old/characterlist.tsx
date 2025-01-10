@@ -59,7 +59,7 @@ export function CharacterList() {
             </tbody>
           </table>
           <div className="mt-8">
-            <LabeledArrayCodeBlock label="Players" value={players} />
+            <LabeledArrayCodeBlock label="Players" value={JSON.stringify(players, null, 2)} />
           </div>
         </div>
       )}

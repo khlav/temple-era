@@ -181,7 +181,7 @@ export function RaidEditor({
           <div className="flex-1">
             <LabeledArrayCodeBlock
               label="DEBUG : Raid State"
-              value={raidData}
+              value={JSON.stringify(raidData, null, 2)}
             />
           </div>
         </>
