@@ -89,8 +89,8 @@ WITH date_range AS (SELECT date_trunc('week', current_date - interval '6 weeks')
                                      SUM(r.attendance_weight) AS weighted_attendance,
                                      array_agg(json_build_object(
                                              'name', r.name,
+                                             'zone', r.zone,
                                              'attendanceWeight', r.attendance_weight,
-
                                              'attendeeOrBench', prabm.attendee_or_bench
                                                ))             as raids_attended_json
                               FROM public.character c

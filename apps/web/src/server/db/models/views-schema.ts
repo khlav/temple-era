@@ -72,6 +72,7 @@ export const primaryRaidAttendanceL6LockoutWk = viewSchema
     weightedAttendancePct: real("weighted_attendance_pct"),
     raidsAttended: json("raids_attended_json").$type<{
       name: string,
+      zone: string,
       attendanceWeight: number,
       attendeeOrBench: string,
     }>(),
