@@ -23,38 +23,6 @@ import {
 import { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
 
-// TO-DO -- look into this solution for updating insert conflicts:
-
-// SOURCE: https://github.com/drizzle-team/drizzle-orm/issues/1728#issuecomment-2289927089
-// import { getTableColumns, SQL, sql, Table } from 'drizzle-orm'
-//
-// export function conflictUpdateAllExcept<
-//   T extends Table,
-//   E extends (keyof T['$inferInsert'])[],
-// >(table: T, except: E) {
-//   const columns = getTableColumns(table)
-//   const updateColumns = Object.entries(columns).filter(
-//     ([col]) => !except.includes(col as keyof typeof table.$inferInsert),
-//   )
-//
-//   return updateColumns.reduce(
-//     (acc, [colName, table]) => ({
-//       ...acc,
-//       [colName]: sql.raw(`excluded.${table.name}`),
-//     }),
-//     {},
-//   ) as Omit<Record<keyof typeof table.$inferInsert, SQL>, E[number]>
-// }
-
-// // usage:
-// await db
-//   .insert(column) // column: SQLiteTableWithColumns<...>
-//   .values(values) // values: (typeof column.$inferInsert)[]
-//   .onConflictDoUpdate({
-//     set: conflictUpdateAllExcept(column, ["id"]),
-//     target: column.id,
-//   });
-
 export const Slugify = (value: string) => {
   return anyAscii(value).toLowerCase();
 };
