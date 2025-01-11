@@ -6,57 +6,18 @@ import {
 } from "~/server/api/trpc";
 import {
   raidLogs,
-  characters,
   raids,
-  raidBenchMap, primaryRaidAttendeeMap,
+  raidBenchMap
 } from "~/server/db/schema";
 import {
   EmptyRaid,
   Raid,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
-import anyAscii from "any-ascii";
-import { eq, getTableColumns, inArray, sql, SQL } from "drizzle-orm";
-import { PgTable } from "drizzle-orm/pg-core";
+import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
 
-// TO-DO -- look into this solution for updating insert conflicts:
-
-// SOURCE: https://github.com/drizzle-team/drizzle-orm/issues/1728#issuecomment-2289927089
-// import { getTableColumns, SQL, sql, Table } from 'drizzle-orm'
-//
-// export function conflictUpdateAllExcept<
-//   T extends Table,
-//   E extends (keyof T['$inferInsert'])[],
-// >(table: T, except: E) {
-//   const columns = getTableColumns(table)
-//   const updateColumns = Object.entries(columns).filter(
-//     ([col]) => !except.includes(col as keyof typeof table.$inferInsert),
-//   )
-//
-//   return updateColumns.reduce(
-//     (acc, [colName, table]) => ({
-//       ...acc,
-//       [colName]: sql.raw(`excluded.${table.name}`),
-//     }),
-//     {},
-//   ) as Omit<Record<keyof typeof table.$inferInsert, SQL>, E[number]>
-// }
-
-// // usage:
-// await db
-//   .insert(column) // column: SQLiteTableWithColumns<...>
-//   .values(values) // values: (typeof column.$inferInsert)[]
-//   .onConflictDoUpdate({
-//     set: conflictUpdateAllExcept(column, ["id"]),
-//     target: column.id,
-//   });
-
 type DB = typeof db;
-
-export const Slugify = (value: string) => {
-  return anyAscii(value).toLowerCase();
-};
 
 const isEmptyObj = (obj: object) => {
   for (const i in obj) return false;
@@ -205,7 +166,7 @@ export const raid = createTRPCRouter({
         bench: raidBench,
       } as Raid;
     }),
-  
+
   insertRaid: adminProcedure
     .input(
       z.object({

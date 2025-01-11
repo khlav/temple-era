@@ -1,7 +1,6 @@
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import { RaidList } from "~/components/raids/old/raid-list";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { AllRaids } from "~/components/raids/all-raids";
