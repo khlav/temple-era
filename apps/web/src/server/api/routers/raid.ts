@@ -6,11 +6,9 @@ import {
 } from "~/server/api/trpc";
 import {
   raidLogs,
-  raidAttendeeMap,
   characters,
-  raidLogAttendeeMap,
   raids,
-  raidBenchMap,
+  raidBenchMap, primaryRaidAttendeeMap,
 } from "~/server/db/schema";
 import {
   EmptyRaid,
@@ -203,15 +201,13 @@ export const raid = createTRPCRouter({
         .select({
           name: characters.name,
           slug: characters.slug,
-          characterCount: raidAttendeeMap.characterCount,
-          characterNames: raidAttendeeMap.characterNames,
         })
         .from(characters)
         .leftJoin(
-          raidAttendeeMap,
-          eq(characters.characterId, raidAttendeeMap.primaryCharacterId),
+          primaryRaidAttendeeMap,
+          eq(characters.characterId, primaryRaidAttendeeMap.primaryCharacterId),
         )
-        .where(eq(raidAttendeeMap.raidId, input))
+        .where(eq(primaryRaidAttendeeMap.raidId, input))
         .orderBy(characters.slug);
       return attendees ?? null;
     }),
