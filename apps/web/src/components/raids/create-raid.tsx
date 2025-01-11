@@ -47,7 +47,7 @@ export function CreateRaid() {
       setSendingData(false);
     },
     onSuccess: async (result) => {
-      toastRaidSaved(toast, raidData, result.raid?.raidId ?? -1);
+      toastRaidSaved(toast, raidData, result.raid?.raidId ?? -1, true);
       await utils.invalidate(undefined, {refetchType: "all"});
       router.push("/raids");
     },

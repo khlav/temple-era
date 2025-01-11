@@ -3,22 +3,28 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import {raidAttendanceL6lockoutwk, trackedRaidsL6lockoutwk} from "~/server/db/schema";
+import {primaryRaidAttendanceL6LockoutWk, trackedRaidsL6LockoutWk} from "~/server/db/schema";
 
 export const dashboard = createTRPCRouter({
   getTrackedRaidsL6LockoutWk: publicProcedure
     .query(async ({ ctx }) => {
     const raids = await ctx.db
-      .select()
-      .from(trackedRaidsL6lockoutwk)
+      .select({
+        name: trackedRaidsL6LockoutWk.name,
+        raidId: trackedRaidsL6LockoutWk.raidId,
+        date: trackedRaidsL6LockoutWk.date,
+        attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
+        zone: trackedRaidsL6LockoutWk.zone
+      })
+      .from(trackedRaidsL6LockoutWk)
     return raids ?? [];
   }),
 
-  getRaidAttendanceL6LockoutWk: publicProcedure
+  getPrimaryRaidAttendanceL6LockoutWk: publicProcedure
     .query(async ({ ctx }) => {
       const raids = await ctx.db
         .select()
-        .from(raidAttendanceL6lockoutwk)
+        .from(primaryRaidAttendanceL6LockoutWk)
       return raids ?? [];
     }),
 

@@ -6,7 +6,7 @@ import { api } from "~/trpc/react";
 import { RaidEditor } from "~/components/raids/raid-editor";
 import {EmptyRaid, Raid, RaidParticipant} from "~/server/api/interfaces/raid";
 import {useRouter} from "next/navigation";
-import {toastRaidDeleted} from "~/components/raids/raid-toasts";
+import {toastRaidDeleted, toastRaidSaved} from "~/components/raids/raid-toasts";
 import {useToast} from "~/hooks/use-toast";
 
 export function EditRaid({ raidId }: { raidId: number }) {
@@ -24,6 +24,7 @@ export function EditRaid({ raidId }: { raidId: number }) {
     },
     onSuccess: async (result) => {
       await utils.invalidate(undefined, { refetchType: "all"});
+      toastRaidSaved(toast, raidData, raidId, false);
       router.push(result.raid ? `/raids/${result.raid.raidId}` : "/raids");
     },
   });

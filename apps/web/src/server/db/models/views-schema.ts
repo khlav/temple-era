@@ -55,14 +55,14 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
   })
   .existing();
 
-export const trackedRaidsL6lockoutwk = viewSchema
+export const trackedRaidsL6LockoutWk = viewSchema
   .view("tracked_raids_l6lockoutwk", {
     ...raidsColumns,
   })
   .existing();
 
-export const raidAttendanceL6lockoutwk = viewSchema
-  .view("raid_attendance_l6lockoutwk", {
+export const primaryRaidAttendanceL6LockoutWk = viewSchema
+  .view("primary_raid_attendance_l6lockoutwk", {
     characterId: integer("character_id").references(
       () => characters.characterId,
     ),

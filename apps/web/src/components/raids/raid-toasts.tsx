@@ -5,7 +5,7 @@ import { ToastAction } from "@radix-ui/react-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
-import {PrettyPrintDate} from "~/lib/helpers";
+import { PrettyPrintDate } from "~/lib/helpers";
 
 export const toastRaidLogLoaded = (
   toast: typeof toastType,
@@ -70,6 +70,7 @@ export const toastRaidSaved = (
   toast: typeof toastType,
   raidData: Raid,
   raidId: number,
+  includeAction: boolean,
 ) => {
   toast({
     // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
@@ -88,11 +89,11 @@ export const toastRaidSaved = (
             : raidData.attendanceWeight == 1
               ? "Tracked Raid"
               : "Other"}
-          - {PrettyPrintDate(new Date(raidData.date),true)}
+          - {PrettyPrintDate(new Date(raidData.date), true)}
         </div>
       </>
     ),
-    action: (
+    action: includeAction ? (
       <ToastAction asChild altText="Go">
         {raidId > 0 && (
           <Button asChild>
@@ -100,6 +101,8 @@ export const toastRaidSaved = (
           </Button>
         )}
       </ToastAction>
+    ) : (
+      <></>
     ),
   });
 };

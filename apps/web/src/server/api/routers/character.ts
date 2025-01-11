@@ -79,6 +79,7 @@ export const character = createTRPCRouter({
   getCharacterById: publicProcedure
     .input(z.number())
     .query(async ({ctx, input}) => {
+      const primaryCharacters = aliasedTable(characters, "primary_character")
       const character = await ctx.db
         .select({
           characterId: characters.characterId,
@@ -87,8 +88,12 @@ export const character = createTRPCRouter({
           slug: characters.slug,
           class: characters.class,
           classDetail: characters.classDetail,
+          isPrimary: characters.isPrimary,
+          primaryCharacterId: characters.primaryCharacterId,
+          primaryCharacterName: primaryCharacters.name
         })
         .from(characters)
+        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
         .where(eq(characters.characterId, input));
       return character ?? null;
     }),

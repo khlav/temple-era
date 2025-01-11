@@ -41,6 +41,6 @@ export const {
   primaryRaidAttendeeMap,
   primaryRaidBenchMap,
   primaryRaidAttendeeAndBenchMap,
-  trackedRaidsL6lockoutwk,
-  raidAttendanceL6lockoutwk,
+  primaryRaidAttendanceL6LockoutWk,
+  trackedRaidsL6LockoutWk,
 } = ViewsSchema;
