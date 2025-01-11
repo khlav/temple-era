@@ -33,9 +33,9 @@ export function RaidDetailBase({
   return (
     <div className="px-3">
       <div className="flex gap-2 pb-0">
-        <div className="grow-0 text-xl font-bold md:text-3xl text-nowrap">
+        <div className="grow-0 text-xl font-bold md:text-3xl">
           <div>{raidData.name}</div>
-          <div className="text-muted-foreground text-sm font-normal">
+          <div className="text-muted-foreground text-sm font-normal text-nowrap">
             {new Date(raidData.date).toLocaleDateString("en-US", {
               timeZone: "UTC",
               month: "long",
