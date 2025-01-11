@@ -34,7 +34,7 @@ export function RaidDetailBase({
   const curPath = usePathname();
 
   return (
-    <div className={`${isPreview ? "bg-stone-900" : ""} inline rounded-xl`}>
+    <div className="px-3">
       <div className="flex gap-2 pb-0">
         <div className="grow-0 text-xl md:text-3xl font-bold">
           <div>{raidData.name}</div>
@@ -101,7 +101,7 @@ export function RaidDetailBase({
       </div>
 
       <Separator className="my-3" />
-      <div className="flex flex-wrap gap-2 p-3 xl:flex-nowrap">
+      <div className="flex flex-wrap gap-2 py-1 xl:flex-nowrap">
         <div className="w-full xl:w-1/2">
           <div className="bg-card text-card-foreground rounded-xl border p-3 shadow">
             <div className="text-xl">Attendees from logs:</div>
