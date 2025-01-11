@@ -46,7 +46,6 @@ export function RaidEditor({
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Added functions
   const handleInputChangeAction = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRaidDataAction((raidData) => ({
       ...raidData,
@@ -83,8 +82,6 @@ export function RaidEditor({
     }));
   };
 
-  // END added functions
-
   const { data: raidParticipants, isSuccess: isSuccessParticipants } =
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
       raidData.raidLogIds ?? [],
@@ -93,7 +90,7 @@ export function RaidEditor({
 
   return (
     <>
-      <div className="flex space-x-4">
+      <div className="flex px-1 space-x-4">
         <div className="w-full">
           <RaidEditorCoreControls
             raidData={raidData}

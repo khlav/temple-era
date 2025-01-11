@@ -15,7 +15,6 @@ import React from "react";
 export function RaidDetailBase({
   raidData,
   showEditButton,
-  isPreview,
 }: {
   raidData: Raid;
   showEditButton?: boolean;
@@ -24,8 +23,6 @@ export function RaidDetailBase({
   const {
     data: raidParticipants,
     isSuccess: isSuccessParticipants,
-    isLoading: isLoadingParticipants,
-    isError: isErrorParticipants,
   } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
     raidData.raidLogIds ?? [],
     { enabled: !!raidData },
@@ -36,9 +33,9 @@ export function RaidDetailBase({
   return (
     <div className="px-3">
       <div className="flex gap-2 pb-0">
-        <div className="grow-0 text-xl md:text-3xl font-bold">
+        <div className="grow-0 text-xl font-bold md:text-3xl text-nowrap">
           <div>{raidData.name}</div>
-          <div className="text-sm text-muted-foreground font-normal">
+          <div className="text-muted-foreground text-sm font-normal">
             {new Date(raidData.date).toLocaleDateString("en-US", {
               timeZone: "UTC",
               month: "long",
@@ -50,17 +47,19 @@ export function RaidDetailBase({
         </div>
         <div className="grow" />
         <div className="align-right text-muted-foreground grow-0">
-          <div className="whitespace-nowrap text-sm md:text-md">{raidData.zone}</div>
-          <div className="text-right">
+          <div className="text-right nowrap">
             <RaidAttendenceWeightBadge
               attendanceWeight={raidData.attendanceWeight}
             />
           </div>
+          <div className="md:text-md whitespace-nowrap text-sm">
+            {raidData.zone}
+          </div>
         </div>
         {showEditButton && (
-          <div className="my-auto grow-0">
+          <div className="grow-0 align-text-top">
             <Link href={curPath + "/edit"}>
-              <Button className="py-6">
+              <Button className="py-5">
                 <Edit />
                 Edit
               </Button>
@@ -78,7 +77,7 @@ export function RaidDetailBase({
             return (
               <div
                 key={raidLogId}
-                className="text-muted-foreground hover:text-primary  text-sm transition-all duration-100 hover:underline"
+                className="text-muted-foreground hover:text-primary text-sm transition-all duration-100 hover:underline"
               >
                 <Link
                   href={reportUrl}
@@ -90,7 +89,7 @@ export function RaidDetailBase({
                   </span>
                   <span className="inline-block md:hidden">{raidLogId}</span>
                   <ExternalLinkIcon
-                    className="ml-1 align-text-top inline-block"
+                    className="ml-1 inline-block align-text-top"
                     size={15}
                   />
                 </Link>

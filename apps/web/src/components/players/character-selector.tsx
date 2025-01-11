@@ -21,15 +21,48 @@ import { api } from "~/trpc/react";
 import anyAscii from "any-ascii";
 import { RaidParticipant } from "~/server/api/interfaces/raid";
 
-export function RaidBenchManagerCharacterSelector({
+export function CharacterSelector({
   onSelectAction,
+  characterSet = "all",
+  children,
+  skeleton,
 }: {
   onSelectAction: (character: RaidParticipant) => void;
+  characterSet?: "all" | "primaryOnly" | "secondaryOnly";
+  children?: React.ReactNode;
+  skeleton?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
 
   const { data: characterCollection, isLoading } =
-    api.character.getCharacters.useQuery();
+    api.character.getCharacters.useQuery(characterSet);
+
+  const childrenOrDefault = children ?? (
+    <Button
+      variant="outline"
+      size="sm"
+      role="combobox"
+      aria-expanded={open}
+      className="line- text-muted-foreground px-2 py-0"
+    >
+      <PlusIcon />
+      Add character
+    </Button>
+  );
+
+  const skeletonOrDefault = skeleton ?? (
+    <Button
+      variant="outline"
+      size="sm"
+      role="combobox"
+      aria-expanded={open}
+      className="line- text-muted-foreground px-2 py-0"
+      disabled
+    >
+      <Loader2 className="animate-spin" />
+      Loading characters...
+    </Button>
+  );
 
   const handleSelect = (characterId: string) => {
     // @ts-expect-error Suppress undefined concern.  Select cannot happen without a proper value.
@@ -43,30 +76,7 @@ export function RaidBenchManagerCharacterSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {isLoading ? (
-          <Button
-            variant="outline"
-            size="sm"
-            role="combobox"
-            aria-expanded={open}
-            className="line- text-muted-foreground px-2 py-0"
-            disabled
-          >
-            <Loader2 className="animate-spin" />
-            Loading characters...
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            role="combobox"
-            aria-expanded={open}
-            className="line- text-muted-foreground px-2 py-0"
-          >
-            <PlusIcon />
-            Add character
-          </Button>
-        )}
+        {isLoading ? skeletonOrDefault : childrenOrDefault}
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
         <Command>
