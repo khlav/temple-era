@@ -87,10 +87,10 @@ WITH date_range AS (SELECT date_trunc('week', current_date - interval '6 weeks')
      character_attendance AS (SELECT c.character_id           as character_id,
                                      c.name                   as name,
                                      SUM(r.attendance_weight) AS weighted_attendance,
-                                     array_agg(json_object(
-                                             'name' value r.name,
-                                             'attendanceWeight' value r.attendance_weight,
-                                             'attendeeOrBench' value prabm.attendee_or_bench
+                                     array_agg(json_build_object(
+                                             'name', r.name,
+                                             'attendanceWeight', r.attendance_weight,
+                                             'attendeeOrBench', prabm.attendee_or_bench
                                                ))             as raids_attended_json
                               FROM public.character c
                                        JOIN views.primary_raid_attendee_and_bench_map prabm
