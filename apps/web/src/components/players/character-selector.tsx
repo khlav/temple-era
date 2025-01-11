@@ -92,7 +92,7 @@ export function CharacterSelector({
                 <CommandItem
                   key={c.characterId}
                   value={c.characterId.toString()}
-                  keywords={[anyAscii(c.name)]}
+                  keywords={[anyAscii(c.name), anyAscii(c.primaryCharacterName ?? "")]}
                   onSelect={(currentValue) => {
                     handleSelect(currentValue);
                     setOpen(false);
@@ -100,7 +100,7 @@ export function CharacterSelector({
                 >
                   {c.name}{" "}
                   <span className="text-muted-foreground text-sm">
-                    {c.class != "Unknown" ? c.class : ""}
+                    {c.primaryCharacterName ?? ""}
                   </span>
                 </CommandItem>
               ))}

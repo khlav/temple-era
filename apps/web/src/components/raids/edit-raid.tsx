@@ -70,7 +70,7 @@ export function EditRaid({ raidId }: { raidId: number }) {
 
 
   return (
-    <>
+    <div className="px-2">
       {fetchedRaidData ? (
         <RaidEditor
           raidData={raidData}
@@ -85,6 +85,6 @@ export function EditRaid({ raidId }: { raidId: number }) {
           <div></div>
         </div>
       )}
-    </>
+    </div>
   );
 }

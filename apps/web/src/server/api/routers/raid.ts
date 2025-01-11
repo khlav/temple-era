@@ -175,14 +175,26 @@ export const raid = createTRPCRouter({
               classDetail: true,
               server: true,
               slug: true,
+              isPrimary: true,
+              primaryCharacterId: true,
             },
+            with: {
+              primaryCharacter: {
+                columns: {
+                  name: true,
+                }
+              }
+            }
           },
         },
         where: eq(raidBenchMap.raidId, input),
       });
 
       const raidBench = raidBenchResult.reduce((acc, rel) => {
-        const benched = rel.character;
+        const benched = {
+          ...rel.character,
+          primaryCharacterName: rel.character?.primaryCharacter?.name
+        };
         acc[benched.characterId] = benched;
         return acc;
       }, {} as RaidParticipantCollection);
@@ -193,25 +205,7 @@ export const raid = createTRPCRouter({
         bench: raidBench,
       } as Raid;
     }),
-
-  getAttendeesByRaidId: publicProcedure
-    .input(z.number())
-    .query(async ({ ctx, input }) => {
-      const attendees = await ctx.db
-        .select({
-          name: characters.name,
-          slug: characters.slug,
-        })
-        .from(characters)
-        .leftJoin(
-          primaryRaidAttendeeMap,
-          eq(characters.characterId, primaryRaidAttendeeMap.primaryCharacterId),
-        )
-        .where(eq(primaryRaidAttendeeMap.raidId, input))
-        .orderBy(characters.slug);
-      return attendees ?? null;
-    }),
-
+  
   insertRaid: adminProcedure
     .input(
       z.object({

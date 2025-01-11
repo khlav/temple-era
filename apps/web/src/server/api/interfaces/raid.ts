@@ -10,6 +10,9 @@ export interface RaidParticipant {
   classDetail: string;
   server: string;
   slug?: string;
+  isPrimary?: boolean | null;
+  primaryCharacterId?: number | null;
+  primaryCharacterName?: string | null;
 }
 
 export type RaidParticipantCollection = Record<string, RaidParticipant>;

@@ -9,7 +9,7 @@ import {
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import anyAscii from "any-ascii";
 import type { db } from "~/server/db";
-import { eq, inArray } from "drizzle-orm";
+import {aliasedTable, eq, inArray} from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
 import {
   GetWCLGraphQLQuery,
@@ -196,6 +196,7 @@ export const raidLog = createTRPCRouter({
   getParticipants: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
+      const primaryCharacters = aliasedTable(characters, "primary_character")
       const allCharacters = await ctx.db
         .selectDistinct({
           characterId: characters.characterId,
@@ -204,8 +205,12 @@ export const raidLog = createTRPCRouter({
           classDetail: characters.classDetail,
           server: characters.server,
           slug: characters.slug,
+          isPrimary: characters.isPrimary,
+          primaryCharacterId: characters.primaryCharacterId,
+          primaryCharacterName: primaryCharacters.name
         })
         .from(characters)
+        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
         .leftJoin(
           raidLogAttendeeMap,
           eq(raidLogAttendeeMap.characterId, characters.characterId),
@@ -217,6 +222,8 @@ export const raidLog = createTRPCRouter({
   getUniqueParticipantsFromMultipleLogs: publicProcedure
     .input(z.array(z.string()))
     .query(async ({ ctx, input }) => {
+
+      const primaryCharacters = aliasedTable(characters, "primary_character")
       const allCharacters = await ctx.db
         .selectDistinct({
           characterId: characters.characterId,
@@ -225,8 +232,12 @@ export const raidLog = createTRPCRouter({
           classDetail: characters.classDetail,
           server: characters.server,
           slug: characters.slug,
+          isPrimary: characters.isPrimary,
+          primaryCharacterId: characters.primaryCharacterId,
+          primaryCharacterName: primaryCharacters.name
         })
         .from(characters)
+        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
         .leftJoin(
           raidLogAttendeeMap,
           eq(raidLogAttendeeMap.characterId, characters.characterId),

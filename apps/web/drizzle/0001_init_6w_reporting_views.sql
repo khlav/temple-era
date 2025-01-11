@@ -90,6 +90,7 @@ WITH date_range AS (SELECT date_trunc('week', current_date - interval '6 weeks')
                                      array_agg(json_build_object(
                                              'name', r.name,
                                              'attendanceWeight', r.attendance_weight,
+
                                              'attendeeOrBench', prabm.attendee_or_bench
                                                ))             as raids_attended_json
                               FROM public.character c

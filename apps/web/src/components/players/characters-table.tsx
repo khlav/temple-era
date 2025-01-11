@@ -12,7 +12,7 @@ import {
 } from "~/components/ui/table";
 import anyAscii from "any-ascii";
 import Link from "next/link";
-import {ExternalLinkIcon} from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 
 export function CharactersTable({
   characters,
@@ -27,10 +27,12 @@ export function CharactersTable({
 
   return (
     <div>
-      <Table className="max-h-[400px] ">
+      <Table className="max-h-[400px]">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-3/4">Characters {characterList && `(${characterList.length})`}</TableHead>
+            <TableHead className="w-3/4">
+              Characters {characterList && `(${characterList.length})`}
+            </TableHead>
             <TableHead className="w-1/3">Server</TableHead>
             <TableHead className="w-1/3">Class</TableHead>
           </TableRow>
@@ -41,13 +43,23 @@ export function CharactersTable({
                 <TableRow key={c.characterId}>
                   <TableCell>
                     <Link
-                      className="hover:text-primary w-full transition-all hover:font-bold group"
+                      className="hover:text-primary group w-full transition-all hover:font-bold"
                       target="_blank"
                       href={"/players/" + c.characterId}
                     >
                       <div>
                         {c.name}
-                      <ExternalLinkIcon className="hidden group-hover:inline-block ml-1 align-text-top " size={15}/>
+                        {c.primaryCharacterName ? (
+                          <span className="text-muted-foreground text-xs pl-1.5 font-normal">
+                            {c.primaryCharacterName}
+                          </span>
+                        ) : (
+                          ""
+                        )}
+                        <ExternalLinkIcon
+                          className="ml-1 hidden align-text-top group-hover:inline-block"
+                          size={15}
+                        />
                       </div>
                     </Link>
                   </TableCell>
