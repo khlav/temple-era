@@ -37,8 +37,8 @@ export const AppHeader = () => {
           </BreadcrumbItem>
           {parentPathParts.map((part, i) => (
             <React.Fragment key={`breadcrumb_${i}`}>
-              <BreadcrumbSeparator className="hidden md:block"/>
-              <BreadcrumbItem className="hidden md:block" >
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href={"/" + pathParts.slice(0, i + 1).join("/")}>
                     {capitalize(part)}

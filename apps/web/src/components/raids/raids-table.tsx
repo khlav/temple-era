@@ -16,23 +16,29 @@ import { ExternalLinkIcon } from "lucide-react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { Badge } from "~/components/ui/badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import {GenerateWCLReportUrl, PrettyPrintDate} from "~/lib/helpers";
+import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 
 export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
   return (
-    <div className="min-h-[600px] max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden">
+    <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
       <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
-        <TableCaption>
+        <TableCaption className="text-wrap">
           Note: Only Tracked raids are considered for attendance restrictions.
         </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-4/12">Raid</TableHead>
-            <TableHead className="w-2/12">Zone</TableHead>
-            <TableHead className="w-2/12">Date</TableHead>
-            <TableHead className="w-2/12">Attendance</TableHead>
-            <TableHead className="w-1/12">Created By</TableHead>
-            <TableHead className="w-1/12 text-center">WCL</TableHead>
+            <TableHead className="w-1/2 md:w-4/12">Raid</TableHead>
+            <TableHead className="hidden md:table-cell md:w-2/12">
+              Zone
+            </TableHead>
+            <TableHead className="hidden md:table-cell md:w-2/12">
+              Date
+            </TableHead>
+            <TableHead className="w-1/4 md:w-2/12">Attendance</TableHead>
+            <TableHead className="hidden md:table-cell md:w-1/12">
+              Created By
+            </TableHead>
+            <TableHead className="w-1/4 text-center md:w-1/12">WCL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -45,14 +51,19 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                       target="_self"
                       href={"/raids/" + r.raidId}
                     >
-                      {r.name}
+                      <div>{r.name}</div>
+                      <div className="text-xs text-muted-foreground md:hidden">{PrettyPrintDate(new Date(r.date), true)}</div>
                     </Link>
-                    {(r.raidLogIds ?? []).length == 0 && <Badge variant="destructive" className="ml-2">Error: No logs found</Badge>}
+                    {(r.raidLogIds ?? []).length == 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        Error: No logs found
+                      </Badge>
+                    )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {r.zone}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {PrettyPrintDate(new Date(r.date), true)}
                   </TableCell>
                   <TableCell>
@@ -60,7 +71,7 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                       attendanceWeight={r.attendanceWeight}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <UserAvatar
                       name={r.creator?.name ?? ""}
                       image={r.creator?.image ?? ""}

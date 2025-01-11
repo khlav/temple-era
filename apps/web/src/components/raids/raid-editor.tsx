@@ -106,8 +106,8 @@ export function RaidEditor({
           />
           <Separator className="my-3" />
           <div className="flex gap-4 xl:flex-nowrap">
-            <div className="grow-0 text-nowrap text-sm">WCL reports:</div>
-            <div className="shrink overflow-x-hidden">
+            <div className="grow-0 text-nowrap text-sm">WCL logs:</div>
+            <div className="shrink overflow-ellipsis">
               {(raidData.raidLogIds ?? []).map((raidLogId) => {
                 const reportUrl = GenerateWCLReportUrl(raidLogId);
                 return (
@@ -119,10 +119,12 @@ export function RaidEditor({
                       href={reportUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-nowrap"
                     >
-                      {reportUrl}
+                      <span className="hidden md:inline-block">{reportUrl.replace("https://","")}</span>
+                      <span className="inline-block md:hidden">{raidLogId}</span>
                       <ExternalLinkIcon
-                        className="ml-1 hidden align-text-top group-hover:inline-block"
+                        className="ml-1 inline-block align-text-top"
                         size={15}
                       />
                     </Link>

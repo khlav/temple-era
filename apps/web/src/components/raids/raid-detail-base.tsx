@@ -7,9 +7,10 @@ import { CharactersTable } from "~/components/players/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
-import {Edit, ExternalLinkIcon} from "lucide-react";
-import {usePathname} from "next/navigation";
-import {Button} from "~/components/ui/button";
+import { Edit, ExternalLinkIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Button } from "~/components/ui/button";
+import React from "react";
 
 export function RaidDetailBase({
   raidData,
@@ -35,19 +36,21 @@ export function RaidDetailBase({
   return (
     <div className={`${isPreview ? "bg-stone-900" : ""} inline rounded-xl`}>
       <div className="flex gap-2 pb-0">
-        <div className="grow-0 text-3xl font-bold">
-          {raidData.name}
+        <div className="grow-0 text-xl md:text-3xl font-bold">
+          <div>{raidData.name}</div>
+          <div className="text-sm text-muted-foreground font-normal">
+            {new Date(raidData.date).toLocaleDateString("en-US", {
+              timeZone: "UTC",
+              month: "long",
+              day: "numeric",
+              weekday: "short",
+              year: "numeric",
+            })}
+          </div>
         </div>
-        <div className="grow"/>
-        <div className="grow-0 align-right text-muted-foreground">
-          {raidData.zone}
-          <span> - </span>
-          {new Date(raidData.date).toLocaleDateString("en-US", {
-            timeZone: "UTC",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
+        <div className="grow" />
+        <div className="align-right text-muted-foreground grow-0">
+          <div className="whitespace-nowrap text-sm md:text-md">{raidData.zone}</div>
           <div className="text-right">
             <RaidAttendenceWeightBadge
               attendanceWeight={raidData.attendanceWeight}
@@ -55,34 +58,39 @@ export function RaidDetailBase({
           </div>
         </div>
         {showEditButton && (
-          <div className="grow-0 my-auto">
+          <div className="my-auto grow-0">
             <Link href={curPath + "/edit"}>
-
-              <Button className="py-6"><Edit/>Edit</Button></Link>
+              <Button className="py-6">
+                <Edit />
+                Edit
+              </Button>
+            </Link>
           </div>
         )}
-
       </div>
 
       <Separator className="my-3" />
       <div className="flex gap-4 xl:flex-nowrap">
-        <div className="grow-0 text-nowrap text-sm">WCL reports:</div>
+        <div className="grow-0 text-nowrap text-sm">WCL logs:</div>
         <div className="shrink overflow-x-hidden">
           {(raidData.raidLogIds ?? []).map((raidLogId) => {
             const reportUrl = GenerateWCLReportUrl(raidLogId);
             return (
               <div
                 key={raidLogId}
-                className="text-muted-foreground hover:text-primary group text-sm transition-all duration-100 hover:underline"
+                className="text-muted-foreground hover:text-primary  text-sm transition-all duration-100 hover:underline"
               >
                 <Link
                   href={reportUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {reportUrl}
+                  <span className="hidden md:inline-block">
+                    {reportUrl.replace("https://", "")}
+                  </span>
+                  <span className="inline-block md:hidden">{raidLogId}</span>
                   <ExternalLinkIcon
-                    className="ml-1 hidden align-text-top group-hover:inline-block"
+                    className="ml-1 align-text-top inline-block"
                     size={15}
                   />
                 </Link>
@@ -104,7 +112,8 @@ export function RaidDetailBase({
             </div>
             <div className="text-muted-foreground text-center text-sm">
               List of characters appearing in WCL logs. <br />
-              Alts are mapped to primary characters when calc&apos;ing attendance.
+              Alts are mapped to primary characters when calc&apos;ing
+              attendance.
             </div>
           </div>
         </div>

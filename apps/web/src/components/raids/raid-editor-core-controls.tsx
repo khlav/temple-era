@@ -40,7 +40,7 @@ export function RaidEditorCoreControls({
   return (
     <>
       <div className="flex gap-4">
-        <div className="grow">
+        <div className="grow whitespace-nowrap">
           <Label htmlFor="wclUrl">Raid Name</Label>
           <Input
             id="name"
@@ -108,7 +108,7 @@ export function RaidEditorCoreControls({
           </AlertDialog>
         </div>
       </div>
-      <div className="flex gap-4">
+      <div className="flex gap-4 pt-2 lg:pt-0">
         <div className="grow">
           <RadioGroup
             id="attendanceWeight"
