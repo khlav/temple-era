@@ -10,10 +10,7 @@ export default async function HomePage() {
   return (
     <main className="w-full px-4">
       <div className="mb-4 text-3xl font-bold tracking-tight">
-        Raid Attendance{" "}
-        <span className="text-muted-foreground pl-2 text-lg font-normal tracking-normal">
-              Last six complete lockout weeks
-            </span>
+        Temple : Raid Attendance{" "}
       </div>
           <Separator className="mb-4"/>
           <div>
