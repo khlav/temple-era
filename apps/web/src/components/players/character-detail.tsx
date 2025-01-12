@@ -4,6 +4,7 @@ import { api } from "~/trpc/react";
 import Link from "next/link";
 import { Separator } from "~/components/ui/separator";
 import { PrimaryCharacterRaidsTable } from "~/components/players/primary-character-raids-table";
+import anyAscii from "any-ascii";
 
 export function CharacterDetail({ characterId }: { characterId: number }) {
   const { data: characterData, isSuccess } =
@@ -23,13 +24,13 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
             {(characterData.secondaryCharacters ?? []).length ? (
               <>
                 <Separator className="my-2 w-full" />
-
                 <div className="flex flex-row gap-2">
                   <>
                     <div className="flex flex-wrap gap-2">
                       <div className="grow-0 py-2 text-sm">Alts:</div>
-                      {(characterData.secondaryCharacters ?? []).map(
-                        (secondaryCharacter) => (
+                      {(characterData.secondaryCharacters ?? [])
+                        .sort((a, b) => (anyAscii(a.name) > anyAscii(b.name)) ? 1 : -1)
+                        .map((secondaryCharacter) => (
                           <Link
                             key={secondaryCharacter.characterId}
                             href={`/players/${secondaryCharacter.characterId}`}
@@ -37,8 +38,7 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
                           >
                             {secondaryCharacter.name}
                           </Link>
-                        ),
-                      )}
+                        ))}
                     </div>
                   </>
                 </div>
@@ -48,7 +48,6 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
             {characterData.isPrimary == false ? (
               <>
                 <Separator className="my-2 w-full" />
-
                 <div className="flex flex-row gap-2">
                   <>
                     <div className="flex flex-wrap gap-2">
@@ -68,7 +67,6 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
             ) : null}
 
             <Separator className="my-2 w-full" />
-
             <div className="">
               {characterData.isPrimary ? (
                 <div className="text-md text-muted-foreground">
