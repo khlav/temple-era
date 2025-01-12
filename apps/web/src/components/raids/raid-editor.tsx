@@ -1,10 +1,9 @@
 "use client";
 
 import LabeledArrayCodeBlock from "~/components/misc/codeblock";
-import {
-  type Raid,
+import type {
+  Raid,
   RaidParticipant,
-  RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 import { Separator } from "~/components/ui/separator";
@@ -16,11 +15,10 @@ import {
 } from "~/components/ui/collapsible";
 import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
-import React, { Dispatch, SetStateAction, useState } from "react";
+import React, { type Dispatch, type SetStateAction, useState } from "react";
 import { api } from "~/trpc/react";
 import { CharactersTable } from "~/components/players/characters-table";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
-import { Button } from "~/components/ui/button";
 import Link from "next/link";
 
 export function RaidEditor({

@@ -13,7 +13,6 @@ import {
 import { ModeToggle } from "@/components/ui/mode-toggle";
 
 import {
-  ArrowDownTrayIcon,
   ChartBarSquareIcon,
   MapIcon,
   UserGroupIcon,

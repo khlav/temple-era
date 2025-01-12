@@ -1,6 +1,6 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import DiscordProvider, {DiscordProfile} from "next-auth/providers/discord";
+import DiscordProvider, { type DiscordProfile} from "next-auth/providers/discord";
 
 import { db } from "~/server/db";
 import {

@@ -1,6 +1,5 @@
 "use client";
 
-import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import React from "react";
 import { AttendanceReport } from "~/components/dashboard/attendance-report";
 import { RecentTrackedRaids } from "~/components/dashboard/recent-tracked-raids";

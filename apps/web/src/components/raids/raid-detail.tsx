@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyRaid, Raid } from "~/server/api/interfaces/raid";
+import { EmptyRaid } from "~/server/api/interfaces/raid";
 import { api } from "~/trpc/react";
 import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 
@@ -14,8 +14,6 @@ export function RaidDetail({
   const {
     data: raidData,
     isSuccess,
-    isLoading,
-    isError,
   } = api.raid.getRaidById.useQuery(raidId ?? "");
 
   return (

@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
+import { aliasedTable, eq } from "drizzle-orm";
 import anyAscii from "any-ascii";
 import {
-  characters, primaryRaidAttendeeAndBenchMap, primaryRaidAttendeeMap,
-  raidLogAttendeeMap,
-  raidLogs,
+  characters,
+  primaryRaidAttendeeAndBenchMap,
   raids,
 } from "~/server/db/schema";
-import {
+import type {
   RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
@@ -30,18 +29,19 @@ export const convertParticipantArrayToCollection = (
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
     .input(z.optional(z.enum(["all", "primaryOnly", "secondaryOnly"])))
-    .query(async ({ ctx, input }) => {
-      const characterSet = input ?? "all";
-      const whereCharacterSet = (() => {
-        switch (characterSet) {
-          case "primaryOnly":
-            return eq(characters.isPrimary, true);
-          case "secondaryOnly":
-            return eq(characters.isPrimary, false);
-          default:
-            return undefined;
-        }
-      })();
+    .query(async ({ ctx }) => {
+      // .query(async ({ ctx, input }) => {
+      //   const characterSet = input ?? "all";
+      //   const whereCharacterSet = (() => {
+      //     switch (characterSet) {
+      //       case "primaryOnly":
+      //         return eq(characters.isPrimary, true);
+      //       case "secondaryOnly":
+      //         return eq(characters.isPrimary, false);
+      //       default:
+      //         return undefined;
+      //     }
+      //   })();
       /*
       const characterList = (await ctx.db.query.characters.findMany({
         orderBy: (characters, { asc }) => [asc(characters.slug)],
@@ -112,11 +112,13 @@ export const character = createTRPCRouter({
       })) as RaidParticipant[];
 
       return {
-          ...character,
-            primaryCharacterId: (character?.primaryCharacter as RaidParticipant)?.characterId,
-            primaryCharacterName: (character?.primaryCharacter as RaidParticipant)?.name,
-            secondaryCharacters: secondaryCharacters,
-          } as RaidParticipant;
+        ...character,
+        primaryCharacterId: (character?.primaryCharacter as RaidParticipant)
+          ?.characterId,
+        primaryCharacterName: (character?.primaryCharacter as RaidParticipant)
+          ?.name,
+        secondaryCharacters: secondaryCharacters,
+      } as RaidParticipant;
     }),
 
   getRaidsForPrimaryCharacterId: publicProcedure
@@ -131,7 +133,6 @@ export const character = createTRPCRouter({
           zone: raids.zone,
           allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
           raidLogIds: primaryRaidAttendeeAndBenchMap.raidLogIds,
-
         })
         .from(raids)
         .leftJoin(

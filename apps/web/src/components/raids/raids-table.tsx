@@ -1,6 +1,6 @@
 "use client";
 
-import { Raid } from "~/server/api/interfaces/raid";
+import type { Raid } from "~/server/api/interfaces/raid";
 import {
   Table,
   TableBody,
@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import anyAscii from "any-ascii";
 import Link from "next/link";
 import { ExternalLinkIcon } from "lucide-react";
 import UserAvatar from "~/components/ui/user-avatar";
@@ -78,7 +77,7 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                     />
                   </TableCell>
                   <TableCell className="text-center">
-                    {(r.raidLogIds ?? []).map((raidLogId, i) => {
+                    {(r.raidLogIds ?? []).map((raidLogId) => {
                       const reportUrl = GenerateWCLReportUrl(raidLogId);
                       return (
                         <Link

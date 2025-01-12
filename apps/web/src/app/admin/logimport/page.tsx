@@ -1,11 +1,8 @@
-import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import { RaidLogLoader } from "~/components/raids/raidlog-loader";
 import {Separator} from "~/components/ui/separator";
 
 export default async function RaidPage() {
-  const session = await auth();
-
   return (
     <HydrateClient>
       <main className="w-full px-4">

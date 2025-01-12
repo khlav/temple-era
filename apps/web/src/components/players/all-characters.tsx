@@ -3,7 +3,7 @@ import { api } from "~/trpc/react";
 import { CharactersTable } from "~/components/players/characters-table";
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
-import {RaidParticipantCollection} from "~/server/api/interfaces/raid";
+import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {AllCharactersTableRowSkeleton} from "~/components/players/skeletons";
 
 export function AllCharacters() {

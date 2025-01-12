@@ -1,6 +1,3 @@
-import { redirect } from 'next/navigation';
-import { auth } from "~/server/auth";
-
 export default function AdminPage() {
   return (
       <main>

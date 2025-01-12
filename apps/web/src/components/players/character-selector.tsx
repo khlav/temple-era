@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { api } from "~/trpc/react";
 import anyAscii from "any-ascii";
-import { RaidParticipant } from "~/server/api/interfaces/raid";
+import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
 export function CharacterSelector({
   onSelectAction,

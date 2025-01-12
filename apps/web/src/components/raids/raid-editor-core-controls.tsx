@@ -4,7 +4,7 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import type { Raid } from "~/server/api/interfaces/raid";
-import { Loader, Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { PrettyPrintDate } from "~/lib/helpers";
 
 export function RaidEditorCoreControls({

@@ -12,14 +12,11 @@ import {
   varchar,
   text,
   boolean,
-  pgSchema,
-  decimal,
   real,
 } from "drizzle-orm/pg-core";
-import { eq, relations, SQL, sql } from "drizzle-orm";
+import { relations, type SQL, sql } from "drizzle-orm";
 import { DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
 import { users } from "~/server/db/models/auth-schema";
-import { isNotNull } from "drizzle-orm/sql/expressions/conditions";
 
 // ERD
 // https://dbdiagram.io/d/Temple-Raid-Attendance-ERD-676ef1de5406798ef7c860a0

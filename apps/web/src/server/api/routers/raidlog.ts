@@ -3,8 +3,6 @@ import {
   createTRPCRouter,
   publicProcedure,
   adminProcedure,
-  createTRPCContext,
-  createCallerFactory,
 } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import anyAscii from "any-ascii";
@@ -15,12 +13,11 @@ import {
   GetWCLGraphQLQuery,
   RaidReportDataShaper,
 } from "~/server/api/wcl-helpers";
-import {
+import type {
   RaidLog,
-  RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
 
 export const Slugify = (value: string) => {

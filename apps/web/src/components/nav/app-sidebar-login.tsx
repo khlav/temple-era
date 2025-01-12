@@ -11,10 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 import { ChevronUp } from "lucide-react";
-import Link from "next/link";
-import { PowerIcon } from "@heroicons/react/24/outline";
 import { signIn, signOut } from "next-auth/react";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {

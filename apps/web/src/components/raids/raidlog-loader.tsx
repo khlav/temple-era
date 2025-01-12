@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Check, XIcon } from "lucide-react";
-import { RaidLog } from "~/server/api/interfaces/raid";
+import type { RaidLog } from "~/server/api/interfaces/raid";
 
 interface RaidLogLoaderProps {
   label?: string;

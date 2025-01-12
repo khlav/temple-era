@@ -1,7 +1,7 @@
 "use client"
 
 import { RaidBenchManagerList } from "~/components/raids/raid-bench-manager-list";
-import {RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
+import type {RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {CharacterSelector} from "~/components/players/character-selector";
 
 export const RaidBenchManager = ({

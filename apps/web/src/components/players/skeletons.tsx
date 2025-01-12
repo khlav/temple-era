@@ -1,9 +1,6 @@
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
-import {RaidParticipant} from "~/server/api/interfaces/raid";
-import Link from "next/link";
-import {ExternalLinkIcon} from "lucide-react";
 import {Input} from "~/components/ui/input";
 
 export function PrimaryCharacterRaidsTableRowSkeleton({

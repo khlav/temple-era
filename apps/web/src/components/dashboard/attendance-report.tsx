@@ -1,6 +1,5 @@
 "use client";
 
-import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import React, { useEffect } from "react";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
@@ -11,7 +10,6 @@ import {
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
-import Link from "next/link";
 
 interface Raider {
   name: string | null;
@@ -22,7 +20,6 @@ interface Raider {
 }
 
 export function AttendanceReport() {
-  const [countRaiders, setCountRaiders] = React.useState<number>(0);
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
   >([]);
@@ -39,11 +36,9 @@ export function AttendanceReport() {
           weightedAttendancePctLowerThan50: raiderPct >= 0.5 ? null : raiderPct,
         };
       });
-      console.log(raiderData);
-      setCountRaiders(raiderData.length);
       setChartAttendenceData(raiderData);
     }
-  }, [attendanceData, setCountRaiders, isSuccess]);
+  }, [attendanceData, isSuccess]);
 
   const chartConfig = {
     weightedAttendancePct: {

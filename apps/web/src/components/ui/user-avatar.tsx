@@ -1,11 +1,6 @@
 "use client";
 
-import { type Session } from "next-auth";
 import {Avatar, AvatarFallback, AvatarImage} from "~/components/ui/avatar";
-
-interface UserLinkProps {
-  session?: Session;
-}
 
 export default function UserAvatar({
   name,

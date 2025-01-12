@@ -1,5 +1,3 @@
-import {RaidParticipant} from "~/server/api/interfaces/raid";
-
 export interface RawFightResult {
   id: string;
   name: string;

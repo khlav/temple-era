@@ -1,10 +1,9 @@
 "use client";
 
-import {FormEvent, useEffect} from "react";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { api } from "~/trpc/react";
 import { RaidEditor } from "~/components/raids/raid-editor";
-import {EmptyRaid, Raid, RaidParticipant} from "~/server/api/interfaces/raid";
+import {EmptyRaid, type Raid} from "~/server/api/interfaces/raid";
 import {useRouter} from "next/navigation";
 import {toastRaidDeleted, toastRaidSaved} from "~/components/raids/raid-toasts";
 import {useToast} from "~/hooks/use-toast";
@@ -34,7 +33,7 @@ export function EditRaid({ raidId }: { raidId: number }) {
       alert(error.message);
       setSendingData(false);
     },
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       await utils.invalidate(undefined, { refetchType: "all"});
       toastRaidDeleted(toast, raidData)
       router.push("/raids");
@@ -68,7 +67,6 @@ export function EditRaid({ raidId }: { raidId: number }) {
       setRaidData(fetchedRaidData);
     }
   }, [isSuccess, fetchedRaidData]);
-
 
   return (
     <div className="px-2">

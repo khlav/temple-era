@@ -1,5 +1,5 @@
-import {RawActorResult, RawActorResultCollection, RawRaidReportRequestResult} from "~/server/api/interfaces/wcl";
-import {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
+import type {RawActorResult, RawActorResultCollection, RawRaidReportRequestResult} from "~/server/api/interfaces/wcl";
+import type {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {env} from "~/env";
 import {NextResponse} from "next/server";
 

@@ -1,13 +1,8 @@
-import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 
-import {CharacterList} from "~/components/players/old/characterlist";
 import {AllCharacters} from "~/components/players/all-characters";
 
 export default async function PlayersIndex() {
-  const session = await auth();
-
-
   return (
     <HydrateClient>
       <main className="w-full px-4">

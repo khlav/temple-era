@@ -4,15 +4,11 @@ import {
   publicProcedure,
   adminProcedure,
 } from "~/server/api/trpc";
-import {
-  raidLogs,
-  raids,
-  raidBenchMap
-} from "~/server/db/schema";
+import { raidLogs, raids, raidBenchMap } from "~/server/db/schema";
 import {
   EmptyRaid,
-  Raid,
-  RaidParticipantCollection,
+  type Raid,
+  type RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
@@ -28,9 +24,9 @@ const updateRaidLogRaidIds = async (db: DB, raidId: number, raidData: Raid) => {
   if (raidData.raidLogIds?.length ?? 0 > 0) {
     return db
       .update(raidLogs)
-      .set({raidId: raidId})
+      .set({ raidId: raidId })
       .where(inArray(raidLogs.raidLogId, raidData.raidLogIds ?? []))
-      .returning({raidLogId: raidLogs.raidLogId});
+      .returning({ raidLogId: raidLogs.raidLogId });
   }
   return undefined;
 };
@@ -143,9 +139,9 @@ export const raid = createTRPCRouter({
               primaryCharacter: {
                 columns: {
                   name: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
         },
         where: eq(raidBenchMap.raidId, input),
@@ -154,7 +150,7 @@ export const raid = createTRPCRouter({
       const raidBench = raidBenchResult.reduce((acc, rel) => {
         const benched = {
           ...rel.character,
-          primaryCharacterName: rel.character?.primaryCharacter?.name
+          primaryCharacterName: rel.character?.primaryCharacter?.name,
         };
         acc[benched.characterId] = benched;
         return acc;
@@ -222,7 +218,6 @@ export const raid = createTRPCRouter({
         benchDeleteResult = benchDelete ?? undefined;
         benchInsertResult = benchInsert ?? undefined;
       }
-
 
       return {
         raid: insertedRaidInfo,
@@ -292,13 +287,10 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  delete: adminProcedure
-    .input(z.number())
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db
-        .delete(raids)
-        .where(eq(raids.raidId, input))
-        .returning({ raidId: raids.raidId, name: raids.name });
-    })
-
+  delete: adminProcedure.input(z.number()).mutation(async ({ ctx, input }) => {
+    return await ctx.db
+      .delete(raids)
+      .where(eq(raids.raidId, input))
+      .returning({ raidId: raids.raidId, name: raids.name });
+  }),
 });

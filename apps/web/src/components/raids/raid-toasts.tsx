@@ -2,7 +2,6 @@ import type { toast as toastType } from "~/hooks/use-toast";
 import type { Raid, RaidLog } from "~/server/api/interfaces/raid";
 import { Check, Trash, X } from "lucide-react";
 import { ToastAction } from "@radix-ui/react-toast";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { PrettyPrintDate } from "~/lib/helpers";

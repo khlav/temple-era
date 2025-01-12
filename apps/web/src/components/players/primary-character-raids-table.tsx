@@ -1,11 +1,6 @@
 "use client";
 
 import {
-  Raid,
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
-import {
   Table,
   TableBody,
   TableCaption,
@@ -14,14 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import anyAscii from "any-ascii";
 import Link from "next/link";
 import { ExternalLinkIcon } from "lucide-react";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
-import { Badge } from "~/components/ui/badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import UserAvatar from "~/components/ui/user-avatar";
 import {PrimaryCharacterRaidsTableRowSkeleton} from "~/components/players/skeletons";
 
 export function PrimaryCharacterRaidsTable({
@@ -58,7 +50,7 @@ export function PrimaryCharacterRaidsTable({
         </TableHeader>
         <TableBody>
           {isSuccess
-            ? raids.map((r, index) => (
+            ? raids.map((r) => (
                 <TableRow key={r.raidId}>
                   <TableCell className="text-secondary-foreground">
                     <Link

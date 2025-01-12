@@ -1,6 +1,6 @@
 "use client"
 
-import {
+import type {
   RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
