@@ -26,7 +26,9 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
         </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/2 md:w-4/12">Raid</TableHead>
+            <TableHead className="w-1/2 md:w-4/12">
+              Raids {raids ? `(${raids?.length})` : ""}
+            </TableHead>
             <TableHead className="hidden md:table-cell md:w-2/12">
               Zone
             </TableHead>
@@ -51,7 +53,9 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                       href={"/raids/" + r.raidId}
                     >
                       <div>{r.name}</div>
-                      <div className="text-xs text-muted-foreground md:hidden">{PrettyPrintDate(new Date(r.date), true)}</div>
+                      <div className="text-muted-foreground text-xs md:hidden">
+                        {PrettyPrintDate(new Date(r.date), true)}
+                      </div>
                     </Link>
                     {(r.raidLogIds ?? []).length == 0 && (
                       <Badge variant="destructive" className="ml-2">

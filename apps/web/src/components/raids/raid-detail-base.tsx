@@ -22,6 +22,7 @@ export function RaidDetailBase({
 }) {
   const {
     data: raidParticipants,
+    isLoading: isLoadingParticipants,
     isSuccess: isSuccessParticipants,
   } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
     raidData.raidLogIds ?? [],
@@ -122,9 +123,7 @@ export function RaidDetailBase({
           <div className="bg-card text-card-foreground rounded-xl border p-3 shadow">
             <div className="text-xl">Attendees from logs:</div>
             <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-              {isSuccessParticipants && (
-                <CharactersTable characters={raidParticipants} />
-              )}
+                <CharactersTable characters={raidParticipants} isLoading={isLoadingParticipants}/>
             </div>
             <div className="text-muted-foreground text-center text-sm">
               List of characters appearing in WCL logs. <br />

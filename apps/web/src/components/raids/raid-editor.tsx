@@ -1,10 +1,7 @@
 "use client";
 
 import LabeledArrayCodeBlock from "~/components/misc/codeblock";
-import type {
-  Raid,
-  RaidParticipant,
-} from "~/server/api/interfaces/raid";
+import type { Raid, RaidParticipant } from "~/server/api/interfaces/raid";
 import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 import { Separator } from "~/components/ui/separator";
 import { RaidBenchManager } from "~/components/raids/raid-bench-manager";
@@ -80,15 +77,17 @@ export function RaidEditor({
     }));
   };
 
-  const { data: raidParticipants, isSuccess: isSuccessParticipants } =
-    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-      raidData.raidLogIds ?? [],
-      { enabled: (raidData?.raidLogIds ?? []).length > 0 },
-    );
+  const {
+    data: raidParticipants,
+    isLoading: isLoadingParticipants,
+  } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
+    raidData.raidLogIds ?? [],
+    { enabled: (raidData?.raidLogIds ?? []).length > 0 },
+  );
 
   return (
     <>
-      <div className="flex px-1 space-x-4">
+      <div className="flex space-x-4 px-1">
         <div className="w-full">
           <RaidEditorCoreControls
             raidData={raidData}
@@ -116,8 +115,12 @@ export function RaidEditor({
                       rel="noopener noreferrer"
                       className="text-nowrap"
                     >
-                      <span className="hidden md:inline-block">{reportUrl.replace("https://","")}</span>
-                      <span className="inline-block md:hidden">{raidLogId}</span>
+                      <span className="hidden md:inline-block">
+                        {reportUrl.replace("https://", "")}
+                      </span>
+                      <span className="inline-block md:hidden">
+                        {raidLogId}
+                      </span>
                       <ExternalLinkIcon
                         className="ml-1 inline-block align-text-top"
                         size={15}
@@ -130,13 +133,15 @@ export function RaidEditor({
           </div>
           <Separator className="my-3" />
           <div className="flex gap-4 xl:flex-nowrap">
-            <div className="grow-0 text-nowrap text-sm">Kills {raidData.kills ? `(${raidData?.kills?.length})`: ""}:</div>
-            <div className="shrink overflow-x-hidden flex gap-1 flex-wrap text-nowrap">
+            <div className="grow-0 text-nowrap text-sm">
+              Kills {raidData.kills ? `(${raidData?.kills?.length})` : ""}:
+            </div>
+            <div className="flex shrink flex-wrap gap-1 overflow-x-hidden text-nowrap">
               {(raidData.kills ?? []).map((killName, i) => {
                 return (
                   <div
                     key={`kill_${i}`}
-                    className="text-muted-foreground text-sm grow-0 bg-secondary py-1 px-2 rounded"
+                    className="text-muted-foreground bg-secondary grow-0 rounded px-2 py-1 text-sm"
                   >
                     {killName}
                   </div>
@@ -149,13 +154,16 @@ export function RaidEditor({
             <div className="w-full xl:w-1/2">
               <div className="">Attendees from logs:</div>
               <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-                {isSuccessParticipants && (
-                  <CharactersTable characters={raidParticipants} targetNewTab/>
-                )}
+                <CharactersTable
+                  characters={raidParticipants}
+                  isLoading={isLoadingParticipants}
+                  targetNewTab
+                />
               </div>
               <div className="text-muted-foreground text-center text-sm">
                 List of characters appearing in WCL logs. <br />
-                Alts are mapped to primary characters when calc&apos;ing attendance.
+                Alts are mapped to primary characters when calc&apos;ing
+                attendance.
               </div>
             </div>
 

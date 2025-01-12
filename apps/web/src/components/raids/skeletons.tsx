@@ -20,7 +20,7 @@ export function RaidsTableSkeleton({ rows = 30 }: { rows?: number }) {
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-1/2 md:w-4/12">Raid</TableHead>
+              <TableHead className="w-1/2 md:w-4/12">Raids</TableHead>
               <TableHead className="hidden md:table-cell md:w-2/12">
                 Zone
               </TableHead>

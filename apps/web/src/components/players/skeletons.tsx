@@ -34,7 +34,7 @@ export function PrimaryCharacterRaidsTableRowSkeleton({
   );
 }
 
-export function AllCharactersTableRowSkeleton({
+export function AllCharactersTableSkeleton({
                                                         rows = 10,
                                                       }: {
   rows?: number;
@@ -45,36 +45,49 @@ export function AllCharactersTableRowSkeleton({
         placeholder="Search..."
         disabled={true}
       />
-    <Table className="max-h-[400px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-3/4">
-            Characters
-          </TableHead>
-          <TableHead className="w-1/3">Server</TableHead>
-          <TableHead className="w-1/3">Class</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <TableRow key={rowIndex}>
-            {Array.from({ length: 3 }).map((_, cellIndex) => {
-              // Create a deterministic pseudo-random value
-              const seed = rowIndex * 3 + cellIndex; // Unique seed per cell
-              const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%
-              return (
-                <TableCell key={cellIndex}>
-                  <Skeleton
-                    className="my-1 h-4 px-2"
-                    style={{ width: `${pseudoRandomWidth}%` }}
-                  />
-                </TableCell>
-              );
-            })}
+    <GenericCharactersTableSkeleton rows={rows} />
+    </>
+
+  );
+}
+
+export function GenericCharactersTableSkeleton({
+                                                rows = 10,
+                                              }: {
+  rows?: number;
+}) {
+  return (
+    <>
+      <Table className="max-h-[400px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-3/4">
+              Characters
+            </TableHead>
+            <TableHead className="w-1/3">Server</TableHead>
+            <TableHead className="w-1/3">Class</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: rows }).map((_, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {Array.from({ length: 3 }).map((_, cellIndex) => {
+                // Create a deterministic pseudo-random value
+                const seed = rowIndex * 3 + cellIndex; // Unique seed per cell
+                const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%
+                return (
+                  <TableCell key={cellIndex}>
+                    <Skeleton
+                      className="my-1 h-4 px-2"
+                      style={{ width: `${pseudoRandomWidth}%` }}
+                    />
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </>
 
   );

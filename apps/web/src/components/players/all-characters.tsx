@@ -4,7 +4,7 @@ import { CharactersTable } from "~/components/players/characters-table";
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
 import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
-import {AllCharactersTableRowSkeleton} from "~/components/players/skeletons";
+import {AllCharactersTableSkeleton} from "~/components/players/skeletons";
 
 export function AllCharacters() {
   const { data: players, isSuccess } = api.character.getCharacters.useQuery();
@@ -47,7 +47,7 @@ export function AllCharacters() {
           />
           <CharactersTable characters={filteredPlayers} />
         </div>
-      ) : <AllCharactersTableRowSkeleton rows={14}/>}
+      ) : <AllCharactersTableSkeleton rows={14}/>}
     </>
   );
 }
