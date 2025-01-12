@@ -12,20 +12,14 @@ export default async function HomePage() {
       <div className="mb-4 text-3xl font-bold tracking-tight">
         Raid Attendance{" "}
         <span className="text-muted-foreground pl-2 text-lg font-normal tracking-normal">
-              Last six complete lockout weeks
-            </span>
+          Last six complete lockout weeks
+        </span>
       </div>
-      {session?.user?.isAdmin ? (
-        <>
-          <Separator className="mb-3"/>
-          <div className="text-primary font-bold">Admin Only - Raw Data</div>
-          <div>
-            <AttendanceDashboard/>
-          </div>
-        </>
-      ) : (
-        <></>
-      )}
+      <Separator className="mb-3" />
+      <div className="text-primary font-bold">Admin Only - Raw Data</div>
+      <div>
+        <AttendanceDashboard />
+      </div>
     </main>
   );
 }

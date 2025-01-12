@@ -65,7 +65,7 @@ export function AttendanceReport() {
   return (
     <Card>
       <CardHeader>
-        Raiders seen last 6 lockouts: {countRaiders ?? ""}
+        Raiders seen last 6 lockouts: {countRaiders > 0 ? countRaiders : "--" }
       </CardHeader>
       <CardContent className="pt-4">
         {isSuccess ? (
