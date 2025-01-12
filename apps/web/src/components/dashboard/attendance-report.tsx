@@ -51,7 +51,7 @@ export function AttendanceReport() {
     },
     weightedAttendancePctLowerThan50: {
       label: "% Attendance",
-      color: "hsl(var(--muted))",
+      color: "hsl(var(--border))",
     },
     label: {
       color: "#fff",
@@ -61,15 +61,15 @@ export function AttendanceReport() {
   return (
     <Card className="min-h-[1500px]">
       <CardHeader>
-          <div className="">
-            Raiders from tracked events :{" "}
-            {chartAttendenceData && chartAttendenceData.length > 0
-              ? chartAttendenceData.length
-              : "--"}
-          </div>
-          <div className="text-muted-foreground pb-0.5 text-sm">
-            Last 6 full lockouts
-          </div>
+        <div className="">
+          Raiders from tracked events :{" "}
+          {chartAttendenceData && chartAttendenceData.length > 0
+            ? chartAttendenceData.length
+            : "--"}
+        </div>
+        <div className="text-muted-foreground pb-0.5 text-sm">
+          Last 6 full lockouts
+        </div>
       </CardHeader>
       <CardContent className="pt-4">
         {isSuccess ? (
@@ -116,7 +116,7 @@ export function AttendanceReport() {
                     dataKey="weightedAttendancePct50OrBetter"
                     position="insideRight"
                     offset={8}
-                    className="fill-slate-900 font-bold"
+                    className="fill-primary-foreground font-bold"
                     fontSize={12}
                     formatter={(value: number) => `${Math.round(value * 100)}%`}
                   />
@@ -132,7 +132,7 @@ export function AttendanceReport() {
                     dataKey="weightedAttendancePctLowerThan50"
                     position="right"
                     offset={8}
-                    className="secondary"
+                    className="fill-muted-foreground"
                     fontSize={12}
                     formatter={(value: number) => `${Math.round(value * 100)}%`}
                   />
