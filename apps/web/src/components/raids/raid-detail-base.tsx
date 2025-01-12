@@ -101,8 +101,8 @@ export function RaidDetailBase({
       </div>
 
       <Separator className="my-3" />
-      <div className="flex gap-4 xl:flex-nowrap">
-        <div className="grow-0 text-nowrap text-sm">Kills {raidData.kills ? `(${raidData?.kills?.length})`: ""}:</div>
+      <div className="flex gap-2 xl:flex-nowrap">
+        <div className="grow-0 text-nowrap text-sm py-[3px]">Kills {raidData.kills ? `(${raidData?.kills?.length})`: ""}:</div>
         <div className="shrink overflow-x-hidden flex gap-1 flex-wrap text-nowrap">
           {(raidData.kills ?? []).map((killName, i) => {
             return (
