@@ -115,6 +115,7 @@ export const raid = createTRPCRouter({
       const raidLogsResult = await ctx.db
         .select({
           raidLogId: raidLogs.raidLogId,
+          kills: raidLogs.kills,
         })
         .from(raidLogs)
         .where(eq(raidLogs.raidId, input));
@@ -158,7 +159,11 @@ export const raid = createTRPCRouter({
 
       return {
         ...(initialRaidResult[0] ?? EmptyRaid()),
-        raidLogIds: raidLogsResult.map(({ raidLogId }) => raidLogId),
+        raidLogIds: raidLogsResult.map((raidLog) => raidLog.raidLogId),
+        kills: raidLogsResult.reduce((acc, rel) => {
+          const combinedKillSet = [...acc, ...rel.kills];
+          return [... new Set(combinedKillSet)];
+        }, [] as string[]),
         bench: raidBench,
       } as Raid;
     }),

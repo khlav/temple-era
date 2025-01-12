@@ -38,6 +38,7 @@ export interface Raid {
   zone: string ;
   attendanceWeight: number;
   raidLogIds?: string[];
+  kills?: string[];
   bench: RaidParticipantCollection;
   creator?: User;
 }

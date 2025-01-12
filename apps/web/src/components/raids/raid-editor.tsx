@@ -129,6 +129,22 @@ export function RaidEditor({
             </div>
           </div>
           <Separator className="my-3" />
+          <div className="flex gap-4 xl:flex-nowrap">
+            <div className="grow-0 text-nowrap text-sm">Kills {raidData.kills ? `(${raidData?.kills?.length})`: ""}:</div>
+            <div className="shrink overflow-x-hidden flex gap-1 flex-wrap text-nowrap">
+              {(raidData.kills ?? []).map((killName, i) => {
+                return (
+                  <div
+                    key={`kill_${i}`}
+                    className="text-muted-foreground text-sm grow-0 bg-secondary py-1 px-2 rounded"
+                  >
+                    {killName}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <Separator className="my-3" />
           <div className="flex flex-wrap-reverse gap-4 xl:flex-nowrap">
             <div className="w-full xl:w-1/2">
               <div className="">Attendees from logs:</div>

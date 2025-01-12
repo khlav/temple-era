@@ -71,6 +71,7 @@ export function CreateRaid() {
           date: raidDate.toISOString().split("T")[0] ?? "",
           zone: initialRaidLog.zone ?? "",
           attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone, raidDate),
+          kills: initialRaidLog.kills ?? [],
           raidLogIds: [initialRaidLog.raidLogId],
         }));
 
