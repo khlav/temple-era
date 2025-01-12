@@ -28,7 +28,7 @@ export function RecentTrackedRaids() {
     <Card>
       <CardHeader>
         <div className="flex items-end text-nowrap">
-          <div className="grow-0">Tracked Raids</div>
+          <div className="grow-0">Tracked events : { trackedRaidData && trackedRaidData.length > 0 ? trackedRaidData.length : "--"}</div>
           <div className="text-muted-foreground grow pb-0.5 px-2 text-sm">
             Last 6 lockouts
           </div>
