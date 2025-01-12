@@ -62,7 +62,7 @@ export function AttendanceReport() {
     <Card className="min-h-[1500px]">
       <CardHeader>
           <div className="">
-            Raiders from tracked eventsgit :{" "}
+            Raiders from tracked events :{" "}
             {chartAttendenceData && chartAttendenceData.length > 0
               ? chartAttendenceData.length
               : "--"}
