@@ -64,19 +64,17 @@ export function AttendanceReport() {
   } satisfies ChartConfig;
 
   return (
-    <Card>
+    <Card className="min-h-[1500px]">
       <CardHeader>
-        <div className="flex items-end text-nowrap">
-          <div className="grow-0">
+          <div className="">
             Raiders seen in tracked events :{" "}
             {chartAttendenceData && chartAttendenceData.length > 0
               ? chartAttendenceData.length
               : "--"}
           </div>
-          <div className="text-muted-foreground grow px-2 pb-0.5 text-sm">
-            Last 6 lockouts
+          <div className="text-muted-foreground pb-0.5 text-sm">
+            Last 6 full lockouts
           </div>
-        </div>
       </CardHeader>
       <CardContent className="pt-4">
         {isSuccess ? (

@@ -18,16 +18,16 @@ import { ExternalLinkIcon } from "lucide-react";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import {Card, CardContent, CardHeader} from "~/components/ui/card";
 
-export function RecentTrackedRaids() {
+export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } =
-    api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
+    api.dashboard.getAllRaidsCurrentLockout.useQuery();
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-end text-nowrap">
           <div className="grow-0">
-            Tracked events :{" "}
+            Recent raids :{" "}
             {trackedRaidData && trackedRaidData.length > 0
               ? trackedRaidData.length
               : "--"}
@@ -37,7 +37,7 @@ export function RecentTrackedRaids() {
           </div>
         </div>
         <div className="text-muted-foreground grow text-sm">
-          Last 6 full lockouts
+          Current lockout
         </div>
       </CardHeader>
       <CardContent>
@@ -52,7 +52,7 @@ export function RecentTrackedRaids() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <RecentTrackedRaidsTableRowSkeleton />
+              <RecentTrackedRaidsTableRowSkeleton rows={3}/>
             ) : (
               (trackedRaidData ?? []).map((r) => (
                 <TableRow key={r.raidId}>

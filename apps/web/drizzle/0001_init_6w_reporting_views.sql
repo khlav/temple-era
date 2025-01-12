@@ -8,6 +8,16 @@ DROP VIEW IF EXISTS views.primary_raid_attendee_and_bench_map;
 DROP VIEW IF EXISTS views.primary_raid_attendee_map;
 DROP VIEW IF EXISTS views.primary_raid_bench_map;
 DROP VIEW IF EXISTS views.tracked_raids_l6lockoutwk;
+DROP VIEW IF EXISTS views.tracked_raids_current_lockout;
+DROP VIEW IF EXISTS views.all_raids_current_lockout;
+DROP VIEW IF EXISTS views.report_dates;
+
+-- Create views.report_dates
+DROP VIEW IF EXISTS views.report_dates;
+CREATE VIEW views.report_dates AS
+SELECT
+    (date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
+    (date_trunc('week', CURRENT_DATE))::DATE AS report_period_end;
 
 -- Create views.primary_raid_attendee_map
 CREATE VIEW views.primary_raid_attendee_map AS
@@ -79,6 +89,23 @@ WHERE r.date >= date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL
 ORDER BY date DESC
 ;
 
+-- Create views.tracked_raids_current_lockout
+CREATE OR REPLACE VIEW views.tracked_raids_current_lockout AS
+SELECT r.*
+FROM public.raid r
+WHERE r.date >= date_trunc('week', CURRENT_DATE) + INTERVAL '1 day'
+  AND r.date <= date_trunc('week', CURRENT_DATE) + INTERVAL '7 day'
+  AND r.attendance_weight > 0
+ORDER BY date DESC
+;
+
+CREATE OR REPLACE VIEW views.all_raids_current_lockout AS
+SELECT r.*
+FROM public.raid r
+WHERE r.date >= date_trunc('week', CURRENT_DATE) + INTERVAL '1 day'
+  AND r.date <= date_trunc('week', CURRENT_DATE) + INTERVAL '7 day'
+ORDER BY date DESC
+;
 
 -- Create views.primary_raid_attendance_l6lockoutwk
 CREATE OR REPLACE VIEW views.primary_raid_attendance_l6lockoutwk AS

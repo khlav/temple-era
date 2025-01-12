@@ -9,13 +9,10 @@ export default async function HomePage() {
 
   return (
     <main className="w-full px-4">
-      <div className="mb-4 text-3xl font-bold tracking-tight">
-        Temple : Raid Attendance{" "}
+      <div className="mb-2 text-3xl font-bold tracking-tight">
+        Temple : Raid Attendance
       </div>
-          <Separator className="mb-4"/>
-          <div>
-            <AttendanceDashboard/>
-          </div>
+      <AttendanceDashboard />
     </main>
   );
 }

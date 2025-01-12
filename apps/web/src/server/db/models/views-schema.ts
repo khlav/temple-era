@@ -5,6 +5,7 @@ import {
   real,
   text,
   json,
+  date,
 } from "drizzle-orm/pg-core";
 import {
   characters,
@@ -61,6 +62,18 @@ export const trackedRaidsL6LockoutWk = viewSchema
   })
   .existing();
 
+export const trackedRaidsCurrentLockout = viewSchema
+  .view("tracked_raids_current_lockout", {
+    ...raidsColumns,
+  })
+  .existing();
+
+export const allRaidsCurrentLockout = viewSchema.view(
+  "all_raids_current_lockout",{
+    ...raidsColumns,
+  }
+).existing();
+
 export const primaryRaidAttendanceL6LockoutWk = viewSchema
   .view("primary_raid_attendance_l6lockoutwk", {
     characterId: integer("character_id").references(
@@ -71,10 +84,17 @@ export const primaryRaidAttendanceL6LockoutWk = viewSchema
     weightedRaidTotal: real("weighted_raid_total"),
     weightedAttendancePct: real("weighted_attendance_pct"),
     raidsAttended: json("raids_attended_json").$type<{
-      name: string,
-      zone: string,
-      attendanceWeight: number,
-      attendeeOrBench: string,
+      name: string;
+      zone: string;
+      attendanceWeight: number;
+      attendeeOrBench: string;
     }>(),
+  })
+  .existing();
+
+export const reportDates = viewSchema
+  .view("report_dates", {
+    reportPeriodStart: date("report_period_start"),
+    reportPeriodEnd: date("report_period_end"),
   })
   .existing();
