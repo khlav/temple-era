@@ -33,7 +33,7 @@ export function RecentTrackedRaids() {
             Last 6 lockouts
           </div>
           <div className="text-primary grow-0 text-sm pb-0.5 hover:underline">
-            <Link href="/raids">View raids</Link>
+            <Link href="/raids">View all raids</Link>
           </div>
         </div>
       </CardHeader>
