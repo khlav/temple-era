@@ -27,7 +27,7 @@ export function CurrentLockoutAllRaids() {
       <CardHeader>
         <div className="flex items-end text-nowrap">
           <div className="grow-0">
-            Recent raids :{" "}
+            Recent raid events :{" "}
             {trackedRaidData && trackedRaidData.length > 0
               ? trackedRaidData.length
               : "--"}

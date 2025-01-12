@@ -53,6 +53,11 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
       .references(() => characters.characterId)
       .array(),
     attendeeOrBench: text("attendee_or_bench"),
+    allCharacters: (json("all_characters").$type<Array<{
+      name: string;
+      characterId: number;
+    }>>()),
+    raidLogIds: text("raid_log_ids").array(),
   })
   .existing();
 
@@ -68,11 +73,11 @@ export const trackedRaidsCurrentLockout = viewSchema
   })
   .existing();
 
-export const allRaidsCurrentLockout = viewSchema.view(
-  "all_raids_current_lockout",{
+export const allRaidsCurrentLockout = viewSchema
+  .view("all_raids_current_lockout", {
     ...raidsColumns,
-  }
-).existing();
+  })
+  .existing();
 
 export const primaryRaidAttendanceL6LockoutWk = viewSchema
   .view("primary_raid_attendance_l6lockoutwk", {

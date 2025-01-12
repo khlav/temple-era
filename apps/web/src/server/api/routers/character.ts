@@ -1,9 +1,9 @@
-import {z} from "zod";
-import {createTRPCRouter, publicProcedure} from "~/server/api/trpc";
-import {aliasedTable, eq, inArray, sql} from "drizzle-orm";
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
 import anyAscii from "any-ascii";
 import {
-  characters,
+  characters, primaryRaidAttendeeAndBenchMap, primaryRaidAttendeeMap,
   raidLogAttendeeMap,
   raidLogs,
   raids,
@@ -30,7 +30,7 @@ export const convertParticipantArrayToCollection = (
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
     .input(z.optional(z.enum(["all", "primaryOnly", "secondaryOnly"])))
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const characterSet = input ?? "all";
       const whereCharacterSet = (() => {
         switch (characterSet) {
@@ -58,64 +58,87 @@ export const character = createTRPCRouter({
       })) as RaidParticipant[];
       */
 
-      const primaryCharacters = aliasedTable(characters, "primary_character")
+      const primaryCharacters = aliasedTable(characters, "primary_character");
       const characterList = await ctx.db
-          .select({
-            name: characters.name,
-            server: characters.server,
-            slug: characters.slug,
-            class: characters.class,
-            characterId: characters.characterId,
-            isPrimary: characters.isPrimary,
-            primaryCharacterId: characters.primaryCharacterId,
-            primaryCharacterName: primaryCharacters.name
-          })
-          .from(characters)
-          .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId));
+        .select({
+          name: characters.name,
+          server: characters.server,
+          slug: characters.slug,
+          class: characters.class,
+          characterId: characters.characterId,
+          isPrimary: characters.isPrimary,
+          primaryCharacterId: characters.primaryCharacterId,
+          primaryCharacterName: primaryCharacters.name,
+        })
+        .from(characters)
+        .leftJoin(
+          primaryCharacters,
+          eq(characters.primaryCharacterId, primaryCharacters.characterId),
+        );
 
       return convertParticipantArrayToCollection(characterList) ?? null;
     }),
 
   getCharacterById: publicProcedure
     .input(z.number())
-    .query(async ({ctx, input}) => {
-      const primaryCharacters = aliasedTable(characters, "primary_character")
-      const character = await ctx.db
-        .select({
-          characterId: characters.characterId,
-          name: characters.name,
-          server: characters.server,
-          slug: characters.slug,
-          class: characters.class,
-          classDetail: characters.classDetail,
-          isPrimary: characters.isPrimary,
-          primaryCharacterId: characters.primaryCharacterId,
-          primaryCharacterName: primaryCharacters.name
-        })
-        .from(characters)
-        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
-        .where(eq(characters.characterId, input));
-      return character ?? null;
+    .query(async ({ ctx, input }) => {
+      const characterCols = {
+        characterId: true,
+        name: true,
+        server: true,
+        slug: true,
+        class: true,
+        classDetail: true,
+        primaryCharacterId: true,
+        isPrimary: true,
+        isIgnored: true,
+      };
+
+      const characterResult = await ctx.db.query.characters.findMany({
+        where: eq(characters.characterId, input),
+        columns: characterCols,
+        with: {
+          primaryCharacter: {
+            columns: characterCols,
+          },
+        },
+      });
+
+      const character = characterResult[0];
+
+      const secondaryCharacters = (await ctx.db.query.characters.findMany({
+        where: eq(characters.primaryCharacterId, input),
+        columns: characterCols,
+      })) as RaidParticipant[];
+
+      return {
+          ...character,
+            primaryCharacterId: (character?.primaryCharacter as RaidParticipant)?.characterId,
+            primaryCharacterName: (character?.primaryCharacter as RaidParticipant)?.name,
+            secondaryCharacters: secondaryCharacters,
+          } as RaidParticipant;
     }),
 
-  getRaidsForCharacterId: publicProcedure
+  getRaidsForPrimaryCharacterId: publicProcedure
     .input(z.number())
-    .query(async ({ctx, input}) => {
+    .query(async ({ ctx, input }) => {
       const raidsAttended = await ctx.db
         .select({
           raidId: raids.raidId,
           name: raids.name,
           attendanceWeight: raids.attendanceWeight,
-          date: sql`${raids.date}
-          ::date`,
+          date: raids.date,
+          zone: raids.zone,
+          allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
+          raidLogIds: primaryRaidAttendeeAndBenchMap.raidLogIds,
+
         })
         .from(raids)
-        .leftJoin(raidLogs, eq(raidLogs.raidId, raids.raidId))
         .leftJoin(
-          raidLogAttendeeMap,
-          eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
+          primaryRaidAttendeeAndBenchMap,
+          eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId),
         )
-        .where(eq(raidLogAttendeeMap.characterId, input));
+        .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input));
 
       return raidsAttended ?? [];
     }),

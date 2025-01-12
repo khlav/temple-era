@@ -1,3 +1,5 @@
+"use client"
+
 import {
   RaidParticipant,
   RaidParticipantCollection,
@@ -47,7 +49,7 @@ export function CharactersTable({
                     <Link
                       className="hover:text-primary group w-full transition-all"
                       target={targetNewTab ? "_blank" : "_self"}
-                      href={"/players/" + c.characterId}
+                      href={"/players/" +  c.characterId}
                     >
                       <div>
                         {c.name}

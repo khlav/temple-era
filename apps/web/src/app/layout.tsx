@@ -36,7 +36,7 @@ export default async function RootLayout({
       <body className="flex h-screen">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >

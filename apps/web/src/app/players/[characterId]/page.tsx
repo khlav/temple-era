@@ -1,23 +1,13 @@
-import {
-  CharacterDetail,
-  CharacterRaids,
-} from "~/components/players/old/characterdetail";
+import {CharacterDetail} from "~/components/players/character-detail";
 
 export default async function PlayerPage({ params }: {params: Promise<{characterId: number}>}) {
   const p = await params;
   const characterId = parseInt(String(p.characterId));
   return (
-    <div>
-      <div className="text-2xl">
-        Character pages are in-progress. Meanwhile, here is a bit of data.
-      </div>
-      <div className="text-muted-foreground pb-4">
-        Character ID: {characterId}
-      </div>
+    <div className="w-full px-4">
       {characterId && (
         <>
           <CharacterDetail characterId={characterId} />
-          <CharacterRaids characterId={characterId} />
         </>
       )}
     </div>

@@ -15,9 +15,8 @@ DROP VIEW IF EXISTS views.report_dates;
 -- Create views.report_dates
 DROP VIEW IF EXISTS views.report_dates;
 CREATE VIEW views.report_dates AS
-SELECT
-    (date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
-    (date_trunc('week', CURRENT_DATE))::DATE AS report_period_end;
+SELECT (date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
+       (date_trunc('week', CURRENT_DATE))::DATE                                         AS report_period_end;
 
 -- Create views.primary_raid_attendee_map
 CREATE VIEW views.primary_raid_attendee_map AS
@@ -69,14 +68,31 @@ WITH all_raid_participation AS (SELECT COALESCE(a.raid_id, b.raid_id)           
                                 FROM views.primary_raid_attendee_map a
                                          FULL OUTER JOIN views.primary_raid_bench_map b
                                                          ON a.raid_id = b.raid_id
-                                                             AND a.primary_character_id = b.primary_character_id)
-SELECT raid_id,
-       primary_character_id,
-       all_character_ids,
-       attendee_or_bench
-FROM all_raid_participation
-WHERE primary_character_id IS NOT NULL
-ORDER BY raid_id, primary_character_id
+                                                             AND a.primary_character_id = b.primary_character_id),
+
+     character_details AS (SELECT character_id, name
+                           FROM public.character
+                           WHERE is_ignored = false),
+
+     raid_logs_by_raid_id AS (SELECT raid_id, array_agg(raid_log_id) as raid_log_ids
+                              FROM public.raid_log
+                              WHERE raid_id IS NOT NULL
+                              GROUP BY raid_id)
+
+SELECT arp.raid_id,
+       arp.primary_character_id,
+       arp.all_character_ids,
+       arp.attendee_or_bench,
+       ARRAY(
+               SELECT json_build_object('characterId', c.character_id, 'name', c.name) -- camelCase to match TS when in use
+               FROM unnest(arp.all_character_ids) AS unnested_character_id
+                        LEFT JOIN character_details c ON c.character_id = unnested_character_id
+       ) AS all_characters,
+        rl.raid_log_ids
+FROM all_raid_participation arp
+         LEFT JOIN raid_logs_by_raid_id rl ON rl.raid_id = arp.raid_id
+WHERE arp.primary_character_id IS NOT NULL
+ORDER BY arp.raid_id, arp.primary_character_id
 ;
 
 -- Create views.raids_l6lockoutwk

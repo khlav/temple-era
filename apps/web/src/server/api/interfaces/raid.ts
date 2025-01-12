@@ -13,6 +13,7 @@ export interface RaidParticipant {
   isPrimary?: boolean | null;
   primaryCharacterId?: number | null;
   primaryCharacterName?: string | null;
+  secondaryCharacters?: RaidParticipant[];
 }
 
 export type RaidParticipantCollection = Record<string, RaidParticipant>;
