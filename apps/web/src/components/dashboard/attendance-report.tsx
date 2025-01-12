@@ -10,13 +10,7 @@ import {
   ChartTooltipContent,
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  LabelList,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 
 interface Raider {
   name: string | null;
@@ -36,11 +30,7 @@ export function AttendanceReport() {
 
   useEffect(() => {
     if (isSuccess) {
-      const filteredAttendanceData = attendanceData.filter(
-        (raider) => (raider.weightedAttendance ?? 0) >= 0.2,
-      );
-
-      const raiderData = filteredAttendanceData.map((raider) => {
+      const raiderData = attendanceData.map((raider) => {
         const raiderPct = raider.weightedAttendancePct ?? 0;
         return {
           ...raider,
@@ -48,7 +38,7 @@ export function AttendanceReport() {
           weightedAttendancePctLowerThan50: raiderPct >= 0.5 ? null : raiderPct,
         };
       });
-      console.log(raiderData)
+      console.log(raiderData);
       setCountRaiders(raiderData.length);
       setChartAttendenceData(raiderData);
     }
@@ -75,14 +65,14 @@ export function AttendanceReport() {
   return (
     <Card>
       <CardHeader>
-        Raiders with 20%+ Attendance : {countRaiders ?? ""}
+        Raiders seen last 6 lockouts: {countRaiders ?? ""}
       </CardHeader>
       <CardContent className="pt-4">
         {isSuccess ? (
-          <div className="w-[100%]">
+          <div>
             <ChartContainer
               config={chartConfig}
-              className="min-h-600 h-[1500px] w-[400px]"
+              className="min-h-600 mx-auto h-[1500px] w-[350px]"
             >
               <BarChart
                 accessibilityLayer
@@ -109,11 +99,7 @@ export function AttendanceReport() {
                 />
                 <ChartTooltip
                   // formatter={chartTooltip}
-                  content={
-                    <ChartTooltipContent
-                      indicator="line"
-                    />
-                  }
+                  content={<ChartTooltipContent indicator="line" />}
                 />
                 <Bar
                   dataKey="weightedAttendancePct50OrBetter"
