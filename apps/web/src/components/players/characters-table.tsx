@@ -16,8 +16,10 @@ import { ExternalLinkIcon } from "lucide-react";
 
 export function CharactersTable({
   characters,
+  targetNewTab = false,
 }: {
   characters: RaidParticipantCollection | undefined;
+  targetNewTab?: boolean;
 }) {
   const characterList =
     characters &&
@@ -43,23 +45,25 @@ export function CharactersTable({
                 <TableRow key={c.characterId}>
                   <TableCell>
                     <Link
-                      className="hover:text-primary group w-full transition-all hover:font-bold"
-                      target="_blank"
+                      className="hover:text-primary group w-full transition-all"
+                      target={targetNewTab ? "_blank" : "_self"}
                       href={"/players/" + c.characterId}
                     >
                       <div>
                         {c.name}
                         {c.primaryCharacterName ? (
-                          <span className="text-muted-foreground text-xs pl-1.5 font-normal">
+                          <span className="text-muted-foreground pl-1.5 text-xs font-normal">
                             {c.primaryCharacterName}
                           </span>
                         ) : (
                           ""
                         )}
-                        <ExternalLinkIcon
-                          className="ml-1 hidden align-text-top group-hover:inline-block"
-                          size={15}
-                        />
+                        {targetNewTab && (
+                          <ExternalLinkIcon
+                            className="ml-1 hidden align-text-top group-hover:inline-block"
+                            size={15}
+                          />
+                        )}
                       </div>
                     </Link>
                   </TableCell>

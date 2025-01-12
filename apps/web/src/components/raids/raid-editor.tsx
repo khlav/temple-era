@@ -136,7 +136,7 @@ export function RaidEditor({
               <div className="">Attendees from logs:</div>
               <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
                 {isSuccessParticipants && (
-                  <CharactersTable characters={raidParticipants} />
+                  <CharactersTable characters={raidParticipants} targetNewTab/>
                 )}
               </div>
               <div className="text-muted-foreground text-center text-sm">

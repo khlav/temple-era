@@ -18,6 +18,8 @@ FROM public.raid_log rl
          LEFT JOIN public.raid_log_attendee_map rlam ON rl.raid_log_id = rlam.raid_log_id
          LEFT JOIN public.character c ON c.character_id = rlam.character_id
 WHERE rl.raid_id IS NOT NULL
+  AND rlam.is_ignored = false
+  and c.is_ignored = false
 GROUP BY rl.raid_id, COALESCE(c.primary_character_id, c.character_id)
 ;
 
@@ -28,6 +30,7 @@ SELECT rbm.raid_id                                                AS raid_id
      , ARRAY_AGG(DISTINCT c.character_id ORDER BY c.character_id) as bench_character_ids
 FROM public.raid_bench_map rbm
          LEFT JOIN public.character c ON c.character_id = rbm.character_id
+WHERE c.is_ignored = false
 GROUP BY rbm.raid_id, COALESCE(c.primary_character_id, c.character_id)
 ;
 
@@ -99,6 +102,7 @@ WITH date_range AS (SELECT date_trunc('week', current_date - interval '6 weeks')
                                        JOIN public.raid r ON prabm.raid_id = r.raid_id
                               WHERE r.date BETWEEN (SELECT start_date FROM date_range) AND (SELECT end_date FROM date_range)
                                 AND r.attendance_weight > 0
+                                and c.is_ignored = false
                               GROUP BY c.character_id, c.name)
 SELECT ca.character_id                                           as character_id,
        ca.name                                                   as name,

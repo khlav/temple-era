@@ -47,7 +47,7 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
                 <TableRow key={r.raidId}>
                   <TableCell className="text-secondary-foreground">
                     <Link
-                      className="hover:text-primary group w-full transition-all hover:font-bold"
+                      className="hover:text-primary group w-full transition-all"
                       target="_self"
                       href={"/raids/" + r.raidId}
                     >
