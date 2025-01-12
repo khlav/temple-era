@@ -72,7 +72,7 @@ export function AttendanceReport() {
           <div>
             <ChartContainer
               config={chartConfig}
-              className="min-h-600 mx-auto h-[1500px] w-[350px]"
+              className="min-h-600 mx-auto h-[1500px] w-[320px]"
             >
               <BarChart
                 accessibilityLayer
