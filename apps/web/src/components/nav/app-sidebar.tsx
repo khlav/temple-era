@@ -22,6 +22,7 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
+import {FilePlus, ListRestart} from "lucide-react";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -31,7 +32,8 @@ const coreItems = [
 
 const adminSectionTitle = "Admin Tools";
 const adminLinks = [
-  { title: "Import/Refresh WCL Log", url: "/admin/logimport", icon: ArrowDownTrayIcon },
+  { title: "Create new raid", url: "/raids/new", icon: FilePlus },
+  { title: "Refresh WCL log", url: "/admin/logimport", icon: ListRestart },
 ];
 
 export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
