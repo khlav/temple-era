@@ -49,16 +49,17 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
       <SidebarMenuButton asChild>
         <button
           onClick={() => signIn("discord")}
-          className="w-full bg-[#5865F2] transition-all duration-200 ease-in-out hover:bg-[#8891f2] md:pl-5"
+          className="w-full bg-[#5865F2] flex items-center justify-center gap-2 transition-all duration-200 ease-in-out hover:bg-[#8891f2] md:pl-5"
         >
-          {/*<PowerIcon className="w-6" />*/}
-            <img
-              src="/img/discord-mark-white.svg"
-              alt="Discord"
-              height={24}
-              width={24}
-            />
-            <span className="hidden md:block">Sign in with Discord</span>
+          {/* Uncomment and use this icon if needed */}
+          {/* <PowerIcon className="w-6" /> */}
+          <img
+            src="/img/discord-mark-white.svg"
+            alt="Discord"
+            height={24}
+            width={24}
+          />
+          <span className="text-secondary-foreground">Sign in with Discord</span>
         </button>
       </SidebarMenuButton>
     </SidebarMenuItem>

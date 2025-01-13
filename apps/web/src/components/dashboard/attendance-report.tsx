@@ -10,6 +10,8 @@ import {
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
+import {} from "next/client";
+import {useRouter} from "next/navigation";
 
 interface Raider {
   name: string | null;
@@ -20,6 +22,7 @@ interface Raider {
 }
 
 export function AttendanceReport() {
+  const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
   >([]);
@@ -57,6 +60,13 @@ export function AttendanceReport() {
       color: "#fff",
     },
   } satisfies ChartConfig;
+
+  const handleBarClick = (data: Raider) => {
+    console.log(data);
+    if (data.characterId) {
+      router.push(`/players/${data.characterId}`);
+    }
+  };
 
   return (
     <Card className="min-h-[1500px]">
@@ -111,6 +121,8 @@ export function AttendanceReport() {
                   radius={4}
                   barSize={20}
                   stackId={1}
+                  className="cursor-pointer"
+                  onClick={(data) => handleBarClick(data)}
                 >
                   <LabelList
                     dataKey="weightedAttendancePct50OrBetter"
@@ -127,6 +139,8 @@ export function AttendanceReport() {
                   radius={4}
                   barSize={20}
                   stackId={1}
+                  className="cursor-pointer"
+                  onClick={(data) => handleBarClick(data)}
                 >
                   <LabelList
                     dataKey="weightedAttendancePctLowerThan50"

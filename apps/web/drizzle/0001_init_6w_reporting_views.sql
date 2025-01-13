@@ -15,8 +15,8 @@ DROP VIEW IF EXISTS views.report_dates;
 -- Create views.report_dates
 DROP VIEW IF EXISTS views.report_dates;
 CREATE VIEW views.report_dates AS
-SELECT (date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
-       (date_trunc('week', CURRENT_DATE))::DATE                                         AS report_period_end;
+SELECT (date_trunc('week', CURRENT_DATE - 1- INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
+       (date_trunc('week', CURRENT_DATE - 1))::DATE                                         AS report_period_end;
 
 -- Create views.primary_raid_attendee_map
 CREATE VIEW views.primary_raid_attendee_map AS
@@ -99,8 +99,8 @@ ORDER BY arp.raid_id, arp.primary_character_id
 CREATE OR REPLACE VIEW views.tracked_raids_l6lockoutwk AS
 SELECT r.*
 FROM public.raid r
-WHERE r.date >= date_trunc('week', CURRENT_DATE - INTERVAL '6 weeks') + INTERVAL '1 day'
-  AND r.date < date_trunc('week', CURRENT_DATE) + INTERVAL '1 day'
+WHERE r.date >= date_trunc('week', CURRENT_DATE - 1 - INTERVAL '6 weeks') + INTERVAL '1 day'
+  AND r.date < date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'
   AND r.attendance_weight > 0
 ORDER BY date DESC
 ;
@@ -109,8 +109,8 @@ ORDER BY date DESC
 CREATE OR REPLACE VIEW views.tracked_raids_current_lockout AS
 SELECT r.*
 FROM public.raid r
-WHERE r.date >= date_trunc('week', CURRENT_DATE) + INTERVAL '1 day'
-  AND r.date <= date_trunc('week', CURRENT_DATE) + INTERVAL '7 day'
+WHERE r.date >= date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'
+  AND r.date <= date_trunc('week', CURRENT_DATE - 1) + INTERVAL '7 day'
   AND r.attendance_weight > 0
 ORDER BY date DESC
 ;
@@ -118,15 +118,15 @@ ORDER BY date DESC
 CREATE OR REPLACE VIEW views.all_raids_current_lockout AS
 SELECT r.*
 FROM public.raid r
-WHERE r.date >= date_trunc('week', CURRENT_DATE) + INTERVAL '1 day'
-  AND r.date <= date_trunc('week', CURRENT_DATE) + INTERVAL '7 day'
+WHERE r.date >= date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'
+  AND r.date <= date_trunc('week', CURRENT_DATE - 1) + INTERVAL '7 day'
 ORDER BY date DESC
 ;
 
 -- Create views.primary_raid_attendance_l6lockoutwk
 CREATE OR REPLACE VIEW views.primary_raid_attendance_l6lockoutwk AS
-WITH date_range AS (SELECT date_trunc('week', current_date - interval '6 weeks') + interval '1 day' AS start_date,
-                           date_trunc('week', current_date)                                         AS end_date),
+WITH date_range AS (SELECT date_trunc('week', current_date - 1 - interval '6 weeks') + interval '1 day' AS start_date,
+                           date_trunc('week', current_date - 1)                                         AS end_date),
      total_weight AS (SELECT SUM(attendance_weight) AS total
                       FROM public.raid
                       WHERE date BETWEEN (SELECT start_date FROM date_range) AND (SELECT end_date FROM date_range)),
