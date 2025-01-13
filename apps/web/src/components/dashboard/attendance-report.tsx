@@ -122,7 +122,7 @@ export function AttendanceReport() {
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data) => handleBarClick(data)}
+                  onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
                     dataKey="weightedAttendancePct50OrBetter"
@@ -140,7 +140,7 @@ export function AttendanceReport() {
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data) => handleBarClick(data)}
+                  onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
                     dataKey="weightedAttendancePctLowerThan50"
