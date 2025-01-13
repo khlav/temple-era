@@ -3,6 +3,7 @@ import { raid } from "~/server/api/routers/raid";
 import { character } from "~/server/api/routers/character";
 import { raidLog } from "~/server/api/routers/raidlog";
 import {dashboard} from "~/server/api/routers/dashboard";
+import {profile} from "~/server/api/routers/profile";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   raidLog: raidLog,
   character: character,
   dashboard: dashboard,
+  profile: profile,
 });
 
 // export type definition of API

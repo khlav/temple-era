@@ -12,8 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Session } from "next-auth";
-import { ChevronUp } from "lucide-react";
+import {ChevronUp, LogOut, User} from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
+import Link from "next/link";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {
   const userMenu = (
@@ -37,7 +38,10 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
           className="w-[--radix-popper-anchor-width]"
         >
           <DropdownMenuItem asChild>
-            <button onClick={() => signOut()} className="w-full cursor-pointer">Sign out</button>
+            <Link href="/profile" className="flex flex-row w-full cursor-pointer"><User /><div className="shrink">Profile</div></Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <button onClick={() => signOut()} className="w-full cursor-pointer flex flex-row"><LogOut />Sign out</button>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -23,11 +23,18 @@ import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
 export function CharacterSelector({
   onSelectAction,
+  buttonContent = (
+    <div>
+      <PlusIcon />
+      Add character
+    </div>
+  ),
   characterSet = "all",
   children,
   skeleton,
 }: {
   onSelectAction: (character: RaidParticipant) => void;
+  buttonContent?: React.ReactNode;
   characterSet?: "all" | "primaryOnly" | "secondaryOnly";
   children?: React.ReactNode;
   skeleton?: React.ReactNode;
@@ -44,10 +51,7 @@ export function CharacterSelector({
       role="combobox"
       aria-expanded={open}
       className="line- text-muted-foreground px-2 py-0"
-    >
-      <PlusIcon />
-      Add character
-    </Button>
+    >{buttonContent}</Button>
   );
 
   const skeletonOrDefault = skeleton ?? (
@@ -56,7 +60,7 @@ export function CharacterSelector({
       size="sm"
       role="combobox"
       aria-expanded={open}
-      className="line- text-muted-foreground px-2 py-0"
+      className="text-muted-foreground px-2 py-0"
       disabled
     >
       <Loader2 className="animate-spin" />
@@ -92,7 +96,10 @@ export function CharacterSelector({
                 <CommandItem
                   key={c.characterId}
                   value={c.characterId.toString()}
-                  keywords={[anyAscii(c.name), anyAscii(c.primaryCharacterName ?? "")]}
+                  keywords={[
+                    anyAscii(c.name),
+                    anyAscii(c.primaryCharacterName ?? ""),
+                  ]}
                   onSelect={(currentValue) => {
                     handleSelect(currentValue);
                     setOpen(false);

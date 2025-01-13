@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { aliasedTable, eq } from "drizzle-orm";
+import { aliasedTable, BinaryOperator, eq, inArray, SQL } from "drizzle-orm";
 import anyAscii from "any-ascii";
 import {
   characters,
@@ -29,35 +29,17 @@ export const convertParticipantArrayToCollection = (
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
     .input(z.optional(z.enum(["all", "primaryOnly", "secondaryOnly"])))
-    .query(async ({ ctx }) => {
-      // .query(async ({ ctx, input }) => {
-      //   const characterSet = input ?? "all";
-      //   const whereCharacterSet = (() => {
-      //     switch (characterSet) {
-      //       case "primaryOnly":
-      //         return eq(characters.isPrimary, true);
-      //       case "secondaryOnly":
-      //         return eq(characters.isPrimary, false);
-      //       default:
-      //         return undefined;
-      //     }
-      //   })();
-      /*
-      const characterList = (await ctx.db.query.characters.findMany({
-        orderBy: (characters, { asc }) => [asc(characters.slug)],
-        columns: {
-          name: true,
-          server: true,
-          slug: true,
-          class: true,
-          characterId: true,
-          isPrimary: true,
-          primaryCharacterId: true,
-        },
-        where: whereCharacterSet
-      })) as RaidParticipant[];
-      */
-
+    .query(async ({ ctx, input }) => {
+      const characterFilter: BinaryOperator | SQL = (() => {
+        switch (input) {
+          case "primaryOnly":
+            return eq(characters.isPrimary, true);
+          case "secondaryOnly":
+            return eq(characters.isPrimary, true);
+          default:
+            return inArray(characters.isPrimary, [true, false]); // get all
+        }
+      })();
       const primaryCharacters = aliasedTable(characters, "primary_character");
       const characterList = await ctx.db
         .select({
@@ -74,7 +56,8 @@ export const character = createTRPCRouter({
         .leftJoin(
           primaryCharacters,
           eq(characters.primaryCharacterId, primaryCharacters.characterId),
-        );
+        )
+        .where(characterFilter);
 
       return convertParticipantArrayToCollection(characterList) ?? null;
     }),
