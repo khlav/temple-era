@@ -133,6 +133,8 @@ const mutateInsertRaidLogWithAttendees = async (
         class: participant.class,
         classDetail: participant.classDetail,
         server: participant.server,
+        createdBy: session.user.id,
+        updatedBy: session.user.id,
         slug: Slugify(
           [
             participant.name,
@@ -151,6 +153,8 @@ const mutateInsertRaidLogWithAttendees = async (
         return {
           raidLogId: input.raidLogId,
           characterId: participant.characterId,
+          createdBy: session.user.id,
+          updatedBy: session.user.id,
         };
       }),
     )

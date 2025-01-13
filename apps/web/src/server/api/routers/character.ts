@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { aliasedTable, BinaryOperator, eq, inArray, SQL } from "drizzle-orm";
+import { aliasedTable, type BinaryOperator, eq, inArray, type SQL } from "drizzle-orm";
 import anyAscii from "any-ascii";
 import {
   characters,

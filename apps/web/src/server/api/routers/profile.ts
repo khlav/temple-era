@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import {raids, users} from "~/server/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
-import type {Raid} from "~/server/api/interfaces/raid";
+import { users } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 
 export const profile = createTRPCRouter({
   getMyProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -34,10 +33,12 @@ export const profile = createTRPCRouter({
   }),
 
   saveMyProfile: protectedProcedure
-    .input(z.object({
-      name: z.string(),
-      characterId: z.number().nullish(),
-    }))
+    .input(
+      z.object({
+        name: z.string(),
+        characterId: z.number().nullish(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const currentUser = ctx.session.user;
       await ctx.db
@@ -51,5 +52,5 @@ export const profile = createTRPCRouter({
           name: users.name,
           characterId: users.characterId,
         });
-    })
+    }),
 });

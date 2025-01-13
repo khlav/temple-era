@@ -23,7 +23,6 @@ export function RaidDetailBase({
   const {
     data: raidParticipants,
     isLoading: isLoadingParticipants,
-    isSuccess: isSuccessParticipants,
   } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
     raidData.raidLogIds ?? [],
     { enabled: !!raidData },

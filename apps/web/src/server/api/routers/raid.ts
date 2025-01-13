@@ -12,6 +12,7 @@ import {
 } from "~/server/api/interfaces/raid";
 import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
+import type { Session } from "next-auth";
 
 type DB = typeof db;
 
@@ -20,18 +21,23 @@ const isEmptyObj = (obj: object) => {
   return true;
 };
 
-const updateRaidLogRaidIds = async (db: DB, raidId: number, raidData: Raid) => {
+const updateRaidLogRaidIds = async (db: DB, session: Session, raidId: number, raidData: Raid) => {
   if (raidData.raidLogIds?.length ?? 0 > 0) {
     return db
       .update(raidLogs)
-      .set({ raidId: raidId })
+      .set({ raidId: raidId, createdById: session.user.id})
       .where(inArray(raidLogs.raidLogId, raidData.raidLogIds ?? []))
       .returning({ raidLogId: raidLogs.raidLogId });
   }
   return undefined;
 };
 
-const updateRaidBench = async (db: DB, raidId: number, raidData: Raid) => {
+const updateRaidBench = async (
+  db: DB,
+  session: Session,
+  raidId: number,
+  raidData: Raid,
+) => {
   const benchDeleteResult = await db
     .delete(raidBenchMap)
     .where(eq(raidBenchMap.raidId, raidId))
@@ -48,6 +54,7 @@ const updateRaidBench = async (db: DB, raidId: number, raidData: Raid) => {
         Object.values(raidData.bench ?? {}).map((character) => ({
           raidId: raidId,
           characterId: character.characterId,
+          createdById: session.user.id,
         })),
       )
       .returning({
@@ -162,7 +169,7 @@ export const raid = createTRPCRouter({
         raidLogIds: raidLogsResult.map((raidLog) => raidLog.raidLogId),
         kills: raidLogsResult.reduce((acc, rel) => {
           const combinedKillSet = [...acc, ...rel.kills];
-          return [... new Set(combinedKillSet)];
+          return [...new Set(combinedKillSet)];
         }, [] as string[]),
         bench: raidBench,
       } as Raid;
@@ -206,6 +213,7 @@ export const raid = createTRPCRouter({
       if (insertedRaidInfo?.raidId) {
         raidLogUpdateResult = updateRaidLogRaidIds(
           ctx.db,
+          ctx.session,
           insertedRaidInfo.raidId,
           input as Raid,
         );
@@ -216,6 +224,7 @@ export const raid = createTRPCRouter({
       if (insertedRaidInfo?.raidId && !isEmptyObj(input.bench ?? {})) {
         const { benchDelete, benchInsert } = await updateRaidBench(
           ctx.db,
+          ctx.session,
           insertedRaidInfo.raidId,
           input as Raid,
         );
@@ -269,6 +278,7 @@ export const raid = createTRPCRouter({
 
       const raidLogUpdateResult = updateRaidLogRaidIds(
         ctx.db,
+        ctx.session,
         input.raidId,
         input as Raid,
       );
@@ -277,6 +287,7 @@ export const raid = createTRPCRouter({
       let benchInsertResult = undefined;
       const { benchDelete, benchInsert } = await updateRaidBench(
         ctx.db,
+        ctx.session,
         input.raidId,
         input as Raid,
       );
