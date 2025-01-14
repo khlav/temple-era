@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Session } from "next-auth";
-import {ChevronUp, LogOut, User} from "lucide-react";
+import {ChevronDown, LogOut, User} from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 
@@ -21,7 +21,7 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <SidebarMenuButton>
+          <SidebarMenuButton className="border-2 ">
             <img
               alt={"Username: " + session?.user?.name}
               src={session?.user?.image ?? undefined}
@@ -30,11 +30,11 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
               width={24}
             />
             {session?.user?.name}
-            <ChevronUp className="ml-auto" />
+            <ChevronDown className="ml-auto" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          side="top"
+          side="bottom"
           className="w-[--radix-popper-anchor-width]"
         >
           <DropdownMenuItem asChild>
@@ -53,7 +53,7 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
       <SidebarMenuButton asChild>
         <button
           onClick={() => signIn("discord")}
-          className="w-full bg-[#5865F2] flex items-center justify-center gap-2 transition-all duration-200 ease-in-out hover:bg-[#8891f2] md:pl-5"
+          className="w-full bg-[#5865F2] flex items-center justify-center gap-2 transition-all duration-200 ease-in-out hover:bg-[#8891f2]"
         >
           {/* Uncomment and use this icon if needed */}
           {/* <PowerIcon className="w-6" /> */}

@@ -60,6 +60,11 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
+            <AppSidebarLogin session={session} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
             <SidebarMenu>
               {coreItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -98,9 +103,8 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
       </SidebarContent>
       <SidebarFooter>
         <div className="m-auto">
-          <ModeToggle />
+          <ModeToggle/>
         </div>
-        <AppSidebarLogin session={session} />
       </SidebarFooter>
     </Sidebar>
   );
