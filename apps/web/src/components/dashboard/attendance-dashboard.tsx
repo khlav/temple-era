@@ -11,9 +11,9 @@ import { CurrentLockoutAllRaids } from "~/components/dashboard/current-lockout-a
 import type { Session } from "next-auth";
 
 export function AttendanceDashboard({
-  currentUserCharacterId,
+  currentUserSession,
 }: {
-  currentUserCharacterId?: number;
+  currentUserSession?: Session;
 }) {
   const { data: reportDates, isSuccess } =
     api.dashboard.getReportDates.useQuery();
@@ -42,7 +42,7 @@ export function AttendanceDashboard({
 
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex-shrink-0 lg:w-[420px]">
-          <AttendanceReport currentUserCharacterId={currentUserCharacterId} />
+          <AttendanceReport currentUserCharacterId={currentUserSession?.user?.characterId} />
         </div>
         <div className="flex flex-grow flex-col gap-4">
           <div>

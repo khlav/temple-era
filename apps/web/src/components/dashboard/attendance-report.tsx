@@ -11,6 +11,7 @@ import {
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
+import { ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface Raider {
   name: string | null;
@@ -139,7 +140,16 @@ export function AttendanceReport({
                 />
                 <ChartTooltip
                   // formatter={chartTooltip}
-                  content={<ChartTooltipContent indicator="line" />}
+                  content={
+                    <ChartTooltipContent
+                      indicator="line"
+                      valueFormatter={(value: ValueType) => (
+                        <div className="inline-block pl-1">
+                          {Math.round(parseFloat(value.toString()) * 1000)/10}%
+                        </div>
+                      )}
+                    />
+                  }
                 />
                 <Bar
                   dataKey="weightedAttendancePct50OrBetter"
