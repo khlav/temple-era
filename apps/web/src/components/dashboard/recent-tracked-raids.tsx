@@ -27,10 +27,7 @@ export function RecentTrackedRaids() {
       <CardHeader>
         <div className="flex items-end text-nowrap">
           <div className="grow-0">
-            Tracked events :{" "}
-            {trackedRaidData && trackedRaidData.length > 0
-              ? trackedRaidData.length
-              : "--"}
+            Raids contributing to attendance
           </div>
           <div className="text-primary grow pb-0.5 text-sm text-right hover:underline">
             <Link href="/raids">View all raids</Link>
@@ -38,6 +35,9 @@ export function RecentTrackedRaids() {
         </div>
         <div className="text-muted-foreground grow text-sm">
           Last 6 full lockouts
+          {trackedRaidData && trackedRaidData.length > 0
+            && `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`
+            }
         </div>
       </CardHeader>
       <CardContent>

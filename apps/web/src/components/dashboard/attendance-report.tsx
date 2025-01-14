@@ -11,7 +11,7 @@ import {
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import {} from "next/client";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Raider {
   name: string | null;
@@ -71,14 +71,12 @@ export function AttendanceReport() {
   return (
     <Card className="min-h-[1500px]">
       <CardHeader>
-        <div className="">
-          Raiders from tracked events :{" "}
-          {chartAttendenceData && chartAttendenceData.length > 0
-            ? chartAttendenceData.length
-            : "--"}
-        </div>
+        <div className="">Tracked raid attendance %</div>
         <div className="text-muted-foreground pb-0.5 text-sm">
           Last 6 full lockouts
+          {chartAttendenceData && chartAttendenceData.length > 0
+            && `, ${chartAttendenceData.length} raiders participating`
+            }
         </div>
       </CardHeader>
       <CardContent className="pt-4">
