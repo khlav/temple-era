@@ -48,6 +48,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
       setSendingData(false);
     },
   });
+
   useEffect(() => {
     if (isSuccess && profile) {
       setDisplayName(profile.name ?? "");
@@ -149,7 +150,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
                 variant="outline"
                 size="sm"
                 className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground px-2 py-0 transition-all"
-                onClick={() => setCharacter({ name: null, characterId: null })}
+                onClick={() => handleCharacterChange({ name: null, characterId: null })}
               >
                 Clear
               </Button>
