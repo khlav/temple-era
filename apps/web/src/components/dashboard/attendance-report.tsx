@@ -96,7 +96,7 @@ export function AttendanceReport({
   };
 
   return (
-    <Card className="min-h-[1500px]">
+    <Card className="min-h-[1700px]">
       <CardHeader>
         <div className="">Tracked raid attendance %</div>
         <div className="text-muted-foreground pb-0.5 text-sm">
