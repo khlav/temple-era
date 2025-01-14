@@ -24,9 +24,9 @@ import type { RaidParticipant } from "~/server/api/interfaces/raid";
 export function CharacterSelector({
   onSelectAction,
   buttonContent = (
-    <div>
-      <PlusIcon />
-      Add character
+    <div className="flex items-center space-x-2">
+      <PlusIcon className="shrink-0" />
+      <div className="grow-0">Add character</div>
     </div>
   ),
   characterSet = "all",
@@ -54,7 +54,9 @@ export function CharacterSelector({
       aria-expanded={open}
       className="line- text-muted-foreground px-2 py-0"
       disabled={disabled}
-    >{buttonContent}</Button>
+    >
+      {buttonContent}
+    </Button>
   );
 
   const skeletonOrDefault = skeleton ?? (
