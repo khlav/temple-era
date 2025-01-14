@@ -30,12 +30,14 @@ export function CharacterSelector({
     </div>
   ),
   characterSet = "all",
+  disabled = false,
   children,
   skeleton,
 }: {
   onSelectAction: (character: RaidParticipant) => void;
   buttonContent?: React.ReactNode;
   characterSet?: "all" | "primaryOnly" | "secondaryOnly";
+  disabled?: boolean;
   children?: React.ReactNode;
   skeleton?: React.ReactNode;
 }) {
@@ -51,6 +53,7 @@ export function CharacterSelector({
       role="combobox"
       aria-expanded={open}
       className="line- text-muted-foreground px-2 py-0"
+      disabled={disabled}
     >{buttonContent}</Button>
   );
 

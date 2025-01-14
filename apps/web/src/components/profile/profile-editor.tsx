@@ -46,6 +46,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
       toastProfileSaved(toast);
       await utils.invalidate(undefined, { refetchType: "all" });
       setSendingData(false);
+      setIsChanged(false);
     },
   });
 
@@ -57,6 +58,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
   }, [isSuccess, profile]);
 
   const handleSave = () => {
+    setSendingData(true);
     saveProfile.mutate({
       name: displayName ?? "",
       characterId: character?.characterId,
@@ -122,6 +124,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
               value={displayName}
               className="w-60"
               onChange={(e) => handleDisplayNameChange(e.target.value)}
+              disabled={sendingData}
             />
             {error && (
               <div className="text-destructive mt-1 text-xs">{error}</div>
@@ -143,6 +146,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
                   character.characterId ? "Change" : "+ Add primary character"
                 }
                 characterSet="primaryOnly"
+                disabled={sendingData}
               />
             </div>
             {character.characterId && (
@@ -151,6 +155,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
                 size="sm"
                 className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground px-2 py-0 transition-all"
                 onClick={() => handleCharacterChange({ name: null, characterId: null })}
+                disabled={sendingData}
               >
                 Clear
               </Button>
