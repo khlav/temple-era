@@ -7,9 +7,14 @@ import { api } from "~/trpc/react";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { PrettyPrintDate } from "~/lib/helpers";
-import {CurrentLockoutAllRaids} from "~/components/dashboard/current-lockout-all-raids";
+import { CurrentLockoutAllRaids } from "~/components/dashboard/current-lockout-all-raids";
+import type { Session } from "next-auth";
 
-export function AttendanceDashboard() {
+export function AttendanceDashboard({
+  currentUserCharacterId,
+}: {
+  currentUserCharacterId?: number;
+}) {
   const { data: reportDates, isSuccess } =
     api.dashboard.getReportDates.useQuery();
 
@@ -19,31 +24,35 @@ export function AttendanceDashboard() {
         {isSuccess ? (
           <>
             Last 6 full lockouts:{" "}
-            {PrettyPrintDate(new Date(reportDates?.reportPeriodStart ?? ""), true)}
+            {PrettyPrintDate(
+              new Date(reportDates?.reportPeriodStart ?? ""),
+              true,
+            )}
             {" to "}
-            {PrettyPrintDate(new Date(reportDates?.reportPeriodEnd ?? ""), true)}
+            {PrettyPrintDate(
+              new Date(reportDates?.reportPeriodEnd ?? ""),
+              true,
+            )}
           </>
         ) : (
-          <Skeleton className="h-6 w-60 rounded-xl"/>
+          <Skeleton className="h-6 w-60 rounded-xl" />
         )}
       </div>
-      <Separator className="mb-4"/>
+      <Separator className="mb-4" />
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="lg:w-[420px] flex-shrink-0">
-          <AttendanceReport/>
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="flex-shrink-0 lg:w-[420px]">
+          <AttendanceReport currentUserCharacterId={currentUserCharacterId} />
         </div>
-        <div className="flex flex-col flex-grow gap-4">
+        <div className="flex flex-grow flex-col gap-4">
           <div>
-            <RecentTrackedRaids/>
+            <RecentTrackedRaids />
           </div>
           <div>
-            <CurrentLockoutAllRaids/>
+            <CurrentLockoutAllRaids />
           </div>
         </div>
       </div>
-
-
     </div>
   );
 }

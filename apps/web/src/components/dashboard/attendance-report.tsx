@@ -10,7 +10,6 @@ import {
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
-import {} from "next/client";
 import { useRouter } from "next/navigation";
 
 interface Raider {
@@ -21,7 +20,11 @@ interface Raider {
   weightedAttendancePct: number | null;
 }
 
-export function AttendanceReport() {
+export function AttendanceReport({
+  currentUserCharacterId,
+}: {
+  currentUserCharacterId?: number;
+}) {
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
@@ -56,9 +59,6 @@ export function AttendanceReport() {
       label: "% Attendance",
       color: "hsl(var(--border))",
     },
-    label: {
-      color: "#fff",
-    },
   } satisfies ChartConfig;
 
   const handleBarClick = (data: Raider) => {
@@ -68,15 +68,42 @@ export function AttendanceReport() {
     }
   };
 
+  const renderCustomTick = ({
+    x,
+    y,
+    payload,
+  }: {
+    x: number;
+    y: number;
+    payload: { index: number; value: string };
+  }) => {
+    const character = chartAttendenceData[payload.index];
+    const isHighlighted = currentUserCharacterId === character?.characterId;
+    return (
+      <text
+        x={x}
+        y={y}
+        style={{
+          fill: isHighlighted ? "hsl(var(--primary))" : undefined,
+        }}
+        fontWeight={isHighlighted ? "bold" : "normal"}
+        textAnchor="end"
+        alignmentBaseline="middle"
+      >
+        {payload?.value}
+      </text>
+    );
+  };
+
   return (
     <Card className="min-h-[1500px]">
       <CardHeader>
         <div className="">Tracked raid attendance %</div>
         <div className="text-muted-foreground pb-0.5 text-sm">
           Last 6 full lockouts
-          {chartAttendenceData && chartAttendenceData.length > 0
-            && `, ${chartAttendenceData.length} raiders participating`
-            }
+          {chartAttendenceData &&
+            chartAttendenceData.length > 0 &&
+            `, ${chartAttendenceData.length} raiders participating`}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -84,14 +111,14 @@ export function AttendanceReport() {
           <div>
             <ChartContainer
               config={chartConfig}
-              className="min-h-600 mx-auto h-[1500px] w-[320px]"
+              className="min-h-600 mx-auto h-[1500px] w-[320px] pr-4"
             >
               <BarChart
                 accessibilityLayer
                 data={chartAttendenceData}
                 layout="vertical"
                 margin={{
-                  left: 30,
+                  left: 35,
                 }}
               >
                 <XAxis
@@ -107,7 +134,8 @@ export function AttendanceReport() {
                   tickLine={false}
                   axisLine={false}
                   interval={0}
-                  // tickFormatter={(value) => value.slice(0, 3)}
+                  // tickFormatter={(value: string) => value.slice(0, 3)}
+                  tick={renderCustomTick}
                 />
                 <ChartTooltip
                   // formatter={chartTooltip}

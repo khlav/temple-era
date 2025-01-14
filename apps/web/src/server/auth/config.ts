@@ -21,6 +21,7 @@ declare module "next-auth" {
     user: {
       id: string;
       // ...other properties
+      characterId: number;
       isAdmin: boolean;
     } & DefaultSession["user"];
   }
