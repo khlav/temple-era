@@ -13,7 +13,6 @@ DROP VIEW IF EXISTS views.all_raids_current_lockout;
 DROP VIEW IF EXISTS views.report_dates;
 
 -- Create views.report_dates
-DROP VIEW IF EXISTS views.report_dates;
 CREATE VIEW views.report_dates AS
 SELECT (date_trunc('week', CURRENT_DATE - 1 - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
        (date_trunc('week', CURRENT_DATE - 1))::DATE                                         AS report_period_end;
