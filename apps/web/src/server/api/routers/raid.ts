@@ -4,7 +4,7 @@ import {
   publicProcedure,
   adminProcedure,
 } from "~/server/api/trpc";
-import { raidLogs, raids, raidBenchMap } from "~/server/db/schema";
+import {raidLogs, raids, raidBenchMap, users} from "~/server/db/schema";
 import {
   EmptyRaid,
   type Raid,
@@ -114,8 +114,13 @@ export const raid = createTRPCRouter({
           date: raids.date,
           zone: raids.zone,
           attendanceWeight: raids.attendanceWeight,
+          creator: {
+            name: users.name,
+            image: users.image
+          },
         })
         .from(raids)
+        .leftJoin(users, eq(users.id, raids.createdById))
         .where(eq(raids.raidId, input))
         .limit(1);
 

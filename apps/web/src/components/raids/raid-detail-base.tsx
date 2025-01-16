@@ -11,6 +11,7 @@ import { Edit, ExternalLinkIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React from "react";
+import UserAvatar from "~/components/ui/user-avatar";
 
 export function RaidDetailBase({
   raidData,
@@ -20,13 +21,11 @@ export function RaidDetailBase({
   showEditButton?: boolean;
   isPreview?: boolean;
 }) {
-  const {
-    data: raidParticipants,
-    isLoading: isLoadingParticipants,
-  } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-    raidData.raidLogIds ?? [],
-    { enabled: !!raidData },
-  );
+  const { data: raidParticipants, isLoading: isLoadingParticipants } =
+    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
+      raidData.raidLogIds ?? [],
+      { enabled: !!raidData },
+    );
 
   const curPath = usePathname();
 
@@ -35,7 +34,7 @@ export function RaidDetailBase({
       <div className="flex gap-2 pb-0">
         <div className="grow-0 text-xl font-bold md:text-3xl">
           <div>{raidData.name}</div>
-          <div className="text-muted-foreground text-sm font-normal text-nowrap">
+          <div className="text-nowrap text-sm font-normal text-muted-foreground">
             {new Date(raidData.date).toLocaleDateString("en-US", {
               timeZone: "UTC",
               month: "long",
@@ -46,8 +45,8 @@ export function RaidDetailBase({
           </div>
         </div>
         <div className="grow" />
-        <div className="align-right text-muted-foreground grow-0">
-          <div className="text-right nowrap">
+        <div className="align-right grow-0 text-muted-foreground">
+          <div className="nowrap text-right">
             <RaidAttendenceWeightBadge
               attendanceWeight={raidData.attendanceWeight}
             />
@@ -69,15 +68,16 @@ export function RaidDetailBase({
       </div>
 
       <Separator className="my-3" />
-      <div className="flex gap-4 xl:flex-nowrap">
-        <div className="grow-0 text-nowrap text-sm">WCL logs:</div>
-        <div className="shrink overflow-x-hidden">
+      <div className="flex items-center gap-4">
+        {/* WCL Logs */}
+        <div className="grow-0 whitespace-nowrap text-sm">WCL logs:</div>
+        <div className="flex grow items-center gap-2 overflow-x-hidden">
           {(raidData.raidLogIds ?? []).map((raidLogId) => {
             const reportUrl = GenerateWCLReportUrl(raidLogId);
             return (
               <div
                 key={raidLogId}
-                className="text-muted-foreground hover:text-primary text-sm transition-all duration-100 hover:underline"
+                className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
               >
                 <Link
                   href={reportUrl}
@@ -97,17 +97,28 @@ export function RaidDetailBase({
             );
           })}
         </div>
+
+        {/* Creator Info */}
+        <div className="flex grow-0 items-center gap-2 whitespace-nowrap text-sm">
+          <div className=" text-muted-foreground text-sm">Created by</div>
+          <UserAvatar
+            name={raidData.creator?.name ?? ""}
+            image={raidData.creator?.image ?? ""}
+          />
+        </div>
       </div>
 
       <Separator className="my-3" />
       <div className="flex gap-2 xl:flex-nowrap">
-        <div className="grow-0 text-nowrap text-sm py-[3px]">Kills {raidData.kills ? `(${raidData?.kills?.length})`: ""}:</div>
-        <div className="shrink overflow-x-hidden flex gap-1 flex-wrap text-nowrap">
+        <div className="grow-0 text-nowrap py-[3px] text-sm">
+          Kills {raidData.kills ? `(${raidData?.kills?.length})` : ""}:
+        </div>
+        <div className="flex shrink flex-wrap gap-1 overflow-x-hidden text-nowrap">
           {(raidData.kills ?? []).map((killName, i) => {
             return (
               <div
                 key={`kill_${i}`}
-                className="text-muted-foreground text-sm grow-0 bg-secondary py-1 px-2 rounded"
+                className="grow-0 rounded bg-secondary px-2 py-1 text-sm text-muted-foreground"
               >
                 {killName}
               </div>
@@ -119,12 +130,15 @@ export function RaidDetailBase({
       <Separator className="my-3" />
       <div className="flex flex-wrap gap-2 py-1 xl:flex-nowrap">
         <div className="w-full xl:w-1/2">
-          <div className="bg-card text-card-foreground rounded-xl border p-3 shadow">
+          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
             <div className="text-xl">Attendees from logs:</div>
             <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-                <CharactersTable characters={raidParticipants} isLoading={isLoadingParticipants}/>
+              <CharactersTable
+                characters={raidParticipants}
+                isLoading={isLoadingParticipants}
+              />
             </div>
-            <div className="text-muted-foreground text-center text-sm">
+            <div className="text-center text-sm text-muted-foreground">
               List of characters appearing in WCL logs. <br />
               Alts are mapped to primary characters when calc&apos;ing
               attendance.
@@ -132,13 +146,13 @@ export function RaidDetailBase({
           </div>
         </div>
         <div className="w-full xl:w-1/2">
-          <div className="bg-card text-card-foreground rounded-xl border p-3 shadow">
+          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
             <div className="text-xl">Bench:</div>
             <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
               <CharactersTable characters={raidData.bench} />
             </div>
             <Separator className="m-auto my-3" />
-            <div className="text-muted-foreground text-center text-sm">
+            <div className="text-center text-sm text-muted-foreground">
               Characters available for raid but not appearing in logs (e.g. raid
               was full).
             </div>
