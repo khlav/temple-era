@@ -15,7 +15,7 @@ DROP VIEW IF EXISTS views.report_dates;
 -- Create views.report_dates
 DROP VIEW IF EXISTS views.report_dates;
 CREATE VIEW views.report_dates AS
-SELECT (date_trunc('week', CURRENT_DATE - 1- INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
+SELECT (date_trunc('week', CURRENT_DATE - 1 - INTERVAL '6 weeks') + INTERVAL '1 day')::DATE AS report_period_start,
        (date_trunc('week', CURRENT_DATE - 1))::DATE                                         AS report_period_end;
 
 -- Create views.primary_raid_attendee_map
@@ -88,7 +88,7 @@ SELECT arp.raid_id,
                FROM unnest(arp.all_character_ids) AS unnested_character_id
                         LEFT JOIN character_details c ON c.character_id = unnested_character_id
        ) AS all_characters,
-        rl.raid_log_ids
+       rl.raid_log_ids
 FROM all_raid_participation arp
          LEFT JOIN raid_logs_by_raid_id rl ON rl.raid_id = arp.raid_id
 WHERE arp.primary_character_id IS NOT NULL
@@ -136,6 +136,7 @@ WITH date_range AS (SELECT date_trunc('week', current_date - 1 - interval '6 wee
                                      array_agg(json_build_object(
                                              'name', r.name,
                                              'zone', r.zone,
+                                             'date', r.date,
                                              'attendanceWeight', r.attendance_weight,
                                              'attendeeOrBench', prabm.attendee_or_bench
                                                ))             as raids_attended_json

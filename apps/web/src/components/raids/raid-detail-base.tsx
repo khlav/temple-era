@@ -104,6 +104,8 @@ export function RaidDetailBase({
           <UserAvatar
             name={raidData.creator?.name ?? ""}
             image={raidData.creator?.image ?? ""}
+            tooltipSide="left"
+            showLabel={false}
           />
         </div>
       </div>

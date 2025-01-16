@@ -12,6 +12,7 @@ import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
 import { ValueType } from "recharts/types/component/DefaultTooltipContent";
+import { Separator } from "~/components/ui/separator";
 
 interface Raider {
   name: string | null;
@@ -100,7 +101,7 @@ export function AttendanceReport({
     <Card className="min-h-[1700px]">
       <CardHeader>
         <div className="">Tracked raid attendance %</div>
-        <div className="text-muted-foreground pb-0.5 text-sm">
+        <div className="pb-0.5 text-sm text-muted-foreground">
           Last 6 full lockouts
           {chartAttendenceData &&
             chartAttendenceData.length > 0 &&
@@ -145,9 +146,35 @@ export function AttendanceReport({
                       indicator="line"
                       valueFormatter={(value: ValueType) => (
                         <div className="inline-block pl-1">
-                          {Math.round(parseFloat(value.toString()) * 1000)/10}%
+                          {Math.round(parseFloat(value.toString()) * 1000) / 10}
+                          %
                         </div>
                       )}
+                      additionalContentFromItem={(item: {
+                        payload: {
+                          raidsAttended: {
+                            name: string;
+                            date: Date;
+                            attendeeOrBench: string;
+                          }[];
+                        };
+                      }) => {
+                        return (
+                          <div>
+                            <Separator className="mb-1 mt-2 bg-muted-foreground" />
+                            <div>Raids:</div>
+                            {item.payload?.raidsAttended
+                              .sort((a, b) => (a.date > b.date ? -1 : 1))
+                              .map((raid: { name: string, attendeeOrBench: string }, i) => (
+                                <div key={i} className="pl-1 text-nowrap">
+                                  - {raid.name} {raid.attendeeOrBench === "bench" ? <span className="text-xs text-muted-foreground">Bench</span> : ""}
+                                </div>
+                              ))}
+                          </div>
+                        );
+                      }}
+
+                      // return JSON.stringify(item.payload.raidsAttended);
                     />
                   }
                 />

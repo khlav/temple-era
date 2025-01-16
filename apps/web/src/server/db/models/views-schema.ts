@@ -91,6 +91,7 @@ export const primaryRaidAttendanceL6LockoutWk = viewSchema
     raidsAttended: json("raids_attended_json").$type<{
       name: string;
       zone: string;
+      date: Date;
       attendanceWeight: number;
       attendeeOrBench: string;
     }>(),

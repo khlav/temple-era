@@ -11,24 +11,36 @@ export default function UserAvatar({
   name,
   image,
   extraInfo,
+  showLabel = true,
+  tooltipSide = "top",
 }: {
   name: string;
   image: string;
   extraInfo?: string;
+  showLabel?: boolean;
+  tooltipSide?: "top" | "left" | "right" | "bottom" | undefined;
 }) {
   return (
     <div className="flex gap-1 rounded-md pl-0.5 text-sm font-medium md:flex-none md:justify-start">
       <Tooltip>
         <TooltipTrigger>
           <Avatar className="h-6 w-6">
-            <AvatarImage src={image} alt={name} />
-            <AvatarFallback>{name.slice(0)}</AvatarFallback>
+            <AvatarFallback>{name[0]}</AvatarFallback>
+            <AvatarImage src={image} className="cursor-default" />
           </Avatar>
         </TooltipTrigger>
-        <TooltipContent side="left" asChild>
-          <div className="bg-secondary text-secondary-foreground inline-block md:hidden">{name}</div>
+        <TooltipContent side={tooltipSide} asChild>
+          <div
+            className={
+              "inline-block bg-secondary text-secondary-foreground " +
+              (showLabel ? "md:hidden" : "")
+            }
+          >
+            {name}
+          </div>
         </TooltipContent>
       </Tooltip>
+      {showLabel &&
       <div className="hidden pl-0.5 pt-0.5 font-normal md:block">
         {name}
         {extraInfo ? (
@@ -37,6 +49,7 @@ export default function UserAvatar({
           ""
         )}
       </div>
+      }
     </div>
   );
 }
