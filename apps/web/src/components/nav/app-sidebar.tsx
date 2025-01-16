@@ -21,7 +21,7 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import {FilePlus, ListRestart} from "lucide-react";
+import { FilePlus, Users, ListRestart } from "lucide-react";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -32,10 +32,13 @@ const coreItems = [
 const adminSectionTitle = "Admin Tools";
 const adminLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
-  { title: "Refresh WCL log", url: "/admin/logimport", icon: ListRestart },
+  { title: "Manage mains v. alts", url: "/admin/character-manager", icon: Users },
+  { title: "Refresh WCL log", url: "/admin/log-refresh", icon: ListRestart },
 ];
 
-export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export async function AppSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const session = await auth();
 
   return (
@@ -103,7 +106,7 @@ export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sideb
       </SidebarContent>
       <SidebarFooter>
         <div className="m-auto">
-          <ModeToggle/>
+          <ModeToggle />
         </div>
       </SidebarFooter>
     </Sidebar>

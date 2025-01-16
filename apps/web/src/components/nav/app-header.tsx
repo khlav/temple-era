@@ -15,7 +15,13 @@ import Link from "next/link";
 import {ChartBarSquareIcon} from "@heroicons/react/24/outline";
 import React from "react";
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function kebabToTitleCase(str: string) {
+  return str
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 export const AppHeader = () => {
   const pathParts = usePathname().slice(1).split("/") ?? [];
@@ -41,7 +47,7 @@ export const AppHeader = () => {
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href={"/" + pathParts.slice(0, i + 1).join("/")}>
-                    {capitalize(part)}
+                    {kebabToTitleCase(part)}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -51,7 +57,7 @@ export const AppHeader = () => {
             <>
               <BreadcrumbSeparator/>
               <BreadcrumbItem key={currentPathPart}>
-                <BreadcrumbPage>{capitalize(currentPathPart)}</BreadcrumbPage>
+                <BreadcrumbPage>{kebabToTitleCase(currentPathPart)}</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ) : (
