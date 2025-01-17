@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Swatches: https://claude.site/artifacts/e5f0b56d-9614-42df-9f7f-37dfdf4f618d */
 @layer base {
   :root {
     --background: 0 0% 100%;
