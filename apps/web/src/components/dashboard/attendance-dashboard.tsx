@@ -67,6 +67,7 @@ export function AttendanceDashboard({
                     logging in with Discord
                   </Link></div>
                   <div>and adding a primary character to your profile.</div>
+                  <div className="text-sm text-muted-foreground">Note: Only your public Discord profile ID will be stored.  No other information is made available to the site.</div>
                 </>
               ) : (
                 <>
