@@ -198,10 +198,10 @@ export const charactersRelations = relations(characters, ({ one, many }) => ({
   primaryCharacter: one(characters, {
     fields: [characters.primaryCharacterId],
     references: [characters.characterId],
-    relationName: "primary_character"
+    relationName: "characters"
   }),
   secondaryCharacters: many(characters, {
-    relationName: "secondary_characters"
+    relationName: "characters"
   }),
   user: one(users, {
     fields: [characters.characterId],
