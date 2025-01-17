@@ -14,6 +14,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
+import {DashboardOnboarding} from "~/components/dashboard/dashboard-onboarding";
 
 export function AttendanceDashboard({
   currentUserSession,
@@ -44,49 +45,7 @@ export function AttendanceDashboard({
         )}
       </div>
       <Separator className="mb-4" />
-      {!currentUserSession?.user?.characterId && (
-        <div className="border-1 my-2 flex w-full flex-col rounded-lg border border-muted p-2 md:flex-row">
-          <div className="relative min-h-20 min-w-60">
-            <Image
-              src={"/img/chart_dunckan.png"}
-              fill
-              objectFit="contain"
-              alt="Example with highlighted character"
-            />
-          </div>
-          <div className="flex grow flex-row">
-            <div className="grow pl-2">
-              {!currentUserSession?.user ? (
-                <>
-                  <div>
-                    Highlight your attendance by{" "}
-                    <Link
-                      href="/"
-                      onClick={() => signIn("discord")}
-                      className="text-primary underline"
-                    >
-                      logging in with Discord
-                    </Link>
-                  </div>
-                  <div>and adding a primary character to your profile.</div>
-                  <div className="text-sm text-muted-foreground">
-                    Note: This will access public Discord profile ID, name, and
-                    image url. No other identifying information is made
-                    available to the site.
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Link href="/profile" className="text-primary underline">
-                    Add a primary character to your profile
-                  </Link>
-                  .
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <DashboardOnboarding session={currentUserSession}/>
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex-shrink-0 lg:w-[420px]">
           <AttendanceReport
