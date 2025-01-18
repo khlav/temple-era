@@ -9,11 +9,6 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { PrettyPrintDate } from "~/lib/helpers";
 import { CurrentLockoutAllRaids } from "~/components/dashboard/current-lockout-all-raids";
 import type { Session } from "next-auth";
-import { CircleAlert } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { signIn } from "next-auth/react";
-import { Button } from "~/components/ui/button";
 import {DashboardOnboarding} from "~/components/dashboard/dashboard-onboarding";
 
 export function AttendanceDashboard({

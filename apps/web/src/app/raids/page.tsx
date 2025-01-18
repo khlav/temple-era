@@ -21,7 +21,7 @@ export default async function RaidIndex() {
             )}
           </div>
         </div>
-        <AllRaids />
+        <AllRaids session={session ?? undefined} />
       </main>
     </HydrateClient>
   );

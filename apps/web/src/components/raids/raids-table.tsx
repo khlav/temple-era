@@ -11,13 +11,14 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+import {Edit, ExternalLinkIcon} from "lucide-react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { Badge } from "~/components/ui/badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
+import type {Session} from "next-auth";
 
-export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
+export function RaidsTable({ raids, session }: { raids: Raid[] | undefined, session?: Session }) {
   return (
     <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
       <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
@@ -26,6 +27,11 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
         </TableCaption>
         <TableHeader>
           <TableRow>
+            { session?.user?.isAdmin &&
+            <TableHead className="w-40">
+              {" "}
+            </TableHead>
+            }
             <TableHead className="w-1/2 md:w-4/12">
               Raids {raids ? `(${raids?.length})` : ""}
             </TableHead>
@@ -45,7 +51,12 @@ export function RaidsTable({ raids }: { raids: Raid[] | undefined }) {
         <TableBody>
           {raids
             ? raids.map((r: Raid) => (
-                <TableRow key={r.raidId}>
+                <TableRow key={r.raidId} className="group">
+                  { session?.user?.isAdmin &&
+                      <TableCell>
+                          <Link href={`/raids/${r.raidId}/edit`} className="transition-all hover:text-primary"><Edit className="opacity-0 group-hover:opacity-100" size={16}/></Link>
+                      </TableCell>
+                  }
                   <TableCell className="text-secondary-foreground">
                     <Link
                       className="hover:text-primary group w-full transition-all"

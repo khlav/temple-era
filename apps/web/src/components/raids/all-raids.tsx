@@ -3,20 +3,18 @@
 import { api } from "~/trpc/react";
 import {RaidsTable} from "~/components/raids/raids-table";
 import {RaidsTableSkeleton} from "~/components/raids/skeletons";
+import type {Session} from "next-auth";
 
-export function AllRaids() {
-  const {
-    data: raids,
-    isLoading,
-  } = api.raid.getRaids.useQuery();
+export function AllRaids({ session }:{session?: Session} ) {
+  const { data: raids, isLoading } = api.raid.getRaids.useQuery();
 
   return (
     <>
       {isLoading ? (
-        <RaidsTableSkeleton rows={10}/>
+        <RaidsTableSkeleton rows={10} />
       ) : (
         <div>
-          <RaidsTable raids={raids} />
+          <RaidsTable raids={raids} session={session} />
         </div>
       )}
     </>
