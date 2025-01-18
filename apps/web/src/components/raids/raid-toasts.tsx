@@ -88,7 +88,7 @@ export const toastRaidSaved = (
             : raidData.attendanceWeight == 1
               ? "Tracked Raid"
               : "Other"}
-          - {PrettyPrintDate(new Date(raidData.date), true)}
+          {" "}- {PrettyPrintDate(new Date(raidData.date), true)}
         </div>
       </>
     ),
