@@ -12,10 +12,8 @@ import {
   inArray,
   isNull,
   or,
-  sql,
   type SQL,
 } from "drizzle-orm";
-import anyAscii from "any-ascii";
 import {
   characters,
   primaryRaidAttendeeAndBenchMap,
@@ -25,10 +23,6 @@ import type {
   RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
-
-export const Slugify = (value: string) => {
-  return anyAscii(value).toLowerCase();
-};
 
 export const convertParticipantArrayToCollection = (
   participants: RaidParticipant[],

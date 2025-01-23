@@ -16,7 +16,7 @@ import anyAscii from "any-ascii";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/players/skeletons";
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 
 export function CharactersTable({
   characters,

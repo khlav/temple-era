@@ -1,5 +1,4 @@
 import React from "react";
-import {auth} from "~/server/auth";
 import {Separator} from "~/components/ui/separator";
 import {CharacterManager} from "~/components/admin/character-manager";
 

@@ -11,7 +11,7 @@ import {
 import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
-import { ValueType } from "recharts/types/component/DefaultTooltipContent";
+import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { Separator } from "~/components/ui/separator";
 
 interface Raider {
@@ -49,7 +49,7 @@ export function AttendanceReport({
       });
       setChartAttendenceData(raiderData);
     }
-  }, [attendanceData, isSuccess]);
+  }, [attendanceData, currentUserCharacterId, isSuccess]);
 
   const chartConfig = {
     weightedAttendancePct50OrBetter: {

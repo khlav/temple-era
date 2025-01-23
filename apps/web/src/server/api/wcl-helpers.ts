@@ -2,12 +2,17 @@ import type {RawActorResult, RawActorResultCollection, RawRaidReportRequestResul
 import type {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {env} from "~/env";
 import {NextResponse} from "next/server";
+import anyAscii from "any-ascii";
 
 interface AccessTokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
 }
+
+export const Slugify = (value: string) => {
+  return anyAscii(value).toLowerCase();
+};
 
 export const GetWCLGraphQLQuery = async (
   gqlQuery: string,

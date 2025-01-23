@@ -6,12 +6,11 @@ import type {
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import {Loader, XIcon} from "lucide-react";
 import { SortRaiders } from "~/lib/helpers";
 import { CharacterSelector } from "~/components/players/character-selector";
 import { api } from "~/trpc/react";
-import { toastRaidSaved } from "~/components/raids/raid-toasts";
 import { useToast } from "~/hooks/use-toast";
 import {toastCharacterSaved} from "~/components/admin/admin-toasts";
 

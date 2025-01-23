@@ -5,7 +5,6 @@ import {
   adminProcedure,
 } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
-import anyAscii from "any-ascii";
 import type { db } from "~/server/db";
 import {aliasedTable, eq, inArray} from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
@@ -19,11 +18,7 @@ import type {
 } from "~/server/api/interfaces/raid";
 import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
-
-export const Slugify = (value: string) => {
-  return anyAscii(value).toLowerCase();
-};
-
+import { Slugify } from "~/server/api/wcl-helpers";
 /*
   Reusable router functions
  */
