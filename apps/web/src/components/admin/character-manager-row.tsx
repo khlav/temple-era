@@ -103,7 +103,7 @@ export function CharacterManagerRow({
       {!inEditMode ? (
         // View mode
         <>
-          <TableCell className="font-bold">{character.name}</TableCell>
+          <TableCell className="">{character.name}</TableCell>
           <TableCell>
             <div className="flex flex-row gap-2">
               {Object.values(character?.secondaryCharacters ?? {})
