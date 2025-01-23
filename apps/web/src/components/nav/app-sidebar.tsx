@@ -29,7 +29,7 @@ const coreItems = [
   { title: "Players", url: "/players", icon: UserGroupIcon },
 ];
 
-const adminSectionTitle = "Admin Tools";
+const adminSectionTitle = "Admin Shortcuts";
 const adminLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
   { title: "Manage mains v. alts", url: "/admin/character-manager", icon: Users },
