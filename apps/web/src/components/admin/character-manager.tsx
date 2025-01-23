@@ -24,7 +24,7 @@ export function CharacterManager() {
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    const initialSearch = searchParams.get("s") || "";
+    const initialSearch = searchParams.get("s") ?? "";
     setSearchTerm(initialSearch);
   }, [searchParams]);
 
@@ -34,7 +34,7 @@ export function CharacterManager() {
     setSearchTerm(newSearchTerm);
 
     // Update the `s` URL parameter
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(searchParams);
     if (newSearchTerm) {
       params.set("s", newSearchTerm);
     } else {
