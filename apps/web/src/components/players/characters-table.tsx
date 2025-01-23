@@ -14,17 +14,20 @@ import {
 } from "~/components/ui/table";
 import anyAscii from "any-ascii";
 import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/players/skeletons";
+import { Session } from "next-auth";
 
 export function CharactersTable({
   characters,
   targetNewTab = false,
   isLoading = false,
+  session,
 }: {
   characters: RaidParticipantCollection | undefined;
   targetNewTab?: boolean;
   isLoading?: boolean;
+  session?: Session;
 }) {
   const characterList =
     characters &&
@@ -40,6 +43,9 @@ export function CharactersTable({
         <Table className="max-h-[400px]">
           <TableHeader>
             <TableRow>
+              {session?.user?.isAdmin && (
+                <TableHead className="w-40"> </TableHead>
+              )}
               <TableHead className="w-3/4">
                 Characters {characterList && `(${characterList.length})`}
               </TableHead>
@@ -50,17 +56,30 @@ export function CharactersTable({
           <TableBody>
             {characterList
               ? characterList?.map((c: RaidParticipant) => (
-                  <TableRow key={c.characterId}>
+                  <TableRow key={c.characterId} className="group">
+                    {session?.user?.isAdmin && (
+                      <TableCell>
+                        <Link
+                          href={`/admin/character-manager?s=${c.name}`}
+                          className="transition-all hover:text-primary"
+                        >
+                          <Edit
+                            className="opacity-0 group-hover:opacity-100"
+                            size={16}
+                          />
+                        </Link>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Link
-                        className="hover:text-primary group w-full transition-all"
+                        className="group w-full transition-all hover:text-primary"
                         target={targetNewTab ? "_blank" : "_self"}
                         href={"/players/" + c.characterId}
                       >
                         <div>
                           {c.name}
                           {c.primaryCharacterName ? (
-                            <span className="text-muted-foreground pl-1.5 text-xs font-normal">
+                            <span className="pl-1.5 text-xs font-normal text-muted-foreground">
                               {c.primaryCharacterName}
                             </span>
                           ) : (

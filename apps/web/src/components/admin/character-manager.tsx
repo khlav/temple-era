@@ -14,11 +14,34 @@ import {
 import { SortRaiders } from "~/lib/helpers";
 import { CharacterManagerRow } from "~/components/admin/character-manager-row";
 import { CharacterManagerRowSkeleton } from "~/components/admin/skeletons";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { Input } from "~/components/ui/input";
+import {useRouter, useSearchParams} from "next/navigation";
 
 export function CharacterManager() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState<string>("");
+
+  useEffect(() => {
+    const initialSearch = searchParams.get("s") || "";
+    setSearchTerm(initialSearch);
+  }, [searchParams]);
+
+  // Update the URL parameter when the search term changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+
+    // Update the `s` URL parameter
+    const params = new URLSearchParams(searchParams as any);
+    if (newSearchTerm) {
+      params.set("s", newSearchTerm);
+    } else {
+      params.delete("s");
+    }
+    router.replace(`?${params.toString()}`);
+  };
 
   const { data: characterData, isSuccess } =
     api.character.getCharactersWithSecondaries.useQuery();
@@ -52,12 +75,12 @@ export function CharacterManager() {
       <Input
         placeholder="Search..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleSearchChange}
       />
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/5">Primary {characterData && ` (${characterData.length})`}</TableHead>
+            <TableHead className="w-1/5">Primary {characterData && ` (${filteredPlayers.length})`}</TableHead>
             <TableHead className="w-3/5">Secondary Characters</TableHead>
             <TableHead className="w-1/5"></TableHead>
           </TableRow>

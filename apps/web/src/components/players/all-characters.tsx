@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Input } from "~/components/ui/input";
 import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {AllCharactersTableSkeleton} from "~/components/players/skeletons";
+import type {Session} from "next-auth";
 
-export function AllCharacters() {
+export function AllCharacters({session} : {session?: Session}) {
   const { data: players, isSuccess } = api.character.getCharacters.useQuery();
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -45,7 +46,7 @@ export function AllCharacters() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <CharactersTable characters={filteredPlayers} />
+          <CharactersTable characters={filteredPlayers} session={session} />
         </div>
       ) : <AllCharactersTableSkeleton rows={14}/>}
     </>

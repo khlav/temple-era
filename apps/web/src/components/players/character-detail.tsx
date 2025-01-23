@@ -5,8 +5,11 @@ import Link from "next/link";
 import { Separator } from "~/components/ui/separator";
 import { PrimaryCharacterRaidsTable } from "~/components/players/primary-character-raids-table";
 import anyAscii from "any-ascii";
+import {Button} from "~/components/ui/button";
+import {Edit} from "lucide-react";
+import React from "react";
 
-export function CharacterDetail({ characterId }: { characterId: number }) {
+export function CharacterDetail({ characterId, showEditButton }: { characterId: number, showEditButton?: boolean }) {
   const { data: characterData, isSuccess } =
     api.character.getCharacterById.useQuery(characterId);
 
@@ -15,17 +18,26 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
       {isSuccess && (
         <>
           <div className="flex flex-col">
-            <div className="flex flex-row items-center">
-              <div className="text-2xl font-bold">{characterData.name}</div>
-              <div className="text-md text-muted-foreground pl-1">
+            <div className="flex flex-row items-center gap-1">
+              <div className="text-2xl font-bold grow-0">{characterData.name}</div>
+              <div className="text-md text-muted-foreground grow">
                 {characterData.class}
               </div>
+              {showEditButton && (
+                <div className="grow-0 align-text-top">
+                  <Link href={`/admin/character-manager?s=${characterData.name}`}>
+                    <Button className="py-5">
+                      <Edit />
+                      Assign main vs. alts
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
             {(characterData.secondaryCharacters ?? []).length ? (
               <>
                 <Separator className="my-2 w-full" />
                 <div className="flex flex-row gap-2">
-                  <>
                     <div className="flex flex-wrap gap-2">
                       <div className="grow-0 py-2 text-sm">Alts:</div>
                       {(characterData.secondaryCharacters ?? [])
@@ -40,7 +52,6 @@ export function CharacterDetail({ characterId }: { characterId: number }) {
                           </Link>
                         ))}
                     </div>
-                  </>
                 </div>
               </>
             ) : null}
