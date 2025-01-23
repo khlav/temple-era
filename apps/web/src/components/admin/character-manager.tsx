@@ -3,7 +3,6 @@
 import { api } from "~/trpc/react";
 import type {
   RaidParticipant,
-  RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import {
   Table,
@@ -11,9 +10,7 @@ import {
   TableRow,
   TableHeader,
   TableBody,
-  TableCell,
 } from "@/components/ui/table";
-import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import { SortRaiders } from "~/lib/helpers";
 import { CharacterManagerRow } from "~/components/admin/character-manager-row";
 import { CharacterManagerRowSkeleton } from "~/components/admin/skeletons";
@@ -60,7 +57,7 @@ export function CharacterManager() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/5">Primary</TableHead>
+            <TableHead className="w-1/5">Primary {characterData && ` (${characterData.length})`}</TableHead>
             <TableHead className="w-3/5">Secondary Characters</TableHead>
             <TableHead className="w-1/5"></TableHead>
           </TableRow>
