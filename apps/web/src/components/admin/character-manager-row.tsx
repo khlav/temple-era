@@ -20,7 +20,6 @@ export function CharacterManagerRow({
 }: {
   character: RaidParticipant;
 }) {
-  const [isLoaded, setIsLoaded] = useState(false);
   const [inEditMode, setInEditMode] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [localSecondaryCharacters, setLocalSecondaryCharacters] =
@@ -35,7 +34,7 @@ export function CharacterManagerRow({
         alert(error.message);
         setIsSending(false);
       },
-      onSuccess: async (result) => {
+      onSuccess: async () => {
         await utils.invalidate(undefined, { refetchType: "all" });
         toastCharacterSaved(toast, character, localSecondaryCharacters);
         setIsSending(false);
@@ -90,13 +89,6 @@ export function CharacterManagerRow({
     );
     setIsSending(true);
   };
-
-  useEffect(() => {
-    if (!isLoaded) {
-      setLocalSecondaryCharacters(originalSecondaryCharacters);
-      setIsLoaded(true);
-    }
-  }, [originalSecondaryCharacters, isLoaded, localSecondaryCharacters]);
 
   return (
     <TableRow key={character.characterId} className="group">
