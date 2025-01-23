@@ -145,7 +145,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
                 buttonContent={
                   character.characterId ? "Change" : "+ Add primary character"
                 }
-                characterSet="primaryOnly"
+                characterSet="primary"
                 disabled={sendingData}
               />
             </div>

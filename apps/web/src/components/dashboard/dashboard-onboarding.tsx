@@ -9,7 +9,7 @@ export function DashboardOnboarding({ session }: { session: Session | undefined 
     <>
       {!session?.user?.characterId && (
         <div className="border-1 my-2 flex w-full flex-col rounded-lg border border-muted p-2 md:flex-row">
-          <div className="relative min-h-20 min-w-60">
+          <div className="relative min-h-20 min-w-60 bg-background">
             <Image
               src={"/img/chart_dunckan.png"}
               fill

@@ -1,6 +1,7 @@
 import React from "react";
 import {auth} from "~/server/auth";
 import {Separator} from "~/components/ui/separator";
+import {CharacterManager} from "~/components/admin/character-manager";
 
 export default async function CharacterManagerIndex() {
   return (
@@ -9,7 +10,7 @@ export default async function CharacterManagerIndex() {
         Character Manager
         <Separator className="my-2" />
       </div>
-      In progress... (UI for mapping mains and alts).
+      <CharacterManager />
     </main>
   );
 }

@@ -36,7 +36,7 @@ export function CharacterSelector({
 }: {
   onSelectAction: (character: RaidParticipant) => void;
   buttonContent?: React.ReactNode;
-  characterSet?: "all" | "primaryOnly" | "secondaryOnly";
+  characterSet?: "all" | "primary" | "secondary" | "secondaryEligible";
   disabled?: boolean;
   children?: React.ReactNode;
   skeleton?: React.ReactNode;
