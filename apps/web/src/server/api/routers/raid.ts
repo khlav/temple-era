@@ -2,9 +2,9 @@ import { z } from "zod";
 import {
   createTRPCRouter,
   publicProcedure,
-  adminProcedure,
+  raidManagerProcedure,
 } from "~/server/api/trpc";
-import {raidLogs, raids, raidBenchMap, users} from "~/server/db/schema";
+import { raidLogs, raids, raidBenchMap, users } from "~/server/db/schema";
 import {
   EmptyRaid,
   type Raid,
@@ -21,11 +21,16 @@ const isEmptyObj = (obj: object) => {
   return true;
 };
 
-const updateRaidLogRaidIds = async (db: DB, session: Session, raidId: number, raidData: Raid) => {
+const updateRaidLogRaidIds = async (
+  db: DB,
+  session: Session,
+  raidId: number,
+  raidData: Raid,
+) => {
   if (raidData.raidLogIds?.length ?? 0 > 0) {
     return db
       .update(raidLogs)
-      .set({ raidId: raidId, createdById: session.user.id})
+      .set({ raidId: raidId, createdById: session.user.id })
       .where(inArray(raidLogs.raidLogId, raidData.raidLogIds ?? []))
       .returning({ raidLogId: raidLogs.raidLogId });
   }
@@ -116,7 +121,7 @@ export const raid = createTRPCRouter({
           attendanceWeight: raids.attendanceWeight,
           creator: {
             name: users.name,
-            image: users.image
+            image: users.image,
           },
         })
         .from(raids)
@@ -180,7 +185,7 @@ export const raid = createTRPCRouter({
       } as Raid;
     }),
 
-  insertRaid: adminProcedure
+  insertRaid: raidManagerProcedure
     .input(
       z.object({
         name: z.string(),
@@ -246,7 +251,7 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  updateRaid: adminProcedure
+  updateRaid: raidManagerProcedure
     .input(
       z.object({
         raidId: z.number(),
@@ -308,10 +313,12 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  delete: adminProcedure.input(z.number()).mutation(async ({ ctx, input }) => {
-    return await ctx.db
-      .delete(raids)
-      .where(eq(raids.raidId, input))
-      .returning({ raidId: raids.raidId, name: raids.name });
-  }),
+  delete: raidManagerProcedure
+    .input(z.number())
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.db
+        .delete(raids)
+        .where(eq(raids.raidId, input))
+        .returning({ raidId: raids.raidId, name: raids.name });
+    }),
 });

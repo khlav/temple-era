@@ -29,12 +29,16 @@ const coreItems = [
   { title: "Players", url: "/players", icon: UserGroupIcon },
 ];
 
-const adminSectionTitle = "Admin Shortcuts";
-const adminLinks = [
+const raidManagerTitle = "Raid Manager";
+const raidManagerLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
-  { title: "Manage mains v. alts", url: "/admin/character-manager", icon: Users },
-  { title: "Refresh WCL log", url: "/admin/log-refresh", icon: ListRestart },
-  { title: "Manage admins", url: "/admin/user-manager", icon: ShieldCheck },
+  { title: "Manage mains v. alts", url: "/raid-manager/characters", icon: Users },
+  { title: "Refresh WCL log", url: "/raid-manager/log-refresh", icon: ListRestart },
+];
+
+const adminSectionTitle = "Admins";
+const adminLinks = [
+  { title: "Manage access", url: "/admin/user-manager", icon: ShieldCheck },
 ];
 
 export async function AppSidebar({
@@ -83,7 +87,26 @@ export async function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {session?.user?.isAdmin ? (
+        {session?.user?.isRaidManager &&
+            <SidebarGroup>
+                <SidebarGroupLabel>{raidManagerTitle}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                      {raidManagerLinks.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <Link href={item.url}>
+                              <item.icon />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        }
+        {session?.user?.isAdmin &&
           <SidebarGroup>
             <SidebarGroupLabel>{adminSectionTitle}</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -101,9 +124,7 @@ export async function AppSidebar({
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : (
-          ""
-        )}
+        }
       </SidebarContent>
       <SidebarFooter>
         <div className="m-auto">

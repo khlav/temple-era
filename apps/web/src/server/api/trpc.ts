@@ -133,6 +133,28 @@ export const protectedProcedure = t.procedure
   });
 
 /**
+ * Raid Manager (authenticated) procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to users with the 'admin' role, use this. It verifies
+ * the session is valid and guarantees `ctx.session.user` is not null.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const raidManagerProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.session || !ctx.session.user || !ctx.session.user.isRaidManager) {
+      throw new TRPCError({ code: "UNAUTHORIZED" , message: `Unauthorized - Raid managers only` });
+    }
+    return next({
+      ctx: {
+        // infers the `session` as non-nullable
+        session: { ...ctx.session, user: ctx.session.user },
+      },
+    });
+  });
+
+/**
  * Admin (authenticated) procedure
  *
  * If you want a query or mutation to ONLY be accessible to users with the 'admin' role, use this. It verifies

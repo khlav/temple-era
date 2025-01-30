@@ -8,7 +8,7 @@ import {redirect} from "next/navigation";
 export default async function RaidNewPage() {
   const session = await auth();
 
-  if(!session?.user?.isAdmin) {
+  if(!session?.user?.isRaidManager) {
     redirect('/raids');
   }
 

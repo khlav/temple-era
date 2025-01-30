@@ -27,7 +27,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined, sess
         </TableCaption>
         <TableHeader>
           <TableRow>
-            { session?.user?.isAdmin &&
+            { session?.user?.isRaidManager &&
             <TableHead className="w-40">
               {" "}
             </TableHead>
@@ -52,7 +52,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined, sess
           {raids
             ? raids.map((r: Raid) => (
                 <TableRow key={r.raidId} className="group">
-                  { session?.user?.isAdmin &&
+                  { session?.user?.isRaidManager &&
                       <TableCell>
                           <Link href={`/raids/${r.raidId}/edit`} className="transition-all hover:text-primary"><Edit className="opacity-0 group-hover:opacity-100" size={16}/></Link>
                       </TableCell>

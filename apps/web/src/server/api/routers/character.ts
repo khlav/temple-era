@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  adminProcedure,
+  raidManagerProcedure,
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
@@ -187,7 +187,7 @@ export const character = createTRPCRouter({
       return raidsAttended ?? [];
     }),
 
-  getCharactersWithSecondaries: adminProcedure.query(async ({ ctx }) => {
+  getCharactersWithSecondaries: raidManagerProcedure.query(async ({ ctx }) => {
     const charactersWithSecondaries = await ctx.db.query.characters.findMany({
       where: eq(characters.isPrimary, true),
       columns: {
@@ -220,7 +220,7 @@ export const character = createTRPCRouter({
     return charactersWithSecondaries || [];
   }),
 
-  updatePrimaryCharacter: adminProcedure
+  updatePrimaryCharacter: raidManagerProcedure
     .input(
       z.object({
         primaryCharacterId: z.number(),

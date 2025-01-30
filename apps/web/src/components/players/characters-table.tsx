@@ -45,7 +45,7 @@ export function CharactersTable({
         <Table className="max-h-[400px]">
           <TableHeader>
             <TableRow>
-              {session?.user?.isAdmin && (
+              {session?.user?.isRaidManager && (
                 <TableHead className="w-40"> </TableHead>
               )}
               <TableHead className="w-3/4">
@@ -58,7 +58,7 @@ export function CharactersTable({
             {characterList
               ? characterList?.map((c: RaidParticipant) => (
                   <TableRow key={c.characterId} className="group">
-                    {session?.user?.isAdmin && (
+                    {session?.user?.isRaidManager && (
                       <TableCell>
                         <Link
                           href={`/admin/character-manager?s=${c.name}`}

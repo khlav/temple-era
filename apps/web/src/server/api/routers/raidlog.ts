@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   createTRPCRouter,
   publicProcedure,
-  adminProcedure,
+  raidManagerProcedure,
 } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
@@ -261,11 +261,11 @@ export const raidLog = createTRPCRouter({
   /*
     Admin procedures
    */
-  getWclLogById: adminProcedure
+  getWclLogById: raidManagerProcedure
     .input(z.string())
     .query(async ({ input }) => await queryGetWclLogById(input)),
 
-  importAndGetRaidLogByRaidLogId: adminProcedure
+  importAndGetRaidLogByRaidLogId: raidManagerProcedure
     .input(
       z.object({
         raidLogId: z.string(),
@@ -282,7 +282,7 @@ export const raidLog = createTRPCRouter({
       return await queryGetRaidLogById(ctx.db, input.raidLogId);
     }),
 
-  insertRaidLogWithAttendees: adminProcedure
+  insertRaidLogWithAttendees: raidManagerProcedure
     .input(inputInsertRaidLogWithAttendees)
     .mutation(async ({ ctx, input }) =>
       mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, input),

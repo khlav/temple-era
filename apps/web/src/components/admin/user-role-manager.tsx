@@ -22,11 +22,13 @@ export const UserRoleManagerRow = ({
     id: string;
     name?: string | null;
     image?: string | null;
+    isRaidManager?: boolean | null;
     isAdmin?: boolean | null;
   }
 }) => {
-  const [isAdmin, setIsAdmin] = useState(user.isAdmin ?? false);
-  const [isSending, setIsSending] = useState(false);
+  const [isRaidManager, setIsRaidManager] = useState<boolean>(user.isRaidManager ?? false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(user.isAdmin ?? false);
+  const [isSending, setIsSending] = useState<boolean>(false);
 
   const utils = api.useUtils();
 
@@ -39,14 +41,28 @@ export const UserRoleManagerRow = ({
       await utils.invalidate(undefined, { refetchType: "all" });
       // toastCharacterSaved(toast, character, localSecondaryCharacters);
       setIsSending(false);
+      setIsRaidManager(result[0]?.isRaidManager ?? false);
       setIsAdmin(result[0]?.isAdmin ?? false)
 
     },
   });
 
-  const handleToggle = () => {
+  const handleRaidManagerToggle = (newRaidManagerValue: boolean) => {
     setIsSending(true);
-    updateUserRole.mutate({ id: user.id, isAdmin: !user.isAdmin })
+    updateUserRole.mutate({
+      id: user.id,
+      isRaidManager: newRaidManagerValue,
+      isAdmin: isAdmin
+    })
+  }
+
+  const handleAdminToggle = (newAdminValue: boolean) => {
+    setIsSending(true);
+    updateUserRole.mutate({
+      id: user.id,
+      isRaidManager: isRaidManager,
+      isAdmin: newAdminValue,
+    })
   }
 
   return (
@@ -54,18 +70,32 @@ export const UserRoleManagerRow = ({
       <TableCell>
         <UserAvatar name={user.name ?? ""} image={user.image ?? ""} />
       </TableCell>
-      <TableCell className="text-muted-foreground flex flex-row gap-1">
+      <TableCell>
+        <div className="flex flex-row gap-1">
         <Switch
-          id={`user_${user.id}`}
-          checked={isAdmin ?? false}
-          onCheckedChange={handleToggle}
+          id={`user__raid_manager__${user.id}`}
+          checked={isRaidManager ?? false}
+          onCheckedChange={handleRaidManagerToggle}
           disabled={isSending}
           className="grow-0"
         />
-        <Loader className={"grow-0 transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0" )} />
+        <Loader className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0" )} />
+      </div>
+      </TableCell>
+      <TableCell className="flex flex-row gap-1">
+        <div className="flex flex-row gap-1">
+          <Switch
+            id={`user__admin__${user.id}`}
+            checked={isAdmin ?? false}
+            onCheckedChange={handleAdminToggle}
+            disabled={isSending}
+            className="grow-0"
+          />
+          <Loader className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0")}/>
+        </div>
       </TableCell>
     </TableRow>
-  );
+);
 };
 
 export const UserRoleManager = () => {
@@ -76,13 +106,14 @@ export const UserRoleManager = () => {
       {isLoading && "Loading..."}
       {isSuccess && (
           <>
-            <Table className="max-h-[400px] grow-0">
+            <Table className="max-h-[400px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-1/4">
                     Users {users && `(${users.length})`}
                   </TableHead>
-                  <TableHead className="w-3/4">Is Admin?</TableHead>
+                  <TableHead className="w-1/4">Is Raid Manager</TableHead>
+                  <TableHead className="w-1/2">Is Admin</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

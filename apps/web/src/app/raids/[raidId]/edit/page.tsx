@@ -7,7 +7,7 @@ export default async function RaidEditPage({params} : {params: Promise<{ raidId:
   const raidId = parseInt(String(p.raidId)); // Access your dynamic URL parameter here (e.g., /raids/[[raidId]])
   const session = await auth();
 
-  if(!session?.user?.isAdmin) {
+  if(!session?.user?.isRaidManager) {
     redirect('/raids');
   }
 

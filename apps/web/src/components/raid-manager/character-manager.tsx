@@ -10,10 +10,10 @@ import {
   TableRow,
   TableHeader,
   TableBody,
-} from "@/components/ui/table";
+} from "~/components/ui/table";
 import { SortRaiders } from "~/lib/helpers";
-import { CharacterManagerRow } from "~/components/admin/character-manager-row";
-import { CharacterManagerRowSkeleton } from "~/components/admin/skeletons";
+import { CharacterManagerRow } from "~/components/raid-manager/character-manager-row";
+import { CharacterManagerRowSkeleton } from "~/components/raid-manager/skeletons";
 import {useEffect, useState} from "react";
 import { Input } from "~/components/ui/input";
 import {useRouter, useSearchParams} from "next/navigation";

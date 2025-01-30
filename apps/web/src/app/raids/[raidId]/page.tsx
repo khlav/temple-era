@@ -8,7 +8,7 @@ export default async function RaidPage({params} : {params: Promise<{ raidId: num
 
   return (
     <div>
-      <RaidDetail raidId={raidId} showEditButton={session?.user?.isAdmin}/>
+      <RaidDetail raidId={raidId} showEditButton={session?.user?.isRaidManager}/>
     </div>
   );
 }

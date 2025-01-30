@@ -12,7 +12,7 @@ import { SortRaiders } from "~/lib/helpers";
 import { CharacterSelector } from "~/components/players/character-selector";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
-import { toastCharacterSaved } from "~/components/admin/admin-toasts";
+import { toastCharacterSaved } from "~/components/raid-manager/raid-manager-toasts";
 import { ClassIcon } from "~/components/ui/class-icon";
 
 export function CharacterManagerRow({

@@ -9,7 +9,7 @@ export default async function PlayerPage({ params }: {params: Promise<{character
     <div className="w-full px-4">
       {characterId && (
         <>
-          <CharacterDetail characterId={characterId} showEditButton={session?.user?.isAdmin}/>
+          <CharacterDetail characterId={characterId} showEditButton={session?.user?.isRaidManager}/>
         </>
       )}
     </div>
