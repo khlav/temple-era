@@ -15,6 +15,7 @@ import type { Session } from "next-auth";
 import {ChevronDown, LogOut, User} from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {
   const userMenu = (
@@ -57,7 +58,7 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
         >
           {/* Uncomment and use this icon if needed */}
           {/* <PowerIcon className="w-6" /> */}
-          <img
+          <Image
             src="/img/discord-mark-white.svg"
             alt="Discord"
             height={24}
