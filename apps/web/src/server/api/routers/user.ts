@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "~/server/api/trpc";
-import {characters, users} from "~/server/db/schema";
-import {eq, inArray} from "drizzle-orm";
+import { users} from "~/server/db/schema";
+import {asc, eq, sql} from "drizzle-orm";
 
 export const user = createTRPCRouter({
   getUsers: adminProcedure.query(async ({ ctx }) => {
     return await ctx.db.query.users.findMany({
-      orderBy: (users, { asc }) => [asc(users.name)],
+      orderBy: asc(sql`lower(${users.name})`),
       columns: {
         id: true,
         name: true,
