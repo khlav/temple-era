@@ -31,6 +31,7 @@ export const users = tableCreator(
       withTimezone: true,
     }).default(sql`CURRENT_TIMESTAMP`),
     image: varchar("image", { length: 255 }),
+    isRaidLead: boolean("is_raid_lead").default(false),
     isAdmin: boolean("is_admin").default(false),
     characterId: integer("character_id"),
   },
