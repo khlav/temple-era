@@ -201,7 +201,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey ?? item.name ?? item.dataKey ?? "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-user-management,@typescript-eslint/no-unsafe-assignment
             const indicatorColor = color ?? item?.payload?.fill ?? item.color;
 
             return (

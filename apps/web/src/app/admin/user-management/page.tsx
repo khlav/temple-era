@@ -1,6 +1,6 @@
 import React from "react";
 import {Separator} from "~/components/ui/separator";
-import {UserRoleManager} from "~/components/admin/user-role-manager";
+import {UserAccessManager} from "~/components/admin/user-access-manager";
 
 export default async function RoleManagerIndex() {
   return (
@@ -9,11 +9,7 @@ export default async function RoleManagerIndex() {
         User Roles and Permissions
       </div>
       <Separator className="my-2" />
-      <div className="text-muted-foreground">
-        Admins can create and edit raids, manage main/alt mapping, and change admin access for all users.
-      </div>
-      <Separator className="my-2" />
-      <UserRoleManager />
+      <UserAccessManager />
     </main>
   );
 }

@@ -36,9 +36,9 @@ const raidManagerLinks = [
   { title: "Refresh WCL log", url: "/raid-manager/log-refresh", icon: ListRestart },
 ];
 
-const adminSectionTitle = "Admins";
+const adminSectionTitle = "Admin Panel";
 const adminLinks = [
-  { title: "Manage access", url: "/admin/user-manager", icon: ShieldCheck },
+  { title: "User permissions", url: "/admin/user-management", icon: ShieldCheck },
 ];
 
 export async function AppSidebar({

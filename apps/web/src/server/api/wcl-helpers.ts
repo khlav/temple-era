@@ -21,7 +21,7 @@ export const GetWCLGraphQLQuery = async (
   const OAUTH_URL = env.WCL_OAUTH_URL;
   const API_URL = env.WCL_API_URL;
 
-  // Fetch access token
+  // Fetch user-management token
   const accessTokenResponse = await fetch(OAUTH_URL, {
     method: 'POST',
     headers: {
@@ -36,7 +36,7 @@ export const GetWCLGraphQLQuery = async (
 
   if (!accessTokenResponse.ok) {
     return NextResponse.json(
-      { error: 'Failed to fetch access token' },
+      { error: 'Failed to fetch user-management token' },
       { status: accessTokenResponse.status }
     );
   }

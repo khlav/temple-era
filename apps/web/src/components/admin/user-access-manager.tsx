@@ -13,12 +13,11 @@ import {
 import React, { useState } from "react";
 import { Switch } from "~/components/ui/switch";
 import UserAvatar from "~/components/ui/user-avatar";
-import {Loader} from "lucide-react";
-import {Tooltip, TooltipTrigger} from "~/components/ui/tooltip";
-import {Badge} from "~/components/ui/badge";
-import {TooltipContent} from "@radix-ui/react-tooltip";
+import { Loader } from "lucide-react";
+import { Tooltip, TooltipTrigger } from "~/components/ui/tooltip";
+import { TooltipContent } from "@radix-ui/react-tooltip";
 
-export const UserRoleManagerRow = ({
+const UserAccessManagerRow = ({
   user,
 }: {
   user: {
@@ -27,9 +26,11 @@ export const UserRoleManagerRow = ({
     image?: string | null;
     isRaidManager?: boolean | null;
     isAdmin?: boolean | null;
-  }
+  };
 }) => {
-  const [isRaidManager, setIsRaidManager] = useState<boolean>(user.isRaidManager ?? false);
+  const [isRaidManager, setIsRaidManager] = useState<boolean>(
+    user.isRaidManager ?? false,
+  );
   const [isAdmin, setIsAdmin] = useState<boolean>(user.isAdmin ?? false);
   const [isSending, setIsSending] = useState<boolean>(false);
 
@@ -45,8 +46,7 @@ export const UserRoleManagerRow = ({
       // toastCharacterSaved(toast, character, localSecondaryCharacters);
       setIsSending(false);
       setIsRaidManager(result[0]?.isRaidManager ?? false);
-      setIsAdmin(result[0]?.isAdmin ?? false)
-
+      setIsAdmin(result[0]?.isAdmin ?? false);
     },
   });
 
@@ -55,9 +55,9 @@ export const UserRoleManagerRow = ({
     updateUserRole.mutate({
       id: user.id,
       isRaidManager: newRaidManagerValue,
-      isAdmin: isAdmin
-    })
-  }
+      isAdmin: isAdmin,
+    });
+  };
 
   const handleAdminToggle = (newAdminValue: boolean) => {
     setIsSending(true);
@@ -65,16 +65,20 @@ export const UserRoleManagerRow = ({
       id: user.id,
       isRaidManager: isRaidManager,
       isAdmin: newAdminValue,
-    })
-  }
+    });
+  };
 
   return (
     <TableRow key={user.id} className="group">
       <TableCell>
         <div className="flex flex-row gap-1">
-          <UserAvatar name={user.name ?? ""} image={user.image ?? ""}/>
+          <UserAvatar name={user.name ?? ""} image={user.image ?? ""} />
           <Loader
-            className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0")}/>
+            className={
+              "grow-0 animate-spin text-muted-foreground transition-all " +
+              (isSending ? "opacity-100" : "opacity-0")
+            }
+          />
         </div>
       </TableCell>
       <TableCell>
@@ -87,19 +91,19 @@ export const UserRoleManagerRow = ({
         />
       </TableCell>
       <TableCell className="flex flex-row gap-1">
-          <Switch
-            id={`user__admin__${user.id}`}
-            checked={isAdmin ?? false}
-            onCheckedChange={handleAdminToggle}
-            disabled={isSending}
-            className="grow-0"
-          />
+        <Switch
+          id={`user__admin__${user.id}`}
+          checked={isAdmin ?? false}
+          onCheckedChange={handleAdminToggle}
+          disabled={isSending}
+          className="grow-0"
+        />
       </TableCell>
     </TableRow>
-);
+  );
 };
 
-export const UserRoleManager = () => {
+export const UserAccessManager = () => {
   const { data: users, isLoading, isSuccess } = api.user.getUsers.useQuery();
 
   return (
@@ -119,7 +123,7 @@ export const UserRoleManager = () => {
                       <span>Raid Manager</span>
                     </TooltipTrigger>
                     <TooltipContent side="top" sideOffset={3}>
-                      <ul className="ml-2 mb-0.5 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
+                      <ul className="mb-0.5 ml-2 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
                         <li>- Create, edit, and delete raids</li>
                         <li>- Modify mains + alts</li>
                       </ul>
@@ -132,7 +136,7 @@ export const UserRoleManager = () => {
                       <span>Admin</span>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                      <ul className="ml-2 mb-0.5 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
+                      <ul className="mb-0.5 ml-2 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
                         <li>- Change user permissions</li>
                       </ul>
                     </TooltipContent>
@@ -142,7 +146,9 @@ export const UserRoleManager = () => {
             </TableHeader>
             <TableBody>
               {users
-                ? users?.map((u) => <UserRoleManagerRow user={u} key={u.id} />)
+                ? users?.map((u) => (
+                    <UserAccessManagerRow user={u} key={u.id} />
+                  ))
                 : null}
             </TableBody>
           </Table>
