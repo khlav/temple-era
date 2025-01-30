@@ -10,7 +10,7 @@ export const ClassIcon = ({
   className?: string;
 }) => (
   <Image
-    src={`/img/class_${characterClass}.png`}
+    src={`/img/class_${characterClass}.png`.toLowerCase()}
     alt={characterClass}
     width={px ?? 128}
     height={px ?? 128}
