@@ -17,6 +17,8 @@ import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/players/skeletons";
 import type { Session } from "next-auth";
+import {ClassIcon} from "~/components/ui/class-icon";
+import React from "react";
 
 export function CharactersTable({
   characters,
@@ -50,7 +52,6 @@ export function CharactersTable({
                 Characters {characterList && `(${characterList.length})`}
               </TableHead>
               <TableHead className="w-1/3">Server</TableHead>
-              <TableHead className="w-1/3">Class</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -76,12 +77,13 @@ export function CharactersTable({
                         target={targetNewTab ? "_blank" : "_self"}
                         href={"/players/" + c.characterId}
                       >
-                        <div>
-                          {c.name}
+                        <div className="flex flex-row">
+                          <ClassIcon characterClass={c.class.toLowerCase()} px={20} className="grow-0 mr-1" />
+                          <div className="grow-0">{c.name}</div>
                           {c.primaryCharacterName ? (
-                            <span className="pl-1.5 text-xs font-normal text-muted-foreground">
+                            <div className="pl-1.5 text-xs font-normal text-muted-foreground">
                               {c.primaryCharacterName}
-                            </span>
+                            </div>
                           ) : (
                             ""
                           )}
@@ -96,9 +98,6 @@ export function CharactersTable({
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {c.server}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {c.class}
                     </TableCell>
                   </TableRow>
                 ))

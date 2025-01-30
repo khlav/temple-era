@@ -8,6 +8,7 @@ import anyAscii from "any-ascii";
 import {Button} from "~/components/ui/button";
 import {Edit} from "lucide-react";
 import React from "react";
+import {ClassIcon} from "~/components/ui/class-icon";
 
 export function CharacterDetail({ characterId, showEditButton }: { characterId: number, showEditButton?: boolean }) {
   const { data: characterData, isSuccess } =
@@ -19,9 +20,11 @@ export function CharacterDetail({ characterId, showEditButton }: { characterId: 
         <>
           <div className="flex flex-col">
             <div className="flex flex-row items-center gap-1">
-              <div className="text-2xl font-bold grow-0">{characterData.name}</div>
-              <div className="text-md text-muted-foreground grow">
-                {characterData.class}
+              <div className="grow-0">
+                <ClassIcon characterClass={characterData.class.toLowerCase()} px={32} />
+              </div>
+              <div className="grow text-2xl font-bold">
+                {characterData.name}
               </div>
               {showEditButton && (
                 <div className="grow-0 align-text-top">
@@ -46,9 +49,10 @@ export function CharacterDetail({ characterId, showEditButton }: { characterId: 
                           <Link
                             key={secondaryCharacter.characterId}
                             href={`/players/${secondaryCharacter.characterId}`}
-                            className="bg-secondary hover:text-primary rounded-xl px-4 py-2 text-sm hover:underline"
+                            className="bg-secondary hover:text-primary rounded-xl px-4 py-2 text-sm hover:underline flex flex-row"
                           >
-                            {secondaryCharacter.name}
+                            <ClassIcon characterClass={secondaryCharacter.class.toLowerCase()} px={20} className="grow-0 mr-1" />
+                            <div>{secondaryCharacter.name}</div>
                           </Link>
                         ))}
                     </div>

@@ -127,7 +127,9 @@ export function CharacterManagerRow({
       ) : (
         // Edit mode
         <>
-          <TableCell className="font-bold">{character.name}</TableCell>
+          <TableCell className="font-bold flex flex-row">
+            {character.name}
+          </TableCell>
           <TableCell className="">
             <div className="flex flex-row gap-2">
               {(Object.values(localSecondaryCharacters) ?? [])
