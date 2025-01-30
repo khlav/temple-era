@@ -7,8 +7,12 @@ export default async function RoleManagerIndex() {
     <main className="w-full px-4">
       <div className="mb-2 text-3xl font-bold tracking-tight">
         User Roles and Permissions
-        <Separator className="my-2" />
       </div>
+      <Separator className="my-2" />
+      <div className="text-muted-foreground">
+        Admins can create and edit raids, manage main/alt mapping, and change admin access for all users.
+      </div>
+      <Separator className="my-2" />
       <UserRoleManager />
     </main>
   );
