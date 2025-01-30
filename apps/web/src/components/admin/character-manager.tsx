@@ -60,7 +60,8 @@ export function CharacterManager() {
     ? characterData.sort(SortRaiders).filter((player) => {
         return Object.values({
           ...player,
-          secondaryCharacterNames: player.secondaryCharacters.map((c)=> c.name)
+          secondaryCharacterNames: player.secondaryCharacters.map((c)=> c.name),
+          secondaryCharacterClasses: player.secondaryCharacters.map((c)=> c.class)
         }).some((value) => {
           // Normalize and check if any field contains the search term
           return normalizeText(String(value)).includes(
