@@ -71,9 +71,12 @@ export function CharacterDetail({ characterId, showEditButton }: { characterId: 
                       </div>
                       <Link
                         href={`/players/${characterData.primaryCharacterId}`}
-                        className="bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm hover:underline"
+                        className="bg-primary-foreground text-primary rounded-xl px-4 py-2 text-sm hover:underline"
                       >
-                        {characterData.primaryCharacterName}
+                        <div className="flex flex-row gap-1">
+                          <div className="grow-0"><ClassIcon characterClass={characterData.primaryCharacterClass ?? "Unknown"} px={20}/></div>
+                          <div className="grow">{characterData.primaryCharacterName}</div>
+                        </div>
                       </Link>
                     </div>
                   </>

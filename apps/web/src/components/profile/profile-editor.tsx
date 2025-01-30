@@ -11,20 +11,23 @@ import { CharacterSelector } from "~/components/players/character-selector";
 import { toastProfileSaved } from "~/components/profile/profile-toasts";
 import { useToast } from "~/hooks/use-toast";
 import { Loader } from "lucide-react";
+import { ClassIcon } from "~/components/ui/class-icon";
 
 interface Character {
   name: string | null;
   characterId: number | null;
+  class: string | null;
 }
 
 export function ProfileEditor({ debug = false }: { debug?: boolean }) {
-  const {toast} = useToast();
+  const { toast } = useToast();
   const utils = api.useUtils();
 
   const [displayName, setDisplayName] = useState<string>("");
   const [character, setCharacter] = useState<Character>({
     name: null,
     characterId: null,
+    class: null,
   });
   const [isChanged, setIsChanged] = useState<boolean>(false);
   const [error, setError] = useState("");
@@ -53,7 +56,9 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
   useEffect(() => {
     if (isSuccess && profile) {
       setDisplayName(profile.name ?? "");
-      setCharacter(profile.character ?? { name: null, characterId: null });
+      setCharacter(
+        profile.character ?? { name: null, characterId: null, class: null },
+      );
     }
   }, [isSuccess, profile]);
 
@@ -62,7 +67,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
     saveProfile.mutate({
       name: displayName ?? "",
       characterId: character?.characterId,
-    })
+    });
   };
 
   const handleDisplayNameChange = (newDisplayName: string) => {
@@ -107,7 +112,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="text-muted-foreground pt-1 text-center text-xs italic">
+          <div className="pt-1 text-center text-xs italic text-muted-foreground">
             Source: Discord
           </div>
         </div>
@@ -127,7 +132,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
               disabled={sendingData}
             />
             {error && (
-              <div className="text-destructive mt-1 text-xs">{error}</div>
+              <div className="mt-1 text-xs text-destructive">{error}</div>
             )}
           </div>
 
@@ -137,7 +142,13 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
           </label>
           <div className="flex flex-row gap-1">
             {character.characterId && (
-              <div className="bg-muted rounded px-4 py-2">{character.name}</div>
+              <div className="flex flex-row gap-1 rounded bg-muted px-4 py-2">
+                <ClassIcon
+                  characterClass={character.class ?? "Unknown"}
+                  px={20}
+                />
+                <div className="grow text-sm">{character.name}</div>
+              </div>
             )}
             <div className="shrink">
               <CharacterSelector
@@ -153,8 +164,14 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground px-2 py-0 transition-all"
-                onClick={() => handleCharacterChange({ name: null, characterId: null })}
+                className="px-2 py-0 text-muted-foreground transition-all hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() =>
+                  handleCharacterChange({
+                    name: null,
+                    characterId: null,
+                    class: null,
+                  })
+                }
                 disabled={sendingData}
               >
                 Clear
@@ -173,9 +190,9 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
         </div>
       </div>
       {debug && (
-        <div className="bg-destructive text-destructive-foreground mt-4 max-w-sm overflow-x-auto whitespace-pre rounded p-2 lg:max-w-lg">
+        <div className="mt-4 max-w-sm overflow-x-auto whitespace-pre rounded bg-destructive p-2 text-destructive-foreground lg:max-w-lg">
           <div className="font-bold">Debug: ON</div>
-          <Separator className="bg-destructive-foreground my-2" />
+          <Separator className="my-2 bg-destructive-foreground" />
           <div>{JSON.stringify(profile, null, 2)}</div>
         </div>
       )}

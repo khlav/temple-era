@@ -157,6 +157,9 @@ export const character = createTRPCRouter({
           ?.characterId,
         primaryCharacterName: (character?.primaryCharacter as RaidParticipant)
           ?.name,
+        primaryCharacterClass: (character?.primaryCharacter as RaidParticipant)
+          ?.class,
+
         secondaryCharacters: secondaryCharacters,
       } as RaidParticipant;
     }),

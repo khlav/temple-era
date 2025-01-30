@@ -13,6 +13,7 @@ export interface RaidParticipant {
   isPrimary?: boolean | null;
   primaryCharacterId?: number | null;
   primaryCharacterName?: string | null;
+  primaryCharacterClass?: string | null;
   secondaryCharacters?: RaidParticipant[];
 }
 

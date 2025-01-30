@@ -17,6 +17,7 @@ export const profile = createTRPCRouter({
           columns: {
             name: true,
             characterId: true,
+            class: true,
           },
         },
       },
@@ -27,7 +28,7 @@ export const profile = createTRPCRouter({
         name: "",
         characterId: -1,
         image: "",
-        character: { name: "", characterId: -1 },
+        character: { name: "", characterId: -1, class: "" },
       }
     );
   }),

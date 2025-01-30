@@ -6,13 +6,14 @@ import type {
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
-import React, {  useState } from "react";
-import {Loader, XIcon} from "lucide-react";
+import React, { useState } from "react";
+import { Loader, XIcon } from "lucide-react";
 import { SortRaiders } from "~/lib/helpers";
 import { CharacterSelector } from "~/components/players/character-selector";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
-import {toastCharacterSaved} from "~/components/admin/admin-toasts";
+import { toastCharacterSaved } from "~/components/admin/admin-toasts";
+import { ClassIcon } from "~/components/ui/class-icon";
 
 export function CharacterManagerRow({
   character,
@@ -82,19 +83,25 @@ export function CharacterManagerRow({
 
   const handleSaveClick = () => {
     updatePrimaryCharacterId.mutate({
-        primaryCharacterId: character.characterId ?? 0,
-        secondaryCharacterIds: Object.keys(localSecondaryCharacters).map((cid) => parseInt(cid)),
-      }
-    );
+      primaryCharacterId: character.characterId ?? 0,
+      secondaryCharacterIds: Object.keys(localSecondaryCharacters).map((cid) =>
+        parseInt(cid),
+      ),
+    });
     setIsSending(true);
   };
 
   return (
-    <TableRow key={character.characterId} className="group">
+    <>
       {!inEditMode ? (
         // View mode
-        <>
-          <TableCell className="">{character.name}</TableCell>
+        <TableRow key={character.characterId} className="group">
+          <TableCell className="">
+            <div className="flex flex-row gap-1">
+              <ClassIcon characterClass={character.class} px={20} />
+              <div className="grow">{character.name}</div>
+            </div>
+          </TableCell>
           <TableCell>
             <div className="flex flex-row gap-2">
               {Object.values(character?.secondaryCharacters ?? {})
@@ -107,7 +114,10 @@ export function CharacterManagerRow({
                       size="sm"
                       className="cursor-default bg-accent p-3 transition-all"
                     >
-                      {character.name}
+                      <div className="flex flex-row gap-1">
+                        <ClassIcon characterClass={character.class} px={16} />
+                        <div className="grow">{character.name}</div>
+                      </div>
                     </Button>
                   </div>
                 ))}
@@ -117,18 +127,24 @@ export function CharacterManagerRow({
             <Button
               variant="secondary"
               size="sm"
-              className="opacity-0 group-hover:opacity-100 border-primary border-2"
+              className="border-2 border-primary opacity-0 group-hover:opacity-100"
               onClick={() => handleEditClick()}
             >
               Edit
             </Button>
           </TableCell>
-        </>
+        </TableRow>
       ) : (
         // Edit mode
-        <>
-          <TableCell className="font-bold flex flex-row">
-            {character.name}
+        <TableRow
+          key={character.characterId}
+          className="group bg-primary-foreground"
+        >
+          <TableCell className="font-bold">
+            <div className="flex flex-row gap-1">
+              <ClassIcon characterClass={character.class} px={20} />
+              <div className="grow">{character.name}</div>
+            </div>
           </TableCell>
           <TableCell className="">
             <div className="flex flex-row gap-2">
@@ -150,8 +166,13 @@ export function CharacterManagerRow({
                       }
                       onClick={(e) => handleRemoveCharacter(e.currentTarget.id)}
                     >
-                      {character.name}
-                      <XIcon />
+                      <div className="flex flex-row gap-1">
+                        <ClassIcon characterClass={character.class} px={16} />
+                        <div className="grow">{character.name}</div>
+                        <div className="grow-0">
+                          <XIcon />
+                        </div>
+                      </div>
                     </Button>
                   </div>
                 ))}
@@ -184,8 +205,8 @@ export function CharacterManagerRow({
               {isSending ? <Loader className="animate-spin" /> : "Save"}
             </Button>
           </TableCell>
-        </>
+        </TableRow>
       )}
-    </TableRow>
+    </>
   );
 }

@@ -20,6 +20,7 @@ import {
 import { api } from "~/trpc/react";
 import anyAscii from "any-ascii";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import {ClassIcon} from "~/components/ui/class-icon";
 
 export function CharacterSelector({
   onSelectAction,
@@ -109,9 +110,13 @@ export function CharacterSelector({
                     handleSelect(currentValue);
                     setOpen(false);
                   }}
+                  className="flex flex-row gap-1"
                 >
-                  {c.name}{" "}
-                  <span className="text-muted-foreground text-sm">
+                  <div className="grow-0">
+                    <ClassIcon characterClass={c.class} px={20}/>
+                  </div>
+                  <div className="grow-0">{c.name}</div>
+                  <span className="grow text-muted-foreground text-sm">
                     {c.primaryCharacterName ?? ""}
                   </span>
                 </CommandItem>
