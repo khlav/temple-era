@@ -14,6 +14,9 @@ import React, { useState } from "react";
 import { Switch } from "~/components/ui/switch";
 import UserAvatar from "~/components/ui/user-avatar";
 import {Loader} from "lucide-react";
+import {Tooltip, TooltipTrigger} from "~/components/ui/tooltip";
+import {Badge} from "~/components/ui/badge";
+import {TooltipContent} from "@radix-ui/react-tooltip";
 
 export const UserRoleManagerRow = ({
   user,
@@ -68,10 +71,13 @@ export const UserRoleManagerRow = ({
   return (
     <TableRow key={user.id} className="group">
       <TableCell>
-        <UserAvatar name={user.name ?? ""} image={user.image ?? ""} />
+        <div className="flex flex-row gap-1">
+          <UserAvatar name={user.name ?? ""} image={user.image ?? ""}/>
+          <Loader
+            className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0")}/>
+        </div>
       </TableCell>
       <TableCell>
-        <div className="flex flex-row gap-1">
         <Switch
           id={`user__raid_manager__${user.id}`}
           checked={isRaidManager ?? false}
@@ -79,11 +85,8 @@ export const UserRoleManagerRow = ({
           disabled={isSending}
           className="grow-0"
         />
-        <Loader className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0" )} />
-      </div>
       </TableCell>
       <TableCell className="flex flex-row gap-1">
-        <div className="flex flex-row gap-1">
           <Switch
             id={`user__admin__${user.id}`}
             checked={isAdmin ?? false}
@@ -91,8 +94,6 @@ export const UserRoleManagerRow = ({
             disabled={isSending}
             className="grow-0"
           />
-          <Loader className={"grow-0 text-muted-foreground transition-all  animate-spin " + (isSending ? "opacity-100" : "opacity-0")}/>
-        </div>
       </TableCell>
     </TableRow>
 );
@@ -105,26 +106,47 @@ export const UserRoleManager = () => {
     <>
       {isLoading && "Loading..."}
       {isSuccess && (
-          <>
-            <Table className="max-h-[400px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-1/4">
-                    Users {users && `(${users.length})`}
-                  </TableHead>
-                  <TableHead className="w-1/4">Is Raid Manager</TableHead>
-                  <TableHead className="w-1/2">Is Admin</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users
-                  ? users?.map((u) => (
-                    <UserRoleManagerRow user={u} key={u.id}/>
-                    ))
-                  : null}
-              </TableBody>
-            </Table>
-          </>
+        <>
+          <Table className="max-h-[400px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/4">
+                  Users {users && `(${users.length})`}
+                </TableHead>
+                <TableHead className="w-1/4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>Raid Manager</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={3}>
+                      <ul className="ml-2 mb-0.5 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
+                        <li>- Create, edit, and delete raids</li>
+                        <li>- Modify mains + alts</li>
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="w-1/2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>Admin</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <ul className="ml-2 mb-0.5 rounded-lg bg-muted px-3 py-1 text-sm text-muted-foreground shadow transition-all">
+                        <li>- Change user permissions</li>
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users
+                ? users?.map((u) => <UserRoleManagerRow user={u} key={u.id} />)
+                : null}
+            </TableBody>
+          </Table>
+        </>
       )}
     </>
   );
