@@ -21,7 +21,7 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import { FilePlus, Users, ListRestart } from "lucide-react";
+import {FilePlus, Users, ListRestart, ShieldCheck} from "lucide-react";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -34,6 +34,7 @@ const adminLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
   { title: "Manage mains v. alts", url: "/admin/character-manager", icon: Users },
   { title: "Refresh WCL log", url: "/admin/log-refresh", icon: ListRestart },
+  { title: "Manage admins", url: "/admin/user-manager", icon: ShieldCheck },
 ];
 
 export async function AppSidebar({
