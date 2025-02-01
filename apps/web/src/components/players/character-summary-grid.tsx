@@ -75,7 +75,9 @@ export const CharacterSummaryGrid = ({
           <TooltipContent side="right" sideOffset={5} className="rounded bg-secondary text-muted-foreground">
             <div>
             {classObj.members.flat().map((character) => (
-              <div key={character.characterId}>{character.name}</div>
+              <div key={character.characterId}>
+                {character.name} {character.primaryCharacterName && `(${character.primaryCharacterName})`}
+              </div>
             ))}
             </div>
           </TooltipContent>
