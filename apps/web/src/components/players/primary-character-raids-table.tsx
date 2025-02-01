@@ -10,11 +10,16 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+import {Armchair, ExternalLinkIcon } from "lucide-react";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import {PrimaryCharacterRaidsTableRowSkeleton} from "~/components/players/skeletons";
+import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/players/skeletons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 export function PrimaryCharacterRaidsTable({
   characterId,
@@ -28,7 +33,7 @@ export function PrimaryCharacterRaidsTable({
     <div>
       <div>All-time raids attended: {raids && `${raids.length}`}</div>
 
-      <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
+      <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
         <TableCaption className="text-wrap">
           Note: Only Tracked raids are considered for attendance restrictions.
         </TableCaption>
@@ -49,78 +54,88 @@ export function PrimaryCharacterRaidsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isSuccess
-            ? raids.map((r) => (
-                <TableRow key={r.raidId}>
-                  <TableCell className="text-secondary-foreground">
-                    <Link
-                      className="hover:text-primary group w-full transition-all"
-                      target="_self"
-                      href={"/raids/" + r.raidId}
-                    >
-                      <div>{r.name}</div>
-                      <div className="text-muted-foreground text-xs md:hidden">
-                        {PrettyPrintDate(new Date(r.date), true)}
-                      </div>
-                      <div className="text-muted-foreground mt-1 flex gap-1 text-xs md:hidden">
-                        {(r.allCharacters ?? []).map((c) => (
-                          <div
-                            key={c.characterId}
-                            className="bg-secondary rounded px-2 py-1 grow-0"
-                          >
-                            {c.name}
-                          </div>
-                        ))}
-                      </div>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {r.zone}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {PrettyPrintDate(new Date(r.date), true)}
-                  </TableCell>
-                  <TableCell>
-                    <RaidAttendenceWeightBadge
-                      attendanceWeight={r.attendanceWeight}
-                    />
-                  </TableCell>
-                  <TableCell className="hidden gap-1 md:flex">
-                    {(r.allCharacters ?? []).map((c) => {
-                      return (
-                        <Link
+          {isSuccess ? (
+            raids.map((r) => (
+              <TableRow key={r.raidId}>
+                <TableCell className="text-secondary-foreground">
+                  <Link
+                    className="group w-full transition-all hover:text-primary"
+                    target="_self"
+                    href={"/raids/" + r.raidId}
+                  >
+                    <div>{r.name}</div>
+                    <div className="text-xs text-muted-foreground md:hidden">
+                      {PrettyPrintDate(new Date(r.date), true)}
+                    </div>
+                    <div className="mt-1 flex gap-1 text-xs text-muted-foreground md:hidden">
+                      {(r.allCharacters ?? []).map((c) => (
+                        <div
                           key={c.characterId}
-                          className="bg-secondary hover:text-primary group shrink rounded px-2 py-1 text-xs transition-all"
-                          target="_self"
-                          href={"/players/" + c.characterId}
+                          className="grow-0 rounded bg-secondary px-2 py-1"
                         >
                           {c.name}
-                        </Link>
-                      );
-                    })}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {(r.raidLogIds ?? []).map((raidLogId: string) => {
-                      const reportUrl = GenerateWCLReportUrl(raidLogId);
-                      return (
-                        <Link
-                          key={raidLogId}
-                          href={reportUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-primary group text-sm transition-all hover:underline"
-                        >
-                          <ExternalLinkIcon
-                            className="ml-1 inline-block align-text-top"
-                            size={15}
-                          />
-                        </Link>
-                      );
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))
-            : <PrimaryCharacterRaidsTableRowSkeleton/>}
+                        </div>
+                      ))}
+                    </div>
+                  </Link>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">{r.zone}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {PrettyPrintDate(new Date(r.date), true)}
+                </TableCell>
+                <TableCell>
+                  <RaidAttendenceWeightBadge
+                    attendanceWeight={r.attendanceWeight}
+                  />
+                </TableCell>
+                <TableCell className="hidden gap-1 md:flex">
+                  {r.attendeeOrBench == "bench" && (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Armchair size={16} className="cursor-default"/>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-secondary text-muted-foreground">
+                        Bench
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(r.allCharacters ?? []).map((c) => {
+                    return (
+                      <Link
+                        key={c.characterId}
+                        className="group shrink rounded bg-secondary px-2 py-1 text-xs transition-all hover:text-primary"
+                        target="_self"
+                        href={"/players/" + c.characterId}
+                      >
+                        {c.name}
+                      </Link>
+                    );
+                  })}
+                </TableCell>
+                <TableCell className="text-center">
+                  {(r.raidLogIds ?? []).map((raidLogId: string) => {
+                    const reportUrl = GenerateWCLReportUrl(raidLogId);
+                    return (
+                      <Link
+                        key={raidLogId}
+                        href={reportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group text-sm transition-all hover:text-primary hover:underline"
+                      >
+                        <ExternalLinkIcon
+                          className="ml-1 inline-block align-text-top"
+                          size={15}
+                        />
+                      </Link>
+                    );
+                  })}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <PrimaryCharacterRaidsTableRowSkeleton />
+          )}
         </TableBody>
       </Table>
     </div>

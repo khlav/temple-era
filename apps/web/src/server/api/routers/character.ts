@@ -174,6 +174,7 @@ export const character = createTRPCRouter({
           attendanceWeight: raids.attendanceWeight,
           date: raids.date,
           zone: raids.zone,
+          attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
           allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
           raidLogIds: primaryRaidAttendeeAndBenchMap.raidLogIds,
         })

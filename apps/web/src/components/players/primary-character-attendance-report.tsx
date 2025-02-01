@@ -14,6 +14,7 @@ import {
 import clsx from "clsx";
 import { PrettyPrintDate } from "~/lib/helpers";
 import Link from "next/link";
+import { HelpCircle } from "lucide-react";
 
 // import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
@@ -128,6 +129,24 @@ export const PrimaryCharacterAttendanceReport = ({
                     })}
                 </div>
               ))}
+            <div className="h-full grow-0 pl-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle size="16" />
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="rounded-md bg-secondary text-muted-foreground"
+                >
+                  <div>Tracked raid attendance for recent lockouts.</div>
+                  <div className="pt-1 italic">
+                    Each column is 1 lockout week.
+                    <br />
+                    Each button is 1 tracked raid.
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </>
       )}
