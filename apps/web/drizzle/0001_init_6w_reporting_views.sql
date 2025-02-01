@@ -96,7 +96,9 @@ ORDER BY arp.raid_id, arp.primary_character_id
 
 -- Create views.raids_l6lockoutwk
 CREATE OR REPLACE VIEW views.tracked_raids_l6lockoutwk AS
-SELECT r.*
+SELECT
+    r.*,
+    (date_trunc('week', r.date - 1) + INTERVAL '1 day')::date as lockout_week
 FROM public.raid r
 WHERE r.date >= date_trunc('week', CURRENT_DATE - 1 - INTERVAL '6 weeks') + INTERVAL '1 day'
   AND r.date < date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'

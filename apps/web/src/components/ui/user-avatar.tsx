@@ -41,7 +41,7 @@ export default function UserAvatar({
         </TooltipContent>
       </Tooltip>
       {showLabel &&
-      <div className="hidden pl-0.5 pt-0.5 font-normal md:block">
+      <div className="hidden pl-0.5 pt-0.5 font-normal sm:block text-nowrap">
         {name}
         {extraInfo ? (
           <span className="pl-1 text-xs text-gray-400">{extraInfo}</span>

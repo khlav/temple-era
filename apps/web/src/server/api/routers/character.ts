@@ -5,19 +5,19 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import {
-  aliasedTable,
+  aliasedTable, and,
   type BinaryOperator,
   count,
   eq,
   inArray,
-  isNull,
+  isNull, not,
   or,
   type SQL,
 } from "drizzle-orm";
 import {
   characters,
   primaryRaidAttendeeAndBenchMap,
-  raids,
+  raids, trackedRaidsL6LockoutWk,
 } from "~/server/db/schema";
 import type {
   RaidParticipant,
@@ -185,6 +185,37 @@ export const character = createTRPCRouter({
         .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input));
 
       return raidsAttended ?? [];
+    }),
+
+  getRaidAttendanceReportForPrimaryCharacterId: publicProcedure
+    .input(z.number())
+    .query(async ({ ctx, input }) => {
+      const attendanceReport = await ctx.db
+        .select({
+          raidId: trackedRaidsL6LockoutWk.raidId,
+          name: trackedRaidsL6LockoutWk.name,
+          date: trackedRaidsL6LockoutWk.date,
+          lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
+          attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
+          zone: trackedRaidsL6LockoutWk.zone,
+          isParticipant: not(isNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId)),
+          attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
+
+        })
+        .from(trackedRaidsL6LockoutWk)
+        .leftJoin(primaryRaidAttendeeAndBenchMap,
+          and(
+            eq(trackedRaidsL6LockoutWk.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+            eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input),
+            )
+        )
+        .orderBy(trackedRaidsL6LockoutWk.date)
+      ;
+
+      return attendanceReport.map((r) => ({
+        ...r,
+        primaryCharacterId: input
+      }));
     }),
 
   getCharactersWithSecondaries: raidManagerProcedure.query(async ({ ctx }) => {

@@ -64,6 +64,7 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
 export const trackedRaidsL6LockoutWk = viewSchema
   .view("tracked_raids_l6lockoutwk", {
     ...raidsColumns,
+    lockoutWeek: text("lockout_week").notNull()
   })
   .existing();
 

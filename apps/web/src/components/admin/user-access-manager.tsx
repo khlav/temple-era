@@ -1,6 +1,5 @@
 "use client";
 
-import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import { api } from "~/trpc/react";
 import {
   Table,
@@ -70,7 +69,7 @@ const UserAccessManagerRow = ({
 
   return (
     <TableRow key={user.id} className="group">
-      <TableCell>
+      <TableCell className="">
         <div className="flex flex-row gap-1">
           <UserAvatar name={user.name ?? ""} image={user.image ?? ""} />
           <Loader
@@ -81,7 +80,7 @@ const UserAccessManagerRow = ({
           />
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="">
         <Switch
           id={`user__raid_manager__${user.id}`}
           checked={isRaidManager ?? false}
@@ -90,7 +89,7 @@ const UserAccessManagerRow = ({
           className="grow-0"
         />
       </TableCell>
-      <TableCell className="flex flex-row gap-1">
+      <TableCell className="flex flex-row gap-1 ">
         <Switch
           id={`user__admin__${user.id}`}
           checked={isAdmin ?? false}
@@ -111,13 +110,13 @@ export const UserAccessManager = () => {
       {isLoading && "Loading..."}
       {isSuccess && (
         <>
-          <Table className="max-h-[400px]">
+          <Table className="max-h-[400px] text-nowrap table-auto max-w-lg">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4">
+                <TableHead className="w-min">
                   Users {users && `(${users.length})`}
                 </TableHead>
-                <TableHead className="w-1/4">
+                <TableHead className="">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>Raid Manager</span>
@@ -130,7 +129,7 @@ export const UserAccessManager = () => {
                     </TooltipContent>
                   </Tooltip>
                 </TableHead>
-                <TableHead className="w-1/2">
+                <TableHead className="">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span>Admin</span>
