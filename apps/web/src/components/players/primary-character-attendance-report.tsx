@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/tooltip"; // Import Tooltip from ShadCN UI
 import clsx from "clsx";
 import { PrettyPrintDate } from "~/lib/helpers";
+import Link from "next/link";
 
 // import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
@@ -83,21 +84,23 @@ export const PrimaryCharacterAttendanceReport = ({
                       return (
                         <Tooltip key={`r_${r.raidId}`}>
                           <TooltipTrigger>
-                            <div
-                              key={`r_${r.raidId}`}
-                              className={clsx(
-                                "h-3 w-3 rounded-sm",
-                                squareBgClass,
-                                borderClass,
-                              )}
-                            />
+                            <Link href={`/raids/${r.raidId}`}>
+                              <div
+                                key={`r_${r.raidId}`}
+                                className={clsx(
+                                  "h-3 w-3 rounded-sm",
+                                  squareBgClass,
+                                  borderClass,
+                                )}
+                              />
+                            </Link>
                           </TooltipTrigger>
                           <TooltipContent
                             side="right"
                             sideOffset={15}
                             className={clsx(
                               "rounded-md p-2",
-                              "pointer-events-none z-10",
+                              "z-10",
                               squareBgClass,
                               textClass,
                               borderClass,
