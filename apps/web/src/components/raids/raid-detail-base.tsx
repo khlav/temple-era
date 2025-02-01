@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React from "react";
 import UserAvatar from "~/components/ui/user-avatar";
+import { CharacterSummaryGrid} from "~/components/players/character-summary-grid";
 
 export function RaidDetailBase({
   raidData,
@@ -44,7 +45,10 @@ export function RaidDetailBase({
             })}
           </div>
         </div>
-        <div className="grow" />
+        <div className="hidden grow-0 ml-3 lg:block my-auto" >
+          <CharacterSummaryGrid characters={raidParticipants ?? {}} numRows={Object.keys((raidParticipants ?? [])).length > 25 ? 3 : 2} />
+        </div>
+        <div className="grow"/>
         <div className="align-right grow-0 text-muted-foreground">
           <div className="nowrap text-right">
             <RaidAttendenceWeightBadge
