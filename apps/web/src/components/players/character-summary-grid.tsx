@@ -52,7 +52,7 @@ export const CharacterSummaryGrid = ({
   }[];
 
   return (
-    <div className={"flex flex-row gap-x-1 items-start transition-all " + (sortedCharacterList.length > 0 ? "opacity-100" : "opacity-0")} >
+    <div className={"w-min flex flex-row gap-x-1 items-start transition-all " + (sortedCharacterList.length > 0 ? "opacity-100" : "opacity-0")} >
       {(sortedCharacterClassMatrixWithSubgroups ?? []).map((classObj, i) => (
         <Tooltip key={`class_${i}`}>
           <TooltipTrigger>
@@ -72,7 +72,7 @@ export const CharacterSummaryGrid = ({
               ))}
             </div>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={5} className="rounded bg-secondary text-muted-foreground cursor-default">
+          <TooltipContent side="bottom" sideOffset={5} className="rounded bg-secondary text-muted-foreground cursor-default">
             <div>
             {classObj.members.flat().map((character) => (
               <div key={character.characterId}>

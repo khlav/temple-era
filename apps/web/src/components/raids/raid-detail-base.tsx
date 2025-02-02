@@ -45,10 +45,7 @@ export function RaidDetailBase({
             })}
           </div>
         </div>
-        <div className="hidden grow-0 ml-3 lg:block my-auto" >
-          <CharacterSummaryGrid characters={raidParticipants ?? {}} numRows={Object.keys((raidParticipants ?? [])).length > 25 ? 3 : 2} />
-        </div>
-        <div className="grow"/>
+        <div className="grow" />
         <div className="align-right grow-0 text-muted-foreground">
           <div className="nowrap text-right">
             <RaidAttendenceWeightBadge
@@ -104,7 +101,7 @@ export function RaidDetailBase({
 
         {/* Creator Info */}
         <div className="flex grow-0 items-center gap-2 whitespace-nowrap text-sm">
-          <div className=" text-muted-foreground text-sm">Created by</div>
+          <div className="text-sm text-muted-foreground">Created by</div>
           <UserAvatar
             name={raidData.creator?.name ?? ""}
             image={raidData.creator?.image ?? ""}
@@ -138,6 +135,15 @@ export function RaidDetailBase({
         <div className="w-full xl:w-1/2">
           <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
             <div className="text-xl">Attendees from logs:</div>
+            <div className="my-1 flex justify-center">
+              <CharacterSummaryGrid
+                characters={raidParticipants ?? {}}
+                numRows={
+                  Object.keys(raidParticipants ?? []).length > 25 ? 3 : 2
+                }
+              />
+            </div>
+
             <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
               <CharactersTable
                 characters={raidParticipants}
