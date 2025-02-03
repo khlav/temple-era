@@ -9,7 +9,7 @@ import { type ReactNode, useEffect } from "react";
 export function PostHogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
-      api_host: "/ingest",
+      api_host: "/e",
       ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       person_profiles: "identified_only",
     });

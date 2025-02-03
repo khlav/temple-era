@@ -9,15 +9,15 @@ const config = {
     async rewrites() {
         return [
             {
-                source: "/ingest/static/:path*",
+                source: "/e/static/:path*",
                 destination: "https://us-assets.i.posthog.com/static/:path*",
             },
             {
-                source: "/ingest/:path*",
+                source: "/e/:path*",
                 destination: "https://us.i.posthog.com/:path*",
             },
             {
-                source: "/ingest/decide",
+                source: "/e/decide",
                 destination: "https://us.i.posthog.com/decide",
             },
         ];
