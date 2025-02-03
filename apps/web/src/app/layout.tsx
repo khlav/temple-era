@@ -6,15 +6,13 @@ import { TRPCReactProvider } from "~/trpc/react";
 
 import { ThemeProvider } from "~/components/ui/theme-provider";
 import { AppSidebar } from "~/components/nav/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "~/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar";
 import { GeistSans } from "geist/font/sans";
 import { cookies } from "next/headers";
 import { AppHeader } from "~/components/nav/app-header";
 import { Toaster } from "~/components/ui/toaster";
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { PostHogProvider } from "~/app/providers";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance",
@@ -41,16 +39,18 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TRPCReactProvider>
-            <TooltipProvider>
-              <SidebarProvider defaultOpen={defaultOpen}>
-                <AppSidebar side="left" collapsible="icon" />
-                <SidebarInset>
-                  <AppHeader />
-                  <div className="max-w-screen-xl md:p-4">{children}</div>
-                </SidebarInset>
-                <Toaster duration={5000} />
-              </SidebarProvider>
-            </TooltipProvider>
+            <PostHogProvider>
+              <TooltipProvider>
+                <SidebarProvider defaultOpen={defaultOpen}>
+                  <AppSidebar side="left" collapsible="icon" />
+                  <SidebarInset>
+                    <AppHeader />
+                    <div className="max-w-screen-xl md:p-4">{children}</div>
+                  </SidebarInset>
+                  <Toaster duration={5000} />
+                </SidebarProvider>
+              </TooltipProvider>
+            </PostHogProvider>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

@@ -21,7 +21,8 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import {FilePlus, Users, ListRestart, ShieldCheck} from "lucide-react";
+import { FilePlus, Users, ListRestart, ShieldCheck } from "lucide-react";
+import posthog from "posthog-js";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -32,19 +33,39 @@ const coreItems = [
 const raidManagerTitle = "Raid Manager";
 const raidManagerLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
-  { title: "Manage mains v. alts", url: "/raid-manager/characters", icon: Users },
-  { title: "Refresh WCL log", url: "/raid-manager/log-refresh", icon: ListRestart },
+  {
+    title: "Manage mains v. alts",
+    url: "/raid-manager/characters",
+    icon: Users,
+  },
+  {
+    title: "Refresh WCL log",
+    url: "/raid-manager/log-refresh",
+    icon: ListRestart,
+  },
 ];
 
 const adminSectionTitle = "Admin Panel";
 const adminLinks = [
-  { title: "User permissions", url: "/admin/user-management", icon: ShieldCheck },
+  {
+    title: "User permissions",
+    url: "/admin/user-management",
+    icon: ShieldCheck,
+  },
 ];
 
 export async function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const session = await auth();
+
+  if (session?.user?.id) {
+    posthog.identify(session.user.id, {
+      name: session.user.name,
+      isRaidManager: session.user.isRaidManager,
+      isAdmin: session.user.isAdmin,
+    });
+  }
 
   return (
     <Sidebar {...props}>
@@ -87,26 +108,26 @@ export async function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {session?.user?.isRaidManager &&
-            <SidebarGroup>
-                <SidebarGroupLabel>{raidManagerTitle}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                      {raidManagerLinks.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild>
-                            <Link href={item.url}>
-                              <item.icon />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-        }
-        {session?.user?.isAdmin &&
+        {session?.user?.isRaidManager && (
+          <SidebarGroup>
+            <SidebarGroupLabel>{raidManagerTitle}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {raidManagerLinks.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {session?.user?.isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>{adminSectionTitle}</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -124,7 +145,7 @@ export async function AppSidebar({
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        }
+        )}
       </SidebarContent>
       <SidebarFooter>
         <div className="m-auto">
