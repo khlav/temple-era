@@ -23,7 +23,7 @@ export const PostHogIdentify = ({session} : {session: Session | null}) => {
         isAdmin: session.user.isAdmin,
       });
     }
-  }, [posthog, session, session?.user])
+  }, [posthog, session, session?.user, session?.user?.id])
 
   return null;
 }
