@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ModeToggle } from "@/components/ui/mode-toggle";
+import {ModeToggle} from "@/components/ui/mode-toggle";
 
 import {
   ChartBarSquareIcon,
@@ -18,21 +18,21 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { auth } from "~/server/auth";
-import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
+import {auth} from "~/server/auth";
+import {AppSidebarLogin} from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import { FilePlus, Users, ListRestart, ShieldCheck } from "lucide-react";
-import posthog from "posthog-js";
+import {FilePlus, Users, ListRestart, ShieldCheck} from "lucide-react";
+import {PostHogIdentify} from "~/app/providers";
 
 const coreItems = [
-  { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
-  { title: "Raids", url: "/raids", icon: MapIcon },
-  { title: "Players", url: "/players", icon: UserGroupIcon },
+  {title: "Dashboard", url: "/", icon: ChartBarSquareIcon},
+  {title: "Raids", url: "/raids", icon: MapIcon},
+  {title: "Players", url: "/players", icon: UserGroupIcon},
 ];
 
 const raidManagerTitle = "Raid Manager";
 const raidManagerLinks = [
-  { title: "Create new raid", url: "/raids/new", icon: FilePlus },
+  {title: "Create new raid", url: "/raids/new", icon: FilePlus},
   {
     title: "Manage mains v. alts",
     url: "/raid-manager/characters",
@@ -55,20 +55,13 @@ const adminLinks = [
 ];
 
 export async function AppSidebar({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
+                                   ...props
+                                 }: React.ComponentProps<typeof Sidebar>) {
   const session = await auth();
-
-  if (session?.user?.id) {
-    posthog.identify(session.user.id, {
-      name: session.user.name,
-      isRaidManager: session.user.isRaidManager,
-      isAdmin: session.user.isAdmin,
-    });
-  }
 
   return (
     <Sidebar {...props}>
+      <PostHogIdentify session={session} />
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -80,7 +73,8 @@ export async function AppSidebar({
               className="rounded-xl"
               priority
             />
-            <div className="overflow-hidden whitespace-nowrap px-1 py-2 text-center font-bold group-data-[collapsible=icon]:hidden">
+            <div
+              className="overflow-hidden whitespace-nowrap px-1 py-2 text-center font-bold group-data-[collapsible=icon]:hidden">
               Temple Raid Tracking
             </div>
           </SidebarMenuItem>
@@ -89,7 +83,7 @@ export async function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <AppSidebarLogin session={session} />
+            <AppSidebarLogin session={session}/>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
@@ -99,7 +93,7 @@ export async function AppSidebar({
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
-                      <item.icon />
+                      <item.icon/>
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -117,7 +111,7 @@ export async function AppSidebar({
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <Link href={item.url}>
-                        <item.icon />
+                        <item.icon/>
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -136,7 +130,7 @@ export async function AppSidebar({
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <Link href={item.url}>
-                        <item.icon />
+                        <item.icon/>
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -149,7 +143,7 @@ export async function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <div className="m-auto">
-          <ModeToggle />
+          <ModeToggle/>
         </div>
       </SidebarFooter>
     </Sidebar>

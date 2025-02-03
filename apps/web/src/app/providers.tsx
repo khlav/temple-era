@@ -2,8 +2,6 @@
 
 "use client";
 
-"use client";
-
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { usePostHog } from "posthog-js/react";
@@ -11,6 +9,24 @@ import { usePostHog } from "posthog-js/react";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { type ReactNode } from "react";
+import type {Session} from "next-auth";
+
+export const PostHogIdentify = ({session} : {session: Session | null}) => {
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      // Identify sends an event, so you want may want to limit how often you call it
+      posthog?.identify(session.user.id, {
+        name: session.user.name,
+        isRaidManager: session.user.isRaidManager,
+        isAdmin: session.user.isAdmin,
+      });
+    }
+  }, [posthog, session, session?.user])
+
+  return null;
+}
 
 function PostHogPageView() {
   const pathname = usePathname();
