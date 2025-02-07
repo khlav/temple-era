@@ -61,7 +61,7 @@ export function CharactersTable({
                     {session?.user?.isRaidManager && (
                       <TableCell>
                         <Link
-                          href={`/admin/character-manager?s=${c.name}`}
+                          href={`/raid-manager/characters?s=${c.name}`}
                           className="transition-all hover:text-primary"
                         >
                           <Edit

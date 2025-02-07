@@ -46,7 +46,7 @@ export function CharacterDetail({
               {showEditButton && (
                 <div className="grow-0 align-text-top">
                   <Link
-                    href={`/admin/character-manager?s=${characterData.name}`}
+                    href={`/raid-manager/characters?s=${characterData.name}`}
                   >
                     <Button className="py-5">
                       <Edit />
