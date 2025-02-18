@@ -20,6 +20,10 @@ export const env = createEnv({
     WCL_OAUTH_URL: z.string(),
     WCL_API_URL: z.string(),
 
+    BATTLENET_OAUTH_URL: z.string(),
+    BATTLENET_CLIENT_ID: z.string(),
+    BATTLENET_CLIENT_SECRET: z.string(),
+
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -48,6 +52,10 @@ export const env = createEnv({
     WCL_CLIENT_SECRET: process.env.WCL_CLIENT_SECRET,
     WCL_OAUTH_URL: process.env.WCL_OAUTH_URL,
     WCL_API_URL: process.env.WCL_API_URL,
+
+    BATTLENET_OAUTH_URL: process.env.BATTLENET_OAUTH_URL,
+    BATTLENET_CLIENT_ID: process.env.BATTLENET_CLIENT_ID,
+    BATTLENET_CLIENT_SECRET: process.env.BATTLENET_CLIENT_SECRET,
 
     NODE_ENV: process.env.NODE_ENV,
   },

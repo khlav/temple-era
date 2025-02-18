@@ -3,12 +3,7 @@ import type {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server
 import {env} from "~/env";
 import {NextResponse} from "next/server";
 import anyAscii from "any-ascii";
-
-interface AccessTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-}
+import {AccessTokenResponse, GetOauthClientCredentialAccessToken} from "~/server/api/oauth-helpers";
 
 export const Slugify = (value: string) => {
   return anyAscii(value).toLowerCase();
@@ -22,26 +17,20 @@ export const GetWCLGraphQLQuery = async (
   const API_URL = env.WCL_API_URL;
 
   // Fetch user-management token
-  const accessTokenResponse = await fetch(OAUTH_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: env.WCL_CLIENT_ID || '',
-      client_secret: env.WCL_CLIENT_SECRET || '',
-    }),
-  });
+  const accessTokenResponse = await GetOauthClientCredentialAccessToken(
+    OAUTH_URL,
+    env.WCL_CLIENT_ID,
+    env.WCL_CLIENT_SECRET
+  );
 
   if (!accessTokenResponse.ok) {
     return NextResponse.json(
-      { error: 'Failed to fetch user-management token' },
+      { error: `Failed to fetch user-management token (URL: ${OAUTH_URL})` },
       { status: accessTokenResponse.status }
     );
   }
 
-  const tokenData: AccessTokenResponse = (await accessTokenResponse.json() as AccessTokenResponse);
+  const tokenData = (await accessTokenResponse.json() as AccessTokenResponse);
   const accessToken = tokenData.access_token;
 
   const graphqlQuery = {
@@ -71,6 +60,7 @@ export const GetWCLGraphQLQuery = async (
     ...apiData
   });
 }
+
 const ActorToRaidParticipant = (actor: RawActorResult) => {
   const newRaidParticipant: RaidParticipant = {
     characterId: actor.gameID,

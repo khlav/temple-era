@@ -7,7 +7,7 @@ import {
 import {
   aliasedTable, and,
   type BinaryOperator,
-  count,
+  count, desc,
   eq,
   inArray,
   isNull, not,
@@ -183,7 +183,8 @@ export const character = createTRPCRouter({
           primaryRaidAttendeeAndBenchMap,
           eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId),
         )
-        .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input));
+        .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input))
+        .orderBy(desc(raids.date));
 
       return raidsAttended ?? [];
     }),
