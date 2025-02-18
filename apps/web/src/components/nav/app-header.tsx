@@ -13,7 +13,7 @@ import {
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {ChartBarSquareIcon} from "@heroicons/react/24/outline";
-import React from "react";
+import React, {useEffect, useMemo} from "react";
 
 
 function kebabToTitleCase(str: string) {
@@ -24,9 +24,15 @@ function kebabToTitleCase(str: string) {
 }
 
 export const AppHeader = () => {
-  const pathParts = usePathname().slice(1).split("/") ?? [];
-  const parentPathParts = pathParts.slice(0, pathParts.length - 1) ?? [];
-  const currentPathPart = pathParts.slice(-1)[0] ?? undefined;
+  const pathname = usePathname();
+
+  const pathParts = useMemo(() => pathname.slice(1).split("/") ?? [], [pathname]);
+  const parentPathParts = useMemo(() => pathParts.slice(0, pathParts.length - 1) ?? [], [pathParts]);
+  const currentPathPart = useMemo(() => pathParts.slice(-1)[0] ?? undefined, [pathParts]);
+
+  useEffect(() => {
+    document.title = "Temple Raid Attendance" + (pathParts[0] !== "" ? " : " + pathParts.map(kebabToTitleCase).join(" - ") : "");
+  }, [currentPathPart, pathParts])
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 px-4">
