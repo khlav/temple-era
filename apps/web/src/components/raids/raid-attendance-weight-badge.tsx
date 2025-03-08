@@ -6,8 +6,7 @@ import {TooltipContent} from "@radix-ui/react-tooltip";
 
 const trackedRaidTooltipContent = (
   <span>
-    Raiders need 50% tracked raid participation in recent weeks <br/>
-    to SR many BiS items from Naxxramas.
+    Tracked raids give attendance credit, which is needed to SR certain BiS items from Naxxramas.
   </span>
 );
 const optionalRaidTooltipContent = "Fun with friends.  Come get some.";
