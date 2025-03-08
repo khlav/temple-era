@@ -20,16 +20,16 @@ export const RaidAttendenceWeightBadge = ({
   <Tooltip>
     <TooltipTrigger asChild>
       {attendanceWeight > 0 ? (
-        attendanceWeight < 1 ? (
-          <Badge variant="secondary" className="text-muted-foreground">Partial ({attendanceWeight.toFixed(1).slice(1,100)})</Badge>
-          ): (
-          <Badge variant="default">Tracked</Badge>
-      )
+        attendanceWeight == 0.5 ? (
+          <Badge variant="secondary" className="bg-primary-foreground text-primary">Half Credit</Badge>
         ) : (
+          <Badge variant="default">Full Credit</Badge>
+        )
+      ) : (
         <Badge variant="outline" className="text-muted-foreground">
-        Optional
+          Optional
         </Badge>
-        )}
+      )}
     </TooltipTrigger>
     <TooltipContent>
       <div

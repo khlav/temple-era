@@ -84,10 +84,12 @@ export const toastRaidSaved = (
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional Raid"
-            : raidData.attendanceWeight == 1
-              ? "Tracked Raid"
-              : "Other"}
+            ? "Optional"
+            : raidData.attendanceWeight == 1 
+              ? "Full Credit"
+              : raidData.attendanceWeight == 0.5
+                ? "Half Credit"
+                : "Other"}
           {" "}- {PrettyPrintDate(new Date(raidData.date), true)}
         </div>
       </>
@@ -122,10 +124,12 @@ export const toastRaidDataCleared = (
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional Raid"
-            : raidData.attendanceWeight == 1
-              ? "Tracked Raid"
-              : "Other"}
+            ? "Optional"
+            : raidData.attendanceWeight == 1 
+              ? "Full Credit"
+              : raidData.attendanceWeight == 0.5
+                ? "Half Credit"
+                : "Other"}
         </div>
       </>
     ),
@@ -146,10 +150,12 @@ export const toastRaidDeleted = (toast: typeof toastType, raidData: Raid) => {
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional Raid"
-            : raidData.attendanceWeight == 1
-              ? "Tracked Raid"
-              : "Other"}
+            ? "Optional"
+            : raidData.attendanceWeight == 1 
+              ? "Full Credit"
+              : raidData.attendanceWeight == 0.5
+                ? "Half Credit"
+                : "Other"}
         </div>
       </>
     ),

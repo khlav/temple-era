@@ -120,11 +120,15 @@ export function RaidEditorCoreControls({
             <div className="flex text-sm">Attendance Tracking:</div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="1" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-one">Tracked Raid</Label>
+              <Label htmlFor="option-one">Full Credit</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="0.5" onClick={handleWeightChangeAction} />
+              <Label htmlFor="option-one">Half Credit</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="0" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-two">Optional Raid</Label>
+              <Label htmlFor="option-two">Optional</Label>
             </div>
           </RadioGroup>
         </div>

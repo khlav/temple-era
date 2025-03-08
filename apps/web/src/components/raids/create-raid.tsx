@@ -18,17 +18,15 @@ import {
 } from "~/components/raids/raid-toasts";
 
 const getDefaultAttendanceWeight = (zoneName: string, date: Date) => {
-  const attendanceWeightedZones = [
-    "Naxxramas",
-    "Temple of Ahn'Qiraj",
-    "Blackwing Lair",
-  ]; // All other zones default to Optional (weight = 0)
+  const attendanceWeightedZones = {
+    "Naxxramas": 1,
+    "Temple of Ahn'Qiraj": 1,
+    "Blackwing Lair": 1,
+    "Molten Core": 0.5,
+  } as const;  // Make the object immutable
 
-  const attendanceDays = [1, 2, 3]
   return (
-    (attendanceWeightedZones.includes(zoneName) && attendanceDays.includes(date.getDay()))
-      ? 1
-      : 0
+    attendanceWeightedZones[zoneName as keyof typeof attendanceWeightedZones] ?? 0
   );
 };
 

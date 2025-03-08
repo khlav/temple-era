@@ -33,7 +33,7 @@ export const RecipeSearch = () => {
       <div className="flex gap-2">
         <Input
           type="text"
-          placeholder="Enter search term..."
+          placeholder="Search receipes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
