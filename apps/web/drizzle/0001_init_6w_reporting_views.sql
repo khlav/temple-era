@@ -157,5 +157,6 @@ SELECT ca.character_id                                           as character_id
        raids_attended_json
 FROM character_attendance ca
          CROSS JOIN total_weight tw
+WHERE COALESCE(ca.weighted_attendance / NULLIF(tw.total, 0), 0) >= 0.1
 ORDER BY weighted_attendance_pct DESC, ca.name
 ;

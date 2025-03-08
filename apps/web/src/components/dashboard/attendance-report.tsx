@@ -112,7 +112,7 @@ export function AttendanceReport({
           Last 6 full lockouts
           {chartAttendenceData &&
             chartAttendenceData.length > 0 &&
-            `, ${chartAttendenceData.length} raiders participating`}
+            `, ${chartAttendenceData.length} raiders attending 10%+`}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
