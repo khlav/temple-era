@@ -9,7 +9,7 @@ import { Button } from "~/components/ui/button";
 import { Edit } from "lucide-react";
 import React from "react";
 import { ClassIcon } from "~/components/ui/class-icon";
-import { PrimaryCharacterAttendanceReport } from "~/components/players/primary-character-attendance-report";
+// import { PrimaryCharacterAttendanceReport } from "~/components/players/primary-character-attendance-report";
 
 export function CharacterDetail({
   characterId,
@@ -35,11 +35,6 @@ export function CharacterDetail({
               </div>
               <div className="grow-0 text-2xl font-bold">
                 {characterData.name}
-              </div>
-              <div className="ml-5 grow-0 text-md text-muted-foreground min-h-[40px]">
-                <PrimaryCharacterAttendanceReport
-                  character={characterData}
-                />
               </div>
               <div className="grow"/>
 

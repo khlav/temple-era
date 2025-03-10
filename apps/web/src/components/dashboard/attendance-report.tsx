@@ -167,17 +167,18 @@ export function AttendanceReport({
                         };
                       }) => {
                         return (
-                          <div>
-                            <Separator className="mb-1 mt-2 bg-muted-foreground" />
-                            <div>Raids:</div>
-                            {item.payload?.raidsAttended
-                              .sort((a, b) => (a.date > b.date ? -1 : 1))
-                              .map((raid: { name: string, attendeeOrBench: string }, i) => (
-                                <div key={i} className="pl-1 text-nowrap">
-                                  - {raid.name} {raid.attendeeOrBench === "bench" ? <span className="text-xs text-muted-foreground">Bench</span> : ""}
-                                </div>
-                              ))}
-                          </div>
+                          <></>
+                          // <div>
+                          //   <Separator className="mb-1 mt-2 bg-muted-foreground" />
+                          //   <div>Raids:</div>
+                          //   {item.payload?.raidsAttended
+                          //     .sort((a, b) => (a.date > b.date ? -1 : 1))
+                          //     .map((raid: { name: string, attendeeOrBench: string }, i) => (
+                          //       <div key={i} className="pl-1 text-nowrap">
+                          //         - {raid.name} {raid.attendeeOrBench === "bench" ? <span className="text-xs text-muted-foreground">Bench</span> : ""}
+                          //       </div>
+                          //     ))}
+                          // </div>
                         );
                       }}
                     />

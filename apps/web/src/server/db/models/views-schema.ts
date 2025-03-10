@@ -88,14 +88,7 @@ export const primaryRaidAttendanceL6LockoutWk = viewSchema
     name: varchar("name"),
     weightedAttendance: real("weighted_attendance"),
     weightedRaidTotal: real("weighted_raid_total"),
-    weightedAttendancePct: real("weighted_attendance_pct"),
-    raidsAttended: json("raids_attended_json").$type<{
-      name: string;
-      zone: string;
-      date: Date;
-      attendanceWeight: number;
-      attendeeOrBench: string;
-    }>(),
+    weightedAttendancePct: real("weighted_attendance_pct")
   })
   .existing();
 
