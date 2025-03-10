@@ -15,10 +15,10 @@ export const RaidBenchManager = ({
 }) => {
   return (
     <>
-      <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-2 pb-1">
         <CharacterSelector onSelectAction={onSelectAction} characterSet="all" />
       </div>
+      <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
     </>
   );
 };
