@@ -13,6 +13,8 @@ import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
 import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { Separator } from "~/components/ui/separator";
+import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
+import {HelpCircle} from "lucide-react";
 
 interface Raider {
   name: string | null;
@@ -107,7 +109,28 @@ export function AttendanceReport({
   return (
     <Card className="min-h-[1700px]">
       <CardHeader>
-        <div className="">Tracked raid attendance %</div>
+        <div className="flex flex-row gap-1">
+          <div className="grow-0">Tracked raid attendance %</div>
+          <div className="grow pt-1 text-muted-foreground">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle size="16" />
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="rounded-md bg-secondary text-muted-foreground"
+              >
+                <div>Each week, raiders can earn up to 3pts:</div>
+                <div className="pt-1">
+                  - Naxx, AQ40, BWL : +1
+                  <br />
+                  - Molten Core : +0.5
+                </div>
+                <div className="italic">Note: Points are only earned once per zone+week.</div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
           Last 6 full lockouts
           {chartAttendenceData &&

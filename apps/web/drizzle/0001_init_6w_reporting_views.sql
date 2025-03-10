@@ -145,7 +145,7 @@ WITH date_range AS (SELECT date_trunc('week', current_date - 1 - interval '6 wee
              r.attendance_weight,
              prabm.attendee_or_bench,
              ROW_NUMBER() OVER (
-                 PARTITION BY date_trunc('week', r.date), c.character_id, r.zone
+                 PARTITION BY date_trunc('week', r.date::date - 1), c.character_id, r.zone
                  ORDER BY attendance_weight desc, date
                  ) AS rn
          FROM public.character c
@@ -158,7 +158,7 @@ WITH date_range AS (SELECT date_trunc('week', current_date - 1 - interval '6 wee
      ),
      weekly_attendance as (
          SELECT
-             date_trunc('week', a.date)::date as raid_week,
+             date_trunc('week', a.date-1)::date as raid_week,
              a.character_id,
              a.character_name,
              SUM(attendance_weight) AS weighted_attendance,
