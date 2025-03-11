@@ -29,6 +29,7 @@ export function AttendanceReport({
 }: {
   currentUserCharacterId?: number;
 }) {
+  const attendanceThreshold = 0.4;
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
@@ -42,10 +43,10 @@ export function AttendanceReport({
         const raiderPct = raider.weightedAttendancePct ?? 0;
         return {
           ...raider,
-          weightedAttendancePct50OrBetter: raiderPct >= 0.5 && currentUserCharacterId !== raider.characterId ? raiderPct : null,
-          weightedAttendancePct50OrBetterHighlight: raiderPct >= 0.5 && currentUserCharacterId === raider.characterId ? raiderPct : null,
-          weightedAttendancePctLowerThan50: raiderPct < 0.5 && currentUserCharacterId !== raider.characterId ? raiderPct : null,
-          weightedAttendancePctLowerThan50Highlight: raiderPct < 0.5  && currentUserCharacterId === raider.characterId ? raiderPct : null,
+          weightedAttendancePctAtOrAboveThresh: raiderPct >= attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderPct : null,
+          weightedAttendancePctAtOrAboveThreshHighlight: raiderPct >= attendanceThreshold && currentUserCharacterId === raider.characterId ? raiderPct : null,
+          weightedAttendancePctBelowThresh: raiderPct < attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderPct : null,
+          weightedAttendancePctBelowThreshHighlight: raiderPct < attendanceThreshold  && currentUserCharacterId === raider.characterId ? raiderPct : null,
 
         };
       });
@@ -54,19 +55,19 @@ export function AttendanceReport({
   }, [attendanceData, currentUserCharacterId, isSuccess]);
 
   const chartConfig = {
-    weightedAttendancePct50OrBetter: {
+    weightedAttendancePctAtOrAboveThresh: {
       label: "% Attendance",
       color: "hsl(var(--primary))",
     },
-    weightedAttendancePct50OrBetterHighlight: {
+    weightedAttendancePctAtOrAboveThreshHighlight: {
       label: "% Attendance",
       color: "hsl(var(--chart-2))",
     },
-    weightedAttendancePctLowerThan50: {
+    weightedAttendancePctBelowThresh: {
       label: "% Attendance",
       color: "hsl(var(--muted))",
     },
-    weightedAttendancePctLowerThan50Highlight: {
+    weightedAttendancePctBelowThreshHighlight: {
       label: "% Attendance",
       color: "hsl(var(--chart-2))",
     },
@@ -155,7 +156,7 @@ export function AttendanceReport({
               >
                 <XAxis
                   type="number"
-                  dataKey="weightedAttendancePct50OrBetter"
+                  dataKey="weightedAttendancePctAtOrAboveThresh"
                   domain={[0, 1]}
                   tickFormatter={(value) => `${Math.round(value * 100)}%`}
                   hide
@@ -208,8 +209,8 @@ export function AttendanceReport({
                   }
                 />
                 <Bar
-                  dataKey="weightedAttendancePct50OrBetter"
-                  fill="var(--color-weightedAttendancePct50OrBetter)"
+                  dataKey="weightedAttendancePctAtOrAboveThresh"
+                  fill="var(--color-weightedAttendancePctAtOrAboveThresh)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -217,7 +218,7 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePct50OrBetter"
+                    dataKey="weightedAttendancePctAtOrAboveThresh"
                     position="insideRight"
                     offset={8}
                     className="fill-primary-foreground font-bold"
@@ -226,8 +227,8 @@ export function AttendanceReport({
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePct50OrBetterHighlight"
-                  fill="var(--color-weightedAttendancePct50OrBetterHighlight)"
+                  dataKey="weightedAttendancePctAtOrAboveThreshHighlight"
+                  fill="var(--color-weightedAttendancePctAtOrAboveThreshHighlight)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -235,7 +236,7 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePct50OrBetterHighlight"
+                    dataKey="weightedAttendancePctAtOrAboveThreshHighlight"
                     position="insideRight"
                     offset={8}
                     className="fill-background font-bold"
@@ -244,8 +245,8 @@ export function AttendanceReport({
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePctLowerThan50"
-                  fill="var(--color-weightedAttendancePctLowerThan50)"
+                  dataKey="weightedAttendancePctBelowThresh"
+                  fill="var(--color-weightedAttendancePctBelowThresh)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -253,7 +254,7 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctLowerThan50"
+                    dataKey="weightedAttendancePctBelowThresh"
                     position="right"
                     offset={8}
                     className="fill-muted-foreground"
@@ -262,8 +263,8 @@ export function AttendanceReport({
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePctLowerThan50Highlight"
-                  fill="var(--color-weightedAttendancePctLowerThan50Highlight)"
+                  dataKey="weightedAttendancePctBelowThreshHighlight"
+                  fill="var(--color-weightedAttendancePctBelowThreshHighlight)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -271,7 +272,7 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctLowerThan50Highlight"
+                    dataKey="weightedAttendancePctBelowThreshHighlight"
                     position="right"
                     offset={8}
                     className="fill-muted-foreground"
