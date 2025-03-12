@@ -18,6 +18,7 @@ import {
 } from "~/components/ui/alert-dialog";
 import type { ChangeEvent, FormEvent } from "react";
 import { PrettyPrintDate } from "~/lib/helpers";
+import {RaidAttendenceWeightBadge} from "~/components/raids/raid-attendance-weight-badge";
 
 export function RaidEditorCoreControls({
   raidData,
@@ -119,16 +120,16 @@ export function RaidEditorCoreControls({
           >
             <div className="flex text-sm">Attendance Tracking:</div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="1" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-one">Full Credit</Label>
+              <RadioGroupItem id="option-one" value="1" onClick={handleWeightChangeAction} />
+              <Label htmlFor="option-one"><RaidAttendenceWeightBadge attendanceWeight={1}/></Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="0.5" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-one">Half Credit</Label>
+              <RadioGroupItem id="option-half" value="0.5" onClick={handleWeightChangeAction} />
+              <Label htmlFor="option-half"><RaidAttendenceWeightBadge attendanceWeight={0.5}/></Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="0" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-two">Optional</Label>
+              <RadioGroupItem id="option-zero" value="0" onClick={handleWeightChangeAction} />
+              <Label htmlFor="option-zero"><RaidAttendenceWeightBadge attendanceWeight={0}/></Label>
             </div>
           </RadioGroup>
         </div>

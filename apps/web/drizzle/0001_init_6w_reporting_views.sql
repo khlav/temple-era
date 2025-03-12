@@ -186,6 +186,5 @@ SELECT
 FROM weekly_attendance
          CROSS JOIN total_weight tw
 group by character_id, character_name, tw.total
-having COALESCE(sum(week_total) / NULLIF(tw.total, 0), 0) >= 0.1
 order by weighted_attendance_pct desc, character_name
 ;

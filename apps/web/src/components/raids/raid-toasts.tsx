@@ -5,6 +5,11 @@ import { ToastAction } from "@radix-ui/react-toast";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { PrettyPrintDate } from "~/lib/helpers";
+import {
+  TRACKED_RAID_LABEL__FULL_CREDIT,
+  TRACKED_RAID_LABEL__HALF_CREDIT,
+  TRACKED_RAID_LABEL__NO_CREDIT
+} from "~/constants";
 
 export const toastRaidLogLoaded = (
   toast: typeof toastType,
@@ -84,11 +89,11 @@ export const toastRaidSaved = (
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional"
+            ? TRACKED_RAID_LABEL__NO_CREDIT
             : raidData.attendanceWeight == 1 
-              ? "Full Credit"
+              ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
-                ? "Half Credit"
+                ? TRACKED_RAID_LABEL__HALF_CREDIT
                 : "Other"}
           {" "}- {PrettyPrintDate(new Date(raidData.date), true)}
         </div>
@@ -124,11 +129,11 @@ export const toastRaidDataCleared = (
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional"
+            ? TRACKED_RAID_LABEL__NO_CREDIT
             : raidData.attendanceWeight == 1 
-              ? "Full Credit"
+              ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
-                ? "Half Credit"
+                ? TRACKED_RAID_LABEL__HALF_CREDIT
                 : "Other"}
         </div>
       </>
@@ -150,11 +155,11 @@ export const toastRaidDeleted = (toast: typeof toastType, raidData: Raid) => {
         <div className="text-primary font-bold">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
-            ? "Optional"
+            ? TRACKED_RAID_LABEL__NO_CREDIT
             : raidData.attendanceWeight == 1 
-              ? "Full Credit"
+              ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
-                ? "Half Credit"
+                ? TRACKED_RAID_LABEL__HALF_CREDIT
                 : "Other"}
         </div>
       </>

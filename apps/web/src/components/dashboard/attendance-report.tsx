@@ -30,6 +30,7 @@ export function AttendanceReport({
   currentUserCharacterId?: number;
 }) {
   const attendanceThreshold = 0.4;
+  const minDisplayThreshold = 0.0;
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
@@ -39,7 +40,10 @@ export function AttendanceReport({
 
   useEffect(() => {
     if (isSuccess) {
-      const raiderData = attendanceData.map((raider) => {
+      const attendanceDataFiltered = attendanceData.filter(
+        (raider) => (raider.weightedAttendancePct ?? 0) >= minDisplayThreshold
+      );
+      const raiderData = attendanceDataFiltered.map((raider) => {
         const raiderPct = raider.weightedAttendancePct ?? 0;
         return {
           ...raider,
@@ -47,7 +51,6 @@ export function AttendanceReport({
           weightedAttendancePctAtOrAboveThreshHighlight: raiderPct >= attendanceThreshold && currentUserCharacterId === raider.characterId ? raiderPct : null,
           weightedAttendancePctBelowThresh: raiderPct < attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderPct : null,
           weightedAttendancePctBelowThreshHighlight: raiderPct < attendanceThreshold  && currentUserCharacterId === raider.characterId ? raiderPct : null,
-
         };
       });
       setChartAttendenceData(raiderData);
