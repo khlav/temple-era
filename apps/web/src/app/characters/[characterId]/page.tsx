@@ -1,4 +1,4 @@
-import {CharacterDetail} from "~/components/players/character-detail";
+import {CharacterDetail} from "~/components/characters/character-detail";
 import {auth} from "~/server/auth";
 
 export default async function PlayerPage({ params }: {params: Promise<{characterId: number}>}) {

@@ -2,7 +2,7 @@
 
 import { RaidBenchManagerList } from "~/components/raids/raid-bench-manager-list";
 import type {RaidParticipant, RaidParticipantCollection} from "~/server/api/interfaces/raid";
-import {CharacterSelector} from "~/components/players/character-selector";
+import {CharacterSelector} from "~/components/characters/character-selector";
 
 export const RaidBenchManager = ({
   characters,

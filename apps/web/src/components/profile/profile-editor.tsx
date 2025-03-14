@@ -7,7 +7,7 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { ProfileEditorSkeleton } from "~/components/profile/skeletons";
 import { Separator } from "~/components/ui/separator";
-import { CharacterSelector } from "~/components/players/character-selector";
+import { CharacterSelector } from "~/components/characters/character-selector";
 import { toastProfileSaved } from "~/components/profile/profile-toasts";
 import { useToast } from "~/hooks/use-toast";
 import { Loader } from "lucide-react";

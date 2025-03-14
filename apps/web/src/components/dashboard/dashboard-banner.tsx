@@ -56,7 +56,7 @@ export default function DashboardBanner() {
             <div className="text-xs italic pt-2">
               Note: Alts count towards your overall attendance as a player. Check the{" "}
               <Link
-                href="/players"
+                href="/characters"
                 className="text-secondary-foreground hover:underline"
               >
                 players

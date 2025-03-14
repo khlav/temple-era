@@ -14,7 +14,7 @@ import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
 import React, { type Dispatch, type SetStateAction, useState } from "react";
 import { api } from "~/trpc/react";
-import { CharactersTable } from "~/components/players/characters-table";
+import { CharactersTable } from "~/components/characters/characters-table";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
 

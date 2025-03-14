@@ -1,10 +1,10 @@
 "use client";
 import { api } from "~/trpc/react";
-import { CharactersTable } from "~/components/players/characters-table";
+import { CharactersTable } from "~/components/characters/characters-table";
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
 import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
-import {AllCharactersTableSkeleton} from "~/components/players/skeletons";
+import {AllCharactersTableSkeleton} from "~/components/characters/skeletons";
 import type {Session} from "next-auth";
 
 export function AllCharacters({session} : {session?: Session}) {

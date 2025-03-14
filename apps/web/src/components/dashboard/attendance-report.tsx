@@ -78,7 +78,7 @@ export function AttendanceReport({
   const handleBarClick = (data: Raider) => {
     console.log(data);
     if (data.characterId) {
-      router.push(`/players/${data.characterId}`);
+      router.push(`/characters/${data.characterId}`);
     }
   };
 

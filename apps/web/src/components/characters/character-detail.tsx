@@ -3,13 +3,13 @@
 import { api } from "~/trpc/react";
 import Link from "next/link";
 import { Separator } from "~/components/ui/separator";
-import { PrimaryCharacterRaidsTable } from "~/components/players/primary-character-raids-table";
+import { PrimaryCharacterRaidsTable } from "~/components/characters/primary-character-raids-table";
 import anyAscii from "any-ascii";
 import { Button } from "~/components/ui/button";
 import { Edit } from "lucide-react";
 import React from "react";
 import { ClassIcon } from "~/components/ui/class-icon";
-// import { PrimaryCharacterAttendanceReport } from "~/components/players/primary-character-attendance-report";
+// import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
 
 export function CharacterDetail({
   characterId,
@@ -64,7 +64,7 @@ export function CharacterDetail({
                       .map((secondaryCharacter) => (
                         <Link
                           key={secondaryCharacter.characterId}
-                          href={`/players/${secondaryCharacter.characterId}`}
+                          href={`/characters/${secondaryCharacter.characterId}`}
                           className="flex flex-row rounded-xl bg-secondary px-4 py-2 text-sm hover:text-primary hover:underline"
                         >
                           <ClassIcon
@@ -90,7 +90,7 @@ export function CharacterDetail({
                         This is an alt for:
                       </div>
                       <Link
-                        href={`/players/${characterData.primaryCharacterId}`}
+                        href={`/characters/${characterData.primaryCharacterId}`}
                         className="rounded-xl bg-primary-foreground px-4 py-2 text-sm text-primary hover:underline"
                       >
                         <div className="flex flex-row gap-1">

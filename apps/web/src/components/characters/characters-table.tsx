@@ -15,7 +15,7 @@ import {
 import anyAscii from "any-ascii";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
-import { GenericCharactersTableSkeleton } from "~/components/players/skeletons";
+import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
 import {ClassIcon} from "~/components/ui/class-icon";
 import React from "react";
@@ -75,7 +75,7 @@ export function CharactersTable({
                       <Link
                         className="group w-full transition-all hover:text-primary"
                         target={targetNewTab ? "_blank" : "_self"}
-                        href={"/players/" + c.characterId}
+                        href={"/characters/" + c.characterId}
                       >
                         <div className="flex flex-row">
                           <ClassIcon characterClass={c.class.toLowerCase()} px={20} className="grow-0 mr-1" />

@@ -3,7 +3,7 @@
 import type { Raid } from "~/server/api/interfaces/raid";
 import { api } from "~/trpc/react";
 import { Separator } from "~/components/ui/separator";
-import { CharactersTable } from "~/components/players/characters-table";
+import { CharactersTable } from "~/components/characters/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React from "react";
 import UserAvatar from "~/components/ui/user-avatar";
-import { CharacterSummaryGrid} from "~/components/players/character-summary-grid";
+import { CharacterSummaryGrid} from "~/components/characters/character-summary-grid";
 
 export function RaidDetailBase({
   raidData,

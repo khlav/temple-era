@@ -27,7 +27,7 @@ import {PostHogIdentify} from "~/app/providers";
 const coreItems = [
   {title: "Dashboard", url: "/", icon: ChartBarSquareIcon},
   {title: "Raids", url: "/raids", icon: MapIcon},
-  {title: "Players", url: "/players", icon: UserGroupIcon},
+  {title: "Raiding Characters", url: "/characters", icon: UserGroupIcon},
 ];
 
 const raidManagerTitle = "Raid Manager";

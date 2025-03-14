@@ -14,7 +14,7 @@ import {Armchair, ExternalLinkIcon } from "lucide-react";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/players/skeletons";
+import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/characters/skeletons";
 import {
   Tooltip,
   TooltipContent,
@@ -105,7 +105,7 @@ export function PrimaryCharacterRaidsTable({
                         key={c.characterId}
                         className="group shrink rounded bg-secondary px-2 py-1 text-xs transition-all hover:text-primary"
                         target="_self"
-                        href={"/players/" + c.characterId}
+                        href={"/characters/" + c.characterId}
                       >
                         {c.name}
                       </Link>
