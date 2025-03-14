@@ -37,6 +37,9 @@ export default function DashboardBanner() {
               </Link>
               . On March 25th, this will increase to 50%.
             </div>
+            <div>
+              In practice, this means raiders must attend ~2 different 40-player raids (in different zones) on average each week to stay eligible.
+            </div>
             <div className="pt-2">
               <strong>How it works: </strong>
               Raiders earn up to three (3) raid credits per week toward
