@@ -39,7 +39,7 @@ export default function DashboardBanner() {
               . On March 25th, this will increase to 50%.
             </div>
             <div>
-              In practice, this means raiders must participate in ~2 different 40-player raids (in different zones) on average each week to stay eligible.
+              In practice, this means raiders (or their alts) must participate in ~2 different 40-player raids (in different zones) on average each week to stay eligible.
             </div>
             <div className="pt-2">
               Note: If a raid is full, you can earn credit by being ready/available at raid time and contacting an officer.
