@@ -50,7 +50,7 @@ export default function DashboardBanner() {
                 href={raid_policy_channel_url}
                 target="_blank"
               >
-                Learn more in Discord: <strong>Temple > #raid-policies</strong>
+                Learn more in Discord: <strong>Temple &gt; #raid-policies</strong>
               </Link>
             </div>
             {/*<div className="pt-2">*/}
