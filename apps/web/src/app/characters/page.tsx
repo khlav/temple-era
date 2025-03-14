@@ -8,8 +8,11 @@ export default async function PlayersIndex() {
   return (
     <HydrateClient>
       <main className="w-full px-4">
-        <div className="text-3xl font-bold tracking-tight mb-4">
-          Characters
+        <div className="text-3xl font-bold tracking-tight">
+          Raiding Characters
+        </div>
+        <div className=" text-muted-foreground mb-2">
+          All characters appearing in logs.
         </div>
         <div className="w-full lg:w-1/2 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
           <AllCharacters session={session ?? undefined}/>
