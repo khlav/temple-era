@@ -12,7 +12,6 @@ import { type ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
 import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
-import { Separator } from "~/components/ui/separator";
 import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
 import {HelpCircle} from "lucide-react";
 
@@ -30,7 +29,7 @@ export function AttendanceReport({
   currentUserCharacterId?: number;
 }) {
   const attendanceThreshold = 0.4;
-  const minDisplayThreshold = 0.0;
+  const minDisplayThreshold = 0.1;
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]

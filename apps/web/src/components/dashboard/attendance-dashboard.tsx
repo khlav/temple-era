@@ -10,6 +10,7 @@ import { PrettyPrintDate } from "~/lib/helpers";
 import { CurrentLockoutAllRaids } from "~/components/dashboard/current-lockout-all-raids";
 import type { Session } from "next-auth";
 import {DashboardOnboarding} from "~/components/dashboard/dashboard-onboarding";
+import DashboardBanner from "~/components/dashboard/dashboard-banner";
 
 export function AttendanceDashboard({
   currentUserSession,
@@ -41,6 +42,7 @@ export function AttendanceDashboard({
       </div>
       <Separator className="mb-4" />
       <DashboardOnboarding session={currentUserSession}/>
+      <DashboardBanner />
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex-shrink-0 lg:w-[420px]">
           <AttendanceReport
