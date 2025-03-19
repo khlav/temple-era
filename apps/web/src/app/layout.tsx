@@ -24,6 +24,7 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = !(cookieStore.get("sidebar:state")?.value === "false");
+  const wowheadTooltipsConfig = {colorLinks: true, iconizeLinks: true, renameLinks: true};
 
   return (
     <html
