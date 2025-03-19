@@ -22,7 +22,6 @@ import {auth} from "~/server/auth";
 import {AppSidebarLogin} from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
 import {FilePlus, Users, ListRestart, ShieldCheck} from "lucide-react";
-import {PostHogIdentify} from "~/app/providers";
 
 const coreItems = [
   {title: "Dashboard", url: "/", icon: ChartBarSquareIcon},
@@ -61,7 +60,6 @@ export async function AppSidebar({
 
   return (
     <Sidebar {...props}>
-      <PostHogIdentify session={session} />
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
