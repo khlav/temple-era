@@ -14,6 +14,7 @@ import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { toastCharacterSaved } from "~/components/raid-manager/raid-manager-toasts";
 import { ClassIcon } from "~/components/ui/class-icon";
+import { CharacterPill } from "../ui/character-pill";
 
 export function CharacterManagerRow({
   character,
@@ -108,17 +109,7 @@ export function CharacterManagerRow({
                 .sort(SortRaiders)
                 .map((character: RaidParticipant) => (
                   <div key={character.characterId} className="shrink">
-                    <Button
-                      id={character.characterId.toString()}
-                      variant="outline"
-                      size="sm"
-                      className="cursor-default bg-accent p-3 transition-all"
-                    >
-                      <div className="flex flex-row gap-1">
-                        <ClassIcon characterClass={character.class} px={16} />
-                        <div className="grow">{character.name}</div>
-                      </div>
-                    </Button>
+                    <CharacterPill character={character}/>
                   </div>
                 ))}
             </div>
