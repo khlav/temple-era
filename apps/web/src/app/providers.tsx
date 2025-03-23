@@ -2,7 +2,7 @@
 
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { usePostHog } from "posthog-js/react";
 
@@ -13,18 +13,22 @@ import type {Session} from "next-auth";
 
 export const PostHogIdentify = ({session} : {session: Session | null}) => {
   const posthog = usePostHog();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isSignIn = searchParams.get("signin") == "1";
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (isSignIn && session?.user?.id) {
       // Identify sends an event, so you want may want to limit how often you call it
       posthog?.identify(session.user.id, {
         name: session.user.name,
         isRaidManager: session.user.isRaidManager,
         isAdmin: session.user.isAdmin,
       });
-      console.log("ID:" + session.user.id);
+      router.replace("/", { scroll: false });
+      console.log(`Welcome, ${session.user.name}!`);
     }
-  }, [posthog, session, session?.user, session?.user?.id])
+  }, [router, isSignIn, posthog, session, session?.user, session?.user?.id])
 
   return null;
 }

@@ -20,7 +20,11 @@ import posthog from "posthog-js";
 import {PostHogIdentify} from "~/app/providers";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {
-  const handleSignIn = () => signIn("discord");
+  const handleSignIn = () => signIn(
+    "discord", {
+      redirectTo: "/?signin=1"
+    }
+  );
 
   const handleSignOut = () => {
     posthog.reset();
