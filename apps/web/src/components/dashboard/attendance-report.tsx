@@ -136,7 +136,7 @@ export function AttendanceReport({
           </div>
         </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
-          Last 6 full lockouts - 3pts earnable per week, 18 total
+          Last 6 full lockouts -- 50%+ = able to SR
         </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -210,7 +210,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${value}`}
+                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
                   />
                 </Bar>
                 <Bar
@@ -228,7 +228,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${value}`}
+                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
                   />
                 </Bar>
                 <Bar
@@ -246,7 +246,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${value}`}
+                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
                   />
                 </Bar>
                 <Bar
@@ -264,7 +264,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${value}`}
+                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
                   />
                 </Bar>
               </BarChart>
