@@ -27,7 +27,7 @@ export default function DashboardBanner() {
         <CardContent>
           <div className="text-muted-foreground">
             <div>
-              Raiders must maintain 40%+ large raid attendance over the last 6 lockout weeks
+              Raiders must maintain 50%+ large raid attendance (9pts) over 6 lockout weeks
               to roll on{" "}
               <Link
                 href={loot_prio_url}
@@ -35,11 +35,10 @@ export default function DashboardBanner() {
                 className="text-secondary-foreground hover:underline"
               >
                 specific Naxx gear
-              </Link>
-              . On March 25th, this will increase to 50%.
+              </Link>.
             </div>
             <div>
-              In practice, this means raiders must participate in ~2 different 40-player raids (in different zones) on average each week to stay eligible.
+              In practice, this means raiders must participate in ~1.5 different 40-player raids (in different zones) on average each week to stay eligible.
             </div>
             <div className="pt-2">
               Note: If a raid is full, you can earn credit by being ready/available at raid time and contacting an officer.

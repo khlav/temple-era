@@ -24,12 +24,12 @@ interface Raider {
 }
 
 export function AttendanceReport({
-  currentUserCharacterId,
-}: {
+                                   currentUserCharacterId,
+                                 }: {
   currentUserCharacterId?: number;
 }) {
-  const attendanceThreshold = 0.4;
-  const minDisplayThreshold = 0.1;
+  const attendanceThreshold = 9; // Changed from 0.4 to 7 (integer threshold)
+  const minDisplayThreshold = 2; // Changed from 0.1 to 2 (integer threshold)
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
@@ -40,16 +40,16 @@ export function AttendanceReport({
   useEffect(() => {
     if (isSuccess) {
       const attendanceDataFiltered = attendanceData.filter(
-        (raider) => (raider.weightedAttendancePct ?? 0) >= minDisplayThreshold
+        (raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold
       );
       const raiderData = attendanceDataFiltered.map((raider) => {
-        const raiderPct = raider.weightedAttendancePct ?? 0;
+        const raiderAttendance = raider.weightedAttendance ?? 0;
         return {
           ...raider,
-          weightedAttendancePctAtOrAboveThresh: raiderPct >= attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderPct : null,
-          weightedAttendancePctAtOrAboveThreshHighlight: raiderPct >= attendanceThreshold && currentUserCharacterId === raider.characterId ? raiderPct : null,
-          weightedAttendancePctBelowThresh: raiderPct < attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderPct : null,
-          weightedAttendancePctBelowThreshHighlight: raiderPct < attendanceThreshold  && currentUserCharacterId === raider.characterId ? raiderPct : null,
+          weightedAttendanceAtOrAboveThresh: raiderAttendance >= attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderAttendance : null,
+          weightedAttendanceAtOrAboveThreshHighlight: raiderAttendance >= attendanceThreshold && currentUserCharacterId === raider.characterId ? raiderAttendance : null,
+          weightedAttendanceBelowThresh: raiderAttendance < attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderAttendance : null,
+          weightedAttendanceBelowThreshHighlight: raiderAttendance < attendanceThreshold  && currentUserCharacterId === raider.characterId ? raiderAttendance : null,
         };
       });
       setChartAttendenceData(raiderData);
@@ -57,20 +57,20 @@ export function AttendanceReport({
   }, [attendanceData, currentUserCharacterId, isSuccess]);
 
   const chartConfig = {
-    weightedAttendancePctAtOrAboveThresh: {
-      label: "% Attendance",
+    weightedAttendanceAtOrAboveThresh: {
+      label: "Attendance",
       color: "hsl(var(--primary))",
     },
-    weightedAttendancePctAtOrAboveThreshHighlight: {
-      label: "% Attendance",
+    weightedAttendanceAtOrAboveThreshHighlight: {
+      label: "Attendance",
       color: "hsl(var(--chart-2))",
     },
-    weightedAttendancePctBelowThresh: {
-      label: "% Attendance",
+    weightedAttendanceBelowThresh: {
+      label: "Attendance",
       color: "hsl(var(--muted))",
     },
-    weightedAttendancePctBelowThreshHighlight: {
-      label: "% Attendance",
+    weightedAttendanceBelowThreshHighlight: {
+      label: "Attendance",
       color: "hsl(var(--chart-2))",
     },
   } satisfies ChartConfig;
@@ -83,10 +83,10 @@ export function AttendanceReport({
   };
 
   const renderCustomTick = ({
-    x,
-    y,
-    payload,
-  }: {
+                              x,
+                              y,
+                              payload,
+                            }: {
     x: number;
     y: number;
     payload: { index: number; value: string };
@@ -111,9 +111,9 @@ export function AttendanceReport({
 
   return (
     <Card className="min-h-[1700px]">
-      <CardHeader>
+      <CardHeader className="pb-1">
         <div className="flex flex-row gap-1">
-          <div className="grow-0">Tracked raid attendance %</div>
+          <div className="grow-0">Tracked raid attendance</div>
           <div className="grow pt-1 text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -131,18 +131,19 @@ export function AttendanceReport({
                 </div>
                 <div className="italic">Note: Points are only earned once per zone+week.</div>
               </TooltipContent>
-            </Tooltip>
+            </Tooltip>g
           </div>
         </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
-          Last 6 full lockouts
           {chartAttendenceData &&
             chartAttendenceData.length > 0 &&
-            `, ${chartAttendenceData.length} raiders attending 10%+`}
-        </div>
+            `${chartAttendenceData.length} raiders with 2+ points`}
+          <br/>
+          Last 6 full lockouts (max: 18pts, 3 per wk)
+          </div>
       </CardHeader>
       <CardContent className="pt-4">
-        {isSuccess ? (
+      {isSuccess ? (
           <div>
             <ChartContainer
               config={chartConfig}
@@ -158,9 +159,9 @@ export function AttendanceReport({
               >
                 <XAxis
                   type="number"
-                  dataKey="weightedAttendancePctAtOrAboveThresh"
-                  domain={[0, 1]}
-                  tickFormatter={(value) => `${Math.round(value * 100)}%`}
+                  dataKey="weightedAttendanceAtOrAboveThresh"
+                  domain={[0, 18]}
+                  tickFormatter={(value) => `${value}`}
                   hide
                 />
                 <YAxis
@@ -169,52 +170,24 @@ export function AttendanceReport({
                   tickLine={false}
                   axisLine={false}
                   interval={0}
-                  // tickFormatter={(value: string) => value.slice(0, 3)}
                   tick={renderCustomTick}
                 />
                 <ChartTooltip
-                  // formatter={chartTooltip}
                   content={
                     <ChartTooltipContent
                       indicator="line"
                       valueFormatter={(value: ValueType) => (
                         <div className="inline-block pl-1">
-                          {Math.round(parseFloat(value.toString()) * 1000) / 10}
-                          %
+                          {parseFloat(value.toString()).toFixed(1)} / 18 pts
                         </div>
                       )}
-                      additionalContentFromItem={(
-                      //   item: {
-                      //   payload: {
-                      //     raidsAttended: {
-                      //       name: string;
-                      //       date: Date;
-                      //       attendeeOrBench: string;
-                      //     }[];
-                      //   };
-                      // }
-                      ) => {
-                        return (
-                          <></>
-                          // <div>
-                          //   <Separator className="mb-1 mt-2 bg-muted-foreground" />
-                          //   <div>Raids:</div>
-                          //   {item.payload?.raidsAttended
-                          //     .sort((a, b) => (a.date > b.date ? -1 : 1))
-                          //     .map((raid: { name: string, attendeeOrBench: string }, i) => (
-                          //       <div key={i} className="pl-1 text-nowrap">
-                          //         - {raid.name} {raid.attendeeOrBench === "bench" ? <span className="text-xs text-muted-foreground">Bench</span> : ""}
-                          //       </div>
-                          //     ))}
-                          // </div>
-                        );
-                      }}
+                      additionalContentFromItem={() => <></>}
                     />
                   }
                 />
                 <Bar
-                  dataKey="weightedAttendancePctAtOrAboveThresh"
-                  fill="var(--color-weightedAttendancePctAtOrAboveThresh)"
+                  dataKey="weightedAttendanceAtOrAboveThresh"
+                  fill="var(--color-weightedAttendanceAtOrAboveThresh)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -222,17 +195,17 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctAtOrAboveThresh"
+                    dataKey="weightedAttendanceAtOrAboveThresh"
                     position="insideRight"
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round(value * 100)}%`}
+                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePctAtOrAboveThreshHighlight"
-                  fill="var(--color-weightedAttendancePctAtOrAboveThreshHighlight)"
+                  dataKey="weightedAttendanceAtOrAboveThreshHighlight"
+                  fill="var(--color-weightedAttendanceAtOrAboveThreshHighlight)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -240,17 +213,17 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctAtOrAboveThreshHighlight"
+                    dataKey="weightedAttendanceAtOrAboveThreshHighlight"
                     position="insideRight"
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round(value * 100)}%`}
+                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePctBelowThresh"
-                  fill="var(--color-weightedAttendancePctBelowThresh)"
+                  dataKey="weightedAttendanceBelowThresh"
+                  fill="var(--color-weightedAttendanceBelowThresh)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -258,17 +231,17 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctBelowThresh"
+                    dataKey="weightedAttendanceBelowThresh"
                     position="right"
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round(value * 100)}%`}
+                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
-                  dataKey="weightedAttendancePctBelowThreshHighlight"
-                  fill="var(--color-weightedAttendancePctBelowThreshHighlight)"
+                  dataKey="weightedAttendanceBelowThreshHighlight"
+                  fill="var(--color-weightedAttendanceBelowThreshHighlight)"
                   radius={4}
                   barSize={20}
                   stackId={1}
@@ -276,24 +249,16 @@ export function AttendanceReport({
                   onClick={(data: Raider) => handleBarClick(data)}
                 >
                   <LabelList
-                    dataKey="weightedAttendancePctBelowThreshHighlight"
+                    dataKey="weightedAttendanceBelowThreshHighlight"
                     position="right"
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round(value * 100)}%`}
+                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
               </BarChart>
             </ChartContainer>
-
-            {/*/!* RAW DATA *!/*/}
-            {/*<div className="max-h-[300px] overflow-hidden overflow-y-auto">*/}
-            {/*  <LabeledArrayCodeBlock*/}
-            {/*    label=""*/}
-            {/*    value={JSON.stringify(attendanceData, null, 2)}*/}
-            {/*  />*/}
-            {/*</div>*/}
           </div>
         ) : (
           "Loading..."
