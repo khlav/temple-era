@@ -22,6 +22,7 @@ export const PostHogIdentify = ({session} : {session: Session | null}) => {
         isRaidManager: session.user.isRaidManager,
         isAdmin: session.user.isAdmin,
       });
+      console.log("ID:" + session.user.id);
     }
   }, [posthog, session, session?.user, session?.user?.id])
 
