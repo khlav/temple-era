@@ -213,7 +213,6 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
