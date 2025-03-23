@@ -17,7 +17,7 @@ import {
   toastRaidSaved,
 } from "~/components/raids/raid-toasts";
 
-const getDefaultAttendanceWeight = (zoneName: string, date: Date) => {
+const getDefaultAttendanceWeight = (zoneName: string) => {
   const attendanceWeightedZones = {
     "Naxxramas": 1,
     "Temple of Ahn'Qiraj": 1,
@@ -68,7 +68,7 @@ export function CreateRaid() {
           name: initialRaidLog.name,
           date: raidDate.toISOString().split("T")[0] ?? "",
           zone: initialRaidLog.zone ?? "",
-          attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone, raidDate),
+          attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone),
           kills: initialRaidLog.kills ?? [],
           raidLogIds: [initialRaidLog.raidLogId],
         }));

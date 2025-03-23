@@ -183,15 +183,17 @@ export function AttendanceReport({
                           %
                         </div>
                       )}
-                      additionalContentFromItem={(item: {
-                        payload: {
-                          raidsAttended: {
-                            name: string;
-                            date: Date;
-                            attendeeOrBench: string;
-                          }[];
-                        };
-                      }) => {
+                      additionalContentFromItem={(
+                      //   item: {
+                      //   payload: {
+                      //     raidsAttended: {
+                      //       name: string;
+                      //       date: Date;
+                      //       attendeeOrBench: string;
+                      //     }[];
+                      //   };
+                      // }
+                      ) => {
                         return (
                           <></>
                           // <div>

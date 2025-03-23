@@ -32,9 +32,9 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton className="border-2">
-            <img
+            <Image
               alt={"Username: " + session?.user?.name}
-              src={session?.user?.image ?? undefined}
+              src={session?.user?.image ?? ""}
               className="object-fit rounded-full"
               height={24}
               width={24}

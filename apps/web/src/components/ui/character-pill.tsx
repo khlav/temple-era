@@ -2,12 +2,12 @@
 
 import { type MouseEventHandler } from "react";
 import { ClassIcon } from "~/components/ui/class-icon";
-import { RaidParticipant } from "~/server/api/interfaces/raid";
+import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
 
 export const CharacterPill = ({
     character,
-    handleClick = () => { }
+    handleClick
 }: {
     character: RaidParticipant,
     handleClick?: MouseEventHandler<HTMLButtonElement>

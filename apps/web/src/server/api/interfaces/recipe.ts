@@ -1,7 +1,7 @@
 // src/server/api/types/recipe-types.ts
-import { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { recipes, characterRecipeMap } from "~/server/db/schema";
-import { characters } from "~/server/db/models/raid-schema";
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { recipes, characterRecipeMap } from "~/server/db/schema";
+import type { characters } from "~/server/db/models/raid-schema";
 
 // Infer select types (what you get from queries)
 export type Recipe = InferSelectModel<typeof recipes>;

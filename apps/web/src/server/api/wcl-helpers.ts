@@ -3,7 +3,7 @@ import type {RaidLog, RaidParticipant, RaidParticipantCollection} from "~/server
 import {env} from "~/env";
 import {NextResponse} from "next/server";
 import anyAscii from "any-ascii";
-import {AccessTokenResponse, GetOauthClientCredentialAccessToken} from "~/server/api/oauth-helpers";
+import {type AccessTokenResponse, GetOauthClientCredentialAccessToken} from "~/server/api/oauth-helpers";
 
 export const Slugify = (value: string) => {
   return anyAscii(value).toLowerCase();

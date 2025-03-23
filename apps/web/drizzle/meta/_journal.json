@@ -36,6 +36,13 @@
       "when": 1742753986549,
       "tag": "0004_hot_romulus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1742756310840,
+      "tag": "0005_seed_recipes_table",
+      "breakpoints": true
     }
   ]
 }
