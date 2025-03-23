@@ -9,7 +9,7 @@ import {
   ChartTooltipContent,
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, LabelList, ReferenceLine, XAxis, YAxis } from "recharts";
 import { useRouter } from "next/navigation";
 import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
@@ -30,6 +30,7 @@ export function AttendanceReport({
 }) {
   const attendanceThreshold = 9; // Changed from 0.4 to 7 (integer threshold)
   const minDisplayThreshold = 2; // Changed from 0.1 to 2 (integer threshold)
+  const targetAttendance = 9; // Reference line at 9 points
   const router = useRouter();
   const [chartAttendenceData, setChartAttendenceData] = React.useState<
     Raider[]
@@ -111,9 +112,9 @@ export function AttendanceReport({
 
   return (
     <Card className="min-h-[1700px]">
-      <CardHeader className="pb-1">
+      <CardHeader>
         <div className="flex flex-row gap-1">
-          <div className="grow-0">Tracked raid attendance</div>
+          <div className="grow-0">Tracked raid attendance points</div>
           <div className="grow pt-1 text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -136,10 +137,10 @@ export function AttendanceReport({
         </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
           Last 6 full lockouts - 3pts earnable per week, 18 total
-          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-4">
-      {isSuccess ? (
+        {isSuccess ? (
           <div>
             <ChartContainer
               config={chartConfig}
@@ -174,12 +175,25 @@ export function AttendanceReport({
                       indicator="line"
                       valueFormatter={(value: ValueType) => (
                         <div className="inline-block pl-1">
-                          {value} / 18
+                          {parseFloat(value.toString())} / 18 pts
                         </div>
                       )}
                       additionalContentFromItem={() => <></>}
                     />
                   }
+                />
+                {/* Reference Line at 9 pts */}
+                <ReferenceLine
+                  x={targetAttendance}
+                  stroke="#666"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  label={{
+                    value: "9 pts",
+                    position: "top",
+                    fill: "#666",
+                    fontSize: 12,
+                  }}
                 />
                 <Bar
                   dataKey="weightedAttendanceAtOrAboveThresh"
@@ -196,6 +210,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
+                    formatter={(value: number) => `${value}`}
                   />
                 </Bar>
                 <Bar
@@ -213,6 +228,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
+                    formatter={(value: number) => `${value}`}
                   />
                 </Bar>
                 <Bar
@@ -230,6 +246,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
+                    formatter={(value: number) => `${value}`}
                   />
                 </Bar>
                 <Bar
@@ -247,6 +264,7 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
+                    formatter={(value: number) => `${value}`}
                   />
                 </Bar>
               </BarChart>
