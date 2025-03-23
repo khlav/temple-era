@@ -135,11 +135,7 @@ export function AttendanceReport({
           </div>
         </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
-          {chartAttendenceData &&
-            chartAttendenceData.length > 0 &&
-            `${chartAttendenceData.length} raiders with 2+ points`}
-          <br/>
-          Last 6 full lockouts (max: 18pts, 3 per wk)
+          Last 6 full lockouts - 3pts earnable per week, 18 total
           </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -178,7 +174,7 @@ export function AttendanceReport({
                       indicator="line"
                       valueFormatter={(value: ValueType) => (
                         <div className="inline-block pl-1">
-                          {parseFloat(value.toString()).toFixed(1)} / 18 pts
+                          {value} / 18
                         </div>
                       )}
                       additionalContentFromItem={() => <></>}
@@ -200,7 +196,6 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
@@ -236,7 +231,6 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
                 <Bar
@@ -254,7 +248,6 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${value.toFixed(1)}`}
                   />
                 </Bar>
               </BarChart>
