@@ -27,7 +27,7 @@ export default function DashboardBanner() {
         <CardContent>
           <div className="text-muted-foreground">
             <div>
-              Raiders must maintain 50%+ large raid attendance (9pts) over 6 lockout weeks
+              Raiders must maintain 50%+ large raid attendance over 6 lockout weeks
               to roll on{" "}
               <Link
                 href={loot_prio_url}
