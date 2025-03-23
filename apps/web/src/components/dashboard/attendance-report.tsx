@@ -131,7 +131,7 @@ export function AttendanceReport({
                 </div>
                 <div className="italic">Note: Points are only earned once per zone+week.</div>
               </TooltipContent>
-            </Tooltip>g
+            </Tooltip>
           </div>
         </div>
         <div className="pb-0.5 text-sm text-muted-foreground">
