@@ -6,19 +6,25 @@ import { RaidParticipant } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
 
 export const CharacterPill = ({
-    character
+    character,
+    handleClick = () => { }
 }: {
     character: RaidParticipant,
-}) => (
-    <Button
-        id={character.characterId.toString()}
-        variant="outline"
-        size="sm"
-        className="cursor-default bg-accent p-3 transition-all"
-    >
-        <div className="flex flex-row gap-1">
-            <ClassIcon characterClass={character.class} px={16} />
-            <div className="grow">{character.name}</div>
-        </div>
-    </Button>
-);
+    handleClick?: MouseEventHandler<HTMLButtonElement>
+}) => {
+
+    return (
+        <Button
+            id={character.characterId.toString()}
+            variant="outline"
+            size="sm"
+            className="cursor-default bg-accent p-3 transition-all"
+            onClick={handleClick}
+        >
+            <div className="flex flex-row gap-1">
+                <ClassIcon characterClass={character.class} px={16} />
+                <div className="grow">{character.name}</div>
+            </div>
+        </Button>
+    )
+};
