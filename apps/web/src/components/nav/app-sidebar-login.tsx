@@ -32,9 +32,10 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton className="border-2">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               alt={"Username: " + session?.user?.name}
-              src={session?.user?.image ?? ""}
+              src={session?.user?.image ?? undefined}
               className="object-fit rounded-full"
               height={24}
               width={24}
