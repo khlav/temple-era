@@ -51,10 +51,10 @@ export function AttendanceDashboard({
         </div>
         <div className="flex flex-grow flex-col gap-4">
           <div>
-            <RecentTrackedRaids />
+            <CurrentLockoutAllRaids />
           </div>
           <div>
-            <CurrentLockoutAllRaids />
+            <RecentTrackedRaids />
           </div>
         </div>
       </div>
