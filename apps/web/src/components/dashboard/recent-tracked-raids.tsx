@@ -27,14 +27,14 @@ export function RecentTrackedRaids() {
       <CardHeader>
         <div className="flex items-end text-nowrap">
           <div className="grow-0">
-            Raids contributing to attendance
+            Raids from last 6 complete lockouts
           </div>
           <div className="text-primary grow pb-0.5 text-sm text-right hover:underline">
             <Link href="/raids">View all raids</Link>
           </div>
         </div>
         <div className="text-muted-foreground grow text-sm">
-          Last 6 full lockouts
+          Used to calculate attendance & eligibility
           {trackedRaidData && trackedRaidData.length > 0
             && `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`
             }
