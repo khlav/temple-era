@@ -11,7 +11,7 @@ import {
 
 const trackedRaidTooltipContent = (
   <span>
-    40%+ raid attendance credit is needed to SR certain Naxxramas items.
+    50%+ raid attendance credit is needed to SR certain Naxxramas items.
   </span>
 );
 const optionalRaidTooltipContent = "Fun with friends.  Come get some.";
