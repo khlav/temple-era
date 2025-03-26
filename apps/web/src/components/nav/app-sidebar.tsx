@@ -21,7 +21,7 @@ import Link from "next/link";
 import {auth} from "~/server/auth";
 import {AppSidebarLogin} from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import {FilePlus, Users, ListRestart, ShieldCheck} from "lucide-react";
+import {FilePlus, Users, ListRestart, ShieldCheck, SquareScissorsIcon} from "lucide-react";
 
 const coreItems = [
   {title: "Dashboard", url: "/", icon: ChartBarSquareIcon},
@@ -51,6 +51,11 @@ const adminLinks = [
     url: "/admin/user-management",
     icon: ShieldCheck,
   },
+  {
+    title: "Rare recipes & tags",
+    url: "/admin/recipe-manager",
+    icon: SquareScissorsIcon
+  }
 ];
 
 export async function AppSidebar({

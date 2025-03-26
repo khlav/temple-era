@@ -31,12 +31,12 @@ export default async function RootLayout({
       className={GeistSans.className}
       suppressHydrationWarning={true}
     >
-      <body className="flex h-screen">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
+    <body className="flex h-screen">
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
         >
           <TRPCReactProvider>
             <PostHogProvider>
