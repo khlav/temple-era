@@ -75,7 +75,7 @@ export async function AppSidebar({
             />
             <div
               className="overflow-hidden whitespace-nowrap px-1 py-2 text-center font-bold group-data-[collapsible=icon]:hidden">
-              Temple Raid Tracking
+              TempleAshkandi.com
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
