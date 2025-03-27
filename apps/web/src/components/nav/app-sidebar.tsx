@@ -21,12 +21,14 @@ import Link from "next/link";
 import {auth} from "~/server/auth";
 import {AppSidebarLogin} from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import {FilePlus, Users, ListRestart, ShieldCheck, SquareScissorsIcon} from "lucide-react";
+import {FilePlus, Users, ListRestart, ShieldCheck, Wand} from "lucide-react";
 
 const coreItems = [
   {title: "Dashboard", url: "/", icon: ChartBarSquareIcon},
   {title: "Raids", url: "/raids", icon: MapIcon},
-  {title: "Raiding Characters", url: "/characters", icon: UserGroupIcon},
+  {title: "Raiding characters", url: "/characters", icon: UserGroupIcon},
+  {title: "Rare recipes & crafters", url: "/rare-recipes", icon: Wand},
+
 ];
 
 const raidManagerTitle = "Raid Manager";
@@ -50,11 +52,6 @@ const adminLinks = [
     title: "User permissions",
     url: "/admin/user-management",
     icon: ShieldCheck,
-  },
-  {
-    title: "Rare recipes & tags",
-    url: "/admin/recipe-manager",
-    icon: SquareScissorsIcon
   }
 ];
 
