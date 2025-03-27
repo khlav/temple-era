@@ -70,7 +70,7 @@ export const RecipesWithCrafters = () => {
       recipe.isCommon ? 'common' : '',
       recipe.tags?.map((tag) => "#"+tag).join(' ').toLowerCase() ?? '',
       recipe.characters?.map(c => c.name?.toLowerCase()).join(' ') || '',
-      recipe.notes.toLowerCase()
+      (recipe.notes ?? '').toLowerCase()
     ].join(' ');
 
     // Check if ALL terms are present in the searchable string
