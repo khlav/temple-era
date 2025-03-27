@@ -124,10 +124,10 @@ export const RecipesWithCrafters = () => {
             <thead>
             <tr className="bg-secondary">
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Recipe</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Profession</th>
+              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:block">Profession</th>
               <th className="p-3 text-center bg-secondary text-secondary-foreground font-semibold">Common?</th>
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Tags</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Crafters</th>
+              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:block">Crafters</th>
             </tr>
             </thead>
             <tbody>
@@ -151,7 +151,7 @@ export const RecipesWithCrafters = () => {
                   </div>
 
                 </td>
-                <td className="p-3">{recipe.profession}</td>
+                <td className="p-3 hidden md:block">{recipe.profession}</td>
                 <td className="p-3 text-center">
                   {recipe.isCommon && (
                     <CheckCircle2
@@ -175,7 +175,7 @@ export const RecipesWithCrafters = () => {
                     ))}
                   </div>
                 </td>
-                <td className="p-3">
+                <td className="p-3 hidden md:block">
                   <div className="flex flex-wrap gap-1">
                     {recipe.characters?.map((character) => (
                       <span
