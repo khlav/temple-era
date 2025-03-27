@@ -112,7 +112,7 @@ export const RecipesWithCrafters = () => {
             <tr className="bg-secondary">
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Recipe</th>
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Profession</th>
-              <th className="p-3 text-center bg-secondary text-secondary-foreground font-semibold">Is Common?</th>
+              <th className="p-3 text-center bg-secondary text-secondary-foreground font-semibold">Common?</th>
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Tags</th>
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Crafters</th>
             </tr>
