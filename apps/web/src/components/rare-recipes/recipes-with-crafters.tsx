@@ -69,7 +69,8 @@ export const RecipesWithCrafters = () => {
       recipe.profession.toLowerCase(),
       recipe.isCommon ? 'common' : '',
       recipe.tags?.map((tag) => "#"+tag).join(' ').toLowerCase() ?? '',
-      recipe.characters?.map(c => c.name?.toLowerCase()).join(' ') || ''
+      recipe.characters?.map(c => c.name?.toLowerCase()).join(' ') || '',
+      recipe.notes.toLowerCase()
     ].join(' ');
 
     // Check if ALL terms are present in the searchable string
@@ -123,13 +124,19 @@ export const RecipesWithCrafters = () => {
                 className="border-b"
               >
                 <td className="p-3">
-                  <Link
+                  <div>
+                    <Link
                     href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
                     className="hover:underline"
                     target="_blank"
                   >
                     {recipe.recipe}
                   </Link>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {recipe.notes}
+                  </div>
+
                 </td>
                 <td className="p-3">{recipe.profession}</td>
                 <td className="p-3 text-center">
