@@ -7,6 +7,7 @@ import Link from "next/link";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
 import { CheckCircle2, Search } from "lucide-react";
 import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
 import { ConstructionBanner } from "~/components/misc/construction-banner";
 
 const SAMPLE_SEARCHES = [
@@ -77,6 +78,18 @@ export const RecipesWithCrafters = () => {
     return terms.every(term => searchableString.includes(term));
   }) ?? [];
 
+  // Function to handle tag click and update search
+  const handleTagClick = (tag: string) => {
+    // Check if the tag is already in the search terms
+    const currentTerms = searchTerms.split(/\s+/);
+    const tagWithHash = `#${tag}`;
+
+    // If tag is not already in search terms, add it
+    if (!currentTerms.includes(tagWithHash)) {
+      setSearchTerms(prev => prev ? `${prev} ${tagWithHash}` : tagWithHash);
+    }
+  };
+
   return (
     <div className="w-full space-y-4">
       {/* Search Input */}
@@ -126,12 +139,12 @@ export const RecipesWithCrafters = () => {
                 <td className="p-3">
                   <div>
                     <Link
-                    href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
-                    className="hover:underline"
-                    target="_blank"
-                  >
-                    {recipe.recipe}
-                  </Link>
+                      href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
+                      className="hover:underline"
+                      target="_blank"
+                    >
+                      {recipe.recipe}
+                    </Link>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {recipe.notes}
@@ -150,12 +163,15 @@ export const RecipesWithCrafters = () => {
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
                     {recipe.tags?.map((tag, index) => (
-                      <span
+                      <Button
                         key={index}
-                        className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs opacity-70 hover:opacity-100 transition-all duration-200"
+                        onClick={() => handleTagClick(tag)}
                       >
-                          #{tag}
-                        </span>
+                        #{tag}
+                      </Button>
                     ))}
                   </div>
                 </td>

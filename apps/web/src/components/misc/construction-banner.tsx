@@ -2,7 +2,7 @@
 
 import { Construction } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
-import {ReactNode} from "react";
+import type {ReactNode} from "react";
 
 export const ConstructionBanner = ({children}: {children: ReactNode}) => {
   return (
