@@ -9,6 +9,7 @@ import { CheckCircle2, Search } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { ConstructionBanner } from "~/components/misc/construction-banner";
+import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
 
 const SAMPLE_SEARCHES = [
   "#natureresist Tailoring",
@@ -154,10 +155,17 @@ export const RecipesWithCrafters = () => {
                 <td className="p-3">{recipe.profession}</td>
                 <td className="p-3 text-center">
                   {recipe.isCommon && (
-                    <CheckCircle2
-                      className="text-green-500 dark:text-green-400 mx-auto"
-                      size={20}
-                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CheckCircle2
+                          className="text-green-500 dark:text-green-400 mx-auto"
+                          size={20}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-secondary text-muted-foreground">
+                        Trainable or very common drop
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </td>
                 <td className="p-3">
