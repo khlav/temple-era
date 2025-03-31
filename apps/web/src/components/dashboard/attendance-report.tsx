@@ -114,7 +114,7 @@ export function AttendanceReport({
     <Card className="min-h-[1700px]">
       <CardHeader>
         <div className="flex flex-row gap-1">
-          <div className="grow-0">Tracked raid attendance points</div>
+          <div className="grow-0">Tracked raid attendance credit</div>
           <div className="grow pt-1 text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -175,7 +175,7 @@ export function AttendanceReport({
                       indicator="line"
                       valueFormatter={(value: ValueType) => (
                         <div className="inline-block pl-1">
-                          {parseFloat(value.toString())} / 18 pts
+                          {parseFloat(value.toString())} of 18
                         </div>
                       )}
                       additionalContentFromItem={() => <></>}
@@ -189,7 +189,7 @@ export function AttendanceReport({
                   strokeWidth={1}
                   strokeDasharray="3 3"
                   label={{
-                    value: "9 pts",
+                    value: "50% attendance credit",
                     position: "top",
                     fill: "#666",
                     fontSize: 12,
