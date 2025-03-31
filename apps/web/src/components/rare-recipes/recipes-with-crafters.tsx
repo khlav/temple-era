@@ -69,7 +69,7 @@ export const RecipesWithCrafters = () => {
     const searchableString = [
       recipe.recipe.toLowerCase(),
       recipe.profession.toLowerCase(),
-      recipe.isCommon ? 'common' : '',
+      recipe.isCommon ? 'common most crafters' : '',
       recipe.tags?.map((tag) => "#"+tag).join(' ').toLowerCase() ?? '',
       recipe.characters?.map(c => c.name?.toLowerCase()).join(' ') || '',
       (recipe.notes ?? '').toLowerCase()
@@ -125,18 +125,14 @@ export const RecipesWithCrafters = () => {
             <thead>
             <tr className="bg-secondary">
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Recipe</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:block">Profession</th>
-              <th className="p-3 text-center bg-secondary text-secondary-foreground font-semibold">Common?</th>
+              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:table-cell">Profession</th>
+              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:table-cell">Crafters</th>
               <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Tags</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:block">Crafters</th>
             </tr>
             </thead>
             <tbody>
             {filteredRecipes.map((recipe) => (
-              <tr
-                key={recipe.recipeSpellId}
-                className="border-b"
-              >
+              <tr key={recipe.recipeSpellId} className="border-b">
                 <td className="p-3">
                   <div>
                     <Link
@@ -150,23 +146,30 @@ export const RecipesWithCrafters = () => {
                   <div className="text-xs text-muted-foreground">
                     {recipe.notes}
                   </div>
-
                 </td>
-                <td className="p-3 hidden md:block">{recipe.profession}</td>
-                <td className="p-3 text-center">
-                  {recipe.isCommon && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <CheckCircle2
-                          className="text-green-500 dark:text-green-400 mx-auto"
-                          size={20}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent className="bg-secondary text-muted-foreground">
-                        Trainable or very common drop
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+                <td className="p-3 hidden md:table-cell">{recipe.profession}</td>
+                <td className="p-3 hidden md:table-cell">
+                  <div className="flex flex-wrap gap-1 my-auto">
+                    {recipe.isCommon ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-chart-2 text-nowrap italic">Most crafters</div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-secondary text-muted-foreground">
+                          Trainable or very common drop
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      recipe.characters?.map((character) => (
+                        <span
+                          key={character.characterId}
+                          className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
+                        >
+                      {character.name}
+                    </span>
+                      ))
+                    )}
+                  </div>
                 </td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
@@ -183,18 +186,6 @@ export const RecipesWithCrafters = () => {
                     ))}
                   </div>
                 </td>
-                <td className="p-3 hidden md:block">
-                  <div className="flex flex-wrap gap-1">
-                    {recipe.characters?.map((character) => (
-                      <span
-                        key={character.characterId}
-                        className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
-                      >
-                          {character.name}
-                        </span>
-                    ))}
-                  </div>
-                </td>
               </tr>
             ))}
             </tbody>
@@ -207,6 +198,7 @@ export const RecipesWithCrafters = () => {
           )}
         </div>
       )}
+
     </div>
   )
 }

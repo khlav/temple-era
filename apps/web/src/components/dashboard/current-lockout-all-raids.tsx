@@ -14,9 +14,10 @@ import {
 import Link from "next/link";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { ExternalLinkIcon } from "lucide-react";
+import {Armchair, ExternalLinkIcon, Swords} from "lucide-react";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import {Card, CardContent, CardHeader} from "~/components/ui/card";
+import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
 
 export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } =
@@ -45,9 +46,9 @@ export function CurrentLockoutAllRaids() {
           <TableCaption className="text-wrap"></TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-5/8 md:w-4/12">Raid</TableHead>
+              <TableHead className="w-5/8 md:w-6/12">Raid</TableHead>
               <TableHead className="w-2/8 md:w-2/12">Attendance</TableHead>
-              <TableHead className="w-1/8 text-center md:w-1/12">WCL</TableHead>
+              <TableHead className="w-1/8 text-center md:w-2/12">WCL</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,16 +58,49 @@ export function CurrentLockoutAllRaids() {
               (trackedRaidData ?? []).map((r) => (
                 <TableRow key={r.raidId}>
                   <TableCell className="text-secondary-foreground">
-                    <Link
-                      className="hover:text-primary group w-full transition-all"
-                      target="_self"
-                      href={"/raids/" + r.raidId}
-                    >
-                      <div>{r.name}</div>
-                      <div className="text-muted-foreground text-xs tracking-tight">
-                        {PrettyPrintDate(new Date(r.date), true)}
+                    <div className="flex flex-row gap-2">
+                      <div className="grow">
+                        <Link
+                          className="hover:text-primary group w-full transition-all"
+                          target="_self"
+                          href={"/raids/" + r.raidId}
+                        >
+                          <div>{r.name}</div>
+                          <div className="text-muted-foreground text-xs tracking-tight">
+                            {PrettyPrintDate(new Date(r.date), true)}
+                          </div>
+                        </Link>
                       </div>
-                    </Link>
+                      <div className="grow-0 my-auto">
+                        { r.currentUserAttendance && (
+                          r.currentUserAttendance == 'bench' ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Armchair
+                                  className="text-chart-2 mx-auto"
+                                  size={20}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-secondary text-muted-foreground">
+                                Bench
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Swords
+                                  className="text-chart-2 mx-auto"
+                                  size={20}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-secondary text-muted-foreground">
+                                Attendee
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <RaidAttendenceWeightBadge
