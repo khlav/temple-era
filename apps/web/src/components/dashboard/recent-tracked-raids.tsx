@@ -94,7 +94,7 @@ export function RecentTrackedRaids() {
                                 />
                               </TooltipTrigger>
                               <TooltipContent className="bg-secondary text-muted-foreground">
-                                Attendee
+                                Attended
                               </TooltipContent>
                             </Tooltip>
                           )

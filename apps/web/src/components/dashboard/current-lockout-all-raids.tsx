@@ -94,7 +94,7 @@ export function CurrentLockoutAllRaids() {
                                 />
                               </TooltipTrigger>
                               <TooltipContent className="bg-secondary text-muted-foreground">
-                                Attendee
+                                Attended
                               </TooltipContent>
                             </Tooltip>
                           )
