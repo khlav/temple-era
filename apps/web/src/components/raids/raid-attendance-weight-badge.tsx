@@ -41,7 +41,7 @@ export const RaidAttendenceWeightBadge = ({
       )}
     </TooltipTrigger>
     <TooltipContent>
-      <div className="mb-0.5 rounded-lg bg-muted px-3 py-1 text-center text-sm text-muted-foreground shadow transition-all">
+      <div className="mb-0.5 rounded-lg bg-muted px-3 py-1 text-center text-xs text-muted-foreground shadow transition-all">
         {attendanceWeight > 0
           ? trackedRaidTooltipContent
           : optionalRaidTooltipContent}
