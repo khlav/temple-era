@@ -95,4 +95,12 @@ VALUES
     (23190, 18662, 'Leatherworking', 'Heavy Leather Ball', TRUE, 'Grief your friends!', ARRAY['qol']),
     (28222, 22664, 'Leatherworking', 'Icy Scale Breastplate', FALSE, 'Required for Warriors and Hunters in Naxx (Sapphiron)', ARRAY['chest', 'naxx', 'ranged', 'melee', 'frostresist']),
     (28223, 22666, 'Leatherworking', 'Icy Scale Gauntlets', FALSE, 'Required for Warriors and Hunters in Naxx (Sapphiron)', ARRAY['hands', 'naxx', 'ranged', 'melee', 'frostresist']),
-    (28224, 22665, 'Leatherworking', 'Icy Scale Bracers', FALSE, 'Required for Warriors and Hunters in Naxx (Sapphiron)', ARRAY['wrist', 'naxx', 'ranged', 'melee', 'frostresist']);
+    (28224, 22665, 'Leatherworking', 'Icy Scale Bracers', FALSE, 'Required for Warriors and Hunters in Naxx (Sapphiron)', ARRAY['wrist', 'naxx', 'ranged', 'melee', 'frostresist']),
+    (25081, NULL, 'Enchanting', 'Enchant Cloak - Greater Fire Resistance (+15)', FALSE, 'Typically paired with Onyxia Scale Cloak', ARRAY['bwl/mc', 'fireresist']),
+    (3872, 4335, 'Tailoring', 'Rich Purple Silk Shirt', FALSE, 'BiS drip for all characters', ARRAY['qol']),
+    (25074, NULL, 'Enchanting', 'Enchant Gloves - Frost Power (+20)', FALSE, 'Frost Mage BiS', ARRAY['caster']),
+    (13933, NULL, 'Enchanting', 'Enchant Shield - Frost Resistance (+8)', FALSE, 'Helpful for Naxx Tanks (Sapphiron, KT)', ARRAY['naxx', 'tank', 'frostresist']),
+    (13689, NULL, 'Enchanting', 'Enchant Shield - Lesser Block (+2%)', FALSE, 'More block means less death. In theory.', ARRAY['tank']),
+    (23803, NULL, 'Enchanting', 'Enchant Weapon - Mighty Spirit (+20)', FALSE, 'Evocate BiS', ARRAY['healer']),
+    (23804, NULL, 'Enchanting', 'Enchant Weapon - Mighty Intellect (+22)', FALSE, 'Alternative for casters/healers vs. +sp or +hp', ARRAY['caster', 'healer'])
+ON CONFLICT (recipe_spell_id) DO NOTHING;
