@@ -91,7 +91,7 @@ export const RecipesWithCrafters = () => {
   const handleTagClick = (tag: string) => {
     // Check if the tag is already in the search terms
     const currentTerms = searchTerms.split(/\s+/);
-    const tagWithHash = `#${tag}`;
+    const tagWithHash = tag;
 
     // If tag is not already in search terms, add it
     if (!currentTerms.includes(tagWithHash)) {
@@ -117,10 +117,6 @@ export const RecipesWithCrafters = () => {
           onChange={(e) => setSearchTerms(e.target.value ?? '')}
         />
       </div>
-      {/* Under Construction Banner */}
-      <ConstructionBanner>
-        <strong>Work in progress</strong> -- Crafters coming soon.
-      </ConstructionBanner>
 
       {isLoading && (
         <div className="text-center py-4 text-gray-500 dark:text-gray-400">Loading recipes...</div>
@@ -169,12 +165,14 @@ export const RecipesWithCrafters = () => {
                         </Tooltip>
                       ) : (
                         recipe.characters?.map((character) => (
-                          <span
+                          <Button
+                            variant="secondary"
                             key={character.characterId}
-                            className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
+                            className="bg-secondary text-secondary-foreground text-xs px-2 py-1 opacity-70 hover:opacity-100 transition-all duration-100"
+                            onClick={() => handleTagClick(character.name)}
                           >
                             {character.name}
-                          </span>
+                          </Button>
                         ))
                       )}
                     </div>
@@ -187,7 +185,7 @@ export const RecipesWithCrafters = () => {
                           variant="link"
                           size="sm"
                           className="text-xs opacity-70 hover:opacity-100 transition-all font-normal duration-100 p-0 text-muted-foreground h-3"
-                          onClick={() => handleTagClick(tag)}
+                          onClick={() => handleTagClick(`#${tag}`)}
                         >
                           #{tag}
                         </Button>
