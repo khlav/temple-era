@@ -9,7 +9,15 @@ import { CheckCircle2, Search } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { ConstructionBanner } from "~/components/misc/construction-banner";
-import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 
 const SAMPLE_SEARCHES = [
   "#natureresist Tailoring",
@@ -121,75 +129,75 @@ export const RecipesWithCrafters = () => {
       {isSuccess && (
         <div className="overflow-x-auto">
           <WOWHeadTooltips />
-          <table className="w-full border-collapse text-sm">
-            <thead>
-            <tr className="bg-secondary">
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Recipe</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:table-cell">Profession</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold hidden md:table-cell">Crafters</th>
-              <th className="p-3 text-left bg-secondary text-secondary-foreground font-semibold">Tags</th>
-            </tr>
-            </thead>
-            <tbody>
-            {filteredRecipes.map((recipe) => (
-              <tr key={recipe.recipeSpellId} className="border-b">
-                <td className="p-3">
-                  <div>
-                    <Link
-                      href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
-                      className="hover:underline"
-                      target="_blank"
-                    >
-                      {recipe.recipe}
-                    </Link>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {recipe.notes}
-                  </div>
-                </td>
-                <td className="p-3 hidden md:table-cell">{recipe.profession}</td>
-                <td className="p-3 hidden md:table-cell">
-                  <div className="flex flex-wrap gap-1 my-auto">
-                    {recipe.isCommon ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="text-chart-2 text-nowrap italic">Most crafters</div>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-secondary text-muted-foreground">
-                          Trainable or very common drop
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      recipe.characters?.map((character) => (
-                        <span
-                          key={character.characterId}
-                          className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
-                        >
-                      {character.name}
-                    </span>
-                      ))
-                    )}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <div className="flex flex-wrap gap-1">
-                    {recipe.tags?.map((tag, index) => (
-                      <Button
-                        key={index}
-                        variant="secondary"
-                        size="sm"
-                        className="text-xs opacity-70 hover:opacity-100 transition-all duration-200"
-                        onClick={() => handleTagClick(tag)}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Recipe</TableHead>
+                <TableHead className="hidden md:table-cell">Profession</TableHead>
+                <TableHead className="hidden md:table-cell">Crafters</TableHead>
+                <TableHead>Tags</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRecipes.map((recipe) => (
+                <TableRow key={recipe.recipeSpellId}>
+                  <TableCell>
+                    <div>
+                      <Link
+                        href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
+                        className="hover:underline"
+                        target="_blank"
                       >
-                        #{tag}
-                      </Button>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            </tbody>
-          </table>
+                        {recipe.recipe}
+                      </Link>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {recipe.notes}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{recipe.profession}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <div className="flex flex-wrap gap-1 my-auto">
+                      {recipe.isCommon ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-chart-2 text-nowrap italic">Most crafters</div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-secondary text-muted-foreground">
+                            Trainable or very common drop
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        recipe.characters?.map((character) => (
+                          <span
+                            key={character.characterId}
+                            className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full"
+                          >
+                            {character.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recipe.tags?.map((tag, index) => (
+                        <Button
+                          key={index}
+                          variant="link"
+                          size="sm"
+                          className="text-xs opacity-70 hover:opacity-100 transition-all font-normal duration-100 p-0 text-muted-foreground h-3"
+                          onClick={() => handleTagClick(tag)}
+                        >
+                          #{tag}
+                        </Button>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
           {filteredRecipes.length === 0 && (
             <div className="text-center py-4 text-muted-foreground">
@@ -198,7 +206,6 @@ export const RecipesWithCrafters = () => {
           )}
         </div>
       )}
-
     </div>
   )
 }

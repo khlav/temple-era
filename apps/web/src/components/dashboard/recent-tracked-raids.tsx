@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import {Armchair, CheckCircle2, ExternalLinkIcon, Swords} from "lucide-react";
+import {Armchair, ExternalLinkIcon, Swords} from "lucide-react";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import {Card, CardContent, CardHeader} from "~/components/ui/card";
 import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
