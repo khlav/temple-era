@@ -9,14 +9,17 @@ import { Button } from "~/components/ui/button";
 import { Edit } from "lucide-react";
 import React from "react";
 import { ClassIcon } from "~/components/ui/class-icon";
+import {CharacterRecipes} from "~/components/characters/character-recipes";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
 
 export function CharacterDetail({
   characterId,
   showEditButton,
+  showRecipeEdit,
 }: {
   characterId: number;
   showEditButton?: boolean;
+  showRecipeEdit?: boolean;
 }) {
   const { data: characterData, isSuccess } =
     api.character.getCharacterById.useQuery(characterId);
@@ -79,7 +82,8 @@ export function CharacterDetail({
                 </div>
               </>
             ) : null}
-
+            <Separator className="my-2 w-full" />
+            <CharacterRecipes character={characterData} showRecipeEditor={showRecipeEdit}/>
             {characterData.isPrimary == false && (
               <>
                 <Separator className="my-2 w-full" />
