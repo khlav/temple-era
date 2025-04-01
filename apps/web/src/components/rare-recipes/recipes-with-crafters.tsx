@@ -5,10 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "~/trpc/react";
 import Link from "next/link";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
-import { CheckCircle2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { ConstructionBanner } from "~/components/misc/construction-banner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
   Table,

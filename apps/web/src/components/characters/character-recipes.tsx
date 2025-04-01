@@ -82,7 +82,7 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
 
       // Find recipe name based on spellId
       const recipe = allRecipesWithCharacters?.find(r => r.recipeSpellId === variables.recipeSpellId);
-      const recipeName = recipe?.recipe || "Recipe";
+      const recipeName = recipe?.recipe ?? "Recipe";
 
       const characterName = character.name;
 
@@ -107,7 +107,7 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
 
       // Find recipe name based on spellId
       const recipe = allRecipesWithCharacters?.find(r => r.recipeSpellId === variables.recipeSpellId);
-      const recipeName = recipe?.recipe || "Recipe";
+      const recipeName = recipe?.recipe ?? "Recipe";
 
       const characterName = character.name;
 
