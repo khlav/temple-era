@@ -156,7 +156,7 @@ export const RecipesWithCrafters = () => {
                       {recipe.isCommon ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="text-chart-2 text-nowrap italic">Most crafters</div>
+                            <div className="text-chart-2 text-nowrap italic text-xs">Most crafters</div>
                           </TooltipTrigger>
                           <TooltipContent className="bg-secondary text-muted-foreground">
                             Trainable or very common drop
