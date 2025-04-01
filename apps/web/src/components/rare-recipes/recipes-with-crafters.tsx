@@ -129,8 +129,8 @@ export const RecipesWithCrafters = () => {
               <TableRow>
                 <TableHead>Recipe</TableHead>
                 <TableHead className="hidden md:table-cell">Profession</TableHead>
-                <TableHead className="hidden md:table-cell">Crafters</TableHead>
-                <TableHead>Tags</TableHead>
+                <TableHead>Crafters</TableHead>
+                <TableHead className="hidden md:table-cell">Tags</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,7 +151,7 @@ export const RecipesWithCrafters = () => {
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{recipe.profession}</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="flex flex-wrap gap-1 my-auto">
                       {recipe.isCommon ? (
                         <Tooltip>
@@ -176,7 +176,7 @@ export const RecipesWithCrafters = () => {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1.5">
                       {recipe.tags?.map((tag, index) => (
                         <Button
