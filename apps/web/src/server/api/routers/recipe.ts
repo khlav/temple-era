@@ -16,14 +16,14 @@ import type {
 export const recipe = createTRPCRouter({
   getAllRecipes: publicProcedure.query(async ({ ctx }): Promise<Recipe[]> => {
     return await ctx.db.query.recipes.findMany({
-      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipeSpellId)],
+      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipe)],
     });
   }),
 
   getAllRecipesWithCharacters: publicProcedure.query(async ({ ctx }): Promise<RecipeWithCharacters[]> => {
     // Fetch all recipes with their related characters
     const allRecipes = await ctx.db.query.recipes.findMany({
-      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipeSpellId)],
+      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipe)],
       with: {
         characterRecipes: {
           with: {
