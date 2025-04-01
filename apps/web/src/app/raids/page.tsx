@@ -13,7 +13,7 @@ export default async function RaidIndex() {
       <main className="w-full px-4">
         <div className="flex gap-4">
           <div className="grow-0 pb-4 text-3xl font-bold">Raids</div>
-          <div className="grow">
+          <div className="grow text-right">
             {session?.user?.isRaidManager && (
               <Button asChild className="accent-accent">
                 <Link href={`/raids/new`}> + New from Warcraft Logs link</Link>
