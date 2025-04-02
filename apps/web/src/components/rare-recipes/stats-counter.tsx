@@ -73,8 +73,7 @@ export const StatsCounter = ({
 
   // Count total entries (character-recipe pairs)
   const entriesCount = filteredRecipes
-      .reduce((acc, r) => acc + (r.characters?.length || 0), 0)
-    + filteredRecipes.filter(r => r.isCommon).length; // Count common recipes as 1 entry each
+      .reduce((acc, r) => acc + (r.characters?.length || 0), 0);
 
   return (
     <div className="hidden md:flex justify-around py-3 border-b">
