@@ -18,19 +18,20 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
+import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
 const SAMPLE_SEARCHES = [
   "#natureresist Tailoring",
-  "#caster Bloodvine",
-  "#tank #melee Enchanting",
-  "Glacial #healer",
-  "#ranged Engineering",
-  "#shield Biznicks",
-  "Runed Stygian #aq40",
-  "#qol Bottomless",
-  "Brilliant Oil #caster",
-  "#chest #naxx "
+  "#caster Bloodvine -green",
+  "#tank #melee Enchanting -weapon",
+  "Glacial #healer -blue",
+  "#ranged Engineering -scope",
+  "#shield Biznicks -gnomish",
+  "Runed Stygian #aq40 -tailoring",
+  "#qol Bottomless -enchanting",
+  "Brilliant Oil #caster -drake",
+  "#chest #naxx -leather"
 ];
 
 export const RecipesWithCrafters = () => {
@@ -67,12 +68,18 @@ export const RecipesWithCrafters = () => {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchTerms, router, searchParams]);
 
-  // Filter function for recipes
+  // Filter function for recipes with exclusion support
   const filteredRecipes: RecipeWithCharacters[] = recipes?.filter(recipe => {
     if (!searchTerms.trim()) return true;
 
     // Split search terms and convert to lowercase
-    const terms = searchTerms.toLowerCase().split(/\s+/);
+    const allTerms = searchTerms.toLowerCase().split(/\s+/);
+
+    // Separate inclusion and exclusion terms
+    const includeTerms = allTerms.filter(term => !term.startsWith('-'));
+    const excludeTerms = allTerms
+      .filter(term => term.startsWith('-'))
+      .map(term => term.substring(1)); // Remove the '-' prefix
 
     // Convert recipe details to searchable string
     const searchableString = [
@@ -84,39 +91,63 @@ export const RecipesWithCrafters = () => {
       (recipe.notes ?? '').toLowerCase()
     ].join(' ');
 
-    // Check if ALL terms are present in the searchable string
-    return terms.every(term => searchableString.includes(term));
+    // Check if ANY exclusion term is present (if so, exclude this recipe)
+    if (excludeTerms.some(term => term && searchableString.includes(term))) {
+      return false;
+    }
+
+    // If no inclusion terms, all non-excluded items match
+    if (includeTerms.length === 0) {
+      return true;
+    }
+
+    // Check if ALL inclusion terms are present
+    return includeTerms.every(term => searchableString.includes(term));
   }) ?? [];
 
   // Function to handle tag click and update search
-  const handleTagClick = (tag: string) => {
+  const handleTagClick = (tag: string, exclude = false) => {
+    const prefix = exclude ? '-' : '';
+    const termToAdd = `${prefix}${tag}`;
+
     // Check if the tag is already in the search terms
     const currentTerms = searchTerms.split(/\s+/);
-    const tagWithHash = tag;
 
     // If tag is not already in search terms, add it
-    if (!currentTerms.includes(tagWithHash)) {
-      setSearchTerms(prev => prev ? `${prev} ${tagWithHash}` : tagWithHash);
+    if (!currentTerms.includes(termToAdd)) {
+      setSearchTerms(prev => prev ? `${prev} ${termToAdd}` : termToAdd);
     }
+  };
+
+  // Function to handle tag right-click for exclusion
+  const handleTagRightClick = (tag: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default context menu
+    handleTagClick(tag, true);
+    return false;
   };
 
   return (
     <div className="w-full space-y-4">
       {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <Input
-          ref={searchInputRef}
-          type="text"
-          placeholder={
-            placeholderSearch
-              ? `Search recipes, professions, tags, or characters... (e.g. ${placeholderSearch})`
-              : "Search recipes, professions, tags, or characters..."
-          }
-          className="pl-10 w-full"
-          value={searchTerms}
-          onChange={(e) => setSearchTerms(e.target.value ?? '')}
-        />
+      <div className="flex flex-col gap-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder={
+              placeholderSearch
+                ? `Search recipes, professions, tags, or characters... (e.g. ${placeholderSearch})`
+                : "Search recipes, professions, tags, or characters..."
+            }
+            className="pl-10 w-full"
+            value={searchTerms}
+            onChange={(e) => setSearchTerms(e.target.value ?? '')}
+          />
+        </div>
+        <div className="flex justify-end">
+          <SearchHelperText />
+        </div>
       </div>
 
       {isLoading && (
@@ -179,6 +210,7 @@ export const RecipesWithCrafters = () => {
                             key={character.characterId}
                             className="bg-secondary text-secondary-foreground text-xs px-2 py-1 opacity-70 hover:opacity-100 transition-all duration-100"
                             onClick={() => handleTagClick(character.name)}
+                            onContextMenu={(e) => handleTagRightClick(character.name, e)}
                           >
                             {character.name}
                           </Button>
@@ -195,6 +227,7 @@ export const RecipesWithCrafters = () => {
                           size="sm"
                           className="text-xs opacity-70 hover:opacity-100 transition-all font-normal duration-100 p-0 text-muted-foreground h-3"
                           onClick={() => handleTagClick(`#${tag}`)}
+                          onContextMenu={(e) => handleTagRightClick(`#${tag}`, e)}
                         >
                           #{tag}
                         </Button>
