@@ -17,6 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { StatsCounter } from "~/components/rare-recipes/stats-counter";
+import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
 const SAMPLE_SEARCHES = [
   "#natureresist Tailoring",
@@ -37,7 +39,7 @@ export const RecipesWithCrafters = () => {
   const initialSearch = searchParams?.get('s') ?? '';
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: recipes, isLoading, isSuccess } = api.recipe.getAllRecipesWithCharacters.useQuery();
+  const { data: recipes, isLoading, isSuccess } = api.recipe.getAllRecipesWithCharacters.useQuery<RecipeWithCharacters[]>();
   const WOWHEAD_SPELL_URL_BASE = "https://www.wowhead.com/classic/spell=";
 
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
@@ -66,7 +68,7 @@ export const RecipesWithCrafters = () => {
   }, [searchTerms, router, searchParams]);
 
   // Filter function for recipes
-  const filteredRecipes = recipes?.filter(recipe => {
+  const filteredRecipes: RecipeWithCharacters[] = recipes?.filter(recipe => {
     if (!searchTerms.trim()) return true;
 
     // Split search terms and convert to lowercase
@@ -119,6 +121,14 @@ export const RecipesWithCrafters = () => {
 
       {isLoading && (
         <div className="text-center py-4 text-gray-500 dark:text-gray-400">Loading recipes...</div>
+      )}
+
+      {/* Stats Counter - Only show when data is loaded */}
+      {isSuccess && (
+        <StatsCounter
+          recipes={recipes}
+          filteredRecipes={filteredRecipes}
+        />
       )}
 
       {isSuccess && (
