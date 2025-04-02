@@ -68,13 +68,11 @@ export const StatsCounter = ({
   // Count unique crafters (exclude common recipes)
   const craftersCount = new Set(
     filteredRecipes
-      .filter(r => !r.isCommon)
       .flatMap(r => r.characters?.map(c => c.characterId) || [])
   ).size;
 
   // Count total entries (character-recipe pairs)
   const entriesCount = filteredRecipes
-      .filter(r => !r.isCommon)
       .reduce((acc, r) => acc + (r.characters?.length || 0), 0)
     + filteredRecipes.filter(r => r.isCommon).length; // Count common recipes as 1 entry each
 
