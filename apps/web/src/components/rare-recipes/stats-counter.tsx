@@ -23,7 +23,7 @@ const StatDisplay = ({ label, value }: StatProps) => {
   }, []);
 
   // Fix for useSpring TypeScript error
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
   const { number } = useSpring({
     from: { number: isMounted ? 0 : value },
     to: { number: value },
@@ -35,7 +35,7 @@ const StatDisplay = ({ label, value }: StatProps) => {
     <div className="flex flex-col items-center justify-center px-4">
       <div className="text-3xl font-bold text-primary leading-none">
         <animated.span>
-          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access */}
+          {/* eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument */}
           {number.to((n) => Math.floor(n).toLocaleString())}
         </animated.span>
       </div>
