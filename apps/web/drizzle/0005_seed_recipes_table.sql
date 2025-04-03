@@ -103,5 +103,9 @@ VALUES
     (13689, NULL, 'Enchanting', 'Enchant Shield - Lesser Block (+2%)', FALSE, 'More block means less death. In theory.', ARRAY['tank']),
     (23803, NULL, 'Enchanting', 'Enchant Weapon - Mighty Spirit (+20)', FALSE, 'Evocate BiS', ARRAY['healer']),
     (23804, NULL, 'Enchanting', 'Enchant Weapon - Mighty Intellect (+22)', FALSE, 'Alternative for casters/healers vs. +sp or +hp', ARRAY['caster', 'healer']),
-    (25659, 21023, 'Cooking', 'Dirge''s Kickin'' Chimaerok Chops', FALSE, 'BiS food for endgame tanking', ARRAY['tank', 'aq40', 'naxx'])
+    (25659, 21023, 'Cooking', 'Dirge''s Kickin'' Chimaerok Chops', FALSE, 'BiS food for endgame tanking', ARRAY['tank', 'aq40', 'naxx']),
+    (27660, 22249, 'Tailoring', 'Big Bag of Enchantment', FALSE, 'It''d be easier to vendor your low-level enchant mats. But just in case...', ARRAY['qol']),
+    (27725, 22252, 'Tailoring', 'Satchel of Cenarius', FALSE, 'Holds herbs. Handy.', ARRAY['qol']),
+    (8238, 6657, 'Cooking', 'Savory Deviate Delight', FALSE, 'Yar or *silence*', ARRAY['pirate', 'ninja']),
+    (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yar.', ARRAY['pirate'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;
