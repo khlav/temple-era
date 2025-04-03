@@ -3,7 +3,7 @@ import { z } from "zod";
 import {adminProcedure, createTRPCRouter, protectedProcedure, publicProcedure} from "~/server/api/trpc";
 import { recipes, characterRecipeMap } from "~/server/db/schema";
 import { characters } from "~/server/db/models/raid-schema";
-import { and, eq } from "drizzle-orm";
+import {and, eq, sql} from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import type {
   Recipe,
@@ -16,14 +16,14 @@ import type {
 export const recipe = createTRPCRouter({
   getAllRecipes: publicProcedure.query(async ({ ctx }): Promise<Recipe[]> => {
     return await ctx.db.query.recipes.findMany({
-      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipe)],
+      orderBy: (recipes, { asc }) => [asc(sql<string>`CAST(${recipes.profession} as TEXT)`), asc(recipes.recipe)],
     });
   }),
 
   getAllRecipesWithCharacters: publicProcedure.query(async ({ ctx }): Promise<RecipeWithCharacters[]> => {
     // Fetch all recipes with their related characters
     const allRecipes = await ctx.db.query.recipes.findMany({
-      orderBy: (recipes, { asc }) => [asc(recipes.profession), asc(recipes.recipe)],
+      orderBy: (recipes, { asc }) => [asc(sql<string>`CAST(${recipes.profession} as TEXT)`), asc(recipes.recipe)],
       with: {
         characterRecipes: {
           with: {
