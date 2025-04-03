@@ -106,6 +106,6 @@ VALUES
     (25659, 21023, 'Cooking', 'Dirge''s Kickin'' Chimaerok Chops', FALSE, 'BiS food for endgame tanking', ARRAY['tank', 'aq40', 'naxx']),
     (27660, 22249, 'Tailoring', 'Big Bag of Enchantment', FALSE, 'It''d be easier to vendor your low-level enchant mats. But just in case...', ARRAY['qol']),
     (27725, 22252, 'Tailoring', 'Satchel of Cenarius', FALSE, 'Holds herbs. Handy.', ARRAY['qol']),
-    (8238, 6657, 'Cooking', 'Savory Deviate Delight', FALSE, 'Yar or *silence*', ARRAY['pirate', 'ninja']),
-    (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yar.', ARRAY['pirate'])
+    (8238, 6657, 'Cooking', 'Savory Deviate Delight', FALSE, 'Yarr or *silence*', ARRAY['pirate', 'ninja']),
+    (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yarr.', ARRAY['pirate'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;
