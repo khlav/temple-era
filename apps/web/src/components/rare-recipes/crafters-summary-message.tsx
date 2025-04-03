@@ -104,7 +104,7 @@ export const CraftersSummaryMessage = ({
       <div className="flex gap-2">
         <AlertCircle className="h-4 w-4 text-chart-2" />
         <AlertDescription className="text-muted-foreground">
-          <span>{formatCraftersList()}</span> {completeCrafters.length === 1 ? 'can' : 'can all'} make all items in your search.
+          <span>{formatCraftersList()}</span> can help with all items in your search.
         </AlertDescription>
       </div>
     </Alert>
