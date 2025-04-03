@@ -19,6 +19,7 @@ import {
 } from "~/components/ui/table";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
+import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
 const SAMPLE_SEARCHES = [
@@ -45,6 +46,8 @@ export const RecipesWithCrafters = () => {
 
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
   const [placeholderSearch, setPlaceholderSearch] = useState<string>('');
+  // Track if a search has been performed
+  const [searchPerformed, setSearchPerformed] = useState<boolean>(!!initialSearch);
 
   useEffect(() => {
     setPlaceholderSearch(SAMPLE_SEARCHES[Math.floor(Math.random() * SAMPLE_SEARCHES.length)] ?? '');
@@ -55,14 +58,16 @@ export const RecipesWithCrafters = () => {
     searchInputRef.current?.focus();
   }, []);
 
-  // Update URL when search changes
+  // Update URL when search changes and track search performed state
   useEffect(() => {
     const params = new URLSearchParams(searchParams?.toString());
 
     if (searchTerms) {
       params.set('s', searchTerms);
+      setSearchPerformed(true);
     } else {
       params.delete('s');
+      setSearchPerformed(false);
     }
 
     router.replace(`?${params.toString()}`, { scroll: false });
@@ -159,6 +164,14 @@ export const RecipesWithCrafters = () => {
         <StatsCounter
           recipes={recipes}
           filteredRecipes={filteredRecipes}
+        />
+      )}
+
+      {/* Crafters Summary Message - Shows when specific conditions are met */}
+      {isSuccess && (
+        <CraftersSummaryMessage
+          filteredRecipes={filteredRecipes}
+          searchPerformed={searchPerformed}
         />
       )}
 
