@@ -19,6 +19,7 @@ import {
 } from "~/components/ui/table";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
+import { ArtisansByProfession } from "~/components/rare-recipes/artisans-by-profession";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
 const SAMPLE_SEARCHES = [
@@ -153,6 +154,9 @@ export const RecipesWithCrafters = () => {
       {isLoading && (
         <div className="text-center py-4 text-gray-500 dark:text-gray-400">Loading recipes...</div>
       )}
+
+      {/* Artisans By Profession - Only visible on desktop and when data is loaded */}
+      {isSuccess && <ArtisansByProfession recipes={recipes} />}
 
       {/* Stats Counter - Only show when data is loaded */}
       {isSuccess && (
