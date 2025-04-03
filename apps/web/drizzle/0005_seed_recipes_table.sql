@@ -102,5 +102,6 @@ VALUES
     (13933, NULL, 'Enchanting', 'Enchant Shield - Frost Resistance (+8)', FALSE, 'Helpful for Naxx Tanks (Sapphiron, KT)', ARRAY['naxx', 'tank', 'frostresist']),
     (13689, NULL, 'Enchanting', 'Enchant Shield - Lesser Block (+2%)', FALSE, 'More block means less death. In theory.', ARRAY['tank']),
     (23803, NULL, 'Enchanting', 'Enchant Weapon - Mighty Spirit (+20)', FALSE, 'Evocate BiS', ARRAY['healer']),
-    (23804, NULL, 'Enchanting', 'Enchant Weapon - Mighty Intellect (+22)', FALSE, 'Alternative for casters/healers vs. +sp or +hp', ARRAY['caster', 'healer'])
+    (23804, NULL, 'Enchanting', 'Enchant Weapon - Mighty Intellect (+22)', FALSE, 'Alternative for casters/healers vs. +sp or +hp', ARRAY['caster', 'healer']),
+    (25659, 21023, 'Cooking', 'Dirge''s Kickin'' Chimaerok Chops', FALSE, 'BiS food for endgame tanking', ARRAY['tank', 'aq40', 'naxx'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;

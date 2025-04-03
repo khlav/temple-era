@@ -11,7 +11,8 @@ export const professionEnum = pgEnum('profession', [
   'Enchanting',
   'Engineering',
   'Tailoring',
-  'Leatherworking'
+  'Leatherworking',
+  'Cooking'
 ]);
 
 // Recipes table

@@ -1,0 +1,1 @@
+ALTER TYPE "profession" ADD VALUE 'Cooking';
