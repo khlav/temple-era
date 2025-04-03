@@ -44,13 +44,16 @@ export const CraftersSummaryMessage = ({
       }
 
       recipe.characters.forEach(character => {
-        if (!crafterMap[character.characterId]) {
-          crafterMap[character.characterId] = {
+        const characterId = character.characterId;
+        if (!characterId) return; // Skip if characterId is undefined
+
+        if (!crafterMap[characterId]) {
+          crafterMap[characterId] = {
             name: character.name || "Unknown",
             recipeCount: 0
           };
         }
-        crafterMap[character.characterId].recipeCount++;
+        crafterMap[characterId].recipeCount++;
       });
     });
 
