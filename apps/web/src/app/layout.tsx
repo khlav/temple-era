@@ -13,6 +13,7 @@ import { AppHeader } from "~/components/nav/app-header";
 import { Toaster } from "~/components/ui/toaster";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { PostHogProvider } from "~/app/providers";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance",
@@ -39,6 +40,7 @@ export default async function RootLayout({
       disableTransitionOnChange
         >
           <TRPCReactProvider>
+            <SessionProvider>
             <PostHogProvider>
               <TooltipProvider>
                 <SidebarProvider defaultOpen={defaultOpen}>
@@ -51,6 +53,7 @@ export default async function RootLayout({
                 </SidebarProvider>
               </TooltipProvider>
             </PostHogProvider>
+            </SessionProvider>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

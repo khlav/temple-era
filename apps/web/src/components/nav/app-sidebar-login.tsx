@@ -32,7 +32,6 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
   };
   const userMenu = (
     <SidebarMenuItem>
-      <PostHogIdentify session={session} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton className="border-2">
