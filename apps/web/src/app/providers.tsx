@@ -78,7 +78,7 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
       location.hostname === "localhost" ||
       location.hostname === "127.0.0.1"
     ) {
-      posthog.opt_out_capturing();
+      posthog.debug();
     }
   }, []);
 
