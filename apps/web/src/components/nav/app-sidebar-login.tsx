@@ -17,7 +17,6 @@ import { signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import posthog from "posthog-js";
-import {PostHogIdentify} from "~/app/providers";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {
   const handleSignIn = () => signIn(

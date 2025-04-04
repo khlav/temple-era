@@ -46,10 +46,8 @@ const StatDisplay = ({ label, value }: StatProps) => {
 
 // Main stats counter component with proper typing
 export const StatsCounter = ({
-                               recipes,
                                filteredRecipes
                              }: {
-  recipes: RecipeWithCharacters[] | undefined,
   filteredRecipes: RecipeWithCharacters[]
 }) => {
   // Add key to force component re-render when data is loaded

@@ -10,7 +10,6 @@ import { useSession } from "next-auth/react"; // Add this import
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { type ReactNode } from "react";
-import type { Session } from "next-auth";
 
 export const PostHogIdentify = () => {
   const posthog = usePostHog();
@@ -103,7 +102,7 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
       person_profiles: "identified_only",
       capture_pageview: false, // Disable automatic pageview capture, as we capture manually
       capture_pageleave: true, // Enable pageleave capture
-      loaded: function(posthog) {
+      loaded: function() {
         setIsInitialized(true);
       }
     });

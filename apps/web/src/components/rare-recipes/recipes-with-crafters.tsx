@@ -162,7 +162,6 @@ export const RecipesWithCrafters = () => {
       {/* Stats Counter - Only show when data is loaded */}
       {isSuccess && (
         <StatsCounter
-          recipes={recipes}
           filteredRecipes={filteredRecipes}
         />
       )}
