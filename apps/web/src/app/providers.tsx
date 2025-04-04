@@ -117,9 +117,9 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
 
   return (
     <PHProvider client={posthog}>
-      <SuspendedPostHogPageView />
       {isInitialized && <SuspendedPostHogIdentify />}
       {children}
+      <SuspendedPostHogPageView />
     </PHProvider>
   );
 }
