@@ -107,7 +107,7 @@ export function PrimaryCharacterRaidsTable({
         <div className="flex justify-between mt-1 text-xs text-muted-foreground">
           <span>Search supports multiple terms</span>
           <span>
-            All-time raids: {raidStats.total} -
+            All-time raids: {raidStats.total}{" "}
             ({raidStats.attended} attended, {raidStats.benched} benched)
           </span>
         </div>
