@@ -69,12 +69,12 @@ export function PrimaryCharacterRaidsTable({
     return raids.filter(raid => {
       // Create searchable string from raid data
       const searchableString = [
-        raid.name?.toLowerCase() || '',
-        raid.zone?.toLowerCase() || '',
+        raid.name?.toLowerCase() ?? '',
+        raid.zone?.toLowerCase() ?? '',
         PrettyPrintDate(new Date(raid.date), true).toLowerCase(),
-        raid.attendanceWeight?.toString() || '',
-        raid.attendeeOrBench?.toLowerCase() || '',
-        ...(raid.allCharacters?.map(c => c.name?.toLowerCase()) || []),
+        raid.attendanceWeight?.toString() ?? '',
+        raid.attendeeOrBench?.toLowerCase() ?? '',
+        ...(raid.allCharacters?.map(c => c.name?.toLowerCase()) ?? []),
       ].join(' ');
 
       // Check if ALL terms are present (AND search)
@@ -84,9 +84,9 @@ export function PrimaryCharacterRaidsTable({
 
   // Count stats for attendance summary
   const raidStats = useMemo(() => {
-    const total = filteredRaids?.length || 0;
-    const attended = filteredRaids?.filter(r => r.attendeeOrBench === "attendee").length || 0;
-    const benched = filteredRaids?.filter(r => r.attendeeOrBench === "bench").length || 0;
+    const total = filteredRaids?.length ?? 0;
+    const attended = filteredRaids?.filter(r => r.attendeeOrBench === "attendee").length ?? 0;
+    const benched = filteredRaids?.filter(r => r.attendeeOrBench === "bench").length ?? 0;
 
     return { total, attended, benched };
   }, [filteredRaids]);
