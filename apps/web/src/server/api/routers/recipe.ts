@@ -40,8 +40,9 @@ export const recipe = createTRPCRouter({
     // Map the results to include characters as an array
     return allRecipes.map((recipe) => ({
       ...recipe,
-      characters: recipe.characterRecipes.map((cr) => cr.character),
-      // Remove the original relationship mapping to keep the response clean
+      characters: recipe
+        .characterRecipes.map((cr) => cr.character)
+        .sort((a,b) => a < b),
       characterRecipes: undefined,
     })) as RecipeWithCharacters[];
   }),
