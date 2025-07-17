@@ -159,11 +159,11 @@ export function CharacterManagerRow({
                     });
                   }}
                 >
-                  {(isSending || updateIsIgnored.isPending) ? <Loader className="animate-spin" /> : character.isIgnored ? "Ignored" : "Ignore?"}
+                  {(isSending || updateIsIgnored.isPending) ? <Loader className="animate-spin" /> : character.isIgnored ? "Ignored" : "Ignore"}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top" className="rounded bg-muted text-muted-foreground px-3 py-1 text-xs shadow transition-all">
-                Removes this character from reports, recipes, and other UIs
+                Removes this character from dashboards and recipe tools.
               </TooltipContent>
             </Tooltip>
           </TableCell>
