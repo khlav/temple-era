@@ -152,6 +152,7 @@ export const raid = createTRPCRouter({
               slug: true,
               isPrimary: true,
               primaryCharacterId: true,
+              isIgnored: true,
             },
             with: {
               primaryCharacter: {
@@ -169,7 +170,6 @@ export const raid = createTRPCRouter({
         const benched = {
           ...rel.character,
           primaryCharacterName: rel.character?.primaryCharacter?.name,
-          isIgnored: false,
         };
         acc[benched.characterId] = benched;
         return acc;
