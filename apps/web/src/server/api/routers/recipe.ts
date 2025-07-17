@@ -37,11 +37,13 @@ export const recipe = createTRPCRouter({
       },
     });
 
-    // Map the results to include characters as an array
+    // Map the results to include characters as an array, filtering out ignored characters
     return allRecipes.map((recipe) => ({
       ...recipe,
       characters: recipe
-        .characterRecipes.map((cr) => cr.character)
+        .characterRecipes
+        .map((cr) => cr.character)
+        .filter((c) => !c.isIgnored)
         .sort((a,b) => a.name > b.name ? 1 : -1),
       characterRecipes: undefined,
     })) as RecipeWithCharacters[];
