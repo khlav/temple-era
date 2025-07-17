@@ -43,7 +43,7 @@ export const recipe = createTRPCRouter({
       characters: recipe
         .characterRecipes
         .map((cr) => cr.character)
-        .filter((c) => !c.isIgnored && !(c.primaryCharacter && c.primaryCharacter.isIgnored))
+        .filter((c) => !c.isIgnored && !c.primaryCharacter?.isIgnored)
         .sort((a,b) => a.name > b.name ? 1 : -1),
       characterRecipes: undefined,
     })) as RecipeWithCharacters[];
