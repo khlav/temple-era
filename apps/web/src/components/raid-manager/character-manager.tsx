@@ -57,45 +57,18 @@ export function CharacterManager() {
 
   // Filter characters based on search term
   const filteredPlayers = characterData
-    ? characterData
-        .map((player): RaidParticipant => {
-          const normalizedSecondaries = Array.isArray(player.secondaryCharacters)
-            ? player.secondaryCharacters.filter(Boolean).map((c: any): RaidParticipant => {
-                const normalizedNestedSecondaries = Array.isArray(c.secondaryCharacters)
-                  ? c.secondaryCharacters.filter(Boolean).map((cc: any): RaidParticipant => ({
-                      ...cc,
-                      isIgnored: cc.isIgnored === null ? undefined : cc.isIgnored,
-                      secondaryCharacters: Array.isArray(cc.secondaryCharacters)
-                        ? cc.secondaryCharacters.filter(Boolean)
-                        : [],
-                    }))
-                  : [];
-                return {
-                  ...c,
-                  isIgnored: c.isIgnored === null ? undefined : c.isIgnored,
-                  secondaryCharacters: normalizedNestedSecondaries,
-                };
-              })
-            : [];
-          return {
-            ...player,
-            secondaryCharacters: normalizedSecondaries,
-            isIgnored: player.isIgnored === null ? undefined : player.isIgnored,
-          };
-        })
-        .sort(SortRaiders)
-        .filter((player) => {
-          const secondaries = Array.isArray(player.secondaryCharacters) ? player.secondaryCharacters : [];
-          return Object.values({
-            ...player,
-            secondaryCharacterNames: secondaries.map((c)=> c.name),
-            secondaryCharacterClasses: secondaries.map((c)=> c.class)
-          }).some((value) => {
-            return normalizeText(String(value)).includes(
-              normalizeText(searchTerm),
-            );
-          });
-        })
+    ? characterData.sort(SortRaiders).filter((player) => {
+        return Object.values({
+          ...player,
+          secondaryCharacterNames: player.secondaryCharacters.map((c)=> c.name),
+          secondaryCharacterClasses: player.secondaryCharacters.map((c)=> c.class)
+        }).some((value) => {
+          // Normalize and check if any field contains the search term
+          return normalizeText(String(value)).includes(
+            normalizeText(searchTerm),
+          );
+        });
+      })
     : [];
 
   return (

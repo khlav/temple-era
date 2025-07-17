@@ -250,7 +250,15 @@ export const character = createTRPCRouter({
         },
       },
     });
-    return charactersWithSecondaries || [];
+    // Ensure isIgnored is always boolean (never null)
+    return charactersWithSecondaries.map((c) => ({
+      ...c,
+      isIgnored: c.isIgnored ?? false,
+      secondaryCharacters: c.secondaryCharacters?.map((s) => ({
+        ...s,
+        isIgnored: s.isIgnored ?? false,
+      })) ?? [],
+    })) || [];
   }),
 
   updatePrimaryCharacter: raidManagerProcedure
