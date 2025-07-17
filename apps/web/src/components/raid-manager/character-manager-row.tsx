@@ -163,7 +163,7 @@ export function CharacterManagerRow({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="left" className="rounded bg-muted text-muted-foreground px-3 py-1 text-xs shadow transition-all">
-                Remove this character from reports, recipes, and other UIs
+                Removes this character from reports, recipes, and other UIs
               </TooltipContent>
             </Tooltip>
           </TableCell>
