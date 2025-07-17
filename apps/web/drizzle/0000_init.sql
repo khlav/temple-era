@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS "character" (
 	"class_detail" varchar(256) NOT NULL,
 	"primary_character_id" integer,
 	"is_primary" boolean GENERATED ALWAYS AS (("character"."character_id" = COALESCE("character"."primary_character_id", 0)) OR "character"."primary_character_id" IS NULL) STORED,
-	"is_ignored" boolean DEFAULT false,
+	"is_ignored" boolean DEFAULT false NOT NULL,
 	"created_via" "created_via",
 	"updated_via" "updated_via",
 	"created_by" uuid,
