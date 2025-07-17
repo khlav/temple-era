@@ -162,7 +162,7 @@ export function CharacterManagerRow({
                   {(isSending || updateIsIgnored.isPending) ? <Loader className="animate-spin" /> : character.isIgnored ? "Ignored" : "Ignore?"}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left" className="rounded bg-muted text-muted-foreground px-3 py-1 text-xs shadow transition-all">
+              <TooltipContent side="top" className="rounded bg-muted text-muted-foreground px-3 py-1 text-xs shadow transition-all">
                 Removes this character from reports, recipes, and other UIs
               </TooltipContent>
             </Tooltip>
