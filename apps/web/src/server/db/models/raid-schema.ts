@@ -179,7 +179,7 @@ export const characters = tableCreator(
                  IS
                  NULL`;
     }),
-    isIgnored: boolean("is_ignored").default(false),
+    isIgnored: boolean("is_ignored").notNull().default(false),
     createdVia: createdViaEnum("created_via"),
     updatedVia: updatedViaEnum("updated_via"),
     ...CreatedBy,
