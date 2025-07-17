@@ -285,4 +285,21 @@ export const character = createTRPCRouter({
         receivedNewPrimary: receivedNewPrimaryCharacterId,
       };
     }),
+
+  updateIsIgnored: raidManagerProcedure
+    .input(z.object({
+      characterId: z.number(),
+      isIgnored: z.boolean(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.db
+        .update(characters)
+        .set({ isIgnored: input.isIgnored })
+        .where(eq(characters.characterId, input.characterId))
+        .returning({
+          characterId: characters.characterId,
+          isIgnored: characters.isIgnored,
+        });
+      return updated[0];
+    }),
 });

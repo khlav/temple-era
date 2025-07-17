@@ -15,6 +15,7 @@ import { useToast } from "~/hooks/use-toast";
 import { toastCharacterSaved } from "~/components/raid-manager/raid-manager-toasts";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterPill } from "../ui/character-pill";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 
 export function CharacterManagerRow({
   character,
@@ -28,6 +29,22 @@ export function CharacterManagerRow({
 
   const utils = api.useUtils();
   const { toast } = useToast();
+
+  // Add the updateIsIgnored mutation hook
+  const updateIsIgnored = api.character.updateIsIgnored.useMutation({
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update ignore status.",
+        variant: "destructive",
+      });
+      setIsSending(false);
+    },
+    onSuccess: async () => {
+      await utils.invalidate(undefined, { refetchType: "all" });
+      setIsSending(false);
+    },
+  });
 
   const updatePrimaryCharacterId =
     api.character.updatePrimaryCharacter.useMutation({
@@ -114,7 +131,7 @@ export function CharacterManagerRow({
                 ))}
             </div>
           </TableCell>
-          <TableCell className="text-right">
+          <TableCell className="text-right flex flex-row gap-2 justify-end">
             <Button
               variant="secondary"
               size="sm"
@@ -123,6 +140,32 @@ export function CharacterManagerRow({
             >
               Edit
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={character.isIgnored ? "default" : "secondary"}
+                  size="sm"
+                  className={
+                    character.isIgnored
+                      ? "border-2 border-primary"
+                      : "border-2 border-primary opacity-0 group-hover:opacity-100"
+                  }
+                  disabled={isSending || updateIsIgnored.isPending}
+                  onClick={() => {
+                    setIsSending(true);
+                    updateIsIgnored.mutate({
+                      characterId: character.characterId,
+                      isIgnored: !character.isIgnored,
+                    });
+                  }}
+                >
+                  {(isSending || updateIsIgnored.isPending) ? <Loader className="animate-spin" /> : character.isIgnored ? "Ignored" : "Ignore?"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="rounded bg-muted text-muted-foreground px-3 py-1 text-xs shadow transition-all">
+                Remove this character from reports, recipes, and other UIs
+              </TooltipContent>
+            </Tooltip>
           </TableCell>
         </TableRow>
       ) : (
