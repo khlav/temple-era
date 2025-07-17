@@ -74,11 +74,13 @@ export function CharacterManager() {
 
   return (
     <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
-      <Input
-        placeholder="Search..."
-        value={searchTerm}
-        onChange={handleSearchChange}
-      />
+      <div className="sticky top-0 z-10 bg-white dark:bg-black/80 backdrop-blur-sm p-2">
+        <Input
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
