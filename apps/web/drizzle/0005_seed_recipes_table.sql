@@ -1,4 +1,3 @@
--- Custom SQL migration file, put you code below! --
 INSERT INTO recipes (recipe_spell_id, item_id, profession, recipe, is_common, notes, tags)
 VALUES
     (17635, 13510, 'Alchemy', 'Flask of the Titans', FALSE, 'Mandatory for main tanks, recommended for melee in Naxx', ARRAY['bwl/mc', 'aq40', 'naxx', 'tank', 'melee']),
@@ -34,6 +33,7 @@ VALUES
     (22757, 18262, 'Blacksmithing', 'Elemental Sharpening Stone', FALSE, 'Used by Warriors on Offhand weapon and Hunters ', ARRAY['melee', 'ranged']),
     (20201, 16206, 'Blacksmithing', 'Arcanite Rod', TRUE, 'Crafting material for enchanting, not directly used in raids', ARRAY['component']),
     (16991, 12798, 'Blacksmithing', 'Annilhilator', FALSE, 'Offtank, Shamans, or Hunter can craft this elite item', ARRAY['weapon', 'melee', 'ranged', 'healer']),
+    (27590, 22191, 'Blacksmithing', 'Obsidian Mail Tunic', FALSE, 'Alternative to farming Savage Gladiator Chain', ARRAY['chest', 'melee']),
     (20034, NULL, 'Enchanting', 'Enchant Weapon - Crusader', FALSE, 'Top enchant for melee DPS and tanks in all raids', ARRAY['tank', 'melee']),
     (22749, NULL, 'Enchanting', 'Enchant Weapon - Spellpower (+30)', FALSE, 'Essential for all caster DPS across all raid tiers', ARRAY['caster']),
     (22750, NULL, 'Enchanting', 'Enchant Weapon - Healing Power (+55)', FALSE, 'BiS for all healers throughout all raid content', ARRAY['healer']),

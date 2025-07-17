@@ -42,7 +42,7 @@ export const recipe = createTRPCRouter({
       ...recipe,
       characters: recipe
         .characterRecipes.map((cr) => cr.character)
-        .sort((a,b) => a.name < b.name ? 1 : -1),
+        .sort((a,b) => a.name > b.name ? 1 : -1),
       characterRecipes: undefined,
     })) as RecipeWithCharacters[];
   }),
