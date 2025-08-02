@@ -113,12 +113,12 @@ export function CharactersTable({
           <TableHeader>
             <TableRow>
               {session?.user?.isRaidManager && (
-                <TableHead className="w-40"> </TableHead>
+                <TableHead className="grow-0"> </TableHead>
               )}
               <TableHead className="w-1/2">
                 Characters {characterList && `(${characterList.length})`}
               </TableHead>
-              <TableHead className="hidden md:inline w-1/4">Server</TableHead>
+              <TableHead className="hidden md:inline grow">Server</TableHead>
               {FORTY_MAN_INSTANCES.map((zone) => (
                 <TableHead key={zone} className="w-16 text-center text-xs">
                   {zone === "Molten Core" ? "MC" : 
