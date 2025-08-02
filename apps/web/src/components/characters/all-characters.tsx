@@ -35,7 +35,7 @@ export function AllCharacters({session} : {session?: Session}) {
             player.raidAttendanceByZone?.["Molten Core"]?.attendee ? "Molten Core mc" : "",
             player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee ? "Blackwing Lair bwl" : "",
             player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee ? "Temple of Ahn'Qiraj aq40" : "",
-            player.raidAttendanceByZone?.["Naxxramas"]?.attendee ? "Naxxramas" : ""
+            player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : ""
           ].filter(Boolean); // Remove null/undefined values
           
           return searchableFields.some((value) => {
