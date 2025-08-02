@@ -20,6 +20,45 @@ import type { Session } from "next-auth";
 import {ClassIcon} from "~/components/ui/class-icon";
 import React from "react";
 
+// Define the 40-man instances in the required order
+const FORTY_MAN_INSTANCES = [
+  "Molten Core",
+  "Blackwing Lair", 
+  "Temple of Ahn'Qiraj",
+  "Naxxramas"
+] as const;
+
+// Helper function to format attendance display
+const formatAttendance = (attendee: number, bench: number) => {
+  if (attendee === 0 && bench === 0) {
+    return "";
+  }
+  
+  let display = attendee.toString();
+  if (bench > 0) {
+    display += ` (${bench})`;
+  }
+  
+  return display;
+};
+
+// Helper function to format attendance display for mobile (without bench)
+const formatAttendanceMobile = (attendee: number, bench: number) => {
+  if (attendee === 0 && bench === 0) {
+    return "";
+  }
+  
+  return attendee.toString();
+};
+
+// Helper function to get attendance styling classes
+const getAttendanceStyling = (attendee: number) => {
+  if (attendee < 4) {
+    return "text-muted-foreground italic";
+  }
+  return "";
+};
+
 export function CharactersTable({
   characters,
   targetNewTab = false,
@@ -42,16 +81,24 @@ export function CharactersTable({
       {isLoading ? (
         <GenericCharactersTableSkeleton rows={13} />
       ) : (
-        <Table className="max-h-[400px]">
+        <Table className="max-h-[400px] w-full">
           <TableHeader>
             <TableRow>
               {session?.user?.isRaidManager && (
                 <TableHead className="w-40"> </TableHead>
               )}
-              <TableHead className="w-3/4">
+              <TableHead className="w-1/2">
                 Characters {characterList && `(${characterList.length})`}
               </TableHead>
-              <TableHead className="w-1/3">Server</TableHead>
+              <TableHead className="w-1/4">Server</TableHead>
+              {FORTY_MAN_INSTANCES.map((zone) => (
+                <TableHead key={zone} className="w-16 text-center text-xs">
+                  {zone === "Molten Core" ? "MC" : 
+                   zone === "Blackwing Lair" ? "BWL" :
+                   zone === "Temple of Ahn'Qiraj" ? "AQ40" :
+                   "Naxx"}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -99,6 +146,18 @@ export function CharactersTable({
                     <TableCell className="text-muted-foreground">
                       {c.server}
                     </TableCell>
+                    {FORTY_MAN_INSTANCES.map((zone) => {
+                      const attendance = c.raidAttendanceByZone?.[zone];
+                      const attendee = attendance?.attendee ?? 0;
+                      const bench = attendance?.bench ?? 0;
+                      
+                      return (
+                        <TableCell key={zone} className={`text-center text-xs whitespace-nowrap ${getAttendanceStyling(attendee)}`}>
+                          <span className="hidden md:inline">{formatAttendance(attendee, bench)}</span>
+                          <span className="md:hidden">{formatAttendanceMobile(attendee, bench)}</span>
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               : null}

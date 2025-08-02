@@ -96,7 +96,42 @@ export const character = createTRPCRouter({
             ),
           );
 
-        return convertParticipantArrayToCollection(characterList) ?? null;
+        // Get raid attendance counts by zone for each character (both attendee and bench)
+        const raidAttendanceByZone = await ctx.db
+          .select({
+            primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+            zone: raids.zone,
+            attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
+            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
+          })
+          .from(primaryRaidAttendeeAndBenchMap)
+          .innerJoin(raids, eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId))
+          .groupBy(primaryRaidAttendeeAndBenchMap.primaryCharacterId, raids.zone, primaryRaidAttendeeAndBenchMap.attendeeOrBench);
+
+        // Convert character list to collection and add raid attendance data
+        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
+        
+        // Add raid attendance by zone to each character
+        for (const attendance of raidAttendanceByZone) {
+          const characterId = attendance.primaryCharacterId;
+          if (characterId && characterCollection[characterId] && attendance.zone) {
+            const character = characterCollection[characterId];
+            if (!character.raidAttendanceByZone) {
+              character.raidAttendanceByZone = {};
+            }
+            if (!character.raidAttendanceByZone[attendance.zone]) {
+              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
+            }
+            
+            if (attendance.attendeeOrBench === "attendee") {
+              character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
+            } else if (attendance.attendeeOrBench === "bench") {
+              character.raidAttendanceByZone[attendance.zone]!.bench = Number(attendance.uniqueRaidCount);
+            }
+          }
+        }
+
+        return characterCollection;
       } else {
         // Primary, Secondary, or All
         const characterFilter: BinaryOperator | SQL = (() => {
@@ -109,6 +144,7 @@ export const character = createTRPCRouter({
               return inArray(characters.isPrimary, [true, false]); // get all
           }
         })();
+
         const characterList = await ctx.db
           .select({
             name: characters.name,
@@ -127,7 +163,42 @@ export const character = createTRPCRouter({
           )
           .where(characterFilter);
 
-        return convertParticipantArrayToCollection(characterList) ?? null;
+        // Get raid attendance counts by zone for each character (both attendee and bench)
+        const raidAttendanceByZone = await ctx.db
+          .select({
+            primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+            zone: raids.zone,
+            attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
+            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
+          })
+          .from(primaryRaidAttendeeAndBenchMap)
+          .innerJoin(raids, eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId))
+          .groupBy(primaryRaidAttendeeAndBenchMap.primaryCharacterId, raids.zone, primaryRaidAttendeeAndBenchMap.attendeeOrBench);
+
+        // Convert character list to collection and add raid attendance data
+        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
+        
+        // Add raid attendance by zone to each character
+        for (const attendance of raidAttendanceByZone) {
+          const characterId = attendance.primaryCharacterId;
+          if (characterId && characterCollection[characterId] && attendance.zone) {
+            const character = characterCollection[characterId];
+            if (!character.raidAttendanceByZone) {
+              character.raidAttendanceByZone = {};
+            }
+            if (!character.raidAttendanceByZone[attendance.zone]) {
+              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
+            }
+            
+            if (attendance.attendeeOrBench === "attendee") {
+              character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
+            } else if (attendance.attendeeOrBench === "bench") {
+              character.raidAttendanceByZone[attendance.zone]!.bench = Number(attendance.uniqueRaidCount);
+            }
+          }
+        }
+
+        return characterCollection;
       }
     }),
 

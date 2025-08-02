@@ -14,7 +14,7 @@ export default async function PlayersIndex() {
         <div className=" text-muted-foreground mb-2">
           All characters appearing in logs.
         </div>
-        <div className="w-full lg:w-1/2 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
+        <div className="w-full lg:w-3/4 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
           <AllCharacters session={session ?? undefined}/>
         </div>
       </main>

@@ -16,6 +16,7 @@ export interface RaidParticipant {
   primaryCharacterClass?: string | null;
   secondaryCharacters?: RaidParticipant[];
   isIgnored?: boolean;
+  raidAttendanceByZone?: Record<string, { attendee: number; bench: number }>;
 }
 
 export type RaidParticipantCollection = Record<string, RaidParticipant>;
