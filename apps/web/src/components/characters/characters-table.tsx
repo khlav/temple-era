@@ -59,8 +59,8 @@ const renderAttendanceWithTooltips = (attendee: number, bench: number) => {
   }
 
   const tooltipContent = bench > 0 
-    ? `Raids attended: ${attendee}\nBench: ${bench}`
-    : `Raids attended: ${attendee}`;
+    ? `Attended: ${attendee}\nBench: ${bench}`
+    : `Attended: ${attendee}`;
 
   return (
     <>
