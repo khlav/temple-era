@@ -18,6 +18,7 @@ import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
 import {ClassIcon} from "~/components/ui/class-icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import React from "react";
 
 // Define the 40-man instances in the required order
@@ -49,6 +50,33 @@ const formatAttendanceMobile = (attendee: number, bench: number) => {
   }
   
   return attendee.toString();
+};
+
+// Helper function to render attendance with tooltips
+const renderAttendanceWithTooltips = (attendee: number, bench: number) => {
+  if (attendee === 0 && bench === 0) {
+    return "";
+  }
+
+  const tooltipContent = bench > 0 
+    ? `Raids attended: ${attendee}\nBench: ${bench}`
+    : `Raids attended: ${attendee}`;
+
+  return (
+    <>
+      <span className="hidden md:inline">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-help">{formatAttendance(attendee, bench)}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="rounded bg-secondary text-muted-foreground px-3 py-1 text-xs shadow transition-all whitespace-pre-line">
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </span>
+      <span className="md:hidden">{formatAttendanceMobile(attendee, bench)}</span>
+    </>
+  );
 };
 
 // Helper function to get attendance styling classes
@@ -153,8 +181,7 @@ export function CharactersTable({
                       
                       return (
                         <TableCell key={zone} className={`text-center text-xs whitespace-nowrap ${getAttendanceStyling(attendee)}`}>
-                          <span className="hidden md:inline">{formatAttendance(attendee, bench)}</span>
-                          <span className="md:hidden">{formatAttendanceMobile(attendee, bench)}</span>
+                          {renderAttendanceWithTooltips(attendee, bench)}
                         </TableCell>
                       );
                     })}
