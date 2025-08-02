@@ -118,7 +118,7 @@ export function CharactersTable({
               <TableHead className="w-1/2">
                 Characters {characterList && `(${characterList.length})`}
               </TableHead>
-              <TableHead className="w-1/4">Server</TableHead>
+              <TableHead className="hidden md:w-1/4">Server</TableHead>
               {FORTY_MAN_INSTANCES.map((zone) => (
                 <TableHead key={zone} className="w-16 text-center text-xs">
                   {zone === "Molten Core" ? "MC" : 
@@ -171,7 +171,7 @@ export function CharactersTable({
                         </div>
                       </Link>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden md:inline text-muted-foreground">
                       {c.server}
                     </TableCell>
                     {FORTY_MAN_INSTANCES.map((zone) => {
