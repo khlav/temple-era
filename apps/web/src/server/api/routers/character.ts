@@ -18,6 +18,9 @@ import {
   characters,
   primaryRaidAttendeeAndBenchMap,
   raids, trackedRaidsL6LockoutWk,
+  raidLogAttendeeMap,
+  raidBenchMap,
+  raidLogs,
 } from "~/server/db/schema";
 import type {
   RaidParticipant,
@@ -46,16 +49,229 @@ export const characterCols = {
   isIgnored: true,
 };
 
+// Optimized function to get characters with attendance in a single query
+const getCharactersWithAttendance = async (ctx: any, characterFilter: any) => {
+  const primaryCharacters = aliasedTable(characters, "primary_character");
+  
+  // Create CTEs for attendance data
+  const attendeeAttendanceCTE = ctx.db.$with("attendeeAttendance").as(
+    ctx.db
+      .select({
+        characterId: raidLogAttendeeMap.characterId,
+        zone: raids.zone,
+        attendeeCount: count(raids.raidId).as("attendeeCount"),
+      })
+      .from(raidLogAttendeeMap)
+      .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+      .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
+      .groupBy(raidLogAttendeeMap.characterId, raids.zone)
+  );
+
+  const benchAttendanceCTE = ctx.db.$with("benchAttendance").as(
+    ctx.db
+      .select({
+        characterId: raidBenchMap.characterId,
+        zone: raids.zone,
+        benchCount: count(raids.raidId).as("benchCount"),
+      })
+      .from(raidBenchMap)
+      .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
+      .groupBy(raidBenchMap.characterId, raids.zone)
+  );
+
+  const result = await ctx.db
+    .with(attendeeAttendanceCTE, benchAttendanceCTE)
+    .select({
+      name: characters.name,
+      server: characters.server,
+      slug: characters.slug,
+      class: characters.class,
+      characterId: characters.characterId,
+      isPrimary: characters.isPrimary,
+      primaryCharacterId: characters.primaryCharacterId,
+      primaryCharacterName: primaryCharacters.name,
+      zone: attendeeAttendanceCTE.zone,
+      attendeeCount: attendeeAttendanceCTE.attendeeCount,
+      benchCount: benchAttendanceCTE.benchCount,
+    })
+    .from(characters)
+    .leftJoin(
+      primaryCharacters,
+      eq(characters.primaryCharacterId, primaryCharacters.characterId),
+    )
+    .leftJoin(
+      attendeeAttendanceCTE,
+      eq(characters.characterId, attendeeAttendanceCTE.characterId),
+    )
+    .leftJoin(
+      benchAttendanceCTE,
+      and(
+        eq(characters.characterId, benchAttendanceCTE.characterId),
+        eq(attendeeAttendanceCTE.zone, benchAttendanceCTE.zone)
+      ),
+    )
+    .where(characterFilter);
+
+  // Group results by character and build attendance data
+  const characterMap = new Map();
+  
+  for (const row of result) {
+    const characterId = row.characterId;
+    
+    if (!characterMap.has(characterId)) {
+      characterMap.set(characterId, {
+        characterId: row.characterId,
+        name: row.name,
+        server: row.server,
+        slug: row.slug,
+        class: row.class,
+        isPrimary: row.isPrimary,
+        primaryCharacterId: row.primaryCharacterId,
+        primaryCharacterName: row.primaryCharacterName,
+        raidAttendanceByZone: {},
+      });
+    }
+    
+    const character = characterMap.get(characterId);
+    
+    if (row.zone) {
+      if (!character.raidAttendanceByZone[row.zone]) {
+        character.raidAttendanceByZone[row.zone] = { attendee: 0, bench: 0 };
+      }
+      
+      if (row.attendeeCount) {
+        character.raidAttendanceByZone[row.zone].attendee = Number(row.attendeeCount);
+      }
+      
+      if (row.benchCount) {
+        character.raidAttendanceByZone[row.zone].bench = Number(row.benchCount);
+      }
+    }
+  }
+  
+  return Array.from(characterMap.values());
+};
+
+// Special function for secondaryEligible that includes the countSecondary CTE
+const getCharactersWithAttendanceSecondaryEligible = async (ctx: any, countSecondary: any) => {
+  const primaryCharacters = aliasedTable(characters, "primary_character");
+  
+  // Create CTEs for attendance data
+  const attendeeAttendanceCTE = ctx.db.$with("attendeeAttendance").as(
+    ctx.db
+      .select({
+        characterId: raidLogAttendeeMap.characterId,
+        zone: raids.zone,
+        attendeeCount: count(raids.raidId).as("attendeeCount"),
+      })
+      .from(raidLogAttendeeMap)
+      .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+      .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
+      .groupBy(raidLogAttendeeMap.characterId, raids.zone)
+  );
+
+  const benchAttendanceCTE = ctx.db.$with("benchAttendance").as(
+    ctx.db
+      .select({
+        characterId: raidBenchMap.characterId,
+        zone: raids.zone,
+        benchCount: count(raids.raidId).as("benchCount"),
+      })
+      .from(raidBenchMap)
+      .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
+      .groupBy(raidBenchMap.characterId, raids.zone)
+  );
+
+  const result = await ctx.db
+    .with(countSecondary, attendeeAttendanceCTE, benchAttendanceCTE)
+    .select({
+      name: characters.name,
+      server: characters.server,
+      slug: characters.slug,
+      class: characters.class,
+      characterId: characters.characterId,
+      isPrimary: characters.isPrimary,
+      primaryCharacterId: characters.primaryCharacterId,
+      primaryCharacterName: primaryCharacters.name,
+      zone: attendeeAttendanceCTE.zone,
+      attendeeCount: attendeeAttendanceCTE.attendeeCount,
+      benchCount: benchAttendanceCTE.benchCount,
+    })
+    .from(characters)
+    .leftJoin(
+      primaryCharacters,
+      eq(characters.primaryCharacterId, primaryCharacters.characterId),
+    )
+    .leftJoin(
+      countSecondary,
+      eq(countSecondary.primaryCharacterId, characters.characterId),
+    )
+    .leftJoin(
+      attendeeAttendanceCTE,
+      eq(characters.characterId, attendeeAttendanceCTE.characterId),
+    )
+    .leftJoin(
+      benchAttendanceCTE,
+      and(
+        eq(characters.characterId, benchAttendanceCTE.characterId),
+        eq(attendeeAttendanceCTE.zone, benchAttendanceCTE.zone)
+      ),
+    )
+    .where(
+      or(
+        eq(countSecondary.countSecondaryCharacters, 0),
+        isNull(countSecondary.countSecondaryCharacters),
+      ),
+    );
+
+  // Group results by character and build attendance data
+  const characterMap = new Map();
+  
+  for (const row of result) {
+    const characterId = row.characterId;
+    
+    if (!characterMap.has(characterId)) {
+      characterMap.set(characterId, {
+        characterId: row.characterId,
+        name: row.name,
+        server: row.server,
+        slug: row.slug,
+        class: row.class,
+        isPrimary: row.isPrimary,
+        primaryCharacterId: row.primaryCharacterId,
+        primaryCharacterName: row.primaryCharacterName,
+        raidAttendanceByZone: {},
+      });
+    }
+    
+    const character = characterMap.get(characterId);
+    
+    if (row.zone) {
+      if (!character.raidAttendanceByZone[row.zone]) {
+        character.raidAttendanceByZone[row.zone] = { attendee: 0, bench: 0 };
+      }
+      
+      if (row.attendeeCount) {
+        character.raidAttendanceByZone[row.zone].attendee = Number(row.attendeeCount);
+      }
+      
+      if (row.benchCount) {
+        character.raidAttendanceByZone[row.zone].bench = Number(row.benchCount);
+      }
+    }
+  }
+  
+  return Array.from(characterMap.values());
+};
+
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
     .input(
       z.optional(z.enum(["all", "primary", "secondary", "secondaryEligible"])),
     )
     .query(async ({ ctx, input }) => {
-      const primaryCharacters = aliasedTable(characters, "primary_character");
-
       if (input === "secondaryEligible") {
-        // Assignable only -- e.g. only Secondary characters OR primary characters with no secondaries
+        // For secondaryEligible, we need to filter characters that are eligible for assignment
         const countSecondary = ctx.db.$with("countSecondary").as(
           ctx.db
             .select({
@@ -68,70 +284,9 @@ export const character = createTRPCRouter({
             .groupBy(characters.primaryCharacterId),
         );
 
-        const characterList = await ctx.db
-          .with(countSecondary)
-          .select({
-            name: characters.name,
-            server: characters.server,
-            slug: characters.slug,
-            class: characters.class,
-            characterId: characters.characterId,
-            isPrimary: characters.isPrimary,
-            primaryCharacterId: characters.primaryCharacterId,
-            primaryCharacterName: primaryCharacters.name,
-          })
-          .from(characters)
-          .leftJoin(
-            primaryCharacters,
-            eq(characters.primaryCharacterId, primaryCharacters.characterId),
-          )
-          .leftJoin(
-            countSecondary,
-            eq(countSecondary.primaryCharacterId, characters.characterId),
-          )
-          .where(
-            or(
-              eq(countSecondary.countSecondaryCharacters, 0),
-              isNull(countSecondary.countSecondaryCharacters),
-            ),
-          );
-
-        // Get raid attendance counts by zone for each character (both attendee and bench)
-        const raidAttendanceByZone = await ctx.db
-          .select({
-            primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            zone: raids.zone,
-            attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(primaryRaidAttendeeAndBenchMap)
-          .innerJoin(raids, eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId))
-          .groupBy(primaryRaidAttendeeAndBenchMap.primaryCharacterId, raids.zone, primaryRaidAttendeeAndBenchMap.attendeeOrBench);
-
-        // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-        
-        // Add raid attendance by zone to each character
-        for (const attendance of raidAttendanceByZone) {
-          const characterId = attendance.primaryCharacterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
-            const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[attendance.zone]) {
-              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            if (attendance.attendeeOrBench === "attendee") {
-              character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
-            } else if (attendance.attendeeOrBench === "bench") {
-              character.raidAttendanceByZone[attendance.zone]!.bench = Number(attendance.uniqueRaidCount);
-            }
-          }
-        }
-
-        return characterCollection;
+        // Create a custom filter function for secondaryEligible
+        const characterList = await getCharactersWithAttendanceSecondaryEligible(ctx, countSecondary);
+        return convertParticipantArrayToCollection(characterList) ?? {};
       } else {
         // Primary, Secondary, or All
         const characterFilter: BinaryOperator | SQL = (() => {
@@ -139,66 +294,14 @@ export const character = createTRPCRouter({
             case "primary":
               return eq(characters.isPrimary, true);
             case "secondary":
-              return eq(characters.isPrimary, true);
+              return eq(characters.isPrimary, false);
             default:
               return inArray(characters.isPrimary, [true, false]); // get all
           }
         })();
 
-        const characterList = await ctx.db
-          .select({
-            name: characters.name,
-            server: characters.server,
-            slug: characters.slug,
-            class: characters.class,
-            characterId: characters.characterId,
-            isPrimary: characters.isPrimary,
-            primaryCharacterId: characters.primaryCharacterId,
-            primaryCharacterName: primaryCharacters.name,
-          })
-          .from(characters)
-          .leftJoin(
-            primaryCharacters,
-            eq(characters.primaryCharacterId, primaryCharacters.characterId),
-          )
-          .where(characterFilter);
-
-        // Get raid attendance counts by zone for each character (both attendee and bench)
-        const raidAttendanceByZone = await ctx.db
-          .select({
-            primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            zone: raids.zone,
-            attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(primaryRaidAttendeeAndBenchMap)
-          .innerJoin(raids, eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId))
-          .groupBy(primaryRaidAttendeeAndBenchMap.primaryCharacterId, raids.zone, primaryRaidAttendeeAndBenchMap.attendeeOrBench);
-
-        // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-        
-        // Add raid attendance by zone to each character
-        for (const attendance of raidAttendanceByZone) {
-          const characterId = attendance.primaryCharacterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
-            const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[attendance.zone]) {
-              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            if (attendance.attendeeOrBench === "attendee") {
-              character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
-            } else if (attendance.attendeeOrBench === "bench") {
-              character.raidAttendanceByZone[attendance.zone]!.bench = Number(attendance.uniqueRaidCount);
-            }
-          }
-        }
-
-        return characterCollection;
+        const characterList = await getCharactersWithAttendance(ctx, characterFilter);
+        return convertParticipantArrayToCollection(characterList) ?? {};
       }
     }),
 
