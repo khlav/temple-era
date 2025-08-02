@@ -24,7 +24,17 @@ export function AllCharacters({session} : {session?: Session}) {
   const filteredPlayers = (
     players
       ? Object.values(players).filter((player) => {
-          return Object.values(player).some((value) => {
+          // Search only in specific fields, excluding characterId
+          const searchableFields = [
+            player.name,
+            player.server,
+            player.class,
+            player.classDetail,
+            player.slug,
+            player.primaryCharacterName,
+          ].filter(Boolean); // Remove null/undefined values
+          
+          return searchableFields.some((value) => {
             // Normalize and check if any field contains the search term
             return normalizeText(String(value)).includes(
               normalizeText(searchTerm),
