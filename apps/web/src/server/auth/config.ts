@@ -1,4 +1,5 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import DiscordProvider, { type DiscordProfile} from "next-auth/providers/discord";
 
@@ -84,7 +85,20 @@ export const authConfig = {
       user: {
         ...session.user,
         id: user.id,
+        image: user.image,
       },
     }),
+    signIn: async ({ user, profile }) => {
+      // Update profile image from Discord
+      await db
+      .update(users)
+      .set({
+        image: profile?.image_url?.toString() ?? ""
+      })
+      .where(eq(users.id, user.id ?? ""))
+
+      // Allow login
+      return true;
+    }
   },
 } satisfies NextAuthConfig;

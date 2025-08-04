@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {adminProcedure, createTRPCRouter} from "~/server/api/trpc";
+import {adminProcedure, createTRPCRouter, protectedProcedure} from "~/server/api/trpc";
 import {users} from "~/server/db/schema";
 import {asc, eq, sql} from "drizzle-orm";
 
@@ -40,4 +40,18 @@ export const user = createTRPCRouter({
         });
     }),
 
+  updateUserImage: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ctx, input}) => {
+      return await ctx.db
+        .update(users)
+        .set({
+          image: input
+        })
+        .where(eq(users.id, ctx.session.user.id))
+        .returning({
+          id: users.id,
+          image: users.image
+        });
+    })
 });
