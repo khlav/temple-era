@@ -107,5 +107,6 @@ VALUES
     (27660, 22249, 'Tailoring', 'Big Bag of Enchantment', FALSE, 'It''d be easier to vendor your low-level enchant mats. But just in case...', ARRAY['qol']),
     (27725, 22252, 'Tailoring', 'Satchel of Cenarius', FALSE, 'Holds herbs. Handy.', ARRAY['qol']),
     (8238, 6657, 'Cooking', 'Savory Deviate Delight', FALSE, 'Yarr or *silence*', ARRAY['pirate', 'ninja']),
-    (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yarr.', ARRAY['pirate'])
+    (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yarr.', ARRAY['pirate']),
+    (20029, NULL, 'Enchanting', 'Enchant Weapon - Icy Chill', FALSE, 'For Coldrage Daggers on Viscidous', ARRAY['aq40', 'melee'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;
