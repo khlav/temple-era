@@ -15,7 +15,8 @@ import { SortRaiders } from "~/lib/helpers";
 import { CharacterManagerRow } from "~/components/raid-manager/character-manager-row";
 import { CharacterManagerRowSkeleton } from "~/components/raid-manager/skeletons";
 import {useEffect, useState} from "react";
-import { Input } from "~/components/ui/input";
+import { TableSearchInput } from "~/components/ui/table-search-input";
+import { TableSearchTips } from "~/components/ui/table-search-tips";
 import {useRouter, useSearchParams} from "next/navigation";
 
 export function CharacterManager() {
@@ -28,20 +29,17 @@ export function CharacterManager() {
     setSearchTerm(initialSearch);
   }, [searchParams]);
 
-  // Update the URL parameter when the search term changes
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchTerm = e.target.value;
-    setSearchTerm(newSearchTerm);
-
-    // Update the `s` URL parameter
+  // Debounced URL sync when searchTerm changes
+  useEffect(() => {
     const params = new URLSearchParams(searchParams);
-    if (newSearchTerm) {
-      params.set("s", newSearchTerm);
+    if (searchTerm) {
+      params.set("s", searchTerm);
     } else {
       params.delete("s");
     }
     router.replace(`?${params.toString()}`);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const { data: characterData, isSuccess } =
     api.character.getCharactersWithSecondaries.useQuery();
@@ -74,12 +72,19 @@ export function CharacterManager() {
 
   return (
     <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
-      <div className="sticky top-0 z-10 bg-white dark:bg-black/80 backdrop-blur-sm p-2">
-        <Input
+      <div className="sticky top-0 z-10 bg-white dark:bg-black/80 backdrop-blur-sm p-2 space-y-1">
+        <TableSearchInput
           placeholder="Search..."
-          value={searchTerm}
-          onChange={handleSearchChange}
+          initialValue={searchParams.get("s") ?? ""}
+          onDebouncedChange={(v) => setSearchTerm(v)}
         />
+        <TableSearchTips>
+          <p className="font-medium mb-1">Search tips:</p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>Search across primary and secondary character names/classes</li>
+            <li>Includes status keywords like <span className="font-mono text-chart-3">ignored</span></li>
+          </ul>
+        </TableSearchTips>
       </div>
       <Table>
         <TableHeader>

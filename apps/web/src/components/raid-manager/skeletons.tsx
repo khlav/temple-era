@@ -1,6 +1,7 @@
 import { TableCell, TableRow } from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
+import { TableSearchInput } from "~/components/ui/table-search-input";
 
 export function CharacterManagerRowSkeleton({
                                                      rows = 12,
@@ -9,6 +10,9 @@ export function CharacterManagerRowSkeleton({
 }) {
   return (
     <>
+      <div className="sticky top-0 z-10 bg-white dark:bg-black/80 backdrop-blur-sm p-2">
+        <TableSearchInput onDebouncedChange={() => {}} isLoading={true} />
+      </div>
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <TableRow key={rowIndex}>
           {Array.from({ length: 2 }).map((_, cellIndex) => {
