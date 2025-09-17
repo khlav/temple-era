@@ -1,6 +1,5 @@
 "use client";
 
-import { TableCell, TableRow } from "~/components/ui/table";
 import type {
   RaidParticipant,
   RaidParticipantCollection,
@@ -15,7 +14,11 @@ import { useToast } from "~/hooks/use-toast";
 import { toastCharacterSaved } from "~/components/raid-manager/raid-manager-toasts";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterPill } from "../ui/character-pill";
-import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "~/components/ui/tooltip";
 
 export function CharacterManagerRow({
   character,
@@ -113,25 +116,28 @@ export function CharacterManagerRow({
     <>
       {!inEditMode ? (
         // View mode
-        <TableRow key={character.characterId} className="group">
-          <TableCell className="">
+        <tr
+          key={character.characterId}
+          className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+        >
+          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
               <ClassIcon characterClass={character.class} px={20} />
               <div className="grow">{character.name}</div>
             </div>
-          </TableCell>
-          <TableCell>
+          </td>
+          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-2">
               {Object.values(character?.secondaryCharacters ?? {})
                 .sort(SortRaiders)
                 .map((character: RaidParticipant) => (
                   <div key={character.characterId} className="shrink">
-                    <CharacterPill character={character}/>
+                    <CharacterPill character={character} />
                   </div>
                 ))}
             </div>
-          </TableCell>
-          <TableCell className="text-right flex flex-row gap-2 justify-end">
+          </td>
+          <td className="flex flex-row justify-end gap-2 p-2 text-right align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <Button
               variant="secondary"
               size="sm"
@@ -159,28 +165,37 @@ export function CharacterManagerRow({
                     });
                   }}
                 >
-                  {(isSending || updateIsIgnored.isPending) ? <Loader className="animate-spin" /> : character.isIgnored ? "Ignored" : "Ignore?"}
+                  {isSending || updateIsIgnored.isPending ? (
+                    <Loader className="animate-spin" />
+                  ) : character.isIgnored ? (
+                    "Ignored"
+                  ) : (
+                    "Ignore?"
+                  )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="rounded bg-secondary text-muted-foreground px-3 py-1 text-xs shadow transition-all">
+              <TooltipContent
+                side="top"
+                className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+              >
                 Remove character from dashboards + recipe tools.
               </TooltipContent>
             </Tooltip>
-          </TableCell>
-        </TableRow>
+          </td>
+        </tr>
       ) : (
         // Edit mode
-        <TableRow
+        <tr
           key={character.characterId}
-          className="group bg-primary-foreground"
+          className="group border-b bg-primary-foreground transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
         >
-          <TableCell className="font-bold">
+          <td className="p-2 align-middle font-bold [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
               <ClassIcon characterClass={character.class} px={20} />
               <div className="grow">{character.name}</div>
             </div>
-          </TableCell>
-          <TableCell className="">
+          </td>
+          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-2">
               {(Object.values(localSecondaryCharacters) ?? [])
                 .sort(SortRaiders)
@@ -217,8 +232,8 @@ export function CharacterManagerRow({
                 />
               </div>
             </div>
-          </TableCell>
-          <TableCell className="flex flex-row flex-nowrap text-right">
+          </td>
+          <td className="flex flex-row flex-nowrap p-2 text-right align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
             <div className="grow" />
             <Button
               variant="outline"
@@ -238,8 +253,8 @@ export function CharacterManagerRow({
             >
               {isSending ? <Loader className="animate-spin" /> : "Save"}
             </Button>
-          </TableCell>
-        </TableRow>
+          </td>
+        </tr>
       )}
     </>
   );

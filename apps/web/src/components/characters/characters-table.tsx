@@ -4,29 +4,25 @@ import type {
   RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import anyAscii from "any-ascii";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
-import {ClassIcon} from "~/components/ui/class-icon";
-import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { ClassIcon } from "~/components/ui/class-icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import React from "react";
 
 // Define the 40-man instances in the required order
 const FORTY_MAN_INSTANCES = [
   "Molten Core",
-  "Blackwing Lair", 
+  "Blackwing Lair",
   "Temple of Ahn'Qiraj",
-  "Naxxramas"
+  "Naxxramas",
 ] as const;
 
 // Helper function to format attendance display
@@ -34,12 +30,12 @@ const formatAttendance = (attendee: number, bench: number) => {
   if (attendee === 0 && bench === 0) {
     return "";
   }
-  
+
   let display = attendee.toString();
   if (bench > 0) {
     display += ` (${bench})`;
   }
-  
+
   return display;
 };
 
@@ -48,7 +44,7 @@ const formatAttendanceMobile = (attendee: number, bench: number) => {
   if (attendee === 0 && bench === 0) {
     return "";
   }
-  
+
   return attendee.toString();
 };
 
@@ -58,23 +54,31 @@ const renderAttendanceWithTooltips = (attendee: number, bench: number) => {
     return "";
   }
 
-  const tooltipContent = bench > 0 
-    ? `Attended: ${attendee}\nBench: ${bench}`
-    : `Attended: ${attendee}`;
+  const tooltipContent =
+    bench > 0
+      ? `Attended: ${attendee}\nBench: ${bench}`
+      : `Attended: ${attendee}`;
 
   return (
     <>
       <span className="hidden md:inline">
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="cursor-help">{formatAttendance(attendee, bench)}</span>
+            <span className="cursor-help">
+              {formatAttendance(attendee, bench)}
+            </span>
           </TooltipTrigger>
-          <TooltipContent side="top" className="rounded bg-secondary text-muted-foreground px-3 py-1 text-xs shadow transition-all whitespace-pre-line">
+          <TooltipContent
+            side="top"
+            className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+          >
             {tooltipContent}
           </TooltipContent>
         </Tooltip>
       </span>
-      <span className="md:hidden">{formatAttendanceMobile(attendee, bench)}</span>
+      <span className="md:hidden">
+        {formatAttendanceMobile(attendee, bench)}
+      </span>
     </>
   );
 };
@@ -92,11 +96,13 @@ export function CharactersTable({
   targetNewTab = false,
   isLoading = false,
   session,
+  showRaidColumns = true,
 }: {
   characters: RaidParticipantCollection | undefined;
   targetNewTab?: boolean;
   isLoading?: boolean;
   session?: Session;
+  showRaidColumns?: boolean;
 }) {
   const characterList =
     characters &&
@@ -105,91 +111,118 @@ export function CharactersTable({
     );
 
   return (
-    <div>
+    <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
       {isLoading ? (
-        <GenericCharactersTableSkeleton rows={13} />
+        <GenericCharactersTableSkeleton
+          rows={13}
+          showRaidColumns={showRaidColumns}
+        />
       ) : (
-        <Table className="max-h-[400px] w-full">
-          <TableHeader>
-            <TableRow>
-              {session?.user?.isRaidManager && (
-                <TableHead className="grow-0"> </TableHead>
-              )}
-              <TableHead className="w-1/2">
-                Characters {characterList && `(${characterList.length})`}
-              </TableHead>
-              <TableHead className="hidden md:inline grow">Server</TableHead>
-              {FORTY_MAN_INSTANCES.map((zone) => (
-                <TableHead key={zone} className="w-16 text-center text-xs">
-                  {zone === "Molten Core" ? "MC" : 
-                   zone === "Blackwing Lair" ? "BWL" :
-                   zone === "Temple of Ahn'Qiraj" ? "AQ40" :
-                   "Naxx"}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {characterList
-              ? characterList?.map((c: RaidParticipant) => (
-                  <TableRow key={c.characterId} className="group">
-                    {session?.user?.isRaidManager && (
-                      <TableCell>
-                        <Link
-                          href={`/raid-manager/characters?s=${c.name}`}
-                          className="transition-all hover:text-primary"
-                        >
-                          <Edit
-                            className="opacity-0 group-hover:opacity-100"
-                            size={16}
-                          />
-                        </Link>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <Link
-                        className="group w-full transition-all hover:text-primary"
-                        target={targetNewTab ? "_blank" : "_self"}
-                        href={"/characters/" + c.characterId}
-                      >
-                        <div className="flex flex-row">
-                          <ClassIcon characterClass={c.class.toLowerCase()} px={20} className="grow-0 mr-1" />
-                          <div className="grow-0">{c.name}</div>
-                          {c.primaryCharacterName ? (
-                            <div className="pl-1.5 text-xs font-normal text-muted-foreground">
-                              {c.primaryCharacterName}
-                            </div>
-                          ) : (
-                            ""
-                          )}
-                          {targetNewTab && (
-                            <ExternalLinkIcon
-                              className="ml-1 hidden align-text-top group-hover:inline-block"
-                              size={15}
+        <div className="relative w-full">
+          <table className="w-full caption-bottom text-sm">
+            <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
+              <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                {session?.user?.isRaidManager && (
+                  <th className="h-10 grow-0 px-2 text-left align-middle font-medium text-muted-foreground">
+                    {" "}
+                  </th>
+                )}
+                <th className="h-10 w-1/2 px-2 text-left align-middle font-medium text-muted-foreground">
+                  Characters {characterList && `(${characterList.length})`}
+                </th>
+                <th className="hidden h-10 grow px-2 text-left align-middle font-medium text-muted-foreground md:inline">
+                  Server
+                </th>
+                {showRaidColumns &&
+                  FORTY_MAN_INSTANCES.map((zone) => (
+                    <th
+                      key={zone}
+                      className="h-10 w-16 px-2 text-left text-center align-middle text-xs font-medium text-muted-foreground"
+                    >
+                      {zone === "Molten Core"
+                        ? "MC"
+                        : zone === "Blackwing Lair"
+                          ? "BWL"
+                          : zone === "Temple of Ahn'Qiraj"
+                            ? "AQ40"
+                            : "Naxx"}
+                    </th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {characterList
+                ? characterList?.map((c: RaidParticipant) => (
+                    <tr
+                      key={c.characterId}
+                      className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    >
+                      {session?.user?.isRaidManager && (
+                        <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                          <Link
+                            href={`/raid-manager/characters?s=${c.name}`}
+                            className="transition-all hover:text-primary"
+                          >
+                            <Edit
+                              className="opacity-0 group-hover:opacity-100"
+                              size={16}
                             />
-                          )}
-                        </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="hidden md:inline text-muted-foreground">
-                      {c.server}
-                    </TableCell>
-                    {FORTY_MAN_INSTANCES.map((zone) => {
-                      const attendance = c.raidAttendanceByZone?.[zone];
-                      const attendee = attendance?.attendee ?? 0;
-                      const bench = attendance?.bench ?? 0;
-                      
-                      return (
-                        <TableCell key={zone} className={`text-center text-xs whitespace-nowrap ${getAttendanceStyling(attendee)}`}>
-                          {renderAttendanceWithTooltips(attendee, bench)}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))
-              : null}
-          </TableBody>
-        </Table>
+                          </Link>
+                        </td>
+                      )}
+                      <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        <Link
+                          className="group w-full transition-all hover:text-primary"
+                          target={targetNewTab ? "_blank" : "_self"}
+                          href={"/characters/" + c.characterId}
+                        >
+                          <div className="flex flex-row">
+                            <ClassIcon
+                              characterClass={c.class.toLowerCase()}
+                              px={20}
+                              className="mr-1 grow-0"
+                            />
+                            <div className="grow-0">{c.name}</div>
+                            {c.primaryCharacterName ? (
+                              <div className="pl-1.5 text-xs font-normal text-muted-foreground">
+                                {c.primaryCharacterName}
+                              </div>
+                            ) : (
+                              ""
+                            )}
+                            {targetNewTab && (
+                              <ExternalLinkIcon
+                                className="ml-1 hidden align-text-top group-hover:inline-block"
+                                size={15}
+                              />
+                            )}
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="hidden p-2 align-middle text-muted-foreground md:inline [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        {c.server}
+                      </td>
+                      {showRaidColumns &&
+                        FORTY_MAN_INSTANCES.map((zone) => {
+                          const attendance = c.raidAttendanceByZone?.[zone];
+                          const attendee = attendance?.attendee ?? 0;
+                          const bench = attendance?.bench ?? 0;
+
+                          return (
+                            <td
+                              key={zone}
+                              className={`whitespace-nowrap p-2 text-center align-middle text-xs [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] ${getAttendanceStyling(attendee)}`}
+                            >
+                              {renderAttendanceWithTooltips(attendee, bench)}
+                            </td>
+                          );
+                        })}
+                    </tr>
+                  ))
+                : null}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import { HydrateClient } from "~/trpc/server";
 
-import {AllCharacters} from "~/components/characters/all-characters";
-import {auth} from "~/server/auth";
+import { AllCharacters } from "~/components/characters/all-characters";
+import { auth } from "~/server/auth";
 
 export default async function PlayersIndex() {
   const session = await auth();
@@ -11,11 +11,11 @@ export default async function PlayersIndex() {
         <div className="text-3xl font-bold tracking-tight">
           Raiding Characters
         </div>
-        <div className=" text-muted-foreground mb-2">
+        <div className="mb-2 text-muted-foreground">
           All characters appearing in logs.
         </div>
-        <div className="w-full lg:w-3/4 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
-          <AllCharacters session={session ?? undefined}/>
+        <div className="w-full lg:w-3/4">
+          <AllCharacters session={session ?? undefined} />
         </div>
       </main>
     </HydrateClient>

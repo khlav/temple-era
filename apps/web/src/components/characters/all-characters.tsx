@@ -4,11 +4,11 @@ import { CharactersTable } from "~/components/characters/characters-table";
 import { useState } from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
-import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
-import {AllCharactersTableSkeleton} from "~/components/characters/skeletons";
-import type {Session} from "next-auth";
+import type { RaidParticipantCollection } from "~/server/api/interfaces/raid";
+import { AllCharactersTableSkeleton } from "~/components/characters/skeletons";
+import type { Session } from "next-auth";
 
-export function AllCharacters({session} : {session?: Session}) {
+export function AllCharacters({ session }: { session?: Session }) {
   const { data: players, isSuccess } = api.character.getCharacters.useQuery();
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -33,12 +33,18 @@ export function AllCharacters({session} : {session?: Session}) {
             player.classDetail,
             player.slug,
             player.primaryCharacterName,
-            player.raidAttendanceByZone?.["Molten Core"]?.attendee ? "Molten Core mc" : "",
-            player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee ? "Blackwing Lair bwl" : "",
-            player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee ? "Temple of Ahn'Qiraj aq40" : "",
-            player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : ""
+            player.raidAttendanceByZone?.["Molten Core"]?.attendee
+              ? "Molten Core mc"
+              : "",
+            player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee
+              ? "Blackwing Lair bwl"
+              : "",
+            player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee
+              ? "Temple of Ahn'Qiraj aq40"
+              : "",
+            player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : "",
           ].filter(Boolean); // Remove null/undefined values
-          
+
           return searchableFields.some((value) => {
             // Normalize and check if any field contains the search term
             return normalizeText(String(value)).includes(
@@ -55,15 +61,15 @@ export function AllCharacters({session} : {session?: Session}) {
   return (
     <>
       {isSuccess ? (
-        <div>
+        <div className="space-y-2">
           <div className="space-y-1">
             <TableSearchInput
               placeholder="Search..."
               onDebouncedChange={(v) => setSearchTerm(v)}
             />
             <TableSearchTips>
-              <p className="font-medium mb-1">Search tips:</p>
-              <ul className="list-disc pl-4 space-y-1">
+              <p className="mb-1 font-medium">Search tips:</p>
+              <ul className="list-disc space-y-1 pl-4">
                 <li>Search by name, server, class, slug, or primary name</li>
                 <li>Terms are ANDed together (must all appear)</li>
               </ul>
@@ -71,7 +77,9 @@ export function AllCharacters({session} : {session?: Session}) {
           </div>
           <CharactersTable characters={filteredPlayers} session={session} />
         </div>
-      ) : <AllCharactersTableSkeleton rows={14}/>}
+      ) : (
+        <AllCharactersTableSkeleton rows={14} />
+      )}
     </>
   );
 }

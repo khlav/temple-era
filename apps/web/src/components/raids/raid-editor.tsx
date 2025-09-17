@@ -77,13 +77,11 @@ export function RaidEditor({
     }));
   };
 
-  const {
-    data: raidParticipants,
-    isLoading: isLoadingParticipants,
-  } = api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-    raidData.raidLogIds ?? [],
-    { enabled: (raidData?.raidLogIds ?? []).length > 0 },
-  );
+  const { data: raidParticipants, isLoading: isLoadingParticipants } =
+    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
+      raidData.raidLogIds ?? [],
+      { enabled: (raidData?.raidLogIds ?? []).length > 0 },
+    );
 
   return (
     <>
@@ -107,7 +105,7 @@ export function RaidEditor({
                 return (
                   <div
                     key={raidLogId}
-                    className="text-muted-foreground hover:text-primary group text-sm transition-all duration-100 hover:underline"
+                    className="group text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
                   >
                     <Link
                       href={reportUrl}
@@ -141,7 +139,7 @@ export function RaidEditor({
                 return (
                   <div
                     key={`kill_${i}`}
-                    className="text-muted-foreground bg-secondary grow-0 rounded px-2 py-1 text-sm"
+                    className="grow-0 rounded bg-secondary px-2 py-1 text-sm text-muted-foreground"
                   >
                     {killName}
                   </div>
@@ -158,9 +156,10 @@ export function RaidEditor({
                   characters={raidParticipants}
                   isLoading={isLoadingParticipants}
                   targetNewTab
+                  showRaidColumns={false}
                 />
               </div>
-              <div className="text-muted-foreground text-center text-sm">
+              <div className="text-center text-sm text-muted-foreground">
                 List of characters appearing in WCL logs. <br />
                 Alts are mapped to primary characters when calc&apos;ing
                 attendance.
@@ -186,7 +185,7 @@ export function RaidEditor({
       <div className="w-full">
         <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
           <CollapsibleTrigger>
-            <div className="text-primary inline-flex">
+            <div className="inline-flex text-primary">
               Preview {previewOpen ? <ChevronsLeft /> : <ChevronsRight />}
             </div>
           </CollapsibleTrigger>

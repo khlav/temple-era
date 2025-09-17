@@ -12,7 +12,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React from "react";
 import UserAvatar from "~/components/ui/user-avatar";
-import { CharacterSummaryGrid} from "~/components/characters/character-summary-grid";
+import { CharacterSummaryGrid } from "~/components/characters/character-summary-grid";
 
 export function RaidDetailBase({
   raidData,
@@ -148,6 +148,7 @@ export function RaidDetailBase({
               <CharactersTable
                 characters={raidParticipants}
                 isLoading={isLoadingParticipants}
+                showRaidColumns={false}
               />
             </div>
             <div className="text-center text-sm text-muted-foreground">
@@ -161,7 +162,10 @@ export function RaidDetailBase({
           <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
             <div className="text-xl">Bench:</div>
             <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-              <CharactersTable characters={raidData.bench} />
+              <CharactersTable
+                characters={raidData.bench}
+                showRaidColumns={false}
+              />
             </div>
             <Separator className="m-auto my-3" />
             <div className="text-center text-sm text-muted-foreground">

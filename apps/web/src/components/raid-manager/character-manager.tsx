@@ -1,23 +1,14 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import type {
-  RaidParticipant,
-} from "~/server/api/interfaces/raid";
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-} from "~/components/ui/table";
+import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { SortRaiders } from "~/lib/helpers";
 import { CharacterManagerRow } from "~/components/raid-manager/character-manager-row";
 import { CharacterManagerRowSkeleton } from "~/components/raid-manager/skeletons";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
-import {useRouter, useSearchParams} from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function CharacterManager() {
   const router = useRouter();
@@ -58,9 +49,13 @@ export function CharacterManager() {
     ? characterData.sort(SortRaiders).filter((player) => {
         return Object.values({
           ...player,
-          secondaryCharacterNames: player.secondaryCharacters.map((c)=> c.name),
-          secondaryCharacterClasses: player.secondaryCharacters.map((c)=> c.class),
-          isIgnored: player.isIgnored ? "ignored" : ""
+          secondaryCharacterNames: player.secondaryCharacters.map(
+            (c) => c.name,
+          ),
+          secondaryCharacterClasses: player.secondaryCharacters.map(
+            (c) => c.class,
+          ),
+          isIgnored: player.isIgnored ? "ignored" : "",
         }).some((value) => {
           // Normalize and check if any field contains the search term
           return normalizeText(String(value)).includes(
@@ -71,46 +66,60 @@ export function CharacterManager() {
     : [];
 
   return (
-    <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
-      <div className="sticky top-0 z-10 bg-white dark:bg-black/80 backdrop-blur-sm p-2 space-y-1">
+    <div className="space-y-2">
+      {/* Search Input - Fixed at top */}
+      <div className="space-y-1">
         <TableSearchInput
           placeholder="Search..."
           initialValue={searchParams.get("s") ?? ""}
           onDebouncedChange={(v) => setSearchTerm(v)}
         />
         <TableSearchTips>
-          <p className="font-medium mb-1">Search tips:</p>
-          <ul className="list-disc pl-4 space-y-1">
+          <p className="mb-1 font-medium">Search tips:</p>
+          <ul className="list-disc space-y-1 pl-4">
             <li>Search across primary and secondary character names/classes</li>
-            <li>Includes status keywords like <span className="font-mono text-chart-3">ignored</span></li>
+            <li>
+              Includes status keywords like{" "}
+              <span className="font-mono text-chart-3">ignored</span>
+            </li>
           </ul>
         </TableSearchTips>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-1/5">Primary {characterData && ` (${filteredPlayers.length})`}</TableHead>
-            <TableHead className="w-3/5">Secondary Characters</TableHead>
-            <TableHead className="w-1/5"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isSuccess ? (
-            <>
-              {filteredPlayers
-                ?.sort(SortRaiders)
-                .map((character: RaidParticipant) => (
-                  <CharacterManagerRow
-                    key={character.characterId}
-                    character={character}
-                  />
-                ))}
-            </>
-          ) : (
-            <CharacterManagerRowSkeleton />
-          )}
-        </TableBody>
-      </Table>
+
+      {/* Scrollable content area */}
+      <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
+        <div className="relative w-full">
+          <table className="w-full caption-bottom text-sm">
+            <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
+              <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                <th className="h-10 w-1/5 px-2 text-left align-middle font-medium text-muted-foreground">
+                  Primary {characterData && ` (${filteredPlayers.length})`}
+                </th>
+                <th className="h-10 w-3/5 px-2 text-left align-middle font-medium text-muted-foreground">
+                  Secondary Characters
+                </th>
+                <th className="h-10 w-1/5 px-2 text-left align-middle font-medium text-muted-foreground"></th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {isSuccess ? (
+                <>
+                  {filteredPlayers
+                    ?.sort(SortRaiders)
+                    .map((character: RaidParticipant) => (
+                      <CharacterManagerRow
+                        key={character.characterId}
+                        character={character}
+                      />
+                    ))}
+                </>
+              ) : (
+                <CharacterManagerRowSkeleton />
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

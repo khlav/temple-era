@@ -1,11 +1,18 @@
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 
 export function PrimaryCharacterRaidsTableRowSkeleton({
-                                                     rows = 10,
-                                                   }: {
+  rows = 10,
+}: {
   rows?: number;
 }) {
   return (
@@ -34,38 +41,37 @@ export function PrimaryCharacterRaidsTableRowSkeleton({
   );
 }
 
-export function AllCharactersTableSkeleton({
-                                                        rows = 10,
-                                                      }: {
-  rows?: number;
-}) {
+export function AllCharactersTableSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <>
       <TableSearchInput isLoading={true} />
-    <GenericCharactersTableSkeleton rows={rows} />
+      <GenericCharactersTableSkeleton rows={rows} />
     </>
-
   );
 }
 
 export function GenericCharactersTableSkeleton({
-                                                rows = 10,
-                                              }: {
+  rows = 10,
+  showRaidColumns = true,
+}: {
   rows?: number;
+  showRaidColumns?: boolean;
 }) {
   return (
     <>
       <Table className="max-h-[400px] w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-1/2">
-              Characters
-            </TableHead>
+            <TableHead className="w-1/2">Characters</TableHead>
             <TableHead className="w-1/4">Server</TableHead>
-            <TableHead className="w-16 text-center text-xs">MC</TableHead>
-            <TableHead className="w-16 text-center text-xs">BWL</TableHead>
-            <TableHead className="w-16 text-center text-xs">AQ40</TableHead>
-            <TableHead className="w-16 text-center text-xs">Naxx</TableHead>
+            {showRaidColumns && (
+              <>
+                <TableHead className="w-16 text-center text-xs">MC</TableHead>
+                <TableHead className="w-16 text-center text-xs">BWL</TableHead>
+                <TableHead className="w-16 text-center text-xs">AQ40</TableHead>
+                <TableHead className="w-16 text-center text-xs">Naxx</TableHead>
+              </>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -83,23 +89,26 @@ export function GenericCharactersTableSkeleton({
                   style={{ width: `${40 + ((rowIndex * 45 + 1) % 31)}%` }}
                 />
               </TableCell>
-              <TableCell className="text-center">
-                <Skeleton className="m-auto h-4 w-6" />
-              </TableCell>
-              <TableCell className="text-center">
-                <Skeleton className="m-auto h-4 w-6" />
-              </TableCell>
-              <TableCell className="text-center">
-                <Skeleton className="m-auto h-4 w-6" />
-              </TableCell>
-              <TableCell className="text-center">
-                <Skeleton className="m-auto h-4 w-6" />
-              </TableCell>
+              {showRaidColumns && (
+                <>
+                  <TableCell className="text-center">
+                    <Skeleton className="m-auto h-4 w-6" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Skeleton className="m-auto h-4 w-6" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Skeleton className="m-auto h-4 w-6" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Skeleton className="m-auto h-4 w-6" />
+                  </TableCell>
+                </>
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </>
-
   );
 }
