@@ -2,32 +2,36 @@
 . "$(dirname "$0")/_/husky.sh"
 
 echo "🚀 Running pre-push checks..."
-echo "  • Linting codebase"
-echo "  • Type checking"
-echo "  • Building application"
 
-# Run lint with minimal output
-if ! pnpm lint > /dev/null 2>&1; then
-  echo "❌ Linting failed"
+# Task 1: Linting
+echo "1/3 ⚡ Linting codebase..."
+if pnpm lint > /dev/null 2>&1; then
+  echo "1/3 ✅ Linting passed"
+else
+  echo "1/3 ❌ Linting failed"
   echo "Running lint to show errors:"
   pnpm lint
   exit 1
 fi
 
-# Run typecheck with minimal output
-if ! pnpm typecheck > /dev/null 2>&1; then
-  echo "❌ Type checking failed"
+# Task 2: Type checking
+echo "2/3 🔍 Type checking..."
+if pnpm typecheck > /dev/null 2>&1; then
+  echo "2/3 ✅ Type checking passed"
+else
+  echo "2/3 ❌ Type checking failed"
   echo "Running typecheck to show errors:"
   pnpm typecheck
   exit 1
 fi
 
-# Run build with minimal output (but show build summary)
-echo "  • Building application..."
+# Task 3: Building
+echo "3/3 🔨 Building application..."
 if pnpm build > /dev/null 2>&1; then
-  echo "✅ All pre-push checks passed"
+  echo "3/3 ✅ Build passed"
+  echo "🎉 All pre-push checks completed successfully!"
 else
-  echo "❌ Build failed"
+  echo "3/3 ❌ Build failed"
   echo "Running build to show errors:"
   pnpm build
   exit 1
