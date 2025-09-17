@@ -56,11 +56,7 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 
 3. **Set up environment variables**
 
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit the `.env` file and replace the placeholder values with your actual credentials:
+   Create a `.env` file in the root directory with the following variables:
 
    **Required Variables:**
 
@@ -75,13 +71,10 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
    - `NEXT_PUBLIC_POSTHOG_ENABLED` - Set to "true" (case-insensitive) to enable PostHog analytics (default: false)
    - `NEXT_PUBLIC_POSTHOG_KEY` - For analytics (can be left as placeholder)
 
-   The `.env.example` file contains all required variables with helpful comments and examples.
-
 4. **Set up the database**
 
    ```bash
    pnpm db:push
-   pnpm db:migrate
    ```
 
 5. **Start the development server**
@@ -121,13 +114,19 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
    - Create an application at [Battle.net Developer Portal](https://develop.battle.net/)
    - Copy the Client ID and Client Secret to your `.env` file
 
-5. **Set up Database**
+5. **Set up PostHog Analytics (Optional)**
+
+   - Create an account at [PostHog](https://posthog.com/)
+   - Create a new project and copy the Project API Key
+   - Set `NEXT_PUBLIC_POSTHOG_ENABLED=true` and `NEXT_PUBLIC_POSTHOG_KEY=your_key` in your `.env` file
+
+6. **Set up Database**
 
    - For local development: Install PostgreSQL and create a database
    - For production: Use a service like Neon, Supabase, or Railway
    - Update `DATABASE_URL` with your connection string
 
-6. **Set up Admin User**
+7. **Set up Admin User**
    - First user to log in will need database access to set admin permissions
    - Or manually update the database to grant admin access to your Discord user ID
 
@@ -169,5 +168,3 @@ Follow the T3 Stack deployment guides for:
 ## License
 
 This project is private and intended for use by the Temple guild on Ashkandi server.
-
-# Test comment for git hook
