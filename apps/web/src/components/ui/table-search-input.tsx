@@ -8,7 +8,7 @@ type TableSearchInputProps = Omit<React.ComponentProps<typeof DebouncedInput>, "
   initialValue?: string
   delay?: number
   placeholder?: string
-  onDebouncedChange: (value: string) => void
+  onDebouncedChange?: (value: string) => void
   autoFocus?: boolean
   onClear?: () => void
   isLoading?: boolean
@@ -63,7 +63,7 @@ export const TableSearchInput = React.forwardRef<HTMLInputElement, TableSearchIn
             className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => {
               setInputValue("")
-              onDebouncedChange("")
+              onDebouncedChange?.("")
               onClear?.()
             }}
           >

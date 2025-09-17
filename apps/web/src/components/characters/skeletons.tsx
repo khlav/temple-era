@@ -41,7 +41,7 @@ export function AllCharactersTableSkeleton({
 }) {
   return (
     <>
-      <TableSearchInput onDebouncedChange={() => {}} isLoading={true} />
+      <TableSearchInput isLoading={true} />
     <GenericCharactersTableSkeleton rows={rows} />
     </>
 

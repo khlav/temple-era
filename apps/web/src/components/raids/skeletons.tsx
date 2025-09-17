@@ -16,7 +16,7 @@ export function RaidsTableSkeleton({ rows = 30 }: { rows?: number }) {
     <>
       <div className="space-y-2">
         <div className="space-y-1">
-          <TableSearchInput onDebouncedChange={() => {}} isLoading={true} />
+          <TableSearchInput isLoading={true} />
         </div>
       <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
         <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">

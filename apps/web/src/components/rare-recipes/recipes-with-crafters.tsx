@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
-import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
+// import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
