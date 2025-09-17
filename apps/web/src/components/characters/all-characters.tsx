@@ -2,7 +2,8 @@
 import { api } from "~/trpc/react";
 import { CharactersTable } from "~/components/characters/characters-table";
 import { useState } from "react";
-import { Input } from "~/components/ui/input";
+import { TableSearchInput } from "~/components/ui/table-search-input";
+import { TableSearchTips } from "~/components/ui/table-search-tips";
 import type {RaidParticipantCollection} from "~/server/api/interfaces/raid";
 import {AllCharactersTableSkeleton} from "~/components/characters/skeletons";
 import type {Session} from "next-auth";
@@ -55,11 +56,19 @@ export function AllCharacters({session} : {session?: Session}) {
     <>
       {isSuccess ? (
         <div>
-          <Input
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div className="space-y-1">
+            <TableSearchInput
+              placeholder="Search..."
+              onDebouncedChange={(v) => setSearchTerm(v)}
+            />
+            <TableSearchTips>
+              <p className="font-medium mb-1">Search tips:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Search by name, server, class, slug, or primary name</li>
+                <li>Terms are ANDed together (must all appear)</li>
+              </ul>
+            </TableSearchTips>
+          </div>
           <CharactersTable characters={filteredPlayers} session={session} />
         </div>
       ) : <AllCharactersTableSkeleton rows={14}/>}

@@ -20,7 +20,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
-import { Input } from "~/components/ui/input";
+import { TableSearchInput } from "~/components/ui/table-search-input";
+import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 
@@ -96,16 +97,22 @@ export function PrimaryCharacterRaidsTable({
       {/* Search Bar */}
       <div className="mb-4 relative">
         <Search className="absolute left-3 top-[18px] -translate-y-1/2 text-muted-foreground pointer-events-none" size={20} />
-        <Input
+        <TableSearchInput
           ref={searchInputRef}
           type="text"
           placeholder="Search raids by name, zone, date, character..."
           className="pl-10 w-full"
-          value={searchTerms}
-          onChange={(e) => setSearchTerms(e.target.value ?? '')}
+          initialValue={initialSearch}
+          onDebouncedChange={(v) => setSearchTerms(v ?? '')}
         />
         <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-          <span>Search supports multiple terms</span>
+          <TableSearchTips>
+            <p className="font-medium mb-1">Search tips:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Search by raid name, zone, date text, or character names</li>
+              <li>Enter multiple terms to narrow results (AND search)</li>
+            </ul>
+          </TableSearchTips>
           <span>
             All-time raids: {raidStats.total}{" "}
             ({raidStats.attended} attended, {raidStats.benched} benched)

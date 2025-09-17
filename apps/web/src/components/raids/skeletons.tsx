@@ -9,10 +9,15 @@ import {
 } from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
+import { TableSearchInput } from "~/components/ui/table-search-input";
 
 export function RaidsTableSkeleton({ rows = 30 }: { rows?: number }) {
   return (
     <>
+      <div className="space-y-2">
+        <div className="space-y-1">
+          <TableSearchInput isLoading={true} />
+        </div>
       <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
         <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
           <TableCaption className="text-wrap">
@@ -57,6 +62,7 @@ export function RaidsTableSkeleton({ rows = 30 }: { rows?: number }) {
             ))}
           </TableBody>
         </Table>
+      </div>
       </div>
       {/*<Table className="max-h-[400px]">*/}
       {/*  <TableHeader>*/}

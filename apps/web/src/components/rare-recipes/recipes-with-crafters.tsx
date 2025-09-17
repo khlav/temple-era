@@ -6,7 +6,8 @@ import { api } from "~/trpc/react";
 import Link from "next/link";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
 import { Search } from "lucide-react";
-import { Input } from "~/components/ui/input";
+import { TableSearchInput } from "~/components/ui/table-search-input";
+import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import {
@@ -18,7 +19,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
-import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
+// import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
@@ -137,7 +138,7 @@ export const RecipesWithCrafters = () => {
       <div className="flex flex-col gap-1">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-          <Input
+          <TableSearchInput
             ref={searchInputRef}
             type="text"
             placeholder={
@@ -146,12 +147,21 @@ export const RecipesWithCrafters = () => {
                 : "Search recipes, professions, tags, or characters..."
             }
             className="pl-10 w-full"
-            value={searchTerms}
-            onChange={(e) => setSearchTerms(e.target.value ?? '')}
+          initialValue={initialSearch}
+            onDebouncedChange={(v) => setSearchTerms(v ?? '')}
+            isLoading={isLoading}
           />
         </div>
-        <div className="flex justify-end">
-          <SearchHelperText />
+        <div className="flex justify-start">
+          <TableSearchTips>
+            <p className="font-medium mb-1">Search tips:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Type multiple terms to match ALL terms</li>
+              <li>Use <span className="font-mono text-chart-3">#tag</span> to search by tag</li>
+              <li>Use <span className="font-mono text-chart-3">-term</span> to exclude (e.g. <span className="font-mono text-chart-3">-leather</span>)</li>
+              <li>Click tags or crafter names to add them to your search</li>
+            </ul>
+          </TableSearchTips>
         </div>
       </div>
 

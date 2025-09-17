@@ -1,7 +1,7 @@
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
-import {Input} from "~/components/ui/input";
+import { TableSearchInput } from "~/components/ui/table-search-input";
 
 export function PrimaryCharacterRaidsTableRowSkeleton({
                                                      rows = 10,
@@ -41,10 +41,7 @@ export function AllCharactersTableSkeleton({
 }) {
   return (
     <>
-      <Input
-        placeholder="Search..."
-        disabled={true}
-      />
+      <TableSearchInput isLoading={true} />
     <GenericCharactersTableSkeleton rows={rows} />
     </>
 
