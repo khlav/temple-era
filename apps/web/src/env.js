@@ -35,7 +35,10 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_POSTHOG_ENABLED: z
+      .string()
+      .transform((val) => val.toLowerCase() === "true")
+      .default("false"),
   },
 
   /**
@@ -56,6 +59,8 @@ export const env = createEnv({
     BATTLENET_OAUTH_URL: process.env.BATTLENET_OAUTH_URL,
     BATTLENET_CLIENT_ID: process.env.BATTLENET_CLIENT_ID,
     BATTLENET_CLIENT_SECRET: process.env.BATTLENET_CLIENT_SECRET,
+
+    NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
 
     NODE_ENV: process.env.NODE_ENV,
   },
