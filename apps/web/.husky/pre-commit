@@ -1,4 +1,14 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-pnpm lint-staged
+echo "🔍 Running pre-commit checks..."
+echo "  • Linting and formatting staged files"
+
+if pnpm lint-staged > /dev/null 2>&1; then
+  echo "✅ Pre-commit checks passed"
+else
+  echo "❌ Pre-commit checks failed"
+  echo "Running lint-staged to show errors:"
+  pnpm lint-staged
+  exit 1
+fi

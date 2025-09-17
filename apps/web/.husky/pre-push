@@ -1,4 +1,34 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-pnpm lint && pnpm typecheck && pnpm build
+echo "🚀 Running pre-push checks..."
+echo "  • Linting codebase"
+echo "  • Type checking"
+echo "  • Building application"
+
+# Run lint with minimal output
+if ! pnpm lint > /dev/null 2>&1; then
+  echo "❌ Linting failed"
+  echo "Running lint to show errors:"
+  pnpm lint
+  exit 1
+fi
+
+# Run typecheck with minimal output
+if ! pnpm typecheck > /dev/null 2>&1; then
+  echo "❌ Type checking failed"
+  echo "Running typecheck to show errors:"
+  pnpm typecheck
+  exit 1
+fi
+
+# Run build with minimal output (but show build summary)
+echo "  • Building application..."
+if pnpm build > /dev/null 2>&1; then
+  echo "✅ All pre-push checks passed"
+else
+  echo "❌ Build failed"
+  echo "Running build to show errors:"
+  pnpm build
+  exit 1
+fi
