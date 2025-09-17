@@ -16,17 +16,16 @@ import { ChevronDown, LogOut, User } from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import posthog from "posthog-js";
+import { posthogSafe } from "~/utils/posthog";
 
 export function AppSidebarLogin({ session }: { session: Session | null }) {
-  const handleSignIn = () => signIn(
-    "discord", {
-      redirectTo: "/?signin=1"
-    }
-  );
+  const handleSignIn = () =>
+    signIn("discord", {
+      redirectTo: "/?signin=1",
+    });
 
   const handleSignOut = () => {
-    posthog.reset();
+    posthogSafe.reset();
     void signOut();
   };
   const userMenu = (

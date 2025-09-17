@@ -4,34 +4,30 @@
 
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { usePostHog } from "posthog-js/react";
 import { useSession } from "next-auth/react"; // Add this import
 
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { type ReactNode } from "react";
+import { posthogSafe } from "~/utils/posthog";
 
 export const PostHogIdentify = () => {
-  const posthog = usePostHog();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSignIn = searchParams.get("signin") === "1";
-  const [isPostHogReady, setIsPostHogReady] = useState(false);
   const { data: session, status } = useSession(); // Get session client-side
   const sessionLoaded = status === "authenticated";
 
-  // First, wait for PostHog to be initialized
+  // Handle identification once PostHog and session are ready
   useEffect(() => {
-    if (posthog.__loaded) {
-      setIsPostHogReady(true);
-    }
-  }, [posthog]);
-
-  // Then, handle identification once both PostHog and session are ready
-  useEffect(() => {
-    if (isPostHogReady && isSignIn && sessionLoaded && session?.user?.id) {
+    if (
+      posthogSafe.isReady() &&
+      isSignIn &&
+      sessionLoaded &&
+      session?.user?.id
+    ) {
       // Identify sends an event, so you want may want to limit how often you call it
-      posthog.identify(session.user.id, {
+      posthogSafe.identify(session.user.id, {
         name: session.user.name,
         isRaidManager: session.user.isRaidManager,
         isAdmin: session.user.isAdmin,
@@ -40,7 +36,7 @@ export const PostHogIdentify = () => {
       router.replace("/", { scroll: false });
       console.log(`Welcome, ${session.user.name}!`);
     }
-  }, [router, isSignIn, posthog, session, isPostHogReady, sessionLoaded]);
+  }, [router, isSignIn, session, sessionLoaded]);
 
   return null;
 };
@@ -48,27 +44,18 @@ export const PostHogIdentify = () => {
 function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const posthog = usePostHog();
-  const [isPostHogReady, setIsPostHogReady] = useState(false);
-
-  // Check if PostHog is ready
-  useEffect(() => {
-    if (posthog.__loaded) {
-      setIsPostHogReady(true);
-    }
-  }, [posthog]);
 
   // Track pageviews
   useEffect(() => {
-    if (pathname && isPostHogReady) {
+    if (pathname && posthogSafe.isReady()) {
       let url = window.origin + pathname;
       if (searchParams.toString()) {
         url = url + `?${searchParams.toString()}`;
       }
 
-      posthog.capture("$pageview", { $current_url: url });
+      posthogSafe.capture("$pageview", { $current_url: url });
     }
-  }, [pathname, searchParams, posthog, isPostHogReady]);
+  }, [pathname, searchParams]);
 
   return null;
 }
@@ -95,23 +82,23 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize PostHog
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
+    // Initialize PostHog only if enabled
+    posthogSafe.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
       api_host: "/e",
-      ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? null,
       person_profiles: "identified_only",
       capture_pageview: false, // Disable automatic pageview capture, as we capture manually
       capture_pageleave: true, // Enable pageleave capture
-      loaded: function() {
+      loaded: function () {
         setIsInitialized(true);
-      }
+      },
     });
 
     if (
       location.hostname === "localhost" ||
       location.hostname === "127.0.0.1"
     ) {
-      posthog.debug();
+      posthogSafe.debug();
     }
   }, []);
 
