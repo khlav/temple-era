@@ -41,3 +41,42 @@ export async function getCharacterMetadata(characterId: number) {
     return null;
   }
 }
+
+// Breadcrumb-specific helpers that return just the name for breadcrumb display
+export async function getRaidBreadcrumbName(
+  raidId: number,
+): Promise<string | null> {
+  try {
+    const raidResult = await db
+      .select({
+        name: raids.name,
+      })
+      .from(raids)
+      .where(eq(raids.raidId, raidId))
+      .limit(1);
+
+    return raidResult[0]?.name || null;
+  } catch (error) {
+    console.error("Error fetching raid breadcrumb name:", error);
+    return null;
+  }
+}
+
+export async function getCharacterBreadcrumbName(
+  characterId: number,
+): Promise<string | null> {
+  try {
+    const characterResult = await db
+      .select({
+        name: characters.name,
+      })
+      .from(characters)
+      .where(eq(characters.characterId, characterId))
+      .limit(1);
+
+    return characterResult[0]?.name || null;
+  } catch (error) {
+    console.error("Error fetching character breadcrumb name:", error);
+    return null;
+  }
+}

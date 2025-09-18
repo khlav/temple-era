@@ -1,7 +1,10 @@
 import { auth } from "~/server/auth";
 import { RaidEditPageWrapper } from "~/components/raids/raid-edit-page-wrapper";
 import { redirect } from "next/navigation";
-import { getRaidMetadata } from "~/server/metadata-helpers";
+import {
+  getRaidMetadata,
+  getRaidBreadcrumbName,
+} from "~/server/metadata-helpers";
 import { type Metadata } from "next";
 
 export async function generateMetadata({
@@ -40,5 +43,13 @@ export default async function RaidEditPage({
     redirect("/raids");
   }
 
-  return <RaidEditPageWrapper raidId={raidId} />;
+  // Get raid name for breadcrumb
+  const raidName = await getRaidBreadcrumbName(raidId);
+
+  return (
+    <RaidEditPageWrapper
+      raidId={raidId}
+      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
+    />
+  );
 }

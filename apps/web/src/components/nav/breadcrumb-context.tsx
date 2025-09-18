@@ -22,8 +22,15 @@ const BreadcrumbContext = createContext<BreadcrumbContextType | undefined>(
   undefined,
 );
 
-export function BreadcrumbProvider({ children }: { children: ReactNode }) {
-  const [breadcrumbData, setBreadcrumbData] = useState<BreadcrumbData>({});
+export function BreadcrumbProvider({
+  children,
+  initialData = {},
+}: {
+  children: ReactNode;
+  initialData?: BreadcrumbData;
+}) {
+  const [breadcrumbData, setBreadcrumbData] =
+    useState<BreadcrumbData>(initialData);
 
   const updateBreadcrumbSegment = useCallback(
     (segment: string, name: string) => {

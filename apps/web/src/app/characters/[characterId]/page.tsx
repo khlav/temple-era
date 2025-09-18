@@ -1,6 +1,9 @@
 import { CharacterPageWrapper } from "~/components/characters/character-page-wrapper";
 import { auth } from "~/server/auth";
-import { getCharacterMetadata } from "~/server/metadata-helpers";
+import {
+  getCharacterMetadata,
+  getCharacterBreadcrumbName,
+} from "~/server/metadata-helpers";
 import { type Metadata } from "next";
 
 export async function generateMetadata({
@@ -34,11 +37,18 @@ export default async function PlayerPage({
   const p = await params;
   const session = await auth();
   const characterId = parseInt(String(p.characterId));
+
+  // Get character name for breadcrumb
+  const characterName = await getCharacterBreadcrumbName(characterId);
+
   return (
     <CharacterPageWrapper
       characterId={characterId}
       showEditButton={session?.user?.isRaidManager}
       showRecipeEdit={!!session?.user}
+      initialBreadcrumbData={
+        characterName ? { [characterId.toString()]: characterName } : {}
+      }
     />
   );
 }

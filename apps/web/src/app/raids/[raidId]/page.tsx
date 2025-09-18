@@ -1,6 +1,9 @@
 import { RaidPageWrapper } from "~/components/raids/raid-page-wrapper";
 import { auth } from "~/server/auth";
-import { getRaidMetadata } from "~/server/metadata-helpers";
+import {
+  getRaidMetadata,
+  getRaidBreadcrumbName,
+} from "~/server/metadata-helpers";
 import { type Metadata } from "next";
 
 export async function generateMetadata({
@@ -35,10 +38,14 @@ export default async function RaidPage({
   const raidId = parseInt(String(p.raidId)); // Access your dynamic URL parameter here (e.g., /raids/[[raidId]])
   const session = await auth();
 
+  // Get raid name for breadcrumb
+  const raidName = await getRaidBreadcrumbName(raidId);
+
   return (
     <RaidPageWrapper
       raidId={raidId}
       showEditButton={session?.user?.isRaidManager}
+      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
     />
   );
 }
