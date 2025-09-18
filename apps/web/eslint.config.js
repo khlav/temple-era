@@ -2,7 +2,6 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
-import drizzlePlugin from "eslint-plugin-drizzle";
 import nextPlugin from "@next/eslint-plugin-next";
 
 const compat = new FlatCompat({
@@ -59,7 +58,6 @@ const config = [
     },
     plugins: {
       "@typescript-eslint": typescriptEslint,
-      drizzle: drizzlePlugin,
       "@next/next": nextPlugin,
     },
     rules: {
@@ -85,18 +83,6 @@ const config = [
           checksVoidReturn: {
             attributes: false,
           },
-        },
-      ],
-      "drizzle/enforce-delete-with-where": [
-        "error",
-        {
-          drizzleObjectName: ["db", "ctx.db"],
-        },
-      ],
-      "drizzle/enforce-update-with-where": [
-        "error",
-        {
-          drizzleObjectName: ["db", "ctx.db"],
         },
       ],
     },
