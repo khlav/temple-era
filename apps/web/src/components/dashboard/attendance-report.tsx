@@ -104,7 +104,9 @@ export function AttendanceReport({
   } satisfies ChartConfig;
 
   const handleBarClick = (data: Raider) => {
-    console.log(data);
+    if (process.env.NODE_ENV === "development") {
+      console.log(data);
+    }
     if (data.characterId) {
       router.push(`/characters/${data.characterId}`);
     }
@@ -230,7 +232,7 @@ export function AttendanceReport({
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data: Raider) => handleBarClick(data)}
+                  onClick={handleBarClick}
                 >
                   <LabelList
                     dataKey="weightedAttendanceAtOrAboveThresh"
@@ -238,9 +240,12 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
-                    formatter={(value: number) =>
-                      `${Math.round((value / 18) * 100)}%`
-                    }
+                    style={{ pointerEvents: "none" }}
+                    formatter={(label: any) => {
+                      const value =
+                        typeof label === "number" ? label : parseFloat(label);
+                      return `${Math.round((value / 18) * 100)}%`;
+                    }}
                   />
                 </Bar>
                 <Bar
@@ -250,7 +255,7 @@ export function AttendanceReport({
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data: Raider) => handleBarClick(data)}
+                  onClick={handleBarClick}
                 >
                   <LabelList
                     dataKey="weightedAttendanceAtOrAboveThreshHighlight"
@@ -258,9 +263,12 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
-                    formatter={(value: number) =>
-                      `${Math.round((value / 18) * 100)}%`
-                    }
+                    style={{ pointerEvents: "none" }}
+                    formatter={(label: any) => {
+                      const value =
+                        typeof label === "number" ? label : parseFloat(label);
+                      return `${Math.round((value / 18) * 100)}%`;
+                    }}
                   />
                 </Bar>
                 <Bar
@@ -270,7 +278,7 @@ export function AttendanceReport({
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data: Raider) => handleBarClick(data)}
+                  onClick={handleBarClick}
                 >
                   <LabelList
                     dataKey="weightedAttendanceBelowThresh"
@@ -278,9 +286,12 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) =>
-                      `${Math.round((value / 18) * 100)}%`
-                    }
+                    style={{ pointerEvents: "none" }}
+                    formatter={(label: any) => {
+                      const value =
+                        typeof label === "number" ? label : parseFloat(label);
+                      return `${Math.round((value / 18) * 100)}%`;
+                    }}
                   />
                 </Bar>
                 <Bar
@@ -290,7 +301,7 @@ export function AttendanceReport({
                   barSize={20}
                   stackId={1}
                   className="cursor-pointer"
-                  onClick={(data: Raider) => handleBarClick(data)}
+                  onClick={handleBarClick}
                 >
                   <LabelList
                     dataKey="weightedAttendanceBelowThreshHighlight"
@@ -298,9 +309,12 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) =>
-                      `${Math.round((value / 18) * 100)}%`
-                    }
+                    style={{ pointerEvents: "none" }}
+                    formatter={(label: any) => {
+                      const value =
+                        typeof label === "number" ? label : parseFloat(label);
+                      return `${Math.round((value / 18) * 100)}%`;
+                    }}
                   />
                 </Bar>
               </BarChart>

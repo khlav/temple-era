@@ -37,8 +37,7 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_POSTHOG_ENABLED: z
       .string()
-      .transform((val) => val.toLowerCase() === "true")
-      .default("false"),
+      .transform((val) => val.toLowerCase() === "true"),
   },
 
   /**
