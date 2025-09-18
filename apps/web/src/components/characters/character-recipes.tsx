@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -13,19 +13,14 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "~/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger
+  AccordionTrigger,
 } from "~/components/ui/accordion";
 import { useToast } from "~/hooks/use-toast";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -37,7 +32,10 @@ interface CharacterRecipesProps {
 
 const WOWHEAD_SPELL_URL_BASE = "https://www.wowhead.com/classic/spell=";
 
-export const CharacterRecipes = ({ character, showRecipeEditor = false }: CharacterRecipesProps) => {
+export const CharacterRecipes = ({
+  character,
+  showRecipeEditor = false,
+}: CharacterRecipesProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const { toast } = useToast();
   const characterId = character.characterId;
@@ -47,29 +45,31 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
     api.recipe.getAllRecipesWithCharacters.useQuery();
 
   // Group recipes by profession for the character
-  const characterRecipes = allRecipesWithCharacters?.filter(recipe =>
-    recipe.characters.some(char => char.characterId === characterId)
+  const characterRecipes = allRecipesWithCharacters?.filter((recipe) =>
+    recipe.characters.some((char) => char.characterId === characterId),
   );
 
   // Group all recipes by profession
-  const recipesByProfession = allRecipesWithCharacters?.reduce((acc, recipe) => {
-    if (!acc[recipe.profession]) {
-      acc[recipe.profession] = [];
-    }
-    // @ts-expect-error Should exist
-    acc[recipe.profession].push(recipe);
-    return acc;
-  }, {} as Record<string, typeof allRecipesWithCharacters>);
+  const recipesByProfession = allRecipesWithCharacters?.reduce(
+    (acc, recipe) => {
+      acc[recipe.profession] ??= [];
+      // @ts-expect-error Should exist
+      acc[recipe.profession].push(recipe);
+      return acc;
+    },
+    {} as Record<string, typeof allRecipesWithCharacters>,
+  );
 
   // Group character recipes by profession for view mode
-  const characterRecipesByProfession = characterRecipes?.reduce((acc, recipe) => {
-    if (!acc[recipe.profession]) {
-      acc[recipe.profession] = [];
-    }
-    // @ts-expect-error Should exist
-    acc[recipe.profession].push(recipe);
-    return acc;
-  }, {} as Record<string, typeof characterRecipes>);
+  const characterRecipesByProfession = characterRecipes?.reduce(
+    (acc, recipe) => {
+      acc[recipe.profession] ??= [];
+      // @ts-expect-error Should exist
+      acc[recipe.profession].push(recipe);
+      return acc;
+    },
+    {} as Record<string, typeof characterRecipes>,
+  );
 
   // API mutations
   // Get utils for invalidating queries
@@ -81,7 +81,9 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
 
       // Find recipe name based on spellId
-      const recipe = allRecipesWithCharacters?.find(r => r.recipeSpellId === variables.recipeSpellId);
+      const recipe = allRecipesWithCharacters?.find(
+        (r) => r.recipeSpellId === variables.recipeSpellId,
+      );
       const recipeName = recipe?.recipe ?? "Recipe";
 
       const characterName = character.name;
@@ -97,39 +99,43 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
         description: error.message,
         variant: "destructive",
       });
-    }
-  });
-
-  const removeRecipeFromCharacter = api.recipe.removeRecipeFromCharacter.useMutation({
-    onSuccess: async (data, variables) => {
-      // Invalidate the recipes query to refresh data
-      await utils.recipe.getAllRecipesWithCharacters.invalidate();
-
-      // Find recipe name based on spellId
-      const recipe = allRecipesWithCharacters?.find(r => r.recipeSpellId === variables.recipeSpellId);
-      const recipeName = recipe?.recipe ?? "Recipe";
-
-      const characterName = character.name;
-
-      toast({
-        title: "Recipe removed",
-        description: `Removed ${recipeName} from ${characterName}`,
-      });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
+
+  const removeRecipeFromCharacter =
+    api.recipe.removeRecipeFromCharacter.useMutation({
+      onSuccess: async (data, variables) => {
+        // Invalidate the recipes query to refresh data
+        await utils.recipe.getAllRecipesWithCharacters.invalidate();
+
+        // Find recipe name based on spellId
+        const recipe = allRecipesWithCharacters?.find(
+          (r) => r.recipeSpellId === variables.recipeSpellId,
+        );
+        const recipeName = recipe?.recipe ?? "Recipe";
+
+        const characterName = character.name;
+
+        toast({
+          title: "Recipe removed",
+          description: `Removed ${recipeName} from ${characterName}`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
 
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
-    return characterRecipes?.some(recipe =>
-      recipe.recipeSpellId === recipeSpellId &&
-      recipe.characters.some(char => char.characterId === characterId)
+    return characterRecipes?.some(
+      (recipe) =>
+        recipe.recipeSpellId === recipeSpellId &&
+        recipe.characters.some((char) => char.characterId === characterId),
     );
   };
 
@@ -138,18 +144,21 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
     if (isChecked) {
       addRecipeToCharacter.mutate({
         recipeSpellId,
-        characterId
+        characterId,
       });
     } else {
       removeRecipeFromCharacter.mutate({
         recipeSpellId,
-        characterId
+        characterId,
       });
     }
   };
 
   // Handle clicking on recipe name in edit mode
-  const handleRecipeClick = (recipeSpellId: number, event: React.MouseEvent) => {
+  const handleRecipeClick = (
+    recipeSpellId: number,
+    event: React.MouseEvent,
+  ) => {
     if (isEditMode) {
       event.preventDefault(); // Prevent navigation
       const isCurrentlyChecked = characterKnowsRecipe(recipeSpellId);
@@ -158,19 +167,17 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
   };
 
   if (allRecipesLoading) {
-    return <div className="text-center py-8">Loading recipes...</div>;
+    return <div className="py-8 text-center">Loading recipes...</div>;
   }
 
   return (
     <div className="w-full">
       <WOWHeadTooltips />
       <Card>
-        <CardHeader className="pb-0 pt-4 flex flex-row items-center justify-between">
-          <CardTitle>
-            Crafting & Rare Recipes
-          </CardTitle>
-          {showRecipeEditor && (
-            isEditMode ? (
+        <CardHeader className="flex flex-row items-center justify-between pb-0 pt-4">
+          <CardTitle>Crafting & Rare Recipes</CardTitle>
+          {showRecipeEditor &&
+            (isEditMode ? (
               <Button
                 variant="default"
                 size="icon"
@@ -184,60 +191,76 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
                 variant="link"
                 size="icon"
                 onClick={() => setIsEditMode(true)}
-                className="border-primary border"
+                className="border border-primary"
                 aria-label="Edit recipes"
               >
                 <Pencil className="h-4 w-4" />
               </Button>
-            )
-          )}
+            ))}
         </CardHeader>
         <CardContent>
           {isEditMode ? (
             // Edit Mode - Show all recipes with checkboxes
             <Accordion type="multiple" className="w-full">
-              {Object.entries(recipesByProfession ?? {}).map(([profession, recipes]) => (
-                <AccordionItem key={profession} value={profession}>
-                  <AccordionTrigger className="text-sm ">
-                    {profession}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {recipes.map((recipe) => {
-                        const isKnown = characterKnowsRecipe(recipe.recipeSpellId);
-                        return (
-                          <div key={recipe.recipeSpellId} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`recipe-${recipe.recipeSpellId}`}
-                              checked={isKnown}
-                              onCheckedChange={(checked) =>
-                                handleRecipeToggle(recipe.recipeSpellId, checked as boolean)
-                              }
-                              disabled={addRecipeToCharacter.isPending || removeRecipeFromCharacter.isPending}
-                            />
-                            <label
-                              htmlFor={`recipe-${recipe.recipeSpellId}`}
-                              className="text-sm cursor-pointer flex-1"
+              {Object.entries(recipesByProfession ?? {}).map(
+                ([profession, recipes]) => (
+                  <AccordionItem key={profession} value={profession}>
+                    <AccordionTrigger className="text-sm">
+                      {profession}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        {recipes.map((recipe) => {
+                          const isKnown = characterKnowsRecipe(
+                            recipe.recipeSpellId,
+                          );
+                          return (
+                            <div
+                              key={recipe.recipeSpellId}
+                              className="flex items-center space-x-2"
                             >
-                              <Link
-                                href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                target="_blank"
-                                className="hover:underline"
-                                onClick={(e) => handleRecipeClick(recipe.recipeSpellId, e)}
+                              <Checkbox
+                                id={`recipe-${recipe.recipeSpellId}`}
+                                checked={isKnown}
+                                onCheckedChange={(checked) =>
+                                  handleRecipeToggle(
+                                    recipe.recipeSpellId,
+                                    checked as boolean,
+                                  )
+                                }
+                                disabled={
+                                  addRecipeToCharacter.isPending ||
+                                  removeRecipeFromCharacter.isPending
+                                }
+                              />
+                              <label
+                                htmlFor={`recipe-${recipe.recipeSpellId}`}
+                                className="flex-1 cursor-pointer text-sm"
                               >
-                                {recipe.recipe}
-                              </Link>
-                              {recipe.isCommon && (
-                                <span className="ml-1 text-xs text-muted-foreground italic">Common</span>
-                              )}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                                <Link
+                                  href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                  target="_blank"
+                                  className="hover:underline"
+                                  onClick={(e) =>
+                                    handleRecipeClick(recipe.recipeSpellId, e)
+                                  }
+                                >
+                                  {recipe.recipe}
+                                </Link>
+                                {recipe.isCommon && (
+                                  <span className="ml-1 text-xs italic text-muted-foreground">
+                                    Common
+                                  </span>
+                                )}
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ),
+              )}
             </Accordion>
           ) : (
             // View Mode - Show character's recipes in a table
@@ -249,33 +272,46 @@ export const CharacterRecipes = ({ character, showRecipeEditor = false }: Charac
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {characterRecipesByProfession && Object.entries(characterRecipesByProfession).length > 0 ? (
-                  Object.entries(characterRecipesByProfession).map(([profession, recipes]) => (
-                    <TableRow key={profession}>
-                      <TableCell className="font-medium">{profession}</TableCell>
-                      <TableCell>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
-                          {recipes.map(recipe => (
-                            <div key={recipe.recipeSpellId} className="text-sm text-nowrap">
-                              <Link
-                                href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                target="_blank"
-                                className="hover:underline"
+                {characterRecipesByProfession &&
+                Object.entries(characterRecipesByProfession).length > 0 ? (
+                  Object.entries(characterRecipesByProfession).map(
+                    ([profession, recipes]) => (
+                      <TableRow key={profession}>
+                        <TableCell className="font-medium">
+                          {profession}
+                        </TableCell>
+                        <TableCell>
+                          <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
+                            {recipes.map((recipe) => (
+                              <div
+                                key={recipe.recipeSpellId}
+                                className="text-nowrap text-sm"
                               >
-                                {recipe.recipe}
-                              </Link>
-                              {recipe.isCommon && (
-                                <span className="ml-1 text-xs text-muted-foreground italic">Common</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                                <Link
+                                  href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                  target="_blank"
+                                  className="hover:underline"
+                                >
+                                  {recipe.recipe}
+                                </Link>
+                                {recipe.isCommon && (
+                                  <span className="ml-1 text-xs italic text-muted-foreground">
+                                    Common
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ),
+                  )
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
+                    <TableCell
+                      colSpan={2}
+                      className="py-4 text-center text-muted-foreground"
+                    >
                       No crafting recipes found for this character.
                     </TableCell>
                   </TableRow>

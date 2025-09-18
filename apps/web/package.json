@@ -72,6 +72,7 @@
     "zod": "^3.23.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
@@ -79,7 +80,7 @@
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
     "drizzle-kit": "^0.24.2",
-    "eslint": "^8.57.0",
+    "eslint": "^9.35.0",
     "eslint-config-next": "^15.0.1",
     "eslint-plugin-drizzle": "^0.2.3",
     "husky": "^9.1.7",
@@ -95,7 +96,7 @@
   },
   "packageManager": "pnpm@9.15.1",
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
+    "src/**/*.{ts,tsx,js,jsx}": [
       "eslint --max-warnings=0 --fix",
       "prettier --write"
     ],

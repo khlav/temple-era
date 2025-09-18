@@ -202,7 +202,8 @@ const ChartTooltipContent = React.forwardRef<
             const key = `${nameKey ?? item.name ?? item.dataKey ?? "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-            const indicatorColor: string = (color ?? item?.payload?.fill ?? item.color)
+            const indicatorColor: string =
+              color ?? item?.payload?.fill ?? item.color;
 
             return (
               <div key={item.dataKey}>
@@ -234,9 +235,8 @@ const ChartTooltipContent = React.forwardRef<
                             )}
                             style={
                               {
-                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                 "--color-bg": indicatorColor,
-                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
                                 "--color-border": indicatorColor,
                               } as React.CSSProperties
                             }

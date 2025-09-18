@@ -5,19 +5,23 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import {
-  aliasedTable, and,
+  aliasedTable,
+  and,
   type BinaryOperator,
-  count, desc,
+  count,
+  desc,
   eq,
   inArray,
-  isNull, not,
+  isNull,
+  not,
   or,
   type SQL,
 } from "drizzle-orm";
 import {
   characters,
   primaryRaidAttendeeAndBenchMap,
-  raids, trackedRaidsL6LockoutWk,
+  raids,
+  trackedRaidsL6LockoutWk,
   raidLogAttendeeMap,
   raidBenchMap,
   raidLogs,
@@ -107,7 +111,10 @@ export const character = createTRPCRouter({
             uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
           })
           .from(raidLogAttendeeMap)
-          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+          .innerJoin(
+            raidLogs,
+            eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
+          )
           .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
           .where(eq(raidLogAttendeeMap.isIgnored, false))
           .groupBy(raidLogAttendeeMap.characterId, raids.zone);
@@ -124,21 +131,27 @@ export const character = createTRPCRouter({
           .groupBy(raidBenchMap.characterId, raids.zone);
 
         // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-        
+        const characterCollection =
+          convertParticipantArrayToCollection(characterList) ?? {};
+
         // Add raid attendance by zone to each character
         for (const attendance of raidAttendanceByZone) {
           const characterId = attendance.characterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
+          if (
+            characterId &&
+            characterCollection[characterId] &&
+            attendance.zone
+          ) {
             const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[attendance.zone]) {
-              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
+            character.raidAttendanceByZone ??= {};
+            character.raidAttendanceByZone[attendance.zone] ??= {
+              attendee: 0,
+              bench: 0,
+            };
+
+            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(
+              attendance.uniqueRaidCount,
+            );
           }
         }
 
@@ -147,14 +160,15 @@ export const character = createTRPCRouter({
           const characterId = bench.characterId;
           if (characterId && characterCollection[characterId] && bench.zone) {
             const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[bench.zone]) {
-              character.raidAttendanceByZone[bench.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
+            character.raidAttendanceByZone ??= {};
+            character.raidAttendanceByZone[bench.zone] ??= {
+              attendee: 0,
+              bench: 0,
+            };
+
+            character.raidAttendanceByZone[bench.zone]!.bench = Number(
+              bench.uniqueRaidCount,
+            );
           }
         }
 
@@ -198,7 +212,10 @@ export const character = createTRPCRouter({
             uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
           })
           .from(raidLogAttendeeMap)
-          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+          .innerJoin(
+            raidLogs,
+            eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
+          )
           .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
           .where(eq(raidLogAttendeeMap.isIgnored, false))
           .groupBy(raidLogAttendeeMap.characterId, raids.zone);
@@ -215,21 +232,27 @@ export const character = createTRPCRouter({
           .groupBy(raidBenchMap.characterId, raids.zone);
 
         // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-        
+        const characterCollection =
+          convertParticipantArrayToCollection(characterList) ?? {};
+
         // Add raid attendance by zone to each character
         for (const attendance of raidAttendanceByZone) {
           const characterId = attendance.characterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
+          if (
+            characterId &&
+            characterCollection[characterId] &&
+            attendance.zone
+          ) {
             const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[attendance.zone]) {
-              character.raidAttendanceByZone[attendance.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(attendance.uniqueRaidCount);
+            character.raidAttendanceByZone ??= {};
+            character.raidAttendanceByZone[attendance.zone] ??= {
+              attendee: 0,
+              bench: 0,
+            };
+
+            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(
+              attendance.uniqueRaidCount,
+            );
           }
         }
 
@@ -238,14 +261,15 @@ export const character = createTRPCRouter({
           const characterId = bench.characterId;
           if (characterId && characterCollection[characterId] && bench.zone) {
             const character = characterCollection[characterId];
-            if (!character.raidAttendanceByZone) {
-              character.raidAttendanceByZone = {};
-            }
-            if (!character.raidAttendanceByZone[bench.zone]) {
-              character.raidAttendanceByZone[bench.zone] = { attendee: 0, bench: 0 };
-            }
-            
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
+            character.raidAttendanceByZone ??= {};
+            character.raidAttendanceByZone[bench.zone] ??= {
+              attendee: 0,
+              bench: 0,
+            };
+
+            character.raidAttendanceByZone[bench.zone]!.bench = Number(
+              bench.uniqueRaidCount,
+            );
           }
         }
 
@@ -322,23 +346,26 @@ export const character = createTRPCRouter({
           lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
           attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
           zone: trackedRaidsL6LockoutWk.zone,
-          isParticipant: not(isNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId)),
+          isParticipant: not(
+            isNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
+          ),
           attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-
         })
         .from(trackedRaidsL6LockoutWk)
-        .leftJoin(primaryRaidAttendeeAndBenchMap,
+        .leftJoin(
+          primaryRaidAttendeeAndBenchMap,
           and(
-            eq(trackedRaidsL6LockoutWk.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+            eq(
+              trackedRaidsL6LockoutWk.raidId,
+              primaryRaidAttendeeAndBenchMap.raidId,
+            ),
             eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input),
-            )
+          ),
         )
-        .orderBy(trackedRaidsL6LockoutWk.date)
-      ;
-
+        .orderBy(trackedRaidsL6LockoutWk.date);
       return attendanceReport.map((r) => ({
         ...r,
-        primaryCharacterId: input
+        primaryCharacterId: input,
       }));
     }),
 
@@ -409,10 +436,12 @@ export const character = createTRPCRouter({
     }),
 
   updateIsIgnored: raidManagerProcedure
-    .input(z.object({
-      characterId: z.number(),
-      isIgnored: z.boolean(),
-    }))
+    .input(
+      z.object({
+        characterId: z.number(),
+        isIgnored: z.boolean(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const updated = await ctx.db
         .update(characters)
