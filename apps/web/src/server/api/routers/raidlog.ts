@@ -6,7 +6,7 @@ import {
 } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
-import {aliasedTable, eq, inArray} from "drizzle-orm";
+import { aliasedTable, eq, inArray } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
 import {
   GetWCLGraphQLQuery,
@@ -30,7 +30,7 @@ const queryGetWclLogById = async (input: string) => {
   const variables = { reportID: input };
 
   const rawRaidReportResponse = await GetWCLGraphQLQuery(query, variables);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   return RaidReportDataShaper(await rawRaidReportResponse.json());
 };
 
@@ -118,7 +118,6 @@ const mutateInsertRaidLogWithAttendees = async (
     })
     .onConflictDoNothing();
 
-
   await db
     .insert(characters)
     .values(
@@ -192,7 +191,7 @@ export const raidLog = createTRPCRouter({
   getParticipants: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
-      const primaryCharacters = aliasedTable(characters, "primary_character")
+      const primaryCharacters = aliasedTable(characters, "primary_character");
       const allCharacters = await ctx.db
         .selectDistinct({
           characterId: characters.characterId,
@@ -203,10 +202,13 @@ export const raidLog = createTRPCRouter({
           slug: characters.slug,
           isPrimary: characters.isPrimary,
           primaryCharacterId: characters.primaryCharacterId,
-          primaryCharacterName: primaryCharacters.name
+          primaryCharacterName: primaryCharacters.name,
         })
         .from(characters)
-        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
+        .leftJoin(
+          primaryCharacters,
+          eq(characters.primaryCharacterId, primaryCharacters.characterId),
+        )
         .leftJoin(
           raidLogAttendeeMap,
           eq(raidLogAttendeeMap.characterId, characters.characterId),
@@ -218,8 +220,7 @@ export const raidLog = createTRPCRouter({
   getUniqueParticipantsFromMultipleLogs: publicProcedure
     .input(z.array(z.string()))
     .query(async ({ ctx, input }) => {
-
-      const primaryCharacters = aliasedTable(characters, "primary_character")
+      const primaryCharacters = aliasedTable(characters, "primary_character");
       const allCharacters = await ctx.db
         .selectDistinct({
           characterId: characters.characterId,
@@ -230,10 +231,13 @@ export const raidLog = createTRPCRouter({
           slug: characters.slug,
           isPrimary: characters.isPrimary,
           primaryCharacterId: characters.primaryCharacterId,
-          primaryCharacterName: primaryCharacters.name
+          primaryCharacterName: primaryCharacters.name,
         })
         .from(characters)
-        .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
+        .leftJoin(
+          primaryCharacters,
+          eq(characters.primaryCharacterId, primaryCharacters.characterId),
+        )
         .leftJoin(
           raidLogAttendeeMap,
           eq(raidLogAttendeeMap.characterId, characters.characterId),
@@ -256,7 +260,6 @@ export const raidLog = createTRPCRouter({
         .where(eq(raidLogs.raidId, input));
       return logs ?? null;
     }),
-
 
   /*
     Admin procedures
