@@ -36,9 +36,9 @@ export type RaidLogCollection = Record<string, RaidLog>;
 
 export interface Raid {
   raidId: number | undefined;
-  name: string ;
-  date: string ; // stored/manipulated as a string in forms, e.g. 2025-01-01
-  zone: string ;
+  name: string;
+  date: string; // stored/manipulated as a string in forms, e.g. 2025-01-01
+  zone: string;
   attendanceWeight: number;
   raidLogIds?: string[];
   kills?: string[];
@@ -53,5 +53,5 @@ export const EmptyRaid = (): Raid => ({
   attendanceWeight: 0,
   raidLogIds: [],
   zone: "",
-  bench: {}
-})
+  bench: {},
+});

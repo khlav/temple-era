@@ -1,12 +1,10 @@
 import type { toast as toastType } from "~/hooks/use-toast";
 import { Check } from "lucide-react";
-import {ToastAction} from "@radix-ui/react-toast";
-import {Button} from "~/components/ui/button";
+import { ToastAction } from "@radix-ui/react-toast";
+import { Button } from "~/components/ui/button";
 import Link from "next/link";
 
-export const toastProfileSaved = (
-  toast: typeof toastType,
-) => {
+export const toastProfileSaved = (toast: typeof toastType) => {
   toast({
     // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
@@ -17,9 +15,9 @@ export const toastProfileSaved = (
     ),
     action: (
       <ToastAction asChild altText="Go">
-          <Button size="sm" asChild>
-            <Link href="/">Go to Dashboard</Link>
-          </Button>
+        <Button size="sm" asChild>
+          <Link href="/">Go to Dashboard</Link>
+        </Button>
       </ToastAction>
     ),
   });

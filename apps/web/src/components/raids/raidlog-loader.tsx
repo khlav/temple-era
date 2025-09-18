@@ -51,7 +51,7 @@ export function RaidLogLoader({
 
   useEffect(() => {
     const invalidateResult = async () => {
-      await utils.invalidate(undefined, { refetchType: "all"});
+      await utils.invalidate(undefined, { refetchType: "all" });
     };
     invalidateResult()
       .then(() => console.log("Cache invalidated successfully"))

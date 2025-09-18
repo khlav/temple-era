@@ -32,27 +32,27 @@ export default async function RootLayout({
       className={GeistSans.className}
       suppressHydrationWarning={true}
     >
-    <body className="flex h-screen">
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem
-      disableTransitionOnChange
+      <body className="flex h-screen">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
         >
           <TRPCReactProvider>
             <SessionProvider>
-            <PostHogProvider>
-              <TooltipProvider>
-                <SidebarProvider defaultOpen={defaultOpen}>
-                  <AppSidebar side="left" collapsible="icon" />
-                  <SidebarInset>
-                    <AppHeader />
-                    <div className="max-w-screen-xl md:p-4">{children}</div>
-                  </SidebarInset>
-                  <Toaster duration={5000} />
-                </SidebarProvider>
-              </TooltipProvider>
-            </PostHogProvider>
+              <PostHogProvider>
+                <TooltipProvider>
+                  <SidebarProvider defaultOpen={defaultOpen}>
+                    <AppSidebar side="left" collapsible="icon" />
+                    <SidebarInset>
+                      <AppHeader />
+                      <div className="max-w-screen-xl md:p-4">{children}</div>
+                    </SidebarInset>
+                    <Toaster duration={5000} />
+                  </SidebarProvider>
+                </TooltipProvider>
+              </PostHogProvider>
             </SessionProvider>
           </TRPCReactProvider>
         </ThemeProvider>

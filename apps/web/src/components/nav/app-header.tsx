@@ -12,27 +12,39 @@ import {
 } from "~/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import {ChartBarSquareIcon} from "@heroicons/react/24/outline";
-import React, {useEffect, useMemo} from "react";
-
+import { ChartBarSquareIcon } from "@heroicons/react/24/outline";
+import React, { useEffect, useMemo } from "react";
 
 function kebabToTitleCase(str: string) {
   return str
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 export const AppHeader = () => {
   const pathname = usePathname();
 
-  const pathParts = useMemo(() => pathname.slice(1).split("/") ?? [], [pathname]);
-  const parentPathParts = useMemo(() => pathParts.slice(0, pathParts.length - 1) ?? [], [pathParts]);
-  const currentPathPart = useMemo(() => pathParts.slice(-1)[0] ?? undefined, [pathParts]);
+  const pathParts = useMemo(
+    () => pathname.slice(1).split("/") ?? [],
+    [pathname],
+  );
+  const parentPathParts = useMemo(
+    () => pathParts.slice(0, pathParts.length - 1) ?? [],
+    [pathParts],
+  );
+  const currentPathPart = useMemo(
+    () => pathParts.slice(-1)[0] ?? undefined,
+    [pathParts],
+  );
 
   useEffect(() => {
-    document.title = "Temple Raid Attendance" + (pathParts[0] !== "" ? " : " + pathParts.map(kebabToTitleCase).join(" - ") : "");
-  }, [currentPathPart, pathParts])
+    document.title =
+      "Temple Raid Attendance" +
+      (pathParts[0] !== ""
+        ? " : " + pathParts.map(kebabToTitleCase).join(" - ")
+        : "");
+  }, [currentPathPart, pathParts]);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 px-4">
@@ -57,13 +69,15 @@ export const AppHeader = () => {
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-            </React.Fragment >
+            </React.Fragment>
           ))}
           {currentPathPart ? (
             <>
-              <BreadcrumbSeparator/>
+              <BreadcrumbSeparator />
               <BreadcrumbItem key={currentPathPart}>
-                <BreadcrumbPage>{kebabToTitleCase(currentPathPart)}</BreadcrumbPage>
+                <BreadcrumbPage>
+                  {kebabToTitleCase(currentPathPart)}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ) : (

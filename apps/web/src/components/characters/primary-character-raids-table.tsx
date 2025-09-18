@@ -26,13 +26,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 
 export function PrimaryCharacterRaidsTable({
-                                             characterId,
-                                           }: {
+  characterId,
+}: {
   characterId: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialSearch = searchParams?.get('s') ?? '';
+  const initialSearch = searchParams?.get("s") ?? "";
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
@@ -47,9 +47,9 @@ export function PrimaryCharacterRaidsTable({
     const params = new URLSearchParams(searchParams?.toString());
 
     if (searchTerms) {
-      params.set('s', searchTerms);
+      params.set("s", searchTerms);
     } else {
-      params.delete('s');
+      params.delete("s");
     }
 
     router.replace(`?${params.toString()}`, { scroll: false });
@@ -65,29 +65,35 @@ export function PrimaryCharacterRaidsTable({
     }
 
     // Split search terms and convert to lowercase
-    const terms = searchTerms.toLowerCase().split(/\s+/).filter(term => term);
+    const terms = searchTerms
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((term) => term);
 
-    return raids.filter(raid => {
+    return raids.filter((raid) => {
       // Create searchable string from raid data
       const searchableString = [
-        raid.name?.toLowerCase() ?? '',
-        raid.zone?.toLowerCase() ?? '',
+        raid.name?.toLowerCase() ?? "",
+        raid.zone?.toLowerCase() ?? "",
         PrettyPrintDate(new Date(raid.date), true).toLowerCase(),
-        raid.attendanceWeight?.toString() ?? '',
-        raid.attendeeOrBench?.toLowerCase() ?? '',
-        ...(raid.allCharacters?.map(c => c.name?.toLowerCase()) ?? []),
-      ].join(' ');
+        raid.attendanceWeight?.toString() ?? "",
+        raid.attendeeOrBench?.toLowerCase() ?? "",
+        ...(raid.allCharacters?.map((c) => c.name?.toLowerCase()) ?? []),
+      ].join(" ");
 
       // Check if ALL terms are present (AND search)
-      return terms.every(term => searchableString.includes(term));
+      return terms.every((term) => searchableString.includes(term));
     });
   }, [raids, searchTerms]);
 
   // Count stats for attendance summary
   const raidStats = useMemo(() => {
     const total = filteredRaids?.length ?? 0;
-    const attended = filteredRaids?.filter(r => r.attendeeOrBench === "attendee").length ?? 0;
-    const benched = filteredRaids?.filter(r => r.attendeeOrBench === "bench").length ?? 0;
+    const attended =
+      filteredRaids?.filter((r) => r.attendeeOrBench === "attendee").length ??
+      0;
+    const benched =
+      filteredRaids?.filter((r) => r.attendeeOrBench === "bench").length ?? 0;
 
     return { total, attended, benched };
   }, [filteredRaids]);
@@ -95,27 +101,30 @@ export function PrimaryCharacterRaidsTable({
   return (
     <div>
       {/* Search Bar */}
-      <div className="mb-4 relative">
-        <Search className="absolute left-3 top-[18px] -translate-y-1/2 text-muted-foreground pointer-events-none" size={20} />
+      <div className="relative mb-4">
+        <Search
+          className="pointer-events-none absolute left-3 top-[18px] -translate-y-1/2 text-muted-foreground"
+          size={20}
+        />
         <TableSearchInput
           ref={searchInputRef}
           type="text"
           placeholder="Search raids by name, zone, date, character..."
-          className="pl-10 w-full"
+          className="w-full pl-10"
           initialValue={initialSearch}
-          onDebouncedChange={(v) => setSearchTerms(v ?? '')}
+          onDebouncedChange={(v) => setSearchTerms(v ?? "")}
         />
-        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
           <TableSearchTips>
-            <p className="font-medium mb-1">Search tips:</p>
-            <ul className="list-disc pl-4 space-y-1">
+            <p className="mb-1 font-medium">Search tips:</p>
+            <ul className="list-disc space-y-1 pl-4">
               <li>Search by raid name, zone, date text, or character names</li>
               <li>Enter multiple terms to narrow results (AND search)</li>
             </ul>
           </TableSearchTips>
           <span>
-            All-time raids: {raidStats.total}{" "}
-            ({raidStats.attended} attended, {raidStats.benched} benched)
+            All-time raids: {raidStats.total} ({raidStats.attended} attended,{" "}
+            {raidStats.benched} benched)
           </span>
         </div>
       </div>
@@ -167,7 +176,9 @@ export function PrimaryCharacterRaidsTable({
                       </div>
                     </Link>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{r.zone}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {r.zone}
+                  </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {PrettyPrintDate(new Date(r.date), true)}
                   </TableCell>
@@ -180,7 +191,7 @@ export function PrimaryCharacterRaidsTable({
                     {r.attendeeOrBench == "bench" && (
                       <Tooltip>
                         <TooltipTrigger>
-                          <Armchair size={16} className="cursor-default"/>
+                          <Armchair size={16} className="cursor-default" />
                         </TooltipTrigger>
                         <TooltipContent className="bg-secondary text-muted-foreground">
                           Bench
@@ -223,7 +234,7 @@ export function PrimaryCharacterRaidsTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={6} className="py-4 text-center">
                   No raids found matching your search
                 </TableCell>
               </TableRow>

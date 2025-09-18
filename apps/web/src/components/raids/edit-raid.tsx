@@ -1,17 +1,20 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
 import { RaidEditor } from "~/components/raids/raid-editor";
-import {EmptyRaid, type Raid} from "~/server/api/interfaces/raid";
-import {useRouter} from "next/navigation";
-import {toastRaidDeleted, toastRaidSaved} from "~/components/raids/raid-toasts";
-import {useToast} from "~/hooks/use-toast";
+import { EmptyRaid, type Raid } from "~/server/api/interfaces/raid";
+import { useRouter } from "next/navigation";
+import {
+  toastRaidDeleted,
+  toastRaidSaved,
+} from "~/components/raids/raid-toasts";
+import { useToast } from "~/hooks/use-toast";
 
 export function EditRaid({ raidId }: { raidId: number }) {
   const router = useRouter();
   const utils = api.useUtils();
-  const {toast} = useToast();
+  const { toast } = useToast();
 
   const [sendingData, setSendingData] = useState(false);
   const [raidData, setRaidData] = useState<Raid>(EmptyRaid());
@@ -22,7 +25,7 @@ export function EditRaid({ raidId }: { raidId: number }) {
       setSendingData(false);
     },
     onSuccess: async (result) => {
-      await utils.invalidate(undefined, { refetchType: "all"});
+      await utils.invalidate(undefined, { refetchType: "all" });
       toastRaidSaved(toast, raidData, raidId, false);
       router.push(result.raid ? `/raids/${result.raid.raidId}` : "/raids");
     },
@@ -34,8 +37,8 @@ export function EditRaid({ raidId }: { raidId: number }) {
       setSendingData(false);
     },
     onSuccess: async () => {
-      await utils.invalidate(undefined, { refetchType: "all"});
-      toastRaidDeleted(toast, raidData)
+      await utils.invalidate(undefined, { refetchType: "all" });
+      toastRaidDeleted(toast, raidData);
       router.push("/raids");
     },
   });
@@ -57,10 +60,8 @@ export function EditRaid({ raidId }: { raidId: number }) {
     setSendingData(true);
     deleteRaid.mutate(raidData.raidId ?? -1);
   };
-  const {
-    data: fetchedRaidData,
-    isSuccess,
-  } = api.raid.getRaidById.useQuery(raidId);
+  const { data: fetchedRaidData, isSuccess } =
+    api.raid.getRaidById.useQuery(raidId);
 
   useEffect(() => {
     if (isSuccess && fetchedRaidData) {

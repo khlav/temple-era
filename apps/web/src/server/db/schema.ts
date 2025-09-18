@@ -48,8 +48,7 @@ export const {
   characterRecipeMapRelations,
 
   // Enums
-  professionEnum
-
+  professionEnum,
 } = RecipeSchema;
 
 export const {
@@ -60,5 +59,5 @@ export const {
   trackedRaidsL6LockoutWk,
   trackedRaidsCurrentLockout,
   allRaidsCurrentLockout,
-  reportDates
+  reportDates,
 } = ViewsSchema;

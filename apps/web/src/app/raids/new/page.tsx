@@ -2,14 +2,14 @@
 
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
-import {CreateRaid} from "~/components/raids/create-raid";
-import {redirect} from "next/navigation";
+import { CreateRaid } from "~/components/raids/create-raid";
+import { redirect } from "next/navigation";
 
 export default async function RaidNewPage() {
   const session = await auth();
 
-  if(!session?.user?.isRaidManager) {
-    redirect('/raids');
+  if (!session?.user?.isRaidManager) {
+    redirect("/raids");
   }
 
   return (

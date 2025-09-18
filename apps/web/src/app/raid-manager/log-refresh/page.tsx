@@ -1,6 +1,6 @@
 import { HydrateClient } from "~/trpc/server";
 import { RaidLogLoader } from "~/components/raids/raidlog-loader";
-import {Separator} from "~/components/ui/separator";
+import { Separator } from "~/components/ui/separator";
 
 export default async function RaidPage() {
   return (
@@ -11,7 +11,10 @@ export default async function RaidPage() {
         </h2>
         <Separator className="my-2" />
         <div className="w-full">
-          <RaidLogLoader label="Enter a WCL report URL to add/refresh the log and participating characters." forceRefresh/>
+          <RaidLogLoader
+            label="Enter a WCL report URL to add/refresh the log and participating characters."
+            forceRefresh
+          />
         </div>
       </main>
     </HydrateClient>

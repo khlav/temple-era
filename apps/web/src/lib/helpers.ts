@@ -16,10 +16,7 @@ export const PrettyPrintDate = (date: Date, withWeekday?: boolean) =>
 export const SortRaiders = (a: RaidParticipant, b: RaidParticipant) =>
   anyAscii(a.name) > anyAscii(b.name) ? 1 : -1;
 
-export const Reshape1DTo2D = (
-  arr: unknown[],
-  numRecordsPer: number,
-) => {
+export const Reshape1DTo2D = (arr: unknown[], numRecordsPer: number) => {
   const result = [] as (typeof arr)[];
   for (let i = 0; i < arr.length; i += numRecordsPer) {
     result.push(arr.slice(i, i + numRecordsPer));

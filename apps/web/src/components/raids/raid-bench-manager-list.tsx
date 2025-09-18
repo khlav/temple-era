@@ -21,7 +21,7 @@ export function RaidBenchManagerList({
   };
 
   const characterList = Object.values(characters).sort((a, b) =>
-    (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1)
+    anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
   );
 
   return (
@@ -31,7 +31,7 @@ export function RaidBenchManagerList({
           <Button
             id={character.characterId.toString()}
             variant="outline"
-            className="bg-accent hover:bg-destructive p-3 pl-5 transition-all"
+            className="bg-accent p-3 pl-5 transition-all hover:bg-destructive"
             onClick={(e) => handleRemoveClick(e.currentTarget.id)}
           >
             {character.name}

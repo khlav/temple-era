@@ -1,10 +1,10 @@
 import Image from "next/image";
 
 export const ClassIcon = ({
-                         characterClass,
-                         px,
-                         className,
-                       }: {
+  characterClass,
+  px,
+  className,
+}: {
   characterClass: string;
   px?: number;
   className?: string;

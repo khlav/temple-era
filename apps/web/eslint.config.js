@@ -16,7 +16,7 @@ const config = [
       "*.config.js",
       "*.config.ts",
       "next-env.d.ts",
-      "eslint.config.js"
+      "eslint.config.js",
     ],
   },
   // Configuration for eslint.config.js itself - no type checking rules
@@ -59,11 +59,11 @@ const config = [
       "@next/next/no-sync-scripts": "error",
       "@next/next/no-title-in-document-head": "error",
       "@next/next/no-unwanted-polyfillio": "error",
-      
+
       // React hooks rules
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-      
+
       // TypeScript recommended rules (manually configured)
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
