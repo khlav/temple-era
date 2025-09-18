@@ -1,6 +1,6 @@
 import React from "react";
-import {Separator} from "~/components/ui/separator";
-import {CharacterManager} from "~/components/raid-manager/character-manager";
+import { Separator } from "~/components/ui/separator";
+import { CharacterManager } from "~/components/raid-manager/character-manager";
 
 export default async function CharacterManagerIndex() {
   return (

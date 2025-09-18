@@ -1,10 +1,14 @@
-import {z} from "zod";
-import {adminProcedure, createTRPCRouter, protectedProcedure} from "~/server/api/trpc";
-import {users} from "~/server/db/schema";
-import {asc, eq, sql} from "drizzle-orm";
+import { z } from "zod";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "~/server/api/trpc";
+import { users } from "~/server/db/schema";
+import { asc, eq, sql } from "drizzle-orm";
 
 export const user = createTRPCRouter({
-  getUsers: adminProcedure.query(async ({ctx}) => {
+  getUsers: adminProcedure.query(async ({ ctx }) => {
     return await ctx.db.query.users.findMany({
       orderBy: asc(sql`lower
           (${users.name})`),
@@ -19,12 +23,14 @@ export const user = createTRPCRouter({
   }),
 
   updateUserRole: adminProcedure
-    .input(z.object({
-      id: z.string(),
-      isRaidManager: z.boolean(),
-      isAdmin: z.boolean()
-    }))
-    .mutation(async ({ctx, input}) => {
+    .input(
+      z.object({
+        id: z.string(),
+        isRaidManager: z.boolean(),
+        isAdmin: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
       // 1 - Remove all existing associations to the target primary
       return await ctx.db
         .update(users)
@@ -36,22 +42,22 @@ export const user = createTRPCRouter({
         .returning({
           id: users.id,
           isRaidManager: users.isRaidManager,
-          isAdmin: users.isAdmin
+          isAdmin: users.isAdmin,
         });
     }),
 
   updateUserImage: protectedProcedure
     .input(z.string())
-    .mutation(async ({ctx, input}) => {
+    .mutation(async ({ ctx, input }) => {
       return await ctx.db
         .update(users)
         .set({
-          image: input
+          image: input,
         })
         .where(eq(users.id, ctx.session.user.id))
         .returning({
           id: users.id,
-          image: users.image
+          image: users.image,
         });
-    })
+    }),
 });

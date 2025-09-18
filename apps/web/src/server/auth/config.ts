@@ -1,7 +1,9 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import DiscordProvider, { type DiscordProfile} from "next-auth/providers/discord";
+import DiscordProvider, {
+  type DiscordProfile,
+} from "next-auth/providers/discord";
 
 import { db } from "~/server/db";
 import {
@@ -48,11 +50,11 @@ export const authConfig = {
       authorization: "https://discord.com/api/oauth2/authorize?scope=identify",
       profile(profile: DiscordProfile) {
         if (profile.avatar === null) {
-          const defaultAvatarNumber = parseInt(profile.discriminator) % 5
-          profile.image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`
+          const defaultAvatarNumber = parseInt(profile.discriminator) % 5;
+          profile.image_url = `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
         } else {
-          const format = profile.avatar.startsWith("a_") ? "gif" : "png"
-          profile.image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`
+          const format = profile.avatar.startsWith("a_") ? "gif" : "png";
+          profile.image_url = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`;
         }
 
         return {
@@ -60,9 +62,9 @@ export const authConfig = {
           name: profile.username,
           email: null,
           image: profile.image_url,
-        }
-      }
-    }) ,
+        };
+      },
+    }),
     /**
      * ...add more providers here.
      *
@@ -91,14 +93,14 @@ export const authConfig = {
     signIn: async ({ user, profile }) => {
       // Update profile image from Discord
       await db
-      .update(users)
-      .set({
-        image: profile?.image_url?.toString() ?? ""
-      })
-      .where(eq(users.id, user.id ?? ""))
+        .update(users)
+        .set({
+          image: profile?.image_url?.toString() ?? "",
+        })
+        .where(eq(users.id, user.id ?? ""));
 
       // Allow login
       return true;
-    }
+    },
   },
 } satisfies NextAuthConfig;

@@ -1,12 +1,12 @@
 "use client";
 
-import {Badge} from "~/components/ui/badge";
-import {Tooltip, TooltipTrigger} from "~/components/ui/tooltip";
-import {TooltipContent} from "@radix-ui/react-tooltip";
+import { Badge } from "~/components/ui/badge";
+import { Tooltip, TooltipTrigger } from "~/components/ui/tooltip";
+import { TooltipContent } from "@radix-ui/react-tooltip";
 import {
   TRACKED_RAID_LABEL__FULL_CREDIT,
   TRACKED_RAID_LABEL__HALF_CREDIT,
-  TRACKED_RAID_LABEL__NO_CREDIT
+  TRACKED_RAID_LABEL__NO_CREDIT,
 } from "~/constants";
 
 const trackedRaidTooltipContent = (

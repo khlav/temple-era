@@ -1,6 +1,6 @@
 import React from "react";
-import {Separator} from "~/components/ui/separator";
-import {UserAccessManager} from "~/components/admin/user-access-manager";
+import { Separator } from "~/components/ui/separator";
+import { UserAccessManager } from "~/components/admin/user-access-manager";
 
 export default async function RoleManagerIndex() {
   return (

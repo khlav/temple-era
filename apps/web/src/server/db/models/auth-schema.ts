@@ -1,7 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
   pgTableCreator,
-
   index,
   integer,
   uuid,
@@ -9,14 +8,15 @@ import {
   text,
   timestamp,
   varchar,
-  boolean, uniqueIndex,
+  boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
-import {characters} from "~/server/db/models/raid-schema";
+import { characters } from "~/server/db/models/raid-schema";
 /*
   schema: auth
  */
-const tableCreator = pgTableCreator((name) => `auth_${name}`)
+const tableCreator = pgTableCreator((name) => `auth_${name}`);
 
 export const users = tableCreator(
   "user",
@@ -44,17 +44,23 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
   character: one(characters, {
     fields: [users.characterId],
-    references: [characters.characterId]
-  })
+    references: [characters.characterId],
+  }),
 }));
 
 export const accounts = tableCreator(
   "account",
   {
-    userId: uuid("user_id").notNull().references(() => users.id),
-    type: varchar("type", { length: 255 }).$type<AdapterAccount["type"]>().notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    type: varchar("type", { length: 255 })
+      .$type<AdapterAccount["type"]>()
+      .notNull(),
     provider: varchar("provider", { length: 255 }).notNull(),
-    providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
+    providerAccountId: varchar("provider_account_id", {
+      length: 255,
+    }).notNull(),
     refresh_token: text("refresh_token"),
     access_token: text("access_token"),
     expires_at: integer("expires_at"),
@@ -74,7 +80,7 @@ export const accounts = tableCreator(
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, {
     fields: [accounts.userId],
-    references: [users.id]
+    references: [users.id],
   }),
 }));
 
@@ -94,7 +100,7 @@ export const sessions = tableCreator(
   },
   (session) => ({
     userIdIdx: index("session_user_id_idx").on(session.userId),
-  })
+  }),
 );
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -113,5 +119,5 @@ export const verificationTokens = tableCreator(
   },
   (vt) => ({
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
+  }),
 );

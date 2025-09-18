@@ -20,7 +20,7 @@ import {
 import { api } from "~/trpc/react";
 import anyAscii from "any-ascii";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
-import {ClassIcon} from "~/components/ui/class-icon";
+import { ClassIcon } from "~/components/ui/class-icon";
 
 export function CharacterSelector({
   onSelectAction,
@@ -53,7 +53,7 @@ export function CharacterSelector({
       size="sm"
       role="combobox"
       aria-expanded={open}
-      className="line- text-muted-foreground px-2 py-0"
+      className="line- px-2 py-0 text-muted-foreground"
       disabled={disabled}
     >
       {buttonContent}
@@ -66,7 +66,7 @@ export function CharacterSelector({
       size="sm"
       role="combobox"
       aria-expanded={open}
-      className="text-muted-foreground px-2 py-0"
+      className="px-2 py-0 text-muted-foreground"
       disabled
     >
       <Loader2 className="animate-spin" />
@@ -113,10 +113,10 @@ export function CharacterSelector({
                   className="flex flex-row gap-1"
                 >
                   <div className="grow-0">
-                    <ClassIcon characterClass={c.class} px={20}/>
+                    <ClassIcon characterClass={c.class} px={20} />
                   </div>
                   <div className="grow-0">{c.name}</div>
-                  <span className="grow text-muted-foreground text-sm">
+                  <span className="grow text-sm text-muted-foreground">
                     {c.primaryCharacterName ?? ""}
                   </span>
                 </CommandItem>

@@ -4,7 +4,7 @@ export function ProfileEditorSkeleton() {
   return (
     <div className="flex flex-col items-start gap-6 md:flex-row">
       {/* Profile Avatar Skeleton */}
-      <div className="mx-auto md:mx-0 pt-4">
+      <div className="mx-auto pt-4 md:mx-0">
         <Skeleton className="h-24 w-24 rounded-full" />
       </div>
 

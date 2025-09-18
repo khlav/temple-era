@@ -14,10 +14,14 @@ import {
 import Link from "next/link";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import {Armchair, ExternalLinkIcon, Swords} from "lucide-react";
+import { Armchair, ExternalLinkIcon, Swords } from "lucide-react";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
-import {Card, CardContent, CardHeader} from "~/components/ui/card";
-import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } =
@@ -27,22 +31,20 @@ export function CurrentLockoutAllRaids() {
     <Card>
       <CardHeader>
         <div className="flex items-end text-nowrap">
-          <div className="grow-0">
-            Raids this week
-          </div>
-          <div className="text-primary grow pb-0.5 text-sm text-right hover:underline">
+          <div className="grow-0">Raids this week</div>
+          <div className="grow pb-0.5 text-right text-sm text-primary hover:underline">
             <Link href="/raids">View all raids</Link>
           </div>
         </div>
-        <div className="text-muted-foreground grow text-sm">
+        <div className="grow text-sm text-muted-foreground">
           Current lockout
-          {trackedRaidData && trackedRaidData.length > 0
-            && `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
-
+          {trackedRaidData &&
+            trackedRaidData.length > 0 &&
+            `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
         </div>
       </CardHeader>
       <CardContent>
-        <Table className="text-muted-foreground max-h-[400px] whitespace-nowrap">
+        <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
           <TableCaption className="text-wrap"></TableCaption>
           <TableHeader>
             <TableRow>
@@ -53,7 +55,7 @@ export function CurrentLockoutAllRaids() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <RecentTrackedRaidsTableRowSkeleton rows={3}/>
+              <RecentTrackedRaidsTableRowSkeleton rows={3} />
             ) : (
               (trackedRaidData ?? []).map((r) => (
                 <TableRow key={r.raidId}>
@@ -61,23 +63,23 @@ export function CurrentLockoutAllRaids() {
                     <div className="flex flex-row gap-2">
                       <div className="grow">
                         <Link
-                          className="hover:text-primary group w-full transition-all"
+                          className="group w-full transition-all hover:text-primary"
                           target="_self"
                           href={"/raids/" + r.raidId}
                         >
                           <div>{r.name}</div>
-                          <div className="text-muted-foreground text-xs tracking-tight">
+                          <div className="text-xs tracking-tight text-muted-foreground">
                             {PrettyPrintDate(new Date(r.date), true)}
                           </div>
                         </Link>
                       </div>
-                      <div className="grow-0 my-auto">
-                        { r.currentUserAttendance && (
-                          r.currentUserAttendance == 'bench' ? (
+                      <div className="my-auto grow-0">
+                        {r.currentUserAttendance &&
+                          (r.currentUserAttendance == "bench" ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Armchair
-                                  className="text-chart-2 mx-auto"
+                                  className="mx-auto text-chart-2"
                                   size={20}
                                 />
                               </TooltipTrigger>
@@ -89,7 +91,7 @@ export function CurrentLockoutAllRaids() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Swords
-                                  className="text-chart-2 mx-auto"
+                                  className="mx-auto text-chart-2"
                                   size={20}
                                 />
                               </TooltipTrigger>
@@ -97,8 +99,7 @@ export function CurrentLockoutAllRaids() {
                                 Attended
                               </TooltipContent>
                             </Tooltip>
-                          )
-                        )}
+                          ))}
                       </div>
                     </div>
                   </TableCell>
@@ -116,7 +117,7 @@ export function CurrentLockoutAllRaids() {
                           href={reportUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-primary group text-sm transition-all hover:underline"
+                          className="group text-sm transition-all hover:text-primary hover:underline"
                         >
                           <ExternalLinkIcon
                             className="ml-1 inline-block align-text-top"

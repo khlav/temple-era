@@ -1,13 +1,13 @@
 import { auth } from "~/server/auth";
 import React from "react";
-import {Separator} from "~/components/ui/separator";
-import {ProfileEditor} from "~/components/profile/profile-editor";
-import {redirect} from "next/navigation";
+import { Separator } from "~/components/ui/separator";
+import { ProfileEditor } from "~/components/profile/profile-editor";
+import { redirect } from "next/navigation";
 
 export default async function ProfileIndex() {
   const session = await auth();
-  if(!session?.user) {
-    redirect('/');
+  if (!session?.user) {
+    redirect("/");
   }
 
   /* Sample profile result
@@ -20,12 +20,9 @@ export default async function ProfileIndex() {
 
   return (
     <main className="w-full px-4">
-      <div className="mb-2 text-3xl font-bold tracking-tight">
-        Profile
-      </div>
+      <div className="mb-2 text-3xl font-bold tracking-tight">Profile</div>
       <Separator className="my-2" />
       <ProfileEditor />
     </main>
-
   );
 }

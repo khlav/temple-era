@@ -6,28 +6,28 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-    eslint: {
-        // Ensure linting runs during next build locally, matching Vercel's behavior
-        ignoreDuringBuilds: false,
-    },
-    async rewrites() {
-        return [
-            {
-                source: "/e/static/:path*",
-                destination: "https://us-assets.i.posthog.com/static/:path*",
-            },
-            {
-                source: "/e/:path*",
-                destination: "https://us.i.posthog.com/:path*",
-            },
-            {
-                source: "/e/decide",
-                destination: "https://us.i.posthog.com/decide",
-            },
-        ];
-    },
-    // This is required to support PostHog trailing slash API requests
-    skipTrailingSlashRedirect: true,
+  eslint: {
+    // Ensure linting runs during next build locally, matching Vercel's behavior
+    ignoreDuringBuilds: false,
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/e/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/e/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+      {
+        source: "/e/decide",
+        destination: "https://us.i.posthog.com/decide",
+      },
+    ];
+  },
+  // This is required to support PostHog trailing slash API requests
+  skipTrailingSlashRedirect: true,
 };
 
 export default config;

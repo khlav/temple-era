@@ -89,7 +89,7 @@ const UserAccessManagerRow = ({
           className="grow-0"
         />
       </TableCell>
-      <TableCell className="flex flex-row gap-1 ">
+      <TableCell className="flex flex-row gap-1">
         <Switch
           id={`user__admin__${user.id}`}
           checked={isAdmin ?? false}
@@ -110,7 +110,7 @@ export const UserAccessManager = () => {
       {isLoading && "Loading..."}
       {isSuccess && (
         <>
-          <Table className="max-h-[400px] text-nowrap table-auto max-w-lg">
+          <Table className="max-h-[400px] max-w-lg table-auto text-nowrap">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-min">

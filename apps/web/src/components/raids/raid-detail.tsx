@@ -11,14 +11,18 @@ export function RaidDetail({
   raidId: number;
   showEditButton?: boolean;
 }) {
-  const {
-    data: raidData,
-    isSuccess,
-  } = api.raid.getRaidById.useQuery(raidId ?? "");
+  const { data: raidData, isSuccess } = api.raid.getRaidById.useQuery(
+    raidId ?? "",
+  );
 
   return (
     <div>
-      {isSuccess && <RaidDetailBase raidData={raidData ?? EmptyRaid()} showEditButton={showEditButton} />}
+      {isSuccess && (
+        <RaidDetailBase
+          raidData={raidData ?? EmptyRaid()}
+          showEditButton={showEditButton}
+        />
+      )}
     </div>
   );
 }

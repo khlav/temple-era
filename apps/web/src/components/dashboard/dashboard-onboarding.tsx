@@ -2,9 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import React from "react";
-import type {Session} from "next-auth";
+import type { Session } from "next-auth";
 
-export function DashboardOnboarding({ session }: { session: Session | undefined }) {
+export function DashboardOnboarding({
+  session,
+}: {
+  session: Session | undefined;
+}) {
   return (
     <>
       {!session?.user?.characterId && (

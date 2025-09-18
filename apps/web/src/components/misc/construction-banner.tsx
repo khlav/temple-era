@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
 import { Construction } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
-import type {ReactNode} from "react";
+import type { ReactNode } from "react";
 
-export const ConstructionBanner = ({children}: {children: ReactNode}) => {
+export const ConstructionBanner = ({ children }: { children: ReactNode }) => {
   return (
-    <Card className="bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700">
-      <CardContent className="py-2 px-4 flex items-center space-x-2">
-        <Construction className="w-5 h-5 text-yellow-800 dark:text-yellow-200" />
+    <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30">
+      <CardContent className="flex items-center space-x-2 px-4 py-2">
+        <Construction className="h-5 w-5 text-yellow-800 dark:text-yellow-200" />
         <span className="text-xs text-yellow-800 dark:text-yellow-200">
-          {children ?? 'Page in development. More features coming soon.'}
+          {children ?? "Page in development. More features coming soon."}
         </span>
       </CardContent>
     </Card>

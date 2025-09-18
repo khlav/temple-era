@@ -9,11 +9,22 @@ import {
   ChartTooltipContent,
 } from "~/components/ui/chart";
 import { type ChartConfig } from "@/components/ui/chart";
-import { Bar, BarChart, LabelList, ReferenceLine, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  LabelList,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useRouter } from "next/navigation";
 import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
-import {Tooltip, TooltipContent, TooltipTrigger} from "~/components/ui/tooltip";
-import {HelpCircle} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface Raider {
   name: string | null;
@@ -24,8 +35,8 @@ interface Raider {
 }
 
 export function AttendanceReport({
-                                   currentUserCharacterId,
-                                 }: {
+  currentUserCharacterId,
+}: {
   currentUserCharacterId?: number;
 }) {
   const attendanceThreshold = 9; // Changed from 0.4 to 7 (integer threshold)
@@ -41,16 +52,32 @@ export function AttendanceReport({
   useEffect(() => {
     if (isSuccess) {
       const attendanceDataFiltered = attendanceData.filter(
-        (raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold
+        (raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold,
       );
       const raiderData = attendanceDataFiltered.map((raider) => {
         const raiderAttendance = raider.weightedAttendance ?? 0;
         return {
           ...raider,
-          weightedAttendanceAtOrAboveThresh: raiderAttendance >= attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderAttendance : null,
-          weightedAttendanceAtOrAboveThreshHighlight: raiderAttendance >= attendanceThreshold && currentUserCharacterId === raider.characterId ? raiderAttendance : null,
-          weightedAttendanceBelowThresh: raiderAttendance < attendanceThreshold && currentUserCharacterId !== raider.characterId ? raiderAttendance : null,
-          weightedAttendanceBelowThreshHighlight: raiderAttendance < attendanceThreshold  && currentUserCharacterId === raider.characterId ? raiderAttendance : null,
+          weightedAttendanceAtOrAboveThresh:
+            raiderAttendance >= attendanceThreshold &&
+            currentUserCharacterId !== raider.characterId
+              ? raiderAttendance
+              : null,
+          weightedAttendanceAtOrAboveThreshHighlight:
+            raiderAttendance >= attendanceThreshold &&
+            currentUserCharacterId === raider.characterId
+              ? raiderAttendance
+              : null,
+          weightedAttendanceBelowThresh:
+            raiderAttendance < attendanceThreshold &&
+            currentUserCharacterId !== raider.characterId
+              ? raiderAttendance
+              : null,
+          weightedAttendanceBelowThreshHighlight:
+            raiderAttendance < attendanceThreshold &&
+            currentUserCharacterId === raider.characterId
+              ? raiderAttendance
+              : null,
         };
       });
       setChartAttendenceData(raiderData);
@@ -84,10 +111,10 @@ export function AttendanceReport({
   };
 
   const renderCustomTick = ({
-                              x,
-                              y,
-                              payload,
-                            }: {
+    x,
+    y,
+    payload,
+  }: {
     x: number;
     y: number;
     payload: { index: number; value: string };
@@ -127,10 +154,11 @@ export function AttendanceReport({
                 <div>Each week, raiders can earn up to 3pts:</div>
                 <div className="pt-1">
                   - Naxx, AQ40, BWL : +1
-                  <br />
-                  - Molten Core : +0.5
+                  <br />- Molten Core : +0.5
                 </div>
-                <div className="italic">Note: Points are only earned once per zone+week.</div>
+                <div className="italic">
+                  Note: Points are only earned once per zone+week.
+                </div>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -210,7 +238,9 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-primary-foreground font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
+                    formatter={(value: number) =>
+                      `${Math.round((value / 18) * 100)}%`
+                    }
                   />
                 </Bar>
                 <Bar
@@ -228,7 +258,9 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-background font-bold"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
+                    formatter={(value: number) =>
+                      `${Math.round((value / 18) * 100)}%`
+                    }
                   />
                 </Bar>
                 <Bar
@@ -246,7 +278,9 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
+                    formatter={(value: number) =>
+                      `${Math.round((value / 18) * 100)}%`
+                    }
                   />
                 </Bar>
                 <Bar
@@ -264,7 +298,9 @@ export function AttendanceReport({
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => `${Math.round((value/18)*100)}%`}
+                    formatter={(value: number) =>
+                      `${Math.round((value / 18) * 100)}%`
+                    }
                   />
                 </Bar>
               </BarChart>

@@ -1,12 +1,14 @@
 "use client";
 
-import {Card, CardContent, CardHeader} from "~/components/ui/card";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import Link from "next/link";
 import React from "react";
 
 export default function DashboardBanner() {
-  const loot_prio_url = "https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0";
-  const raid_policy_channel_url = "https://discord.com/channels/1132586324264759390/1194046879508480100";
+  const loot_prio_url =
+    "https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0";
+  const raid_policy_channel_url =
+    "https://discord.com/channels/1132586324264759390/1194046879508480100";
 
   return (
     <div className="pb-2">
@@ -27,21 +29,25 @@ export default function DashboardBanner() {
         <CardContent>
           <div className="text-muted-foreground">
             <div>
-              Raiders must maintain 50%+ large raid attendance over 6 lockout weeks
-              to roll on{" "}
+              Raiders must maintain 50%+ large raid attendance over 6 lockout
+              weeks to roll on{" "}
               <Link
                 href={loot_prio_url}
                 target="_blank"
                 className="text-secondary-foreground hover:underline"
               >
                 specific Naxx gear
-              </Link>.
+              </Link>
+              .
             </div>
             <div>
-              In practice, this means raiders must participate in ~1.5 different 40-player raids (in different zones) on average each week to stay eligible.
+              In practice, this means raiders must participate in ~1.5 different
+              40-player raids (in different zones) on average each week to stay
+              eligible.
             </div>
             <div className="pt-2">
-              Note: If a raid is full, you can earn credit by being ready/available at raid time and contacting an officer.
+              Note: If a raid is full, you can earn credit by being
+              ready/available at raid time and contacting an officer.
             </div>
             <div>
               <Link
@@ -49,7 +55,8 @@ export default function DashboardBanner() {
                 href={raid_policy_channel_url}
                 target="_blank"
               >
-                Learn more in Discord: <strong>Temple &gt; #raid-policies</strong>
+                Learn more in Discord:{" "}
+                <strong>Temple &gt; #raid-policies</strong>
               </Link>
             </div>
             {/*<div className="pt-2">*/}

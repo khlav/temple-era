@@ -8,7 +8,7 @@ import { PrettyPrintDate } from "~/lib/helpers";
 import {
   TRACKED_RAID_LABEL__FULL_CREDIT,
   TRACKED_RAID_LABEL__HALF_CREDIT,
-  TRACKED_RAID_LABEL__NO_CREDIT
+  TRACKED_RAID_LABEL__NO_CREDIT,
 } from "~/constants";
 
 export const toastRaidLogLoaded = (
@@ -25,7 +25,7 @@ export const toastRaidLogLoaded = (
     ),
     description: (
       <>
-        <div className="text-primary font-bold">{raidLog.name}</div>
+        <div className="font-bold text-primary">{raidLog.name}</div>
         <div>
           {Object.keys(raidLog.participants).length} attendees,{" "}
           {raidLog.kills.length} kills
@@ -50,7 +50,7 @@ export const toastRaidLogInUse = (
     ),
     description: (
       <>
-        <div className="text-primary font-bold">{raidLog.name}</div>
+        <div className="font-bold text-primary">{raidLog.name}</div>
         <div>
           {Object.keys(raidLog.participants).length} attendees,{" "}
           {raidLog.kills.length} kills
@@ -86,16 +86,16 @@ export const toastRaidSaved = (
     ),
     description: (
       <>
-        <div className="text-primary font-bold">{raidData.name}</div>
+        <div className="font-bold text-primary">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
             ? TRACKED_RAID_LABEL__NO_CREDIT
-            : raidData.attendanceWeight == 1 
+            : raidData.attendanceWeight == 1
               ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
                 ? TRACKED_RAID_LABEL__HALF_CREDIT
-                : "Other"}
-          {" "}- {PrettyPrintDate(new Date(raidData.date), true)}
+                : "Other"}{" "}
+          - {PrettyPrintDate(new Date(raidData.date), true)}
         </div>
       </>
     ),
@@ -126,11 +126,11 @@ export const toastRaidDataCleared = (
     ),
     description: (
       <>
-        <div className="text-primary font-bold">{raidData.name}</div>
+        <div className="font-bold text-primary">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
             ? TRACKED_RAID_LABEL__NO_CREDIT
-            : raidData.attendanceWeight == 1 
+            : raidData.attendanceWeight == 1
               ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
                 ? TRACKED_RAID_LABEL__HALF_CREDIT
@@ -152,11 +152,11 @@ export const toastRaidDeleted = (toast: typeof toastType, raidData: Raid) => {
     ),
     description: (
       <>
-        <div className="text-primary font-bold">{raidData.name}</div>
+        <div className="font-bold text-primary">{raidData.name}</div>
         <div>
           {raidData.attendanceWeight == 0
             ? TRACKED_RAID_LABEL__NO_CREDIT
-            : raidData.attendanceWeight == 1 
+            : raidData.attendanceWeight == 1
               ? TRACKED_RAID_LABEL__FULL_CREDIT
               : raidData.attendanceWeight == 0.5
                 ? TRACKED_RAID_LABEL__HALF_CREDIT

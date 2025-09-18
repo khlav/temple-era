@@ -53,10 +53,12 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
       .references(() => characters.characterId)
       .array(),
     attendeeOrBench: text("attendee_or_bench"),
-    allCharacters: (json("all_characters").$type<Array<{
-      name: string;
-      characterId: number;
-    }>>()),
+    allCharacters: json("all_characters").$type<
+      Array<{
+        name: string;
+        characterId: number;
+      }>
+    >(),
     raidLogIds: text("raid_log_ids").array(),
   })
   .existing();
@@ -64,7 +66,7 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
 export const trackedRaidsL6LockoutWk = viewSchema
   .view("tracked_raids_l6lockoutwk", {
     ...raidsColumns,
-    lockoutWeek: text("lockout_week").notNull()
+    lockoutWeek: text("lockout_week").notNull(),
   })
   .existing();
 
@@ -88,7 +90,7 @@ export const primaryRaidAttendanceL6LockoutWk = viewSchema
     name: varchar("name"),
     weightedAttendance: real("weighted_attendance"),
     weightedRaidTotal: real("weighted_raid_total"),
-    weightedAttendancePct: real("weighted_attendance_pct")
+    weightedAttendancePct: real("weighted_attendance_pct"),
   })
   .existing();
 
