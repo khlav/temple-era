@@ -1,5 +1,30 @@
-import { RaidDetail } from "~/components/raids/raid-detail";
+import { RaidPageWrapper } from "~/components/raids/raid-page-wrapper";
 import { auth } from "~/server/auth";
+import { getRaidMetadata } from "~/server/metadata-helpers";
+import { type Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ raidId: number }>;
+}): Promise<Metadata> {
+  const p = await params;
+  const raidId = parseInt(String(p.raidId));
+  const raidData = await getRaidMetadata(raidId);
+
+  const title = raidData?.name
+    ? `Temple Raid Attendance - Raids - ${raidData.name}`
+    : `Temple Raid Attendance - Raids - ${raidId}`;
+
+  const description = raidData?.name
+    ? `Raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}`
+    : `Raid details for raid ${raidId}`;
+
+  return {
+    title,
+    description,
+  };
+}
 
 export default async function RaidPage({
   params,
@@ -11,11 +36,9 @@ export default async function RaidPage({
   const session = await auth();
 
   return (
-    <div>
-      <RaidDetail
-        raidId={raidId}
-        showEditButton={session?.user?.isRaidManager}
-      />
-    </div>
+    <RaidPageWrapper
+      raidId={raidId}
+      showEditButton={session?.user?.isRaidManager}
+    />
   );
 }
