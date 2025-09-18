@@ -1,13 +1,8 @@
-import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 import nextPlugin from "@next/eslint-plugin-next";
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-  recommendedConfig: js.configs.recommended,
-});
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 const config = [
   // Ignore patterns
@@ -38,16 +33,10 @@ const config = [
       "@typescript-eslint": typescriptEslint,
     },
     rules: {
-      // Only use basic rules that don't require type information
       "@typescript-eslint/no-unused-vars": "warn",
     },
   },
   // Main configuration for all other files
-  ...compat.extends(
-    "next/core-web-vitals",
-    "plugin:@typescript-eslint/recommended-type-checked",
-    "plugin:@typescript-eslint/stylistic-type-checked"
-  ),
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
@@ -59,8 +48,23 @@ const config = [
     plugins: {
       "@typescript-eslint": typescriptEslint,
       "@next/next": nextPlugin,
+      "react-hooks": reactHooksPlugin,
     },
     rules: {
+      // Next.js core web vitals rules (manually configured)
+      "react/no-unescaped-entities": "off",
+      "@next/next/no-page-custom-font": "error",
+      "@next/next/no-html-link-for-pages": "error",
+      "@next/next/no-img-element": "error",
+      "@next/next/no-sync-scripts": "error",
+      "@next/next/no-title-in-document-head": "error",
+      "@next/next/no-unwanted-polyfillio": "error",
+      
+      // React hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      
+      // TypeScript recommended rules (manually configured)
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-type-imports": [

@@ -149,9 +149,6 @@ importers:
         specifier: ^3.23.3
         version: 3.25.76
     devDependencies:
-      "@eslint/eslintrc":
-        specifier: ^3.3.1
-        version: 3.3.1
       "@types/eslint":
         specifier: ^8.56.10
         version: 8.56.12
@@ -179,9 +176,6 @@ importers:
       eslint-config-next:
         specifier: ^15.0.1
         version: 15.5.3(eslint@9.35.0(jiti@1.21.7))(typescript@5.9.2)
-      eslint-plugin-drizzle:
-        specifier: ^0.2.3
-        version: 0.2.3(eslint@9.35.0(jiti@1.21.7))
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -3422,14 +3416,6 @@ packages:
         optional: true
       eslint-import-resolver-webpack:
         optional: true
-
-  eslint-plugin-drizzle@0.2.3:
-    resolution:
-      {
-        integrity: sha512-BO+ymHo33IUNoJlC0rbd7HP9EwwpW4VIp49R/tWQF/d2E1K2kgTf0tCXT0v9MSiBr6gGR1LtPwMLapTKEWSg9A==,
-      }
-    peerDependencies:
-      eslint: ">=8.0.0"
 
   eslint-plugin-import@2.32.0:
     resolution:
@@ -7673,10 +7659,6 @@ snapshots:
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.35.0(jiti@1.21.7))
     transitivePeerDependencies:
       - supports-color
-
-  eslint-plugin-drizzle@0.2.3(eslint@9.35.0(jiti@1.21.7)):
-    dependencies:
-      eslint: 9.35.0(jiti@1.21.7)
 
   eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.0(eslint@9.35.0(jiti@1.21.7))(typescript@5.9.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.35.0(jiti@1.21.7)):
     dependencies:

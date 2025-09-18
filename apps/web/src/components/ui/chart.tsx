@@ -228,7 +228,6 @@ const ChartTooltipContent = React.forwardRef<
                   )}
                 >
                   {formatter && item?.value !== undefined && item.name ? (
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                     formatter(item.value, item.name, item, index, item.payload)
                   ) : (
                     <>
@@ -321,10 +320,9 @@ const ChartLegendContent = React.forwardRef<
         )}
       >
         {payload.map((item) => {
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           const key = `${nameKey ?? item.dataKey ?? "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           const itemKey: string = item?.value;
 
           return (

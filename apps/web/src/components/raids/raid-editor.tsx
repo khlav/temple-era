@@ -52,7 +52,7 @@ export function RaidEditor({
     setRaidDataAction((raidData) => ({
       ...raidData,
       // @ts-expect-error Value exists, but IDE says not found
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
       attendanceWeight: parseFloat(e.target.value) ?? 0,
     }));
   };
