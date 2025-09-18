@@ -94,7 +94,7 @@
   },
   "packageManager": "pnpm@9.15.1",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.0.0 <23.0.0"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
