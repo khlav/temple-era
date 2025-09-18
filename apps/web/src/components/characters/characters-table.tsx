@@ -130,7 +130,7 @@ export function CharactersTable({
                 <th className="h-10 w-1/2 px-2 text-left align-middle font-medium text-muted-foreground">
                   Characters {characterList && `(${characterList.length})`}
                 </th>
-                <th className="hidden h-10 grow px-2 text-left align-middle font-medium text-muted-foreground md:inline">
+                <th className="hidden h-10 w-1/4 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
                   Server
                 </th>
                 {showRaidColumns &&

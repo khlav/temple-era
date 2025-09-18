@@ -14,9 +14,9 @@ import { Toaster } from "~/components/ui/toaster";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { PostHogProvider } from "~/app/providers";
 import { SessionProvider } from "next-auth/react";
+import { BreadcrumbProvider } from "~/components/nav/breadcrumb-context";
 
 export const metadata: Metadata = {
-  title: "Temple Raid Attendance",
   icons: [{ rel: "icon", url: "/favicon/favicon.ico" }],
 };
 
@@ -43,14 +43,16 @@ export default async function RootLayout({
             <SessionProvider>
               <PostHogProvider>
                 <TooltipProvider>
-                  <SidebarProvider defaultOpen={defaultOpen}>
-                    <AppSidebar side="left" collapsible="icon" />
-                    <SidebarInset>
-                      <AppHeader />
-                      <div className="max-w-screen-xl md:p-4">{children}</div>
-                    </SidebarInset>
-                    <Toaster duration={5000} />
-                  </SidebarProvider>
+                  <BreadcrumbProvider>
+                    <SidebarProvider defaultOpen={defaultOpen}>
+                      <AppSidebar side="left" collapsible="icon" />
+                      <SidebarInset>
+                        <AppHeader />
+                        <div className="max-w-screen-xl md:p-4">{children}</div>
+                      </SidebarInset>
+                      <Toaster duration={5000} />
+                    </SidebarProvider>
+                  </BreadcrumbProvider>
                 </TooltipProvider>
               </PostHogProvider>
             </SessionProvider>

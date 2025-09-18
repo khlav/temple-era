@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChartBarSquareIcon } from "@heroicons/react/24/outline";
 import React, { useEffect, useMemo } from "react";
+import { useBreadcrumb } from "./breadcrumb-context";
 
 function kebabToTitleCase(str: string) {
   return str
@@ -24,6 +25,7 @@ function kebabToTitleCase(str: string) {
 
 export const AppHeader = () => {
   const pathname = usePathname();
+  const { breadcrumbData } = useBreadcrumb();
 
   const pathParts = useMemo(
     () => pathname.slice(1).split("/") ?? [],
@@ -39,12 +41,14 @@ export const AppHeader = () => {
   );
 
   useEffect(() => {
+    const titleParts = pathParts.map(
+      (part) => breadcrumbData[part] || kebabToTitleCase(part),
+    );
+
     document.title =
       "Temple Raid Attendance" +
-      (pathParts[0] !== ""
-        ? " : " + pathParts.map(kebabToTitleCase).join(" - ")
-        : "");
-  }, [currentPathPart, pathParts]);
+      (pathParts[0] !== "" ? " - " + titleParts.join(" - ") : "");
+  }, [currentPathPart, pathParts, breadcrumbData, pathname]);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 px-4">
@@ -65,7 +69,7 @@ export const AppHeader = () => {
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href={"/" + pathParts.slice(0, i + 1).join("/")}>
-                    {kebabToTitleCase(part)}
+                    {breadcrumbData[part] || kebabToTitleCase(part)}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -76,7 +80,8 @@ export const AppHeader = () => {
               <BreadcrumbSeparator />
               <BreadcrumbItem key={currentPathPart}>
                 <BreadcrumbPage>
-                  {kebabToTitleCase(currentPathPart)}
+                  {breadcrumbData[currentPathPart] ||
+                    kebabToTitleCase(currentPathPart)}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </>

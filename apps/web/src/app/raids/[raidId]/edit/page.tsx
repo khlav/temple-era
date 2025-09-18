@@ -1,6 +1,34 @@
 import { auth } from "~/server/auth";
-import { EditRaid } from "~/components/raids/edit-raid";
+import { RaidEditPageWrapper } from "~/components/raids/raid-edit-page-wrapper";
 import { redirect } from "next/navigation";
+import {
+  getRaidMetadata,
+  getRaidBreadcrumbName,
+} from "~/server/metadata-helpers";
+import { type Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ raidId: number }>;
+}): Promise<Metadata> {
+  const p = await params;
+  const raidId = parseInt(String(p.raidId));
+  const raidData = await getRaidMetadata(raidId);
+
+  const title = raidData?.name
+    ? `Temple Raid Attendance - Raids - ${raidData.name} - Edit`
+    : `Temple Raid Attendance - Raids - ${raidId} - Edit`;
+
+  const description = raidData?.name
+    ? `Edit raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}`
+    : `Edit raid details for raid ${raidId}`;
+
+  return {
+    title,
+    description,
+  };
+}
 
 export default async function RaidEditPage({
   params,
@@ -15,9 +43,13 @@ export default async function RaidEditPage({
     redirect("/raids");
   }
 
+  // Get raid name for breadcrumb
+  const raidName = await getRaidBreadcrumbName(raidId);
+
   return (
-    <div>
-      <EditRaid raidId={raidId} />
-    </div>
+    <RaidEditPageWrapper
+      raidId={raidId}
+      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
+    />
   );
 }
