@@ -1,0 +1,1 @@
+ALTER TABLE "character" ALTER COLUMN "is_ignored" SET NOT NULL;
