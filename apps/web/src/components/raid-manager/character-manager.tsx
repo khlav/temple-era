@@ -58,9 +58,10 @@ export function CharacterManager() {
           isIgnored: player.isIgnored ? "ignored" : "",
         }).some((value) => {
           // Normalize and check if any field contains the search term
-          return normalizeText(String(value)).includes(
-            normalizeText(searchTerm),
-          );
+          const stringValue = Array.isArray(value)
+            ? value.map(String).join(" ")
+            : String(value);
+          return normalizeText(stringValue).includes(normalizeText(searchTerm));
         });
       })
     : [];

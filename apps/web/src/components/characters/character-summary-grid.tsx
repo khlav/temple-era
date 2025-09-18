@@ -25,9 +25,7 @@ export const CharacterSummaryGrid = ({
     const grouped: Record<string, RaidParticipant[]> = {};
 
     for (const char of characters) {
-      if (!grouped[char.class]) {
-        grouped[char.class] = [];
-      }
+      grouped[char.class] ??= [];
       (grouped[char.class] ?? []).push(char);
     }
 
@@ -52,11 +50,16 @@ export const CharacterSummaryGrid = ({
   }[];
 
   return (
-    <div className={"w-min flex flex-row gap-x-1 items-start transition-all " + (sortedCharacterList.length > 0 ? "opacity-100" : "opacity-0")} >
+    <div
+      className={
+        "flex w-min flex-row items-start gap-x-1 transition-all " +
+        (sortedCharacterList.length > 0 ? "opacity-100" : "opacity-0")
+      }
+    >
       {(sortedCharacterClassMatrixWithSubgroups ?? []).map((classObj, i) => (
         <Tooltip key={`class_${i}`}>
           <TooltipTrigger>
-            <div className="flex w-min flex-row gap-x-0 cursor-default">
+            <div className="flex w-min cursor-default flex-row gap-x-0">
               {(classObj.members ?? []).map((characterSegment, j) => (
                 <div key={`class_${j}`} className="flex w-min flex-col">
                   {(characterSegment ?? []).map((c: RaidParticipant) => (
@@ -72,13 +75,19 @@ export const CharacterSummaryGrid = ({
               ))}
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={5} className="rounded bg-secondary text-muted-foreground cursor-default">
+          <TooltipContent
+            side="bottom"
+            sideOffset={5}
+            className="cursor-default rounded bg-secondary text-muted-foreground"
+          >
             <div>
-            {classObj.members.flat().map((character) => (
-              <div key={character.characterId}>
-                {character.name} {character.primaryCharacterName && `(${character.primaryCharacterName})`}
-              </div>
-            ))}
+              {classObj.members.flat().map((character) => (
+                <div key={character.characterId}>
+                  {character.name}{" "}
+                  {character.primaryCharacterName &&
+                    `(${character.primaryCharacterName})`}
+                </div>
+              ))}
             </div>
           </TooltipContent>
         </Tooltip>
