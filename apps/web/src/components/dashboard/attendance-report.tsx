@@ -103,12 +103,14 @@ export function AttendanceReport({
     },
   } satisfies ChartConfig;
 
-  const handleBarClick = (data: Raider) => {
+  const handleBarClick = (data: any, index: number) => {
     if (process.env.NODE_ENV === "development") {
       console.log(data);
     }
-    if (data.characterId) {
-      router.push(`/characters/${data.characterId}`);
+    // Extract the raider data from the chart data using the index
+    const raider = chartAttendenceData[index];
+    if (raider?.characterId) {
+      router.push(`/characters/${raider.characterId}`);
     }
   };
 
