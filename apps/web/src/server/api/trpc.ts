@@ -121,8 +121,11 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.session.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: `Unauthorized - Login required` });
+    if (!ctx.session?.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Unauthorized - Login required`,
+      });
     }
     return next({
       ctx: {
@@ -144,7 +147,10 @@ export const raidManagerProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
     if (!ctx.session || !ctx.session.user || !ctx.session.user.isRaidManager) {
-      throw new TRPCError({ code: "UNAUTHORIZED" , message: `Unauthorized - Raid managers only` });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Unauthorized - Raid managers only`,
+      });
     }
     return next({
       ctx: {
@@ -166,7 +172,10 @@ export const adminProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
     if (!ctx.session || !ctx.session.user || !ctx.session.user.isAdmin) {
-      throw new TRPCError({ code: "UNAUTHORIZED" , message: `Unauthorized - Admin only` });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Unauthorized - Admin only`,
+      });
     }
     return next({
       ctx: {
