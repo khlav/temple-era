@@ -9,6 +9,7 @@ import { useGlobalSearch } from "~/contexts/global-search-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { api } from "~/trpc/react";
+import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 
 export function GlobalSearch() {
   const { open, setOpen } = useGlobalSearch();
@@ -187,7 +188,7 @@ export function GlobalSearch() {
                             {result.type === "page"
                               ? ""
                               : result.type === "raid"
-                                ? `${result.zone} • ${new Date(result.date).toLocaleDateString()}`
+                                ? `${result.zone} • ${formatRaidDate(result.date)} • ${formatRaidCompletion(result.zone, result.killCount || 0)}`
                                 : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
                           </span>
                         </div>

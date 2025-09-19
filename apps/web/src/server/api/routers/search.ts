@@ -22,9 +22,14 @@ export const searchRouter = createTRPCRouter({
           name: raids.name,
           zone: raids.zone,
           date: raids.date,
+          killCount: sql<number>`COALESCE(SUM(${raidLogs.killCount}), 0)`.as(
+            "killCount",
+          ),
         })
         .from(raids)
+        .leftJoin(raidLogs, eq(raids.raidId, raidLogs.raidId))
         .where(or(ilike(raids.name, searchTerm), ilike(raids.zone, searchTerm)))
+        .groupBy(raids.raidId, raids.name, raids.zone, raids.date)
         .orderBy(sql`${raids.date} DESC`)
         .limit(10);
 
