@@ -2,7 +2,7 @@ import { auth } from "~/server/auth";
 import { RaidEditPageWrapper } from "~/components/raids/raid-edit-page-wrapper";
 import { redirect } from "next/navigation";
 import {
-  getRaidMetadata,
+  getRaidMetadataWithStats,
   getRaidBreadcrumbName,
 } from "~/server/metadata-helpers";
 import { type Metadata } from "next";
@@ -14,19 +14,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const p = await params;
   const raidId = parseInt(String(p.raidId));
-  const raidData = await getRaidMetadata(raidId);
+  const raidData = await getRaidMetadataWithStats(raidId);
 
-  const title = raidData?.name
-    ? `Temple Raid Attendance - Raids - ${raidData.name} - Edit`
-    : `Temple Raid Attendance - Raids - ${raidId} - Edit`;
+  if (!raidData) {
+    return {
+      title: `Temple Raid Attendance - Raids - ${raidId} - Edit`,
+      description: `Edit raid details for raid ${raidId}`,
+    };
+  }
 
-  const description = raidData?.name
-    ? `Edit raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}`
-    : `Edit raid details for raid ${raidId}`;
+  const title = `Temple Raid Attendance - ${raidData.name} - Edit`;
+
+  const description = `Edit raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}${raidData.date ? ` on ${new Date(raidData.date).toLocaleDateString()}` : ""}`;
 
   return {
     title,
     description,
+    robots: {
+      index: false,
+      follow: false,
+    },
   };
 }
 

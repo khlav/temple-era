@@ -1,10 +1,12 @@
 import { RaidPageWrapper } from "~/components/raids/raid-page-wrapper";
 import { auth } from "~/server/auth";
 import {
-  getRaidMetadata,
+  getRaidMetadataWithStats,
   getRaidBreadcrumbName,
+  generateRaidMetadata,
 } from "~/server/metadata-helpers";
 import { type Metadata } from "next";
+// import { MetadataDebug } from "~/components/debug/metadata-debug"; // Uncomment to enable debug
 
 export async function generateMetadata({
   params,
@@ -13,19 +15,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const p = await params;
   const raidId = parseInt(String(p.raidId));
-  const raidData = await getRaidMetadata(raidId);
+  const raidData = await getRaidMetadataWithStats(raidId);
 
-  const title = raidData?.name
-    ? `Temple Raid Attendance - Raids - ${raidData.name}`
-    : `Temple Raid Attendance - Raids - ${raidId}`;
-
-  const description = raidData?.name
-    ? `Raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}`
-    : `Raid details for raid ${raidId}`;
+  const metadata = generateRaidMetadata(raidData, raidId);
 
   return {
-    title,
-    description,
+    title: metadata.title,
+    description: metadata.description,
+    openGraph: metadata.openGraph,
+    other: {
+      "application/ld+json": JSON.stringify(metadata.structuredData),
+    },
   };
 }
 
@@ -42,10 +42,15 @@ export default async function RaidPage({
   const raidName = await getRaidBreadcrumbName(raidId);
 
   return (
-    <RaidPageWrapper
-      raidId={raidId}
-      showEditButton={session?.user?.isRaidManager}
-      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
-    />
+    <>
+      <RaidPageWrapper
+        raidId={raidId}
+        showEditButton={session?.user?.isRaidManager}
+        initialBreadcrumbData={
+          raidName ? { [raidId.toString()]: raidName } : {}
+        }
+      />
+      {/* <MetadataDebug raidId={raidId} /> Uncomment to enable debug */}
+    </>
   );
 }
