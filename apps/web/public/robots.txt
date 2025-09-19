@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /raids
+Allow: /raids/*
+Allow: /rare-recipes
+Disallow: /characters
+Disallow: /characters/*
+Disallow: /admin/
+Disallow: /raid-manager/
+Disallow: /profile
+Disallow: /api/
+Disallow: /_next/
+Disallow: /favicon/
+
+Sitemap: https://www.templeashkandi.com/sitemap.xml

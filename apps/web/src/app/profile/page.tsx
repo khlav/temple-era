@@ -3,6 +3,16 @@ import React from "react";
 import { Separator } from "~/components/ui/separator";
 import { ProfileEditor } from "~/components/profile/profile-editor";
 import { redirect } from "next/navigation";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+  },
+};
 
 export default async function ProfileIndex() {
   const session = await auth();

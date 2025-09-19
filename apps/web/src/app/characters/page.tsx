@@ -2,6 +2,16 @@ import { HydrateClient } from "~/trpc/server";
 
 import { AllCharacters } from "~/components/characters/all-characters";
 import { auth } from "~/server/auth";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+  },
+};
 
 export default async function PlayersIndex() {
   const session = await auth();
