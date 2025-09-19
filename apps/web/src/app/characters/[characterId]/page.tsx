@@ -22,6 +22,12 @@ export async function generateMetadata({
     title: metadata.title,
     description: metadata.description,
     openGraph: metadata.openGraph,
+    robots: {
+      index: false,
+      follow: false,
+      noarchive: true,
+      nosnippet: true,
+    },
     other: {
       "application/ld+json": JSON.stringify(metadata.structuredData),
     },

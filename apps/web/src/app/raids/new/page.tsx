@@ -4,6 +4,16 @@ import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import { CreateRaid } from "~/components/raids/create-raid";
 import { redirect } from "next/navigation";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+  },
+};
 
 export default async function RaidNewPage() {
   const session = await auth();

@@ -33,6 +33,8 @@ export async function generateMetadata({
     robots: {
       index: false,
       follow: false,
+      noarchive: true,
+      nosnippet: true,
     },
   };
 }
