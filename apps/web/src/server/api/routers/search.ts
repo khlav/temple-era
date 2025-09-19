@@ -15,7 +15,7 @@ export const searchRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const searchTerm = `%${input.query}%`;
 
-      // Search raids (limit 10)
+      // Search raids (limit 50 to ensure we get enough results)
       const raidResults = await db
         .select({
           raidId: raids.raidId,
@@ -31,9 +31,9 @@ export const searchRouter = createTRPCRouter({
         .where(or(ilike(raids.name, searchTerm), ilike(raids.zone, searchTerm)))
         .groupBy(raids.raidId, raids.name, raids.zone, raids.date)
         .orderBy(sql`${raids.date} DESC`)
-        .limit(10);
+        .limit(50);
 
-      // Search characters with last raid attended date (limit 10)
+      // Search characters with last raid attended date (limit 50 to ensure we get enough results)
       // Include primary character name in search
       const characterResults = await db
         .select({
@@ -79,7 +79,7 @@ export const searchRouter = createTRPCRouter({
           sql`CASE WHEN ${characters.primaryCharacterId} IS NULL THEN 0 ELSE 1 END`,
           sql`max(${raids.date}) DESC NULLS LAST`,
         )
-        .limit(10);
+        .limit(50);
 
       return {
         raids: raidResults,
