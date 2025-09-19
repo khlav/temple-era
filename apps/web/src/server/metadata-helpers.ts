@@ -470,13 +470,12 @@ function generateCharacterStoryDescription(characterData: any): string {
 function generateRaidStoryDescription(raidData: any): string {
   if (!raidData) return "Raid details unavailable";
 
-  // Format date in ET (assuming UTC input)
-  const raidDate = new Date(raidData.date + "T00:00:00Z"); // Ensure UTC
+  // Treat the date as a local date without timezone conversion to avoid day shifts
+  const raidDate = new Date(raidData.date + "T00:00:00");
   const friendlyDate = raidDate.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
-    timeZone: "America/New_York", // Proper ET timezone handling
   });
 
   // Get raid time from logs
