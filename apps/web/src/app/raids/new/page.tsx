@@ -1,5 +1,3 @@
-"use server";
-
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import { CreateRaid } from "~/components/raids/create-raid";
