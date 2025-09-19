@@ -39,7 +39,7 @@ export function GlobalSearch() {
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
             className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Jump to"
+            placeholder="Jump to raids, characters, or pages..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -54,7 +54,7 @@ export function GlobalSearch() {
 
           {!isLoading && debouncedQuery.length === 0 && (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Start typing to jump to...
+              Start typing to jump to raids, characters, or pages...
             </div>
           )}
 
