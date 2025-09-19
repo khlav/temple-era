@@ -1,8 +1,9 @@
 import { CharacterPageWrapper } from "~/components/characters/character-page-wrapper";
 import { auth } from "~/server/auth";
 import {
-  getCharacterMetadata,
+  getCharacterMetadataWithStats,
   getCharacterBreadcrumbName,
+  generateCharacterMetadata,
 } from "~/server/metadata-helpers";
 import { type Metadata } from "next";
 
@@ -13,19 +14,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const p = await params;
   const characterId = parseInt(String(p.characterId));
-  const characterData = await getCharacterMetadata(characterId);
+  const characterData = await getCharacterMetadataWithStats(characterId);
 
-  const title = characterData?.name
-    ? `Temple Raid Attendance - Characters - ${characterData.name}`
-    : `Temple Raid Attendance - Characters - ${characterId}`;
-
-  const description = characterData?.name
-    ? `Character details for ${characterData.name}${characterData.class ? ` (${characterData.class})` : ""}${characterData.server ? ` on ${characterData.server}` : ""}`
-    : `Character details for character ${characterId}`;
+  const metadata = generateCharacterMetadata(characterData, characterId);
 
   return {
-    title,
-    description,
+    title: metadata.title,
+    description: metadata.description,
+    openGraph: metadata.openGraph,
+    other: {
+      "application/ld+json": JSON.stringify(metadata.structuredData),
+    },
   };
 }
 
