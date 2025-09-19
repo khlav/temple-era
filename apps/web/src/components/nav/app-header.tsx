@@ -16,7 +16,7 @@ import { ChartBarSquareIcon } from "@heroicons/react/24/outline";
 import { Search } from "lucide-react";
 import React, { useEffect, useMemo } from "react";
 import { useBreadcrumb } from "./breadcrumb-context";
-import { useGlobalSearch } from "~/contexts/global-search-context";
+import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Button } from "~/components/ui/button";
 import {
   Tooltip,
@@ -34,7 +34,7 @@ function kebabToTitleCase(str: string) {
 export const AppHeader = () => {
   const pathname = usePathname();
   const { breadcrumbData } = useBreadcrumb();
-  const { setOpen } = useGlobalSearch();
+  const { setOpen } = useGlobalQuickLauncher();
 
   // Detect OS for proper key combination display
   const isMac =
@@ -124,7 +124,7 @@ export const AppHeader = () => {
           align="end"
           className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
         >
-          <p>Global Search ({keyCombo})</p>
+          <p>Jump to raids, characters, and pages ({keyCombo})</p>
         </TooltipContent>
       </Tooltip>
     </header>

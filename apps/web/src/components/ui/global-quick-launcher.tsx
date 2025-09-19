@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { Calendar, Search, Home, Users, BookOpen } from "lucide-react";
 import { useDebounce } from "use-debounce";
 
-import { useGlobalSearch } from "~/contexts/global-search-context";
+import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 
-export function GlobalSearch() {
-  const { open, setOpen } = useGlobalSearch();
+export function GlobalQuickLauncher() {
+  const { open, setOpen } = useGlobalQuickLauncher();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounce(query, 300);
@@ -34,7 +34,7 @@ export function GlobalSearch() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="left-[50%] top-[25vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 border p-0 shadow-lg">
-        <DialogTitle className="sr-only">Global Search</DialogTitle>
+        <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
         <div className="flex items-center border-b bg-background px-4 py-3">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
