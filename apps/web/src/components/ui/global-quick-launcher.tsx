@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Search, Home, Users, BookOpen } from "lucide-react";
 import { useDebounce } from "use-debounce";
@@ -16,6 +16,8 @@ export function GlobalQuickLauncher() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounce(query, 300);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedRef = useRef<HTMLDivElement>(null);
 
   // Debug logging
   console.log("GlobalSearch - open state:", open);
@@ -25,10 +27,99 @@ export function GlobalQuickLauncher() {
     { enabled: debouncedQuery.length > 0 },
   );
 
+  // Reset selection when query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [debouncedQuery]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedRef.current) {
+      selectedRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    }
+  }, [selectedIndex]);
+
   const handleSelect = (url: string) => {
     setOpen(false);
     setQuery("");
     router.push(url);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!data || (!data.raids && !data.characters)) return;
+
+    // Get all results for navigation
+    const staticPages = [
+      { name: "Dashboard", path: "/", icon: Home, type: "page" as const },
+      { name: "Raids", path: "/raids", icon: Calendar, type: "page" as const },
+      {
+        name: "Raiding characters",
+        path: "/characters",
+        icon: Users,
+        type: "page" as const,
+      },
+      {
+        name: "Rare recipes & crafters",
+        path: "/rare-recipes",
+        icon: BookOpen,
+        type: "page" as const,
+      },
+    ];
+
+    const matchedStaticPages = staticPages.filter(
+      (page) =>
+        page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+        page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
+    );
+
+    const allResults = [
+      ...matchedStaticPages.map((page) => ({ ...page, priority: 0 })),
+      ...(data.raids || []).map((raid) => ({
+        ...raid,
+        type: "raid" as const,
+        priority: 1,
+      })),
+      ...(data.characters || []).map((character) => ({
+        ...character,
+        type: "character" as const,
+        priority: 2,
+      })),
+    ].slice(0, 10);
+
+    if (allResults.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % allResults.length);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex(
+          (prev) => (prev - 1 + allResults.length) % allResults.length,
+        );
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        const selectedResult = allResults[selectedIndex];
+        if (selectedResult) {
+          const url =
+            selectedResult.type === "page"
+              ? selectedResult.path
+              : selectedResult.type === "raid"
+                ? `/raids/${selectedResult.raidId}`
+                : `/characters/${selectedResult.characterId}`;
+          handleSelect(url);
+        }
+        break;
+      case "Escape":
+        setOpen(false);
+        break;
+    }
   };
 
   return (
@@ -42,6 +133,7 @@ export function GlobalQuickLauncher() {
             placeholder="Jump to raids, characters, or pages..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             autoFocus
           />
         </div>
@@ -149,9 +241,10 @@ export function GlobalQuickLauncher() {
 
                 return (
                   <div className="px-4 py-2">
-                    {allResults.map((result) => (
+                    {allResults.map((result, index) => (
                       <div
                         key={`${result.type}-${result.type === "page" ? result.path : result.type === "raid" ? result.raidId : result.characterId}`}
+                        ref={index === selectedIndex ? selectedRef : null}
                         onClick={() =>
                           handleSelect(
                             result.type === "page"
@@ -161,7 +254,11 @@ export function GlobalQuickLauncher() {
                                 : `/characters/${result.characterId}`,
                           )
                         }
-                        className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-accent"
+                        className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors ${
+                          index === selectedIndex
+                            ? "bg-accent text-accent-foreground"
+                            : "hover:bg-accent"
+                        }`}
                       >
                         {result.type === "page" ? (
                           <result.icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
