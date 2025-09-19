@@ -52,12 +52,6 @@ export function GlobalSearch() {
             </div>
           )}
 
-          {!isLoading && debouncedQuery.length === 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Start typing to find raids, characters, and pages
-            </div>
-          )}
-
           {!isLoading && debouncedQuery.length > 0 && data && (
             <>
               {/* Combine and sort all results by date (most recent first), limit to 10 total */}
