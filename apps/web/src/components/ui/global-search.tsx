@@ -54,7 +54,7 @@ export function GlobalSearch() {
 
           {!isLoading && debouncedQuery.length === 0 && (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Start typing to jump to raids, characters, or pages...
+              Start typing to find raids, characters, and pages
             </div>
           )}
 
