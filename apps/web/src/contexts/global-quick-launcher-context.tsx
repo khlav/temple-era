@@ -8,16 +8,20 @@ import {
   type ReactNode,
 } from "react";
 
-interface GlobalSearchContextType {
+interface GlobalQuickLauncherContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
 }
 
-const GlobalSearchContext = createContext<GlobalSearchContextType | undefined>(
-  undefined,
-);
+const GlobalQuickLauncherContext = createContext<
+  GlobalQuickLauncherContextType | undefined
+>(undefined);
 
-export function GlobalSearchProvider({ children }: { children: ReactNode }) {
+export function GlobalQuickLauncherProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -33,17 +37,17 @@ export function GlobalSearchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <GlobalSearchContext.Provider value={{ open, setOpen }}>
+    <GlobalQuickLauncherContext.Provider value={{ open, setOpen }}>
       {children}
-    </GlobalSearchContext.Provider>
+    </GlobalQuickLauncherContext.Provider>
   );
 }
 
-export function useGlobalSearch() {
-  const context = useContext(GlobalSearchContext);
+export function useGlobalQuickLauncher() {
+  const context = useContext(GlobalQuickLauncherContext);
   if (context === undefined) {
     throw new Error(
-      "useGlobalSearch must be used within a GlobalSearchProvider",
+      "useGlobalQuickLauncher must be used within a GlobalQuickLauncherProvider",
     );
   }
   return context;

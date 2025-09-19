@@ -15,8 +15,8 @@ import { TooltipProvider } from "~/components/ui/tooltip";
 import { PostHogProvider } from "~/app/providers";
 import { SessionProvider } from "next-auth/react";
 import { BreadcrumbProvider } from "~/components/nav/breadcrumb-context";
-import { GlobalSearch } from "~/components/ui/global-search";
-import { GlobalSearchProvider } from "~/contexts/global-search-context";
+import { GlobalQuickLauncher } from "~/components/ui/global-quick-launcher";
+import { GlobalQuickLauncherProvider } from "~/contexts/global-quick-launcher-context";
 
 export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon/favicon.ico" }],
@@ -46,7 +46,7 @@ export default async function RootLayout({
               <PostHogProvider>
                 <TooltipProvider>
                   <BreadcrumbProvider>
-                    <GlobalSearchProvider>
+                    <GlobalQuickLauncherProvider>
                       <SidebarProvider defaultOpen={defaultOpen}>
                         <AppSidebar side="left" collapsible="icon" />
                         <SidebarInset>
@@ -56,9 +56,9 @@ export default async function RootLayout({
                           </div>
                         </SidebarInset>
                         <Toaster duration={5000} />
-                        <GlobalSearch />
+                        <GlobalQuickLauncher />
                       </SidebarProvider>
-                    </GlobalSearchProvider>
+                    </GlobalQuickLauncherProvider>
                   </BreadcrumbProvider>
                 </TooltipProvider>
               </PostHogProvider>
