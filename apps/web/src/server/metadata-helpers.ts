@@ -587,17 +587,6 @@ export function generateRaidMetadata(raidData: any, raidId: number) {
     type: "website" as const,
     url: `/raids/${raidId}`,
     siteName: "Temple Raid Attendance",
-    images:
-      raidData.totalKills > 0
-        ? [
-            {
-              url: `/api/og/raid/${raidId}`,
-              width: 1200,
-              height: 630,
-              alt: `${raidData.name} raid completion`,
-            },
-          ]
-        : undefined,
   };
 
   // Build structured data for SEO
