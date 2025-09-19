@@ -103,7 +103,6 @@ export function GlobalQuickLauncher() {
         );
         break;
       case "Enter":
-      case " ":
         e.preventDefault();
         const selectedResult = allResults[selectedIndex];
         if (selectedResult) {
@@ -124,9 +123,9 @@ export function GlobalQuickLauncher() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="left-[50%] top-[25vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 border p-0 shadow-lg">
+      <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col border p-0 shadow-lg">
         <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
-        <div className="flex items-center border-b bg-background px-4 py-3">
+        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-3">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
             className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -137,7 +136,7 @@ export function GlobalQuickLauncher() {
             autoFocus
           />
         </div>
-        <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">
           {isLoading && debouncedQuery.length > 0 && (
             <div className="py-6 text-center text-sm text-muted-foreground">
               Searching...
@@ -229,7 +228,7 @@ export function GlobalQuickLauncher() {
                     }
                     return 0;
                   })
-                  .slice(0, 10);
+                  .slice(0, 50);
 
                 if (allResults.length === 0) {
                   return (
