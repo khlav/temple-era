@@ -136,7 +136,7 @@ export function GlobalQuickLauncher() {
         type: "character" as const,
         priority: 2,
       })),
-    ].slice(0, 10);
+    ].slice(0, 50);
 
     if (allResults.length === 0) return;
 
