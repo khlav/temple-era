@@ -2,8 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Search, Home, Users, BookOpen } from "lucide-react";
+import {
+  Calendar,
+  Search,
+  Home,
+  Users,
+  BookOpen,
+  FilePlus,
+  ListRestart,
+  ShieldCheck,
+} from "lucide-react";
 import { useDebounce } from "use-debounce";
+import { useSession } from "next-auth/react";
 
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
@@ -14,6 +24,7 @@ import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 export function GlobalQuickLauncher() {
   const { open, setOpen } = useGlobalQuickLauncher();
   const router = useRouter();
+  const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounce(query, 300);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -67,6 +78,44 @@ export function GlobalQuickLauncher() {
         icon: BookOpen,
         type: "page" as const,
       },
+      // Raid Manager pages
+      ...(session?.user?.isRaidManager
+        ? [
+            {
+              name: "Create new raid",
+              path: "/raids/new",
+              icon: FilePlus,
+              type: "page" as const,
+              role: "Raid Manager",
+            },
+            {
+              name: "Manage mains v. alts",
+              path: "/raid-manager/characters",
+              icon: Users,
+              type: "page" as const,
+              role: "Raid Manager",
+            },
+            {
+              name: "Refresh WCL log",
+              path: "/raid-manager/log-refresh",
+              icon: ListRestart,
+              type: "page" as const,
+              role: "Raid Manager",
+            },
+          ]
+        : []),
+      // Admin pages
+      ...(session?.user?.isAdmin
+        ? [
+            {
+              name: "User permissions",
+              path: "/admin/user-management",
+              icon: ShieldCheck,
+              type: "page" as const,
+              role: "Admin",
+            },
+          ]
+        : []),
     ];
 
     const matchedStaticPages = staticPages.filter(
@@ -177,6 +226,48 @@ export function GlobalQuickLauncher() {
                     type: "page" as const,
                     sortDate: Number.MAX_SAFE_INTEGER - 3,
                   },
+                  // Raid Manager pages
+                  ...(session?.user?.isRaidManager
+                    ? [
+                        {
+                          name: "Create new raid",
+                          path: "/raids/new",
+                          icon: FilePlus,
+                          type: "page" as const,
+                          sortDate: Number.MAX_SAFE_INTEGER - 4,
+                          role: "Raid Manager",
+                        },
+                        {
+                          name: "Manage mains v. alts",
+                          path: "/raid-manager/characters",
+                          icon: Users,
+                          type: "page" as const,
+                          sortDate: Number.MAX_SAFE_INTEGER - 5,
+                          role: "Raid Manager",
+                        },
+                        {
+                          name: "Refresh WCL log",
+                          path: "/raid-manager/log-refresh",
+                          icon: ListRestart,
+                          type: "page" as const,
+                          sortDate: Number.MAX_SAFE_INTEGER - 6,
+                          role: "Raid Manager",
+                        },
+                      ]
+                    : []),
+                  // Admin pages
+                  ...(session?.user?.isAdmin
+                    ? [
+                        {
+                          name: "User permissions",
+                          path: "/admin/user-management",
+                          icon: ShieldCheck,
+                          type: "page" as const,
+                          sortDate: Number.MAX_SAFE_INTEGER - 7,
+                          role: "Admin",
+                        },
+                      ]
+                    : []),
                 ];
 
                 // Filter static pages based on search query
@@ -276,7 +367,7 @@ export function GlobalQuickLauncher() {
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {result.type === "page"
-                              ? ""
+                              ? result.role || ""
                               : result.type === "raid"
                                 ? `${result.zone} • ${formatRaidDate(result.date)} • ${formatRaidCompletion(result.zone, result.killCount || 0)}`
                                 : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
