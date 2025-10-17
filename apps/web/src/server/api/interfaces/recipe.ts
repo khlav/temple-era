@@ -25,7 +25,7 @@ export interface MutationResponse<T = unknown> {
 
 // Extended types for combined data
 export interface RecipeWithCharacters extends Recipe {
-  characters: Character[];
+  characters: (Character & { isActiveRaider: boolean })[];
 }
 
 // Response type helpers

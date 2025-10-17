@@ -17,6 +17,7 @@ import {
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 // import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
+import { Checkbox } from "~/components/ui/checkbox";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 
 const SAMPLE_SEARCHES = [
@@ -50,6 +51,9 @@ export const RecipesWithCrafters = () => {
   // Track if a search has been performed
   const [searchPerformed, setSearchPerformed] =
     useState<boolean>(!!initialSearch);
+  // Track whether to show inactive characters
+  const [showInactiveCharacters, setShowInactiveCharacters] =
+    useState<boolean>(false);
 
   useEffect(() => {
     setPlaceholderSearch(
@@ -77,48 +81,60 @@ export const RecipesWithCrafters = () => {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchTerms, router, searchParams]);
 
-  // Filter function for recipes with exclusion support
+  // Filter function for recipes with exclusion support and inactive character filtering
   const filteredRecipes: RecipeWithCharacters[] =
-    recipes?.filter((recipe) => {
-      if (!searchTerms.trim()) return true;
+    recipes
+      ?.filter((recipe) => {
+        // Apply search filtering if search terms exist
+        if (!searchTerms.trim()) return true;
 
-      // Split search terms and convert to lowercase
-      const allTerms = searchTerms.toLowerCase().split(/\s+/);
+        // Split search terms and convert to lowercase
+        const allTerms = searchTerms.toLowerCase().split(/\s+/);
 
-      // Separate inclusion and exclusion terms
-      const includeTerms = allTerms.filter((term) => !term.startsWith("-"));
-      const excludeTerms = allTerms
-        .filter((term) => term.startsWith("-"))
-        .map((term) => term.substring(1)); // Remove the '-' prefix
+        // Separate inclusion and exclusion terms
+        const includeTerms = allTerms.filter((term) => !term.startsWith("-"));
+        const excludeTerms = allTerms
+          .filter((term) => term.startsWith("-"))
+          .map((term) => term.substring(1)); // Remove the '-' prefix
 
-      // Convert recipe details to searchable string
-      const searchableString = [
-        recipe.recipe.toLowerCase(),
-        recipe.profession.toLowerCase(),
-        recipe.isCommon ? "common most crafters" : "",
-        recipe.tags
-          ?.map((tag) => "#" + tag)
-          .join(" ")
-          .toLowerCase() ?? "",
-        recipe.characters?.map((c) => c.name?.toLowerCase()).join(" ") || "",
-        (recipe.notes ?? "").toLowerCase(),
-      ].join(" ");
+        // Convert recipe details to searchable string
+        const searchableString = [
+          recipe.recipe.toLowerCase(),
+          recipe.profession.toLowerCase(),
+          recipe.isCommon ? "common most crafters" : "",
+          recipe.tags
+            ?.map((tag) => "#" + tag)
+            .join(" ")
+            .toLowerCase() ?? "",
+          recipe.characters?.map((c) => c.name?.toLowerCase()).join(" ") || "",
+          (recipe.notes ?? "").toLowerCase(),
+        ].join(" ");
 
-      // Check if ANY exclusion term is present (if so, exclude this recipe)
-      if (
-        excludeTerms.some((term) => term && searchableString.includes(term))
-      ) {
-        return false;
-      }
+        // Check if ANY exclusion term is present (if so, exclude this recipe)
+        if (
+          excludeTerms.some((term) => term && searchableString.includes(term))
+        ) {
+          return false;
+        }
 
-      // If no inclusion terms, all non-excluded items match
-      if (includeTerms.length === 0) {
-        return true;
-      }
+        // If no inclusion terms, all non-excluded items match
+        if (includeTerms.length === 0) {
+          return true;
+        }
 
-      // Check if ALL inclusion terms are present
-      return includeTerms.every((term) => searchableString.includes(term));
-    }) ?? [];
+        // Check if ALL inclusion terms are present
+        return includeTerms.every((term) => searchableString.includes(term));
+      })
+      .map((recipe) => ({
+        ...recipe,
+        characters:
+          recipe.characters?.filter((character) => {
+            if (showInactiveCharacters) {
+              return true; // Show all characters
+            }
+            return character.isActiveRaider; // Only show active characters
+          }) ?? [],
+      })) ?? [];
 
   // Function to handle tag click and update search
   const handleTagClick = (tag: string, exclude = false) => {
@@ -164,22 +180,40 @@ export const RecipesWithCrafters = () => {
             isLoading={isLoading}
           />
         </div>
-        <TableSearchTips>
-          <p className="mb-1 font-medium">Search tips:</p>
-          <ul className="list-disc space-y-1 pl-4">
-            <li>Type multiple terms to match ALL terms</li>
-            <li>
-              Use <span className="font-mono text-chart-3">#tag</span> to search
-              by tag
-            </li>
-            <li>
-              Use <span className="font-mono text-chart-3">-term</span> to
-              exclude (e.g.{" "}
-              <span className="font-mono text-chart-3">-leather</span>)
-            </li>
-            <li>Click tags or crafter names to add them to your search</li>
-          </ul>
-        </TableSearchTips>
+        <div className="flex items-center justify-between">
+          <TableSearchTips>
+            <p className="mb-1 font-medium">Search tips:</p>
+            <ul className="list-disc space-y-1 pl-4">
+              <li>Type multiple terms to match ALL terms</li>
+              <li>
+                Use <span className="font-mono text-chart-3">#tag</span> to
+                search by tag
+              </li>
+              <li>
+                Use <span className="font-mono text-chart-3">-term</span> to
+                exclude (e.g.{" "}
+                <span className="font-mono text-chart-3">-leather</span>)
+              </li>
+              <li>Click tags or crafter names to add them to your search</li>
+            </ul>
+          </TableSearchTips>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-inactive"
+              checked={showInactiveCharacters}
+              onCheckedChange={(checked) =>
+                setShowInactiveCharacters(checked === true)
+              }
+              className="border-muted-foreground/50 data-[state=checked]:border-muted-foreground/50 data-[state=checked]:bg-muted-foreground/30 data-[state=checked]:text-foreground"
+            />
+            <label
+              htmlFor="show-inactive"
+              className="text-sm leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Show Inactive Characters
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Scrollable content area */}
@@ -263,7 +297,12 @@ export const RecipesWithCrafters = () => {
                               <Button
                                 variant="secondary"
                                 key={character.characterId}
-                                className="bg-secondary px-2 py-1 text-xs text-secondary-foreground opacity-70 transition-all duration-100 hover:opacity-100"
+                                className={`bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:opacity-100 ${
+                                  !character.isActiveRaider &&
+                                  showInactiveCharacters
+                                    ? "opacity-40"
+                                    : "opacity-70"
+                                }`}
                                 onClick={() => handleTagClick(character.name)}
                                 onContextMenu={(e) =>
                                   handleTagRightClick(character.name, e)
