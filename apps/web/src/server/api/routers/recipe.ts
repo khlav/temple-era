@@ -6,7 +6,11 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import { recipes, characterRecipeMap } from "~/server/db/schema";
+import {
+  recipes,
+  characterRecipeMap,
+  primaryRaidAttendanceL6LockoutWk,
+} from "~/server/db/schema";
 import { characters } from "~/server/db/models/raid-schema";
 import { and, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -30,6 +34,17 @@ export const recipe = createTRPCRouter({
 
   getAllRecipesWithCharacters: publicProcedure.query(
     async ({ ctx }): Promise<RecipeWithCharacters[]> => {
+      // First, get all active character IDs from the attendance view
+      const activeCharacters = await ctx.db
+        .select({
+          characterId: primaryRaidAttendanceL6LockoutWk.characterId,
+        })
+        .from(primaryRaidAttendanceL6LockoutWk);
+
+      const activeCharacterIds = new Set(
+        activeCharacters.map((ac) => ac.characterId),
+      );
+
       // Fetch all recipes with their related characters
       const allRecipes = await ctx.db.query.recipes.findMany({
         orderBy: (recipes, { asc }) => [
@@ -55,6 +70,17 @@ export const recipe = createTRPCRouter({
         characters: recipe.characterRecipes
           .map((cr) => cr.character)
           .filter((c) => !c.isIgnored && !c.primaryCharacter?.isIgnored)
+          .map((c) => {
+            // Determine if this character is an active raider
+            // Use COALESCE(primary_character_id, character_id) logic
+            const primaryCharacterId = c.primaryCharacterId ?? c.characterId;
+            const isActiveRaider = activeCharacterIds.has(primaryCharacterId);
+
+            return {
+              ...c,
+              isActiveRaider,
+            };
+          })
           .sort((a, b) => (a.name > b.name ? 1 : -1)),
         characterRecipes: undefined,
       })) as RecipeWithCharacters[];
