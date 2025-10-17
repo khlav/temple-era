@@ -10,6 +10,15 @@ const config = {
     // Ensure linting runs during next build locally, matching Vercel's behavior
     ignoreDuringBuilds: false,
   },
+  async redirects() {
+    return [
+      {
+        source: "/players/:id",
+        destination: "/characters/:id",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
