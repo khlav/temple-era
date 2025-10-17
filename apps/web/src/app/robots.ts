@@ -4,8 +4,13 @@ export default function robots(): MetadataRoute.Robots {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
 
-  // Block all crawling on non-production deployments
-  if (!baseUrl.includes("templeashkandi.com")) {
+  // Check if we're on Vercel and not in production
+  const vercelEnv = process.env.VERCEL_ENV;
+  const isProduction =
+    vercelEnv === "production" || baseUrl.includes("templeashkandi.com");
+
+  // Block all crawling on non-production deployments (preview, development)
+  if (!isProduction) {
     return {
       rules: {
         userAgent: "*",
