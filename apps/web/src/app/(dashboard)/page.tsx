@@ -6,6 +6,9 @@ import { type Metadata } from "next";
 export const metadata: Metadata = {
   title: "Temple Raid Attendance - Home",
   description: "Track and manage raid attendance for the Temple guild",
+  verification: {
+    google: "KAWV6Xxbc8-t3O1I7suwjJxz1P7llEjgZW_zxo-EwUI",
+  },
   alternates: {
     canonical: "/",
   },
