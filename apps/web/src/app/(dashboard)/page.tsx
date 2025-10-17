@@ -1,6 +1,15 @@
 import React from "react";
 import { AttendanceDashboard } from "~/components/dashboard/attendance-dashboard";
 import { auth } from "~/server/auth";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Temple Raid Attendance - Home",
+  description: "Track and manage raid attendance for the Temple guild",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default async function HomePage() {
   const session = await auth();

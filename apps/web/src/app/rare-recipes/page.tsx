@@ -4,6 +4,13 @@ import { RecipesWithCrafters } from "~/components/rare-recipes/recipes-with-craf
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { auth } from "~/server/auth";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/rare-recipes",
+  },
+};
 
 export default async function RecipeManagerIndex() {
   const session = await auth();

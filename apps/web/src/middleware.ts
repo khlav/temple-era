@@ -3,6 +3,20 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+
+  // Block all crawling on non-production domains (Vercel previews, dev, etc.)
+  const isProduction =
+    host === "www.templeashkandi.com" || host === "templeashkandi.com";
+
+  if (!isProduction) {
+    const response = NextResponse.next();
+    response.headers.set(
+      "X-Robots-Tag",
+      "noindex, nofollow, noarchive, nosnippet",
+    );
+    return response;
+  }
 
   // Add noindex headers for private routes
   if (

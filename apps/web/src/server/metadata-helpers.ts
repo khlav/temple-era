@@ -580,11 +580,13 @@ export function generateRaidMetadata(raidData: any, raidId: number) {
   const description = generateRaidStoryDescription(raidData);
 
   // Build Open Graph data
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
   const openGraph = {
     title,
     description,
     type: "website" as const,
-    url: `/raids/${raidId}`,
+    url: `${baseUrl}/raids/${raidId}`,
     siteName: "Temple Raid Attendance",
   };
 
@@ -636,11 +638,13 @@ export function generateCharacterMetadata(
   const description = generateCharacterStoryDescription(characterData);
 
   // Build Open Graph data
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
   const openGraph = {
     title,
     description,
     type: "profile" as const,
-    url: `/characters/${characterId}`,
+    url: `${baseUrl}/characters/${characterId}`,
     siteName: "Temple Raid Attendance",
   };
 

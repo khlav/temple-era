@@ -19,6 +19,9 @@ import { GlobalQuickLauncher } from "~/components/ui/global-quick-launcher";
 import { GlobalQuickLauncherProvider } from "~/contexts/global-quick-launcher-context";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com",
+  ),
   icons: [{ rel: "icon", url: "/favicon/favicon.ico" }],
 };
 
