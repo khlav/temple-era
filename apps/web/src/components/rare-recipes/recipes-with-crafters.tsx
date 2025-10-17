@@ -210,7 +210,7 @@ export const RecipesWithCrafters = () => {
               htmlFor="show-inactive"
               className="text-sm leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Show Inactive Characters
+              Show inactive characters
             </label>
           </div>
         </div>
