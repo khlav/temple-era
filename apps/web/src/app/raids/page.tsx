@@ -4,6 +4,13 @@ import { HydrateClient } from "~/trpc/server";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { AllRaids } from "~/components/raids/all-raids";
+import { type Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/raids",
+  },
+};
 
 export default async function RaidIndex() {
   const session = await auth();

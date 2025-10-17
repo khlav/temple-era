@@ -23,6 +23,9 @@ export async function generateMetadata({
     title: metadata.title,
     description: metadata.description,
     openGraph: metadata.openGraph,
+    alternates: {
+      canonical: `/raids/${raidId}`,
+    },
     other: {
       "application/ld+json": JSON.stringify(metadata.structuredData),
     },

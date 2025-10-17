@@ -38,6 +38,10 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_ENABLED: z
       .string()
       .transform((val) => val.toLowerCase() === "true"),
+    NEXT_PUBLIC_APP_URL: z
+      .string()
+      .url()
+      .default("https://www.templeashkandi.com"),
   },
 
   /**
@@ -60,6 +64,7 @@ export const env = createEnv({
     BATTLENET_CLIENT_SECRET: process.env.BATTLENET_CLIENT_SECRET,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 
     NODE_ENV: process.env.NODE_ENV,
   },
