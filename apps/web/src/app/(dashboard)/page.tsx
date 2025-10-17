@@ -2,12 +2,13 @@ import React from "react";
 import { AttendanceDashboard } from "~/components/dashboard/attendance-dashboard";
 import { auth } from "~/server/auth";
 import { type Metadata } from "next";
+import { env } from "~/env";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance - Home",
   description: "Track and manage raid attendance for the Temple guild",
   verification: {
-    google: "KAWV6Xxbc8-t3O1I7suwjJxz1P7llEjgZW_zxo-EwUI",
+    google: env.GOOGLE_SITE_VERIFICATION,
   },
   alternates: {
     canonical: "/",
