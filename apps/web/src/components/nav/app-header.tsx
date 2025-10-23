@@ -13,16 +13,8 @@ import {
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChartBarSquareIcon } from "@heroicons/react/24/outline";
-import { Search } from "lucide-react";
 import React, { useEffect, useMemo } from "react";
 import { useBreadcrumb } from "./breadcrumb-context";
-import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
-import { Button } from "~/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 
 function kebabToTitleCase(str: string) {
   return str
@@ -34,13 +26,6 @@ function kebabToTitleCase(str: string) {
 export const AppHeader = () => {
   const pathname = usePathname();
   const { breadcrumbData } = useBreadcrumb();
-  const { setOpen } = useGlobalQuickLauncher();
-
-  // Detect OS for proper key combination display
-  const isMac =
-    typeof window !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-  const keyCombo = isMac ? "⌘K" : "Ctrl+K";
 
   const pathParts = useMemo(
     () => pathname.slice(1).split("/") ?? [],
@@ -105,28 +90,6 @@ export const AppHeader = () => {
           )}
         </BreadcrumbList>
       </Breadcrumb>
-      <Tooltip delayDuration={300}>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              console.log("Search button clicked, setting open to true");
-              setOpen(true);
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent
-          side="bottom"
-          align="end"
-          className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
-        >
-          <p>Jump to raids, characters, and pages ({keyCombo})</p>
-        </TooltipContent>
-      </Tooltip>
     </header>
   );
 };
