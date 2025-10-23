@@ -1,25 +1,15 @@
-## 🚀 [Brief Title]
+[Brief description of what this PR does in simple, user-friendly language]
 
-[One-line description of what this PR does]
+### Features + updates
 
-### ✨ Changes
+- [New features or improvements for users]
 
-- [List key changes]
-- [Include technical details]
-- [Mention any new features]
+### Fixes
 
-### 🔧 Technical Details
+- [Bug fixes or issues resolved]
 
-- [Implementation notes]
+### Technical details
+
+- [Key technical information about the implementation]
 - [Dependencies or requirements]
 - [Performance considerations]
-
-### 🧪 Testing
-
-- [How to test the changes]
-- [Any test scenarios covered]
-
-### 📱 User Experience
-
-- [UI/UX improvements]
-- [User-facing changes]
