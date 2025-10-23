@@ -90,10 +90,10 @@ export async function AppSidebar({
             <div className="pb-2">
               <SidebarSearchBox />
             </div>
-            <SidebarMenu className="gap-0">
+            <SidebarMenu>
               {coreItems.map((item) => (
-                <SidebarMenuItem key={item.title} className="py-0">
-                  <SidebarMenuButton asChild className="h-7 py-0">
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -110,10 +110,10 @@ export async function AppSidebar({
               {raidManagerTitle}
             </SidebarGroupLabel>
             <SidebarGroupContent className="py-0">
-              <SidebarMenu className="gap-0">
+              <SidebarMenu>
                 {raidManagerLinks.map((item) => (
-                  <SidebarMenuItem key={item.title} className="py-0">
-                    <SidebarMenuButton asChild className="h-7 py-0">
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
                       <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
@@ -131,10 +131,10 @@ export async function AppSidebar({
               {adminSectionTitle}
             </SidebarGroupLabel>
             <SidebarGroupContent className="py-0">
-              <SidebarMenu className="gap-0">
+              <SidebarMenu>
                 {adminLinks.map((item) => (
-                  <SidebarMenuItem key={item.title} className="py-0">
-                    <SidebarMenuButton asChild className="h-7 py-0">
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
                       <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
