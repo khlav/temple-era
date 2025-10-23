@@ -15,6 +15,8 @@ When the user says "ship it":
 4. **Create PR**: Generate a new pull request with proper title and description
 5. **Return clickable link**: Always provide the clickable PR link
 
+**Important**: Only ship the changes that are currently ready - do not assume or include future requests or changes that haven't been implemented yet.
+
 ### 3. PR Description Formatting
 When creating PR descriptions, ensure proper escaping for code blocks and special characters:
 
