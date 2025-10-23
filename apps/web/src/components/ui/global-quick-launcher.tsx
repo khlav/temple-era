@@ -180,7 +180,7 @@ export function GlobalQuickLauncher() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col border p-0 shadow-lg">
         <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
-        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-2">
+        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-2 pr-12">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
             className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -200,26 +200,35 @@ export function GlobalQuickLauncher() {
               className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
             >
               <div className="space-y-2">
-                <p className="font-medium">Search Tips:</p>
+                <p className="font-medium">Advanced search examples:</p>
                 <div className="space-y-1">
                   <p>
-                    <strong>OR logic:</strong> warrior|mage
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      warrior|mage
+                    </code>{" "}
+                    - find warriors or mages
                   </p>
                   <p>
-                    <strong>Negative:</strong> -ashkandi
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      mankrik -ashkandi
+                    </code>{" "}
+                    - exclude ashkandi server
                   </p>
                   <p>
-                    <strong>Grouped negative:</strong> -(ashkandi windseeker)
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      mc january
+                    </code>{" "}
+                    - Molten Core raids in January
                   </p>
                   <p>
-                    <strong>Zone acronyms:</strong> mc, bwl, naxx, zg, aq40
-                  </p>
-                  <p>
-                    <strong>Date search:</strong> january, tuesday, 2025
-                  </p>
-                  <p>
-                    <strong>Combined:</strong> warrior|mage mankrik|ashkandi
-                    -windseeker
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      tuesday zg
+                    </code>{" "}
+                    - Tuesday Zul'Gurub raids
                   </p>
                 </div>
               </div>
