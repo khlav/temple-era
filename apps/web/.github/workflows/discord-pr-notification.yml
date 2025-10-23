@@ -12,32 +12,24 @@ jobs:
     steps:
       - name: Send Discord Notification
         run: |
-          # Prepare description with fallback for empty PR body
-          DESCRIPTION="${{ github.event.pull_request.body }}"
-          if [ -z "$DESCRIPTION" ] || [ "$DESCRIPTION" = "null" ]; then
-            DESCRIPTION="No description provided"
-          fi
-
-          # Create the Discord embed payload using jq for proper JSON handling
           echo "Sending Discord notification for PR #${{ github.event.pull_request.number }}"
-          jq -n \
-            --arg title "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
-            --arg description "$DESCRIPTION" \
-            --arg url "${{ github.event.pull_request.html_url }}" \
-            --arg timestamp "${{ github.event.pull_request.merged_at }}" \
-            '{
-              embeds: [{
-                title: $title,
-                color: 5763719,
-                description: $description,
-                url: $url,
-                footer: { text: "Merged to main" },
-                timestamp: $timestamp
-              }]
-            }' | curl -H "Content-Type: application/json" \
+
+          # Simple approach - just send basic info without complex description
+          curl -H "Content-Type: application/json" \
                -X POST \
-               -d @- \
-               --fail-with-body \
+               -d '{
+                 "embeds": [
+                   {
+                     "title": "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}",
+                     "color": 5763719,
+                     "url": "${{ github.event.pull_request.html_url }}",
+                     "footer": {
+                       "text": "Merged to main"
+                     },
+                     "timestamp": "${{ github.event.pull_request.merged_at }}"
+                   }
+                 ]
+               }' \
                ***REMOVED***
 
           echo "Discord notification sent successfully"
