@@ -73,21 +73,21 @@ export async function AppSidebar({
               className="rounded-xl"
               priority
             />
-            <div className="overflow-hidden whitespace-nowrap px-1 py-2 text-center font-bold group-data-[collapsible=icon]:hidden">
+            <div className="overflow-hidden whitespace-nowrap px-1 py-0.5 text-center font-bold group-data-[collapsible=icon]:hidden">
               TempleAshkandi.com
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
+        <SidebarGroup className="py-0">
+          <SidebarGroupContent className="py-0 pt-2">
             <AppSidebarLogin session={session} />
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <div className="px-2 pb-2">
+        <SidebarGroup className="py-0">
+          <SidebarGroupContent className="py-0">
+            <div className="pb-2">
               <SidebarSearchBox />
             </div>
             <SidebarMenu>
@@ -105,9 +105,11 @@ export async function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
         {session?.user?.isRaidManager && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{raidManagerTitle}</SidebarGroupLabel>
-            <SidebarGroupContent>
+          <SidebarGroup className="py-0">
+            <SidebarGroupLabel className="py-0">
+              {raidManagerTitle}
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="py-0">
               <SidebarMenu>
                 {raidManagerLinks.map((item) => (
                   <SidebarMenuItem key={item.title}>
@@ -124,9 +126,11 @@ export async function AppSidebar({
           </SidebarGroup>
         )}
         {session?.user?.isAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{adminSectionTitle}</SidebarGroupLabel>
-            <SidebarGroupContent>
+          <SidebarGroup className="py-0">
+            <SidebarGroupLabel className="py-0">
+              {adminSectionTitle}
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="py-0">
               <SidebarMenu>
                 {adminLinks.map((item) => (
                   <SidebarMenuItem key={item.title}>
@@ -144,7 +148,7 @@ export async function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
-        <div className="m-auto">
+        <div className="m-auto py-0.5">
           <ModeToggle />
         </div>
       </SidebarFooter>
