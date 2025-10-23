@@ -14,10 +14,100 @@ jobs:
         run: |
           echo "Sending Discord notification for PR #${{ github.event.pull_request.number }}"
 
-          # Use the robust script to handle JSON escaping and validation
-          ./.github/scripts/discord-notify.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.event.pull_request.title }}" \
-            "${{ github.event.pull_request.body }}" \
-            "${{ github.event.pull_request.html_url }}" \
-            "${{ github.event.pull_request.merged_at }}"
+          # Configuration
+          WEBHOOK_URL="***REMOVED***"
+          MAX_DESCRIPTION_LENGTH=4000
+
+          # Input parameters
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_DESCRIPTION="${{ github.event.pull_request.body }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          MERGED_AT="${{ github.event.pull_request.merged_at }}"
+
+          # Function to safely escape JSON strings
+          escape_json() {
+              local input="$1"
+              if command -v jq >/dev/null 2>&1; then
+                  echo "$input" | jq -R -s . | sed 's/^"//' | sed 's/"$//'
+              else
+                  echo "$input" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed 's/\n/\\n/g' | sed 's/\r/\\r/g' | sed 's/\t/\\t/g'
+              fi
+          }
+
+          # Function to truncate text safely
+          truncate_text() {
+              local text="$1"
+              local max_length="$2"
+              
+              if [ ${#text} -gt $max_length ]; then
+                  local truncated="${text:0:$max_length}"
+                  local last_space=$(echo "$truncated" | grep -o ' .*$' | wc -c)
+                  if [ $last_space -gt 0 ] && [ $last_space -lt 100 ]; then
+                      truncated="${truncated:0:$((max_length - last_space))}"
+                  else
+                      truncated="${truncated:0:$max_length}"
+                  fi
+                  echo "${truncated}..."
+              else
+                  echo "$text"
+              fi
+          }
+
+          # Process the description
+          if [ -z "$PR_DESCRIPTION" ] || [ "$(echo "$PR_DESCRIPTION" | tr -d '[:space:]')" = "" ]; then
+              DESCRIPTION="No description provided"
+          else
+              DESCRIPTION=$(truncate_text "$PR_DESCRIPTION" $MAX_DESCRIPTION_LENGTH)
+          fi
+
+          # Escape the description for JSON
+          ESCAPED_DESCRIPTION=$(escape_json "$DESCRIPTION")
+          ESCAPED_TITLE=$(escape_json "$PR_TITLE")
+
+          # Create the JSON payload
+          JSON_PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "PR #$PR_NUMBER: $ESCAPED_TITLE",
+                "description": "$ESCAPED_DESCRIPTION",
+                "color": 5763719,
+                "url": "$PR_URL",
+                "footer": {
+                  "text": "Merged to main"
+                },
+                "timestamp": "$MERGED_AT"
+              }
+            ]
+          }
+          EOF
+          )
+
+          # Validate JSON before sending
+          if command -v jq >/dev/null 2>&1; then
+              echo "$JSON_PAYLOAD" | jq . >/dev/null || {
+                  echo "Error: Generated JSON is invalid"
+                  exit 1
+              }
+          fi
+
+          # Send to Discord
+          echo "Sending notification to Discord..."
+          HTTP_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d "$JSON_PAYLOAD" \
+              "$WEBHOOK_URL")
+
+          # Extract HTTP status code
+          HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+
+          # Check response
+          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 204 ]; then
+              echo "Discord notification sent successfully"
+          else
+              echo "Error: Discord webhook returned HTTP $HTTP_STATUS"
+              echo "Response: $HTTP_RESPONSE"
+              exit 1
+          fi
