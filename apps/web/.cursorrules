@@ -57,30 +57,12 @@ When creating PR descriptions, ensure proper escaping for code blocks and specia
 - Be descriptive but concise
 - Include scope if relevant: "Add advanced search functionality"
 
-### 7. PR Description Template
-```markdown
-## 🚀 [Brief Title]
-
-[One-line description of what this PR does]
-
-### ✨ Changes
-- [List key changes]
-- [Include technical details]
-- [Mention any new features]
-
-### 🔧 Technical Details
-- [Implementation notes]
-- [Dependencies or requirements]
-- [Performance considerations]
-
-### 🧪 Testing
-- [How to test the changes]
-- [Any test scenarios covered]
-
-### 📱 User Experience
-- [UI/UX improvements]
-- [User-facing changes]
-```
+### 7. PR Description Standards
+- **Be crisp and concise** - avoid overly wordy descriptions
+- **Focus on key changes** - what was added, fixed, or improved
+- **Use bullet points** for easy scanning
+- **Include technical context** only when relevant
+- **Reference the PR template** at `.github/pull_request_template.md`
 
 ## Code Quality Rules
 
