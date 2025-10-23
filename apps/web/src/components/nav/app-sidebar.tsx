@@ -81,7 +81,7 @@ export async function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="py-0">
-          <SidebarGroupContent className="py-0">
+          <SidebarGroupContent className="py-0 pt-2">
             <AppSidebarLogin session={session} />
           </SidebarGroupContent>
         </SidebarGroup>
