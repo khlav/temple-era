@@ -11,6 +11,7 @@ import {
   FilePlus,
   ListRestart,
   ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { useSession } from "next-auth/react";
@@ -18,6 +19,11 @@ import { useSession } from "next-auth/react";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { ClassIcon } from "~/components/ui/class-icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 
@@ -184,6 +190,41 @@ export function GlobalQuickLauncher() {
             onKeyDown={handleKeyDown}
             autoFocus
           />
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <HelpCircle className="ml-2 h-4 w-4 shrink-0 cursor-help text-muted-foreground hover:text-foreground" />
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              align="end"
+              className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
+            >
+              <div className="space-y-2">
+                <p className="font-medium">Search Tips:</p>
+                <div className="space-y-1">
+                  <p>
+                    <strong>OR logic:</strong> warrior|mage
+                  </p>
+                  <p>
+                    <strong>Negative:</strong> -ashkandi
+                  </p>
+                  <p>
+                    <strong>Grouped negative:</strong> -(ashkandi windseeker)
+                  </p>
+                  <p>
+                    <strong>Zone acronyms:</strong> mc, bwl, naxx, zg, aq40
+                  </p>
+                  <p>
+                    <strong>Date search:</strong> january, tuesday, 2025
+                  </p>
+                  <p>
+                    <strong>Combined:</strong> warrior|mage mankrik|ashkandi
+                    -windseeker
+                  </p>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">
           {isLoading && debouncedQuery.length > 0 && (
