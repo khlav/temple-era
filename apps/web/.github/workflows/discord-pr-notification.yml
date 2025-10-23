@@ -18,6 +18,9 @@ jobs:
             DESCRIPTION="No description provided"
           fi
 
+          # Escape description for JSON
+          DESCRIPTION=$(echo "$DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+
           # Create the Discord embed payload
           curl -H "Content-Type: application/json" \
                -X POST \
