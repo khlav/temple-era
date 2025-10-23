@@ -18,25 +18,22 @@ jobs:
             DESCRIPTION="No description provided"
           fi
 
-          # Create the Discord embed payload
-          curl -H "Content-Type: application/json" \
+          # Create the Discord embed payload using jq for proper JSON handling
+          jq -n \
+            --arg title "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
+            --arg description "$DESCRIPTION" \
+            --arg url "${{ github.event.pull_request.html_url }}" \
+            --arg timestamp "${{ github.event.pull_request.merged_at }}" \
+            '{
+              embeds: [{
+                title: $title,
+                color: 5763719,
+                description: $description,
+                url: $url,
+                footer: { text: "Merged to main" },
+                timestamp: $timestamp
+              }]
+            }' | curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{
-                 \"embeds\": [
-                   {
-                     \"title\": \"PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}\",
-                     \"color\": 5763719,
-                     \"author\": {
-                       \"name\": \"${{ github.event.pull_request.user.login }}\",
-                       \"icon_url\": \"${{ github.event.pull_request.user.avatar_url }}\"
-                     },
-                     \"description\": \"$DESCRIPTION\",
-                     \"url\": \"${{ github.event.pull_request.html_url }}\",
-                     \"footer\": {
-                       \"text\": \"Merged to main\"
-                     },
-                     \"timestamp\": \"${{ github.event.pull_request.merged_at }}\"
-                   }
-                 ]
-               }" \
+               -d @- \
                ***REMOVED***
