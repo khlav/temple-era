@@ -1,0 +1,42 @@
+name: Discord PR Notification
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  notify-discord:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Discord Notification
+        run: |
+          # Prepare description with fallback for empty PR body
+          DESCRIPTION="${{ github.event.pull_request.body }}"
+          if [ -z "$DESCRIPTION" ] || [ "$DESCRIPTION" = "null" ]; then
+            DESCRIPTION="No description provided"
+          fi
+
+          # Create the Discord embed payload
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"embeds\": [
+                   {
+                     \"title\": \"PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}\",
+                     \"color\": 5763719,
+                     \"author\": {
+                       \"name\": \"${{ github.event.pull_request.user.login }}\",
+                       \"icon_url\": \"${{ github.event.pull_request.user.avatar_url }}\"
+                     },
+                     \"description\": \"$DESCRIPTION\",
+                     \"url\": \"${{ github.event.pull_request.html_url }}\",
+                     \"footer\": {
+                       \"text\": \"Merged to main\"
+                     },
+                     \"timestamp\": \"${{ github.event.pull_request.merged_at }}\"
+                   }
+                 ]
+               }" \
+               ***REMOVED***

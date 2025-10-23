@@ -1,0 +1,87 @@
+# Cursor Rules for Temple Raids T3
+
+## PR Generation Rules
+
+### 1. Always Return Clickable Links
+When generating or referencing PRs, always provide clickable links in the format:
+- `[PR #123: Title](https://github.com/khlav/temple-raids-t3/pull/123)`
+- Use full GitHub URLs for maximum compatibility
+
+### 2. "Ship It" Command Behavior
+When the user says "ship it":
+1. **Check for existing branch**: If no branch exists, create a new one with format `feature/description` or `fix/description`
+2. **Commit changes**: Stage all changes and commit with descriptive message
+3. **Push branch**: Push the branch to origin
+4. **Create PR**: Generate a new pull request with proper title and description
+5. **Return clickable link**: Always provide the clickable PR link
+
+**Important**: Only ship the changes that are currently ready - do not assume or include future requests or changes that haven't been implemented yet.
+
+### 3. PR Description Formatting
+When creating PR descriptions, ensure proper escaping for code blocks and special characters:
+
+**For inline code**: Use single backticks with proper escaping
+- Example: `\`code\`` becomes `code` in the description
+
+**For code blocks**: Use triple backticks with language specification
+- Example: 
+  ```
+  \`\`\`typescript
+  const example = "properly escaped";
+  \`\`\`
+  ```
+
+**For special characters**: Escape as needed for GitHub markdown
+- `*` becomes `\*` when not used for emphasis
+- `_` becomes `\_` when not used for emphasis
+- `#` becomes `\#` when not used for headers
+
+**Zone acronyms and technical terms**: Always wrap in backticks
+- Example: `MC`, `BWL`, `AQ40`, `Naxx` for zone acronyms
+- Example: `warriors OR mages` for search syntax
+
+### 4. Branch Naming Convention
+- `feature/description` for new features
+- `fix/description` for bug fixes
+- `chore/description` for maintenance tasks
+- `refactor/description` for code refactoring
+- Use kebab-case for multi-word descriptions
+
+### 5. Commit Message Format
+- Use conventional commits format: `type(scope): description`
+- Examples:
+  - `feat(search): add advanced search syntax`
+  - `fix(ui): resolve sidebar navigation issue`
+  - `chore(deps): update dependencies`
+
+### 6. PR Title Format
+- Start with action verb: "Add", "Fix", "Update", "Refactor"
+- Be descriptive but concise
+- Include scope if relevant: "Add advanced search functionality"
+
+### 7. PR Description Standards
+- **Be crisp and concise** - avoid overly wordy descriptions
+- **Focus on key changes** - what was added, fixed, or improved
+- **Use bullet points** for easy scanning
+- **Include technical context** only when relevant
+- **Reference the PR template** at `.github/pull_request_template.md`
+
+## Code Quality Rules
+
+### TypeScript/React Standards
+- Use TypeScript strict mode
+- Prefer functional components with hooks
+- Use proper type definitions
+- Follow the existing codebase patterns
+
+### Database/API Standards
+- Use Drizzle ORM patterns consistently
+- Follow tRPC router conventions
+- Implement proper error handling
+- Use Zod for validation
+
+### UI/UX Standards
+- Use Tailwind CSS classes consistently
+- Follow the existing component library patterns
+- Ensure responsive design
+- Maintain accessibility standards
