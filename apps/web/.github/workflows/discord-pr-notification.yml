@@ -14,22 +14,10 @@ jobs:
         run: |
           echo "Sending Discord notification for PR #${{ github.event.pull_request.number }}"
 
-          # Simple approach - just send basic info without complex description
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d '{
-                 "embeds": [
-                   {
-                     "title": "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}",
-                     "color": 5763719,
-                     "url": "${{ github.event.pull_request.html_url }}",
-                     "footer": {
-                       "text": "Merged to main"
-                     },
-                     "timestamp": "${{ github.event.pull_request.merged_at }}"
-                   }
-                 ]
-               }' \
-               ***REMOVED***
-
-          echo "Discord notification sent successfully"
+          # Use the robust script to handle JSON escaping and validation
+          ./.github/scripts/discord-notify.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.title }}" \
+            "${{ github.event.pull_request.body }}" \
+            "${{ github.event.pull_request.html_url }}" \
+            "${{ github.event.pull_request.merged_at }}"
