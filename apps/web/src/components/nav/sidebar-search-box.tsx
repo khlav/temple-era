@@ -4,15 +4,19 @@ import { Search } from "lucide-react";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
+import { useEffect, useState } from "react";
 
 export function SidebarSearchBox() {
   const { setOpen } = useGlobalQuickLauncher();
+  const [keyCombo, setKeyCombo] = useState("Ctrl+K");
 
   // Detect OS for proper key combination display
-  const isMac =
-    typeof window !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-  const keyCombo = isMac ? "⌘K" : "Ctrl+K";
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      setKeyCombo(isMac ? "⌘K" : "Ctrl+K");
+    }
+  }, []);
 
   return (
     <Button
