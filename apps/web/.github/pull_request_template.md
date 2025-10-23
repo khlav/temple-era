@@ -23,5 +23,3 @@
 
 - [UI/UX improvements]
 - [User-facing changes]
-
-Ready for review! 🎉
