@@ -52,10 +52,12 @@ export default async function RootLayout({
                     <GlobalQuickLauncherProvider>
                       <SidebarProvider defaultOpen={defaultOpen}>
                         <AppSidebar side="left" collapsible="icon" />
-                        <SidebarInset>
+                        <SidebarInset className="flex flex-col">
                           <AppHeader />
-                          <div className="max-w-screen-xl md:p-4">
-                            {children}
+                          <div className="flex-1 overflow-auto">
+                            <div className="max-w-screen-xl md:p-4">
+                              {children}
+                            </div>
                           </div>
                         </SidebarInset>
                         <Toaster duration={5000} />
