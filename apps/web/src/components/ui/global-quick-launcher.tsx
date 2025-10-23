@@ -11,6 +11,7 @@ import {
   FilePlus,
   ListRestart,
   ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { useSession } from "next-auth/react";
@@ -18,6 +19,11 @@ import { useSession } from "next-auth/react";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { ClassIcon } from "~/components/ui/class-icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 
@@ -174,16 +180,60 @@ export function GlobalQuickLauncher() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col border p-0 shadow-lg">
         <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
-        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-3">
+        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-2 pr-12">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
-            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Jump to raids, characters, or pages..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             autoFocus
           />
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <HelpCircle className="ml-2 h-4 w-4 shrink-0 cursor-help text-muted-foreground hover:text-foreground" />
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              align="end"
+              className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
+            >
+              <div className="space-y-2">
+                <p className="font-medium">Advanced search examples:</p>
+                <div className="space-y-1">
+                  <p>
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      warrior|mage
+                    </code>{" "}
+                    - find warriors or mages
+                  </p>
+                  <p>
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      mankrik -ashkandi
+                    </code>{" "}
+                    - exclude ashkandi server
+                  </p>
+                  <p>
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      mc january
+                    </code>{" "}
+                    - Molten Core raids in January
+                  </p>
+                  <p>
+                    •{" "}
+                    <code className="rounded bg-muted-foreground/20 px-1 py-0.5 text-foreground">
+                      tuesday zg
+                    </code>{" "}
+                    - Tuesday Zul'Gurub raids
+                  </p>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">
           {isLoading && debouncedQuery.length > 0 && (
@@ -329,59 +379,78 @@ export function GlobalQuickLauncher() {
                   );
                 }
 
+                // Calculate total result count with + indicator
+                const raidCount = data?.raids?.length || 0;
+                const characterCount = data?.characters?.length || 0;
+                const totalCount = raidCount + characterCount;
+                const hasMore = data?.hasMore || false;
+                const totalCountText = hasMore
+                  ? `${totalCount}+`
+                  : totalCount.toString();
+
                 return (
-                  <div className="px-4 py-2">
-                    {allResults.map((result, index) => (
-                      <div
-                        key={`${result.type}-${result.type === "page" ? result.path : result.type === "raid" ? result.raidId : result.characterId}`}
-                        ref={index === selectedIndex ? selectedRef : null}
-                        onClick={() =>
-                          handleSelect(
-                            result.type === "page"
-                              ? result.path
-                              : result.type === "raid"
-                                ? `/raids/${result.raidId}`
-                                : `/characters/${result.characterId}`,
-                          )
-                        }
-                        className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors ${
-                          index === selectedIndex
-                            ? "bg-accent text-accent-foreground"
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        {result.type === "page" ? (
-                          <result.icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                        ) : result.type === "raid" ? (
-                          <Calendar className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                        ) : (
-                          <ClassIcon
-                            characterClass={result.class}
-                            px={16}
-                            className="flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <span className="truncate text-sm font-medium">
-                            {result.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {result.type === "page"
-                              ? result.role || ""
-                              : result.type === "raid"
-                                ? `${result.zone} • ${formatRaidDate(result.date)} • ${formatRaidCompletion(result.zone, result.killCount || 0)}`
-                                : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
-                          </span>
-                        </div>
-                        <div className="flex-shrink-0 text-xs text-muted-foreground">
-                          {result.type === "page"
-                            ? "Page"
-                            : result.type === "raid"
-                              ? "Raid"
-                              : "Character"}
-                        </div>
+                  <div>
+                    {/* Result count header */}
+                    {totalCount > 0 && (
+                      <div className="border-b px-4 py-2 text-xs text-muted-foreground">
+                        {totalCountText} result{totalCount !== 1 ? "s" : ""}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Results list */}
+                    <div className="px-4 py-2">
+                      {allResults.map((result, index) => (
+                        <div
+                          key={`${result.type}-${result.type === "page" ? result.path : result.type === "raid" ? result.raidId : result.characterId}`}
+                          ref={index === selectedIndex ? selectedRef : null}
+                          onClick={() =>
+                            handleSelect(
+                              result.type === "page"
+                                ? result.path
+                                : result.type === "raid"
+                                  ? `/raids/${result.raidId}`
+                                  : `/characters/${result.characterId}`,
+                            )
+                          }
+                          className={`flex cursor-pointer items-center gap-1 rounded-md px-3 py-2 transition-colors ${
+                            index === selectedIndex
+                              ? "bg-accent text-accent-foreground"
+                              : "hover:bg-accent"
+                          }`}
+                        >
+                          {result.type === "page" ? (
+                            <result.icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          ) : result.type === "raid" ? (
+                            <Calendar className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ClassIcon
+                              characterClass={result.class}
+                              px={16}
+                              className="flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex min-w-0 flex-1 items-center gap-1">
+                            <span className="truncate text-sm font-medium">
+                              {result.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {result.type === "page"
+                                ? result.role || ""
+                                : result.type === "raid"
+                                  ? `${result.zone} • ${formatRaidDate(result.date)} • ${formatRaidCompletion(result.zone, result.killCount || 0)}`
+                                  : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
+                            </span>
+                          </div>
+                          <div className="flex-shrink-0 text-xs text-muted-foreground">
+                            {result.type === "page"
+                              ? "Page"
+                              : result.type === "raid"
+                                ? "Raid"
+                                : "Character"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               })()}
