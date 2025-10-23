@@ -26,10 +26,6 @@ jobs:
                    {
                      \"title\": \"PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}\",
                      \"color\": 5763719,
-                     \"author\": {
-                       \"name\": \"${{ github.event.pull_request.user.login }}\",
-                       \"icon_url\": \"${{ github.event.pull_request.user.avatar_url }}\"
-                     },
                      \"description\": \"$DESCRIPTION\",
                      \"url\": \"${{ github.event.pull_request.html_url }}\",
                      \"footer\": {
