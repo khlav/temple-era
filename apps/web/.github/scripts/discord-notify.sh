@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Configuration
-WEBHOOK_URL="***REMOVED***"
+WEBHOOK_URL="https://discord.com/api/webhooks/1424456997004116006/ns9ihf3qORIAVpFIVvfKe6PL9qJn4oBqVq9DB4Ov6U58MbMxz_DMJDCrXbZYLmeV5BiV"
 MAX_DESCRIPTION_LENGTH=4000
 
 # Input parameters
