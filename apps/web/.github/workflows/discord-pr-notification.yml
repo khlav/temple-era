@@ -15,7 +15,7 @@ jobs:
           echo "Sending Discord notification for PR #${{ github.event.pull_request.number }}"
 
           # Configuration
-          WEBHOOK_URL="***REMOVED***"
+          WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}"
           MAX_DESCRIPTION_LENGTH=4000
 
           # Input parameters
