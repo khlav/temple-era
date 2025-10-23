@@ -22,6 +22,7 @@ import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
 import { FilePlus, Users, ListRestart, ShieldCheck, Wand } from "lucide-react";
+import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -86,6 +87,9 @@ export async function AppSidebar({
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupContent>
+            <div className="px-2 pb-2">
+              <SidebarSearchBox />
+            </div>
             <SidebarMenu>
               {coreItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
