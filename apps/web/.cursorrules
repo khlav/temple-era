@@ -8,7 +8,7 @@ When generating or referencing PRs, always provide clickable links in the format
 - Use full GitHub URLs for maximum compatibility
 
 ### 2. "Ship It" Command Behavior
-When the user says "ship it":
+**CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
 1. **Check for existing branch**: If no branch exists, create a new one with format `feature/description` or `fix/description`
 2. **Commit changes**: Stage all changes and commit with descriptive message
 3. **Push branch**: Push the branch to origin
