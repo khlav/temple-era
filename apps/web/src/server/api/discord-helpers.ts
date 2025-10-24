@@ -54,17 +54,11 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   const channelId = env.DISCORD_RAID_LOGS_CHANNEL_ID;
   const botToken = env.DISCORD_BOT_TOKEN;
 
-  // Get messages from the last 7 days
-  // Discord API returns messages in oldest-to-newest order, so we need to get recent messages first
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const afterTimestamp = Math.floor(sevenDaysAgo.getTime() / 1000);
+  // Get recent messages (Discord API returns newest-first by default)
+  // We'll filter by date in the application since 'after' parameter expects message ID, not timestamp
+  console.log(`Fetching recent messages from channel ${channelId}`);
 
-  console.log(
-    `Fetching messages after: ${sevenDaysAgo.toISOString()} (timestamp: ${afterTimestamp})`,
-  );
-
-  const url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=100&after=${afterTimestamp}`;
+  const url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=100`;
 
   const response = await fetch(url, {
     headers: {
@@ -83,13 +77,25 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
 
   console.log(`Discord API returned ${messages.length} messages`);
 
-  // Discord API returns messages in oldest-to-newest order, reverse to get newest first
-  const reversedMessages = messages.reverse();
+  // Debug: Check if message content is accessible (privileged intent issue)
+  if (messages.length > 0) {
+    const firstMessage = messages[0];
+    console.log(`First message content length: ${firstMessage.content.length}`);
+    console.log(
+      `First message content preview: "${firstMessage.content.substring(0, 100)}"`,
+    );
 
-  // Debug: Show message timestamps
-  if (reversedMessages.length > 0) {
+    if (firstMessage.content.length === 0) {
+      console.warn(
+        "⚠️  Message content is empty - bot may not have MESSAGE_CONTENT privileged intent",
+      );
+    }
+  }
+
+  // Debug: Show message timestamps (Discord API returns newest-first by default)
+  if (messages.length > 0) {
     console.log("Message timestamps (newest first):");
-    reversedMessages.slice(0, 5).forEach((msg, i) => {
+    messages.slice(0, 5).forEach((msg, i) => {
       const msgDate = new Date(msg.timestamp);
       console.log(
         `  ${i + 1}. ${msgDate.toISOString()} - ${msg.content.substring(0, 50)}...`,
@@ -101,7 +107,7 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   const sevenDaysAgoFilter = new Date();
   sevenDaysAgoFilter.setDate(sevenDaysAgoFilter.getDate() - 7);
 
-  const filteredMessages = reversedMessages.filter((message) => {
+  const filteredMessages = messages.filter((message) => {
     const messageDate = new Date(message.timestamp);
     const hasWclUrls = extractWarcraftLogsUrls(message.content).length > 0;
     const isWithin7Days = messageDate >= sevenDaysAgoFilter;
