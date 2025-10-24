@@ -1,13 +1,50 @@
 echo "🔍 Running pre-commit checks..."
 
-# Task 1: Lint and format staged files
-echo "1/1 ⚡ Linting and formatting staged files..."
-if pnpm lint-staged > /dev/null 2>&1; then
-  echo "1/1 ✅ Pre-commit checks passed"
-  echo "🎉 Ready to commit!"
+# Task 1: Check for uncommitted database migrations
+echo "1/4 🔍 Checking for uncommitted database migrations..."
+if [ -d "drizzle" ] && [ "$(git status --porcelain drizzle/ | wc -l)" -gt 0 ]; then
+  echo "1/4 ⚠️  Warning: Uncommitted database migrations detected"
+  echo "   Consider running 'pnpm db:generate' and committing migrations"
+  echo "   Continuing with commit..."
 else
-  echo "1/1 ❌ Pre-commit checks failed"
+  echo "1/4 ✅ No uncommitted database migrations"
+fi
+
+# Task 2: Lint and format staged files
+echo "2/4 ⚡ Linting and formatting staged files..."
+if pnpm lint-staged > /dev/null 2>&1; then
+  echo "2/4 ✅ Linting and formatting passed"
+else
+  echo "2/4 ❌ Linting and formatting failed"
   echo "Running lint-staged to show errors:"
   pnpm lint-staged
   exit 1
 fi
+
+# Task 3: Type check staged files only
+echo "3/4 🔍 Type checking staged files..."
+if pnpm typecheck > /dev/null 2>&1; then
+  echo "3/4 ✅ Type checking passed"
+else
+  echo "3/4 ❌ Type checking failed"
+  echo "Running typecheck to show errors:"
+  pnpm typecheck
+  exit 1
+fi
+
+# Task 4: Check for common issues
+echo "4/4 🔍 Checking for common issues..."
+# Check for console.log statements in staged files
+if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -l 'console\.log' 2>/dev/null; then
+  echo "4/4 ⚠️  Warning: console.log statements found in staged files"
+  echo "   Consider removing or replacing with proper logging"
+fi
+
+# Check for TODO/FIXME comments in staged files
+if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' | xargs grep -l -E '(TODO|FIXME|HACK)' 2>/dev/null; then
+  echo "4/4 ⚠️  Warning: TODO/FIXME/HACK comments found in staged files"
+  echo "   Consider addressing these before committing"
+fi
+
+echo "4/4 ✅ Pre-commit checks completed"
+echo "🎉 Ready to commit!"

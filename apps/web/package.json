@@ -104,6 +104,12 @@
     ],
     "*.{md,mdx,css,scss,json,yml,yaml}": [
       "prettier --write"
+    ],
+    "drizzle/**/*.sql": [
+      "echo '📊 Database migration detected - ensure it follows naming conventions'"
+    ],
+    "*.{ts,tsx}": [
+      "bash -c 'if grep -q \"console\\.log\" \"$1\"; then echo \"⚠️  Warning: console.log found in $1\"; fi' --"
     ]
   }
 }
