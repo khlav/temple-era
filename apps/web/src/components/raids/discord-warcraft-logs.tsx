@@ -11,6 +11,37 @@ interface DiscordWarcraftLogsProps {
   onImportUrl: (url: string) => void;
 }
 
+// Helper function to make WCL URLs clickable in message content
+function renderMessageWithClickableLinks(content: string) {
+  const wclUrlRegex =
+    /https?:\/\/(?:vanilla|classic)\.warcraftlogs\.com\/reports\/([a-zA-Z0-9]{16})(?:[?#].*)?/g;
+
+  const parts = content.split(wclUrlRegex);
+  const matches = content.match(wclUrlRegex) || [];
+
+  const result = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i]) {
+      result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+    }
+    if (matches[i]) {
+      result.push(
+        <a
+          key={`link-${i}`}
+          href={matches[i]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline hover:text-blue-800"
+        >
+          {matches[i]}
+        </a>,
+      );
+    }
+  }
+
+  return result;
+}
+
 export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
   const {
     data: wclLogs,
@@ -80,18 +111,18 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
               className="flex items-center justify-between gap-4 rounded-lg border p-3"
             >
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="text-sm font-medium">{log.author}</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">{log.author}</span>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {formatDistanceToNow(new Date(log.timestamp), {
                       addSuffix: true,
                     })}
                   </div>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  {log.content}
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">
+                    {renderMessageWithClickableLinks(log.content)}
+                  </span>
                 </div>
               </div>
 
