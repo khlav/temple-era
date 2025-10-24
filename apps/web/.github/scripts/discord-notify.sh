@@ -6,8 +6,14 @@
 set -euo pipefail
 
 # Configuration
-WEBHOOK_URL="https://discord.com/api/webhooks/1424456997004116006/ns9ihf3qORIAVpFIVvfKe6PL9qJn4oBqVq9DB4Ov6U58MbMxz_DMJDCrXbZYLmeV5BiV"
+WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 MAX_DESCRIPTION_LENGTH=4000
+
+# Check if webhook URL is provided
+if [ -z "$WEBHOOK_URL" ]; then
+    echo "Error: DISCORD_WEBHOOK_URL environment variable is not set"
+    exit 1
+fi
 
 # Input parameters
 PR_NUMBER="$1"
