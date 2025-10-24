@@ -1,7 +1,6 @@
 "use client";
 
 import { RaidLogLoader } from "~/components/raids/raidlog-loader";
-import { DiscordWarcraftLogs } from "~/components/raids/discord-warcraft-logs";
 import { useState } from "react";
 import {
   EmptyRaid,
@@ -40,7 +39,6 @@ export function CreateRaid() {
   const [raidData, setRaidData] = useState<Raid>(EmptyRaid());
   const [needsInitialRaidLog, setNeedsInitialRaidLog] = useState<boolean>(true);
   const [sendingData, setSendingData] = useState<boolean>(false);
-  const [urlInput, setUrlInput] = useState<string>("");
 
   const createRaid = api.raid.insertRaid.useMutation({
     onError: (error) => {
@@ -105,19 +103,9 @@ export function CreateRaid() {
     <>
       <div className="pb-4 text-3xl font-bold">Create new raid event</div>
       {needsInitialRaidLog ? (
-        <RaidLogLoader
-          onDataLoaded={handleInitialRaidLog}
-          urlInput={urlInput}
-          setUrlInput={setUrlInput}
-        />
+        <RaidLogLoader onDataLoaded={handleInitialRaidLog} />
       ) : (
         ""
-      )}
-      {needsInitialRaidLog && (
-        <>
-          <div className="my-6 border-t border-border"></div>
-          <DiscordWarcraftLogs onImportUrl={setUrlInput} />
-        </>
       )}
       {!needsInitialRaidLog && (
         <>

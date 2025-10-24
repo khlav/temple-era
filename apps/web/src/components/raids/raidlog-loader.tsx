@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Check, XIcon } from "lucide-react";
@@ -11,24 +11,16 @@ interface RaidLogLoaderProps {
   label?: string;
   onDataLoaded?: (raidLog: RaidLog | undefined) => void; // onLoad callback function
   forceRefresh?: boolean;
-  urlInput?: string;
-  setUrlInput?: (value: string) => void;
 }
 
 export function RaidLogLoader({
   label,
   onDataLoaded,
   forceRefresh,
-  urlInput: externalUrlInput,
-  setUrlInput: externalSetUrlInput,
 }: RaidLogLoaderProps): React.ReactNode {
-  const [internalUrlInput, setInternalUrlInput] = useState<string>("");
+  const [urlInput, setUrlInput] = useState<string>("");
   const [raidLogId, setRaidLogId] = useState<string>("");
   const utils = api.useUtils();
-
-  // Use external state if provided, otherwise use internal state
-  const urlInput = externalUrlInput ?? internalUrlInput;
-  const setUrlInput = externalSetUrlInput ?? setInternalUrlInput;
 
   const {
     data: raidLog,
@@ -45,20 +37,17 @@ export function RaidLogLoader({
       staleTime: 0, // Ensures no caching and always fetches from the server
     }, // Fetch only if a raidLogId is present
   );
-  const onUrlInputChange = useCallback(
-    (value: string) => {
-      const reportIdRegex = /([a-zA-Z0-9]{16})/;
-      const match = reportIdRegex.exec(value);
+  const onUrlInputChange = (value: string) => {
+    const reportIdRegex = /([a-zA-Z0-9]{16})/;
+    const match = reportIdRegex.exec(value);
 
-      setUrlInput(value);
+    setUrlInput(value);
 
-      if (match) {
-        setRaidLogId(match[1] ?? "");
-      } else {
-      }
-    },
-    [setUrlInput],
-  );
+    if (match) {
+      setRaidLogId(match[1] ?? "");
+    } else {
+    }
+  };
 
   useEffect(() => {
     const invalidateResult = async () => {
@@ -75,21 +64,11 @@ export function RaidLogLoader({
       setRaidLogId("");
       onDataLoaded(raidLog);
     }
-  }, [isSuccess, raidLog, onDataLoaded, setUrlInput]);
-
-  // Watch for external urlInput changes and process them
-  useEffect(() => {
-    if (
-      externalUrlInput !== undefined &&
-      externalUrlInput !== internalUrlInput
-    ) {
-      onUrlInputChange(externalUrlInput);
-    }
-  }, [externalUrlInput, internalUrlInput, onUrlInputChange]);
+  }, [isSuccess, raidLog, onDataLoaded]);
 
   return (
     <div>
-      <div className="w-full">
+      <div className="max-w-xl">
         <Label htmlFor="wclUrl">
           {label ?? "Load log data from WCL link:"}
         </Label>
