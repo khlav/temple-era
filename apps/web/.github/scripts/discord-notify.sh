@@ -89,21 +89,10 @@ if command -v jq >/dev/null 2>&1; then
     ESCAPED_TITLE=$(echo "$ESCAPED_TITLE" | sed 's/^"//' | sed 's/"$//')
 fi
 
-# Create the JSON payload
+# Create the JSON payload - use regular message instead of embed for markdown support
 JSON_PAYLOAD=$(cat <<EOF
 {
-  "embeds": [
-    {
-      "title": "PR #$PR_NUMBER: $ESCAPED_TITLE",
-      "description": "$ESCAPED_DESCRIPTION",
-      "color": 5763719,
-      "url": "$PR_URL",
-      "footer": {
-        "text": "Merged to main"
-      },
-      "timestamp": "$MERGED_AT"
-    }
-  ]
+  "content": "## 🚀 PR #$PR_NUMBER: $ESCAPED_TITLE\n\n$ESCAPED_DESCRIPTION\n\n🔗 **View PR:** $PR_URL\n📅 **Merged:** $MERGED_AT"
 }
 EOF
 )
