@@ -15,7 +15,7 @@ When generating or referencing PRs, always provide clickable links in the format
   - `chore/description`
   - `refactor/description`
   - `hotfix/description`
-  - `dev/description` (use devops/ for docs/, style/, performance/, ci/ or build/ changes)
+  - `dev/description` (use for docs/, style/, performance/, ci/ or build/ changes)
 2. **Commit changes**: Stage all changes and commit with descriptive message
 3. **Push branch**: Push the branch to origin
 4. **Create PR**: Generate a new pull request with proper title and description
