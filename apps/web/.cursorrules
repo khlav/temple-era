@@ -8,8 +8,14 @@ When generating or referencing PRs, always provide clickable links in the format
 - Use full GitHub URLs for maximum compatibility
 
 ### 2. "Ship It" Command Behavior
-When the user says "ship it":
-1. **Check for existing branch**: If no branch exists, create a new one with format `feature/description` or `fix/description`
+**CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
+1. **Check for existing branch**: If currently on the `main` branch, create a new one with one of these prefix/formats:
+  - `feature/description`
+  - `fix/description`
+  - `chore/description`
+  - `refactor/description`
+  - `hotfix/description`
+  - `dev/description` (use devops/ for docs/, style/, performance/, ci/ or build/ changes)
 2. **Commit changes**: Stage all changes and commit with descriptive message
 3. **Push branch**: Push the branch to origin
 4. **Create PR**: Generate a new pull request with proper title and description
