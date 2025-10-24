@@ -9,29 +9,50 @@ When generating or referencing PRs, always provide clickable links in the format
 
 ### 2. "Ship It" Command Behavior
 **CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
-1. **Check for existing branch**: If currently on the `main` branch, create a new one with one of these prefix/formats:
-  - `feature/description`
-  - `fix/description`
-  - `chore/description`
-  - `refactor/description`
-  - `hotfix/description`
-  - `dev/description` (use for docs/, style/, performance/, ci/ or build/ changes)
-2. **Commit changes**: Stage all changes and commit with descriptive message
-3. **Push branch**: Push the branch to origin
-4. **Create PR**: Generate a new pull request with proper title and description based on the current pull_request_template.md
-5. **Apply user-facing label**: Automatically determine if `user-facing` label should be applied using this logic:
-   - **For `chore/`, `dev/`, `refactor/` branches**: Skip label (developer-only by default)
-   - **For `feature/`, `fix/` branches**: Check changed files:
-     - If changes are ONLY in: `.github/`, `.cursorrules`, `*.config.*`, `*.yml`, `*.yaml`, `README.md`, `package.json`, `pnpm-lock.yaml`
-     - Then: Skip `user-facing` label (developer-only changes)
-     - Otherwise: Apply `user-facing` label (user-facing changes detected)
-   - **When in doubt**: Apply the label (false positives are acceptable)
-   - Use `gh pr create --label "user-facing"` when label should be applied
-6. **Return clickable link**: Always provide the clickable PR link
 
-**Important**: Only ship the changes that are currently ready - do not assume or include future requests or changes that haven't been implemented yet.
+#### Pre-flight Checks
+- **Verify working tree**: Run `git status` to confirm there are changes to commit
+- **Check current branch**: If on `main`, create new branch; if on feature branch, use existing branch
+- **Validate changes**: Ensure all changes are ready and tested
 
-**Note**: The `user-facing` label controls Discord notifications for merged PRs. It can be manually added or removed after PR creation if the auto-detection is incorrect.
+#### Step-by-Step Process
+1. **Create branch** (if on main): Use format `{type}/{kebab-case-description}` where type is:
+   - `feature/` - New user-facing functionality
+   - `fix/` - Bug fixes or corrections  
+   - `chore/` - Maintenance, dependencies, tooling
+   - `refactor/` - Code improvements without behavior changes
+   - `hotfix/` - Critical production fixes
+   - `dev/` - Developer-only changes (docs, config, CI, developer workflow)
+
+2. **Commit changes**: 
+   - Stage all files: `git add .`
+   - Commit with conventional format: `{type}({scope}): {description}`
+   - Examples: `feat(search): add advanced filtering`, `fix(ui): resolve layout issue`
+
+3. **Push branch**: `git push origin {branch-name}`
+
+4. **Create PR**:
+   - Use `gh pr create` with title and description
+   - Title format: `{Action} {what was changed}`
+   - Description: Use the template at `.github/pull_request_template.md`
+
+5. **Apply user-facing label**:
+   - **Always apply** for `feature/` and `fix/` branches (unless only config files changed)
+   - **Never apply** for `chore/`, `dev/`, `refactor/` branches
+   - **Config-only check**: If changes are ONLY in `.github/`, `.cursorrules`, `*.config.*`, `*.yml`, `*.yaml`, `README.md`, `package.json`, `pnpm-lock.yaml` → skip label
+   - Use: `gh pr create --label "user-facing"` when applying
+
+6. **Return clickable link**: Always provide the clickable PR link in format `[PR #123: Title](https://github.com/khlav/temple-raids-t3/pull/123)`
+
+#### Error Handling
+- If any step fails, stop and report the error
+- Do not proceed with subsequent steps if previous steps failed
+- Provide clear error messages for debugging
+
+#### Important Notes
+- Only ship changes that are currently ready - do not assume future changes
+- The `user-facing` label controls Discord notifications for merged PRs
+- Label can be manually adjusted after PR creation if auto-detection is incorrect
 
 ### 3. PR Description Formatting
 When creating PR descriptions, ensure proper escaping for code blocks and special characters:
