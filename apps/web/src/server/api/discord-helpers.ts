@@ -40,6 +40,10 @@ export function extractWarcraftLogsUrls(content: string): string[] {
     urls.push(cleanUrl);
   }
 
+  if (urls.length > 0) {
+    console.log(`Found WCL URLs in message: ${urls.join(", ")}`);
+  }
+
   return urls;
 }
 
@@ -72,15 +76,18 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
 
   const messages: DiscordMessage[] = await response.json();
 
-  // Filter messages that contain Warcraft Logs URLs and are within the last 7 days
-  const now = new Date();
-  const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  console.log(`Discord API returned ${messages.length} messages`);
 
-  return messages.filter((message) => {
-    const messageDate = new Date(message.timestamp);
-    const hasWclUrls = extractWarcraftLogsUrls(message.content).length > 0;
-    return hasWclUrls && messageDate >= sevenDaysAgoDate;
+  // Filter messages that contain Warcraft Logs URLs
+  // Note: Discord API already filters by date with the 'after' parameter
+  const filteredMessages = messages.filter((message) => {
+    const wclUrls = extractWarcraftLogsUrls(message.content);
+    return wclUrls.length > 0;
   });
+
+  console.log(`Found ${filteredMessages.length} messages with WCL URLs`);
+
+  return filteredMessages;
 }
 
 /**
