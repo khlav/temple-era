@@ -18,10 +18,20 @@ When generating or referencing PRs, always provide clickable links in the format
   - `dev/description` (use for docs/, style/, performance/, ci/ or build/ changes)
 2. **Commit changes**: Stage all changes and commit with descriptive message
 3. **Push branch**: Push the branch to origin
-4. **Create PR**: Generate a new pull request with proper title and description
-5. **Return clickable link**: Always provide the clickable PR link
+4. **Create PR**: Generate a new pull request with proper title and description based on the current pull_request_template.md
+5. **Apply user-facing label**: Automatically determine if `user-facing` label should be applied using this logic:
+   - **For `chore/`, `dev/`, `refactor/` branches**: Skip label (developer-only by default)
+   - **For `feature/`, `fix/` branches**: Check changed files:
+     - If changes are ONLY in: `.github/`, `.cursorrules`, `*.config.*`, `*.yml`, `*.yaml`, `README.md`, `package.json`, `pnpm-lock.yaml`
+     - Then: Skip `user-facing` label (developer-only changes)
+     - Otherwise: Apply `user-facing` label (user-facing changes detected)
+   - **When in doubt**: Apply the label (false positives are acceptable)
+   - Use `gh pr create --label "user-facing"` when label should be applied
+6. **Return clickable link**: Always provide the clickable PR link
 
 **Important**: Only ship the changes that are currently ready - do not assume or include future requests or changes that haven't been implemented yet.
+
+**Note**: The `user-facing` label controls Discord notifications for merged PRs. It can be manually added or removed after PR creation if the auto-detection is incorrect.
 
 ### 3. PR Description Formatting
 When creating PR descriptions, ensure proper escaping for code blocks and special characters:
