@@ -24,6 +24,17 @@ MERGED_AT="$5"
 
 echo "Processing Discord notification for PR #$PR_NUMBER"
 
+# Function to convert GitHub markdown to Discord format
+convert_to_discord() {
+    local input="$1"
+    # Convert GitHub code blocks to Discord format
+    # Triple backticks with language -> Discord code blocks
+    input=$(echo "$input" | sed 's/```\([a-zA-Z]*\)/```\1/g')
+    # Convert inline code (single backticks) - Discord uses the same format
+    # No conversion needed for inline code
+    echo "$input"
+}
+
 # Function to safely escape JSON strings
 escape_json() {
     local input="$1"
@@ -62,8 +73,10 @@ truncate_text() {
 if [ -z "$PR_DESCRIPTION" ] || [ "$(echo "$PR_DESCRIPTION" | tr -d '[:space:]')" = "" ]; then
     DESCRIPTION="No description provided"
 else
+    # Convert GitHub markdown to Discord format
+    DESCRIPTION=$(convert_to_discord "$PR_DESCRIPTION")
     # Truncate if necessary
-    DESCRIPTION=$(truncate_text "$PR_DESCRIPTION" $MAX_DESCRIPTION_LENGTH)
+    DESCRIPTION=$(truncate_text "$DESCRIPTION" $MAX_DESCRIPTION_LENGTH)
 fi
 
 # Escape the description for JSON
