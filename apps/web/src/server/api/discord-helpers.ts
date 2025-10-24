@@ -54,10 +54,15 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   const channelId = env.DISCORD_RAID_LOGS_CHANNEL_ID;
   const botToken = env.DISCORD_BOT_TOKEN;
 
-  // Calculate timestamp for 7 days ago
+  // Get messages from the last 7 days
+  // Discord API returns messages in oldest-to-newest order, so we need to get recent messages first
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const afterTimestamp = Math.floor(sevenDaysAgo.getTime() / 1000);
+
+  console.log(
+    `Fetching messages after: ${sevenDaysAgo.toISOString()} (timestamp: ${afterTimestamp})`,
+  );
 
   const url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=100&after=${afterTimestamp}`;
 
@@ -78,11 +83,34 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
 
   console.log(`Discord API returned ${messages.length} messages`);
 
-  // Filter messages that contain Warcraft Logs URLs
-  // Note: Discord API already filters by date with the 'after' parameter
-  const filteredMessages = messages.filter((message) => {
-    const wclUrls = extractWarcraftLogsUrls(message.content);
-    return wclUrls.length > 0;
+  // Discord API returns messages in oldest-to-newest order, reverse to get newest first
+  const reversedMessages = messages.reverse();
+
+  // Debug: Show message timestamps
+  if (reversedMessages.length > 0) {
+    console.log("Message timestamps (newest first):");
+    reversedMessages.slice(0, 5).forEach((msg, i) => {
+      const msgDate = new Date(msg.timestamp);
+      console.log(
+        `  ${i + 1}. ${msgDate.toISOString()} - ${msg.content.substring(0, 50)}...`,
+      );
+    });
+  }
+
+  // Filter messages that contain Warcraft Logs URLs and are within the last 7 days
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const filteredMessages = reversedMessages.filter((message) => {
+    const messageDate = new Date(message.timestamp);
+    const hasWclUrls = extractWarcraftLogsUrls(message.content).length > 0;
+    const isWithin7Days = messageDate >= sevenDaysAgo;
+
+    console.log(
+      `Message from ${messageDate.toISOString()}: hasWcl=${hasWclUrls}, within7Days=${isWithin7Days}`,
+    );
+
+    return hasWclUrls && isWithin7Days;
   });
 
   console.log(`Found ${filteredMessages.length} messages with WCL URLs`);
