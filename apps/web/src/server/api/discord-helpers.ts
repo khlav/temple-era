@@ -7,6 +7,7 @@ export interface DiscordMessage {
   id: string;
   content: string;
   author: {
+    id: string;
     username: string;
     global_name?: string;
   };
