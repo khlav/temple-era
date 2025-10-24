@@ -171,6 +171,14 @@ export async function POST(request: Request) {
       bench: {},
     });
 
+    // 8. If raid log already existed, ensure it's properly associated with the new raid
+    if (existingRaidLog.length > 0 && result.raid?.raidId) {
+      await db
+        .update(raidLogs)
+        .set({ raidId: result.raid.raidId })
+        .where(eq(raidLogs.raidLogId, reportId));
+    }
+
     // Get participant count from raidLog
     const participantCount = Object.keys(raidLog.participants || {}).length;
     const killCount = raidLog.kills?.length || 0;
