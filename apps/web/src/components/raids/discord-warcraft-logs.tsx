@@ -3,8 +3,7 @@
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import { ExternalLink, Users, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 
@@ -74,14 +73,14 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {wclLogs.map((log) => (
             <div
               key={`${log.messageId}-${log.wclUrl}`}
-              className="flex items-start justify-between gap-4 rounded-lg border p-3"
+              className="flex items-center justify-between gap-4 rounded-lg border p-3"
             >
               <div className="min-w-0 flex-1">
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm font-medium">{log.author}</span>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
@@ -91,27 +90,8 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
                   </div>
                 </div>
 
-                <div className="mb-2 text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   {log.content}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <a
-                    href={log.wclUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    View on Warcraft Logs
-                  </a>
-
-                  {log.raidId && log.raidName && (
-                    <Badge variant="secondary" className="text-xs">
-                      <Users className="mr-1 h-3 w-3" />
-                      Already imported
-                    </Badge>
-                  )}
                 </div>
               </div>
 
