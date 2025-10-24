@@ -11,16 +11,24 @@ interface RaidLogLoaderProps {
   label?: string;
   onDataLoaded?: (raidLog: RaidLog | undefined) => void; // onLoad callback function
   forceRefresh?: boolean;
+  urlInput?: string;
+  setUrlInput?: (value: string) => void;
 }
 
 export function RaidLogLoader({
   label,
   onDataLoaded,
   forceRefresh,
+  urlInput: externalUrlInput,
+  setUrlInput: externalSetUrlInput,
 }: RaidLogLoaderProps): React.ReactNode {
-  const [urlInput, setUrlInput] = useState<string>("");
+  const [internalUrlInput, setInternalUrlInput] = useState<string>("");
   const [raidLogId, setRaidLogId] = useState<string>("");
   const utils = api.useUtils();
+
+  // Use external state if provided, otherwise use internal state
+  const urlInput = externalUrlInput ?? internalUrlInput;
+  const setUrlInput = externalSetUrlInput ?? setInternalUrlInput;
 
   const {
     data: raidLog,
@@ -64,7 +72,7 @@ export function RaidLogLoader({
       setRaidLogId("");
       onDataLoaded(raidLog);
     }
-  }, [isSuccess, raidLog, onDataLoaded]);
+  }, [isSuccess, raidLog, onDataLoaded, setUrlInput]);
 
   return (
     <div>

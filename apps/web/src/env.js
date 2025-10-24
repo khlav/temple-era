@@ -24,6 +24,9 @@ export const env = createEnv({
     BATTLENET_CLIENT_ID: z.string(),
     BATTLENET_CLIENT_SECRET: z.string(),
 
+    DISCORD_BOT_TOKEN: z.string(),
+    DISCORD_RAID_LOGS_CHANNEL_ID: z.string(),
+
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -63,6 +66,9 @@ export const env = createEnv({
     BATTLENET_OAUTH_URL: process.env.BATTLENET_OAUTH_URL,
     BATTLENET_CLIENT_ID: process.env.BATTLENET_CLIENT_ID,
     BATTLENET_CLIENT_SECRET: process.env.BATTLENET_CLIENT_SECRET,
+
+    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
+    DISCORD_RAID_LOGS_CHANNEL_ID: process.env.DISCORD_RAID_LOGS_CHANNEL_ID,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
