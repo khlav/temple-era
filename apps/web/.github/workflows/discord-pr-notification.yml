@@ -11,6 +11,8 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'user-facing')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Send Discord Notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
