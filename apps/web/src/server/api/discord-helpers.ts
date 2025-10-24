@@ -72,10 +72,14 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
 
   const messages: DiscordMessage[] = await response.json();
 
-  // Filter messages that contain Warcraft Logs URLs
+  // Filter messages that contain Warcraft Logs URLs and are within the last 7 days
+  const now = new Date();
+  const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
   return messages.filter((message) => {
-    const wclUrls = extractWarcraftLogsUrls(message.content);
-    return wclUrls.length > 0;
+    const messageDate = new Date(message.timestamp);
+    const hasWclUrls = extractWarcraftLogsUrls(message.content).length > 0;
+    return hasWclUrls && messageDate >= sevenDaysAgoDate;
   });
 }
 
@@ -101,7 +105,8 @@ export async function getDiscordWarcraftLogs(): Promise<DiscordWarcraftLog[]> {
     }
   }
 
-  // Sort by timestamp (most recent first)
+  // Sort by timestamp (most recent first) - Discord API already returns in reverse chronological order
+  // but we want to ensure it's properly sorted
   return wclLogs.sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
