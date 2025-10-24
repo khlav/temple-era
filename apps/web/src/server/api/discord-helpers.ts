@@ -98,13 +98,13 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   }
 
   // Filter messages that contain Warcraft Logs URLs and are within the last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoFilter = new Date();
+  sevenDaysAgoFilter.setDate(sevenDaysAgoFilter.getDate() - 7);
 
   const filteredMessages = reversedMessages.filter((message) => {
     const messageDate = new Date(message.timestamp);
     const hasWclUrls = extractWarcraftLogsUrls(message.content).length > 0;
-    const isWithin7Days = messageDate >= sevenDaysAgo;
+    const isWithin7Days = messageDate >= sevenDaysAgoFilter;
 
     console.log(
       `Message from ${messageDate.toISOString()}: hasWcl=${hasWclUrls}, within7Days=${isWithin7Days}`,
