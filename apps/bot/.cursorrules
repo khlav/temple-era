@@ -1,0 +1,73 @@
+# Cursor Rules for Temple Raids Discord Bot
+
+## Discord Bot Specific Rules
+
+### Bot Architecture Standards
+- Follow Discord.js v14+ patterns consistently
+- Use slash commands and interactions over message-based commands
+- Implement proper command cooldowns and rate limiting
+- Use ephemeral responses for sensitive operations
+- Follow Discord's API best practices and rate limits
+
+### Error Handling & Logging
+- Implement comprehensive error handling for all Discord API calls
+- Use structured logging with appropriate log levels
+- Handle Discord API errors gracefully (rate limits, permissions, etc.)
+- Log user actions for debugging and audit purposes
+- Never expose sensitive information in error messages to users
+
+### Permission & Security
+- Always verify user permissions before executing commands
+- Implement role-based access control for admin commands
+- Validate user input to prevent injection attacks
+- Use environment variables for sensitive configuration
+- Never hardcode tokens or API keys
+
+### Command Structure
+- Use consistent command naming conventions (kebab-case)
+- Implement proper command descriptions and help text
+- Use Discord's built-in option types for command parameters
+- Follow Discord's command character limits and formatting rules
+
+### Database Integration
+- Use the shared database schema from the web app when applicable
+- Implement proper connection pooling for database operations
+- Handle database errors gracefully
+- Use transactions for multi-step operations
+
+### Performance & Reliability
+- Implement proper caching for frequently accessed data
+- Use background tasks for long-running operations
+- Implement proper cleanup for resources
+- Handle bot disconnections and reconnections gracefully
+
+### Code Organization
+- Keep handlers in separate files by functionality
+- Use services for business logic separation
+- Implement proper dependency injection
+- Follow the existing project structure patterns
+
+### Testing & Development
+- Write unit tests for business logic
+- Test Discord interactions in development environment
+- Use proper environment separation (dev/staging/prod)
+- Implement proper debugging tools and commands
+
+### Discord-Specific Patterns
+- Use embeds for rich message formatting
+- Implement proper pagination for large data sets
+- Use buttons and select menus for interactive responses
+- Follow Discord's content policy and community guidelines
+- Implement proper mention handling and sanitization
+
+### Integration with Web App
+- Use shared types and interfaces when possible
+- Implement proper API communication with the web app
+- Handle web app API errors gracefully
+- Use consistent data models across both applications
+
+### Deployment & Monitoring
+- Use proper environment configuration
+- Implement health checks and monitoring
+- Use proper logging for production debugging
+- Handle graceful shutdowns and restarts

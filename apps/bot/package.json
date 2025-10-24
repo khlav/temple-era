@@ -1,0 +1,28 @@
+{
+  "name": "temple-raids-discord-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Discord bot for Temple Raids WCL link detection and raid creation",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["discord", "bot", "warcraft-logs", "raid-tracking"],
+  "author": "Temple Ashkandi",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
