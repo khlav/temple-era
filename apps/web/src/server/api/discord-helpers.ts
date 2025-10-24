@@ -86,12 +86,14 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   // Debug: Check if message content is accessible (privileged intent issue)
   if (messages.length > 0) {
     const firstMessage = messages[0];
-    console.log(`First message content length: ${firstMessage.content.length}`);
     console.log(
-      `First message content preview: "${firstMessage.content.substring(0, 100)}"`,
+      `First message content length: ${firstMessage?.content.length ?? 0}`,
+    );
+    console.log(
+      `First message content preview: "${firstMessage?.content.substring(0, 100) ?? ""}"`,
     );
 
-    if (firstMessage.content.length === 0) {
+    if (firstMessage?.content.length === 0) {
       console.warn(
         "⚠️  Message content is empty - bot may not have MESSAGE_CONTENT privileged intent",
       );

@@ -34,15 +34,15 @@ export const discordRouter = createTRPCRouter({
             })
             .from(raidLogs)
             .leftJoin(raids, eq(raidLogs.raidId, raids.raidId))
-            .where(eq(raidLogs.raidLogId, reportId))
+            .where(eq(raidLogs.raidLogId, reportId!))
             .limit(1);
 
           if (existingRaidLog.length > 0) {
             const raidLog = existingRaidLog[0];
             return {
               ...log,
-              raidId: raidLog.raidId,
-              raidName: raidLog.name,
+              raidId: raidLog?.raidId,
+              raidName: raidLog?.name,
             };
           }
 
