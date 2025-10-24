@@ -1,4 +1,7 @@
 import { env } from "~/env.js";
+import { db } from "~/server/db";
+import { users, accounts } from "~/server/db/models/auth-schema";
+import { eq, and } from "drizzle-orm";
 
 export interface DiscordMessage {
   id: string;
@@ -19,6 +22,11 @@ export interface DiscordWarcraftLog {
   wclUrl: string;
   raidId?: number;
   raidName?: string;
+  websiteUser?: {
+    id: string;
+    name: string;
+    image: string;
+  };
 }
 
 export interface DiscordChannelInfo {
@@ -166,6 +174,32 @@ export async function getDiscordChannelInfo(): Promise<DiscordChannelInfo> {
 /**
  * Process Discord messages to extract Warcraft Logs data
  */
+// Helper function to match Discord users to website users
+async function getWebsiteUserForDiscordId(discordUserId: string) {
+  try {
+    const result = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        image: users.image,
+      })
+      .from(users)
+      .innerJoin(accounts, eq(users.id, accounts.userId))
+      .where(
+        and(
+          eq(accounts.provider, "discord"),
+          eq(accounts.providerAccountId, discordUserId),
+        ),
+      )
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error fetching website user for Discord ID:", error);
+    return null;
+  }
+}
+
 export async function getDiscordWarcraftLogs(): Promise<DiscordWarcraftLog[]> {
   const messages = await fetchDiscordMessages();
 
@@ -174,6 +208,9 @@ export async function getDiscordWarcraftLogs(): Promise<DiscordWarcraftLog[]> {
   for (const message of messages) {
     const wclUrls = extractWarcraftLogsUrls(message.content);
 
+    // Try to match Discord user to website user
+    const websiteUser = await getWebsiteUserForDiscordId(message.author.id);
+
     for (const wclUrl of wclUrls) {
       wclLogs.push({
         messageId: message.id,
@@ -181,6 +218,16 @@ export async function getDiscordWarcraftLogs(): Promise<DiscordWarcraftLog[]> {
         content: message.content,
         timestamp: message.timestamp,
         wclUrl,
+        websiteUser: websiteUser
+          ? {
+              id: websiteUser.id,
+              name:
+                websiteUser.name ||
+                message.author.global_name ||
+                message.author.username,
+              image: websiteUser.image || "",
+            }
+          : undefined,
       });
     }
   }

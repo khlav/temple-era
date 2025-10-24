@@ -6,6 +6,7 @@ import { Clock, Loader } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useState } from "react";
+import UserAvatar from "~/components/ui/user-avatar";
 
 interface DiscordWarcraftLogsProps {
   onImportUrl: (url: string) => void;
@@ -166,9 +167,18 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
 
             <div className="min-w-0 flex-1 overflow-hidden">
               <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-2 text-sm">
-                <span className="whitespace-nowrap font-medium">
-                  {log.author}
-                </span>
+                <div className="whitespace-nowrap">
+                  {log.websiteUser ? (
+                    <UserAvatar
+                      name={log.websiteUser.name}
+                      image={log.websiteUser.image}
+                      showLabel={true}
+                      tooltipSide="left"
+                    />
+                  ) : (
+                    <span className="font-medium">{log.author}</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   {formatDistanceToNow(new Date(log.timestamp), {
