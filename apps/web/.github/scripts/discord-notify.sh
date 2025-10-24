@@ -22,7 +22,7 @@ PR_DESCRIPTION="$3"
 PR_URL="$4"
 MERGED_AT="$5"
 
-echo "Processing Discord notification for PR #$PR_NUMBER"
+echo "Processing Discord notification for PR #$PR_NUMBER (simplified markdown)"
 
 # Function to safely escape JSON strings
 escape_json() {
