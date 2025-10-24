@@ -1,5 +1,108 @@
 # Cursor Rules for Temple Raids Discord Bot
 
+## PR Generation Rules
+
+### 1. Always Return Clickable Links
+When generating or referencing PRs, always provide clickable links in the format:
+- `[PR #123: Title](https://github.com/khlav/temple-raids-discord-bot/pull/123)`
+- Use full GitHub URLs for maximum compatibility
+
+### 2. "Ship It" Command Behavior
+**CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
+
+#### Pre-flight Checks
+- **Verify working tree**: Run `git status` to confirm there are changes to commit
+- **Check current branch**: If on `main`, create new branch; if on feature branch, use existing branch
+- **Validate changes**: Ensure all changes are ready and tested
+
+#### Step-by-Step Process
+1. **Create branch** (if on main): Use format `{type}/{kebab-case-description}` where type is:
+   - `feature/` - New user-facing functionality
+   - `fix/` - Bug fixes or corrections  
+   - `chore/` - Maintenance, dependencies, tooling
+   - `refactor/` - Code improvements without behavior changes
+   - `hotfix/` - Critical production fixes
+   - `dev/` - Developer-only changes (docs, config, CI, developer workflow)
+
+2. **Commit changes**: 
+   - Stage all files: `git add .`
+   - Commit with conventional format: `{type}({scope}): {description}`
+   - Examples: `feat(bot): add slash command`, `fix(handler): resolve message parsing issue`
+
+3. **Push branch**: `git push origin {branch-name}`
+
+4. **Create PR**:
+   - Use `gh pr create` with title and description
+   - Title format: `{Action} {what was changed}`
+   - Description: Use the template at `.github/pull_request_template.md` if it exists
+
+5. **Apply user-facing label**:
+   - **Always apply** for `feature/` and `fix/` branches (unless only config files changed)
+   - **Never apply** for `chore/`, `dev/`, `refactor/` branches
+   - **Config-only check**: If changes are ONLY in `.github/`, `.cursorrules`, `*.config.*`, `*.yml`, `*.yaml`, `README.md`, `package.json`, `pnpm-lock.yaml` → skip label
+   - Use: `gh pr create --label "user-facing"` when applying
+
+6. **Return clickable link**: Always provide the clickable PR link in format `[PR #123: Title](https://github.com/khlav/temple-raids-discord-bot/pull/123)`
+
+#### Error Handling
+- If any step fails, stop and report the error
+- Do not proceed with subsequent steps if previous steps failed
+- Provide clear error messages for debugging
+
+#### Important Notes
+- Only ship changes that are currently ready - do not assume future changes
+- The `user-facing` label controls Discord notifications for merged PRs
+- Label can be manually adjusted after PR creation if auto-detection is incorrect
+
+### 3. PR Description Formatting
+When creating PR descriptions, ensure proper escaping for code blocks and special characters:
+
+**For inline code**: Use single backticks with proper escaping
+- Example: `\`code\`` becomes `code` in the description
+
+**For code blocks**: Use triple backticks with language specification
+- Example: 
+  ```
+  \`\`\`typescript
+  const example = "properly escaped";
+  \`\`\`
+  ```
+
+**For special characters**: Escape as needed for GitHub markdown
+- `*` becomes `\*` when not used for emphasis
+- `_` becomes `\_` when not used for emphasis
+- `#` becomes `\#` when not used for headers
+
+**Zone acronyms and technical terms**: Always wrap in backticks
+- Example: `MC`, `BWL`, `AQ40`, `Naxx` for zone acronyms
+- Example: `warriors OR mages` for search syntax
+
+### 4. Branch Naming Convention
+- `feature/description` for new features
+- `fix/description` for bug fixes
+- `chore/description` for maintenance tasks
+- `refactor/description` for code refactoring
+- Use kebab-case for multi-word descriptions
+
+### 5. Commit Message Format
+- Use conventional commits format: `type(scope): description`
+- Examples:
+  - `feat(bot): add slash command support`
+  - `fix(handler): resolve message parsing issue`
+  - `chore(deps): update dependencies`
+
+### 6. PR Title Format
+- Start with action verb: "Add", "Fix", "Update", "Refactor"
+- Be descriptive but concise
+- Include scope if relevant: "Add slash command support"
+
+### 7. PR Description Standards
+- **Be crisp and concise** - avoid overly wordy descriptions
+- **Focus on key changes** - what was added, fixed, or improved
+- **Use bullet points** for easy scanning
+- **Include technical context** only when relevant
+- **Reference the PR template** at `.github/pull_request_template.md` if it exists
+
 ## Discord Bot Specific Rules
 
 ### Bot Architecture Standards
