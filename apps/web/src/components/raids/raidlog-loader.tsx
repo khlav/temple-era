@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Check, XIcon } from "lucide-react";
@@ -45,17 +45,20 @@ export function RaidLogLoader({
       staleTime: 0, // Ensures no caching and always fetches from the server
     }, // Fetch only if a raidLogId is present
   );
-  const onUrlInputChange = (value: string) => {
-    const reportIdRegex = /([a-zA-Z0-9]{16})/;
-    const match = reportIdRegex.exec(value);
+  const onUrlInputChange = useCallback(
+    (value: string) => {
+      const reportIdRegex = /([a-zA-Z0-9]{16})/;
+      const match = reportIdRegex.exec(value);
 
-    setUrlInput(value);
+      setUrlInput(value);
 
-    if (match) {
-      setRaidLogId(match[1] ?? "");
-    } else {
-    }
-  };
+      if (match) {
+        setRaidLogId(match[1] ?? "");
+      } else {
+      }
+    },
+    [setUrlInput],
+  );
 
   useEffect(() => {
     const invalidateResult = async () => {
@@ -74,9 +77,19 @@ export function RaidLogLoader({
     }
   }, [isSuccess, raidLog, onDataLoaded, setUrlInput]);
 
+  // Watch for external urlInput changes and process them
+  useEffect(() => {
+    if (
+      externalUrlInput !== undefined &&
+      externalUrlInput !== internalUrlInput
+    ) {
+      onUrlInputChange(externalUrlInput);
+    }
+  }, [externalUrlInput, internalUrlInput, onUrlInputChange]);
+
   return (
     <div>
-      <div className="max-w-xl">
+      <div className="w-full">
         <Label htmlFor="wclUrl">
           {label ?? "Load log data from WCL link:"}
         </Label>

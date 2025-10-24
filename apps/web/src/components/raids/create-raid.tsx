@@ -113,7 +113,12 @@ export function CreateRaid() {
       ) : (
         ""
       )}
-      {needsInitialRaidLog && <DiscordWarcraftLogs onImportUrl={setUrlInput} />}
+      {needsInitialRaidLog && (
+        <>
+          <div className="my-6 border-t border-border"></div>
+          <DiscordWarcraftLogs onImportUrl={setUrlInput} />
+        </>
+      )}
       {!needsInitialRaidLog && (
         <>
           <RaidEditor

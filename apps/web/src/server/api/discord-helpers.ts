@@ -21,6 +21,12 @@ export interface DiscordWarcraftLog {
   raidName?: string;
 }
 
+export interface DiscordChannelInfo {
+  id: string;
+  name: string;
+  guildId: string;
+}
+
 /**
  * Extract Warcraft Logs URLs from Discord message content
  * Normalizes URLs by stripping query params and fragments
@@ -122,6 +128,37 @@ export async function fetchDiscordMessages(): Promise<DiscordMessage[]> {
   console.log(`Found ${filteredMessages.length} messages with WCL URLs`);
 
   return filteredMessages;
+}
+
+/**
+ * Get Discord channel information
+ */
+export async function getDiscordChannelInfo(): Promise<DiscordChannelInfo> {
+  const channelId = env.DISCORD_RAID_LOGS_CHANNEL_ID;
+  const botToken = env.DISCORD_BOT_TOKEN;
+
+  const url = `https://discord.com/api/v10/channels/${channelId}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Discord API error: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const channel = await response.json();
+
+  return {
+    id: channel.id,
+    name: channel.name,
+    guildId: channel.guild_id,
+  };
 }
 
 /**

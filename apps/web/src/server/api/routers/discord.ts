@@ -2,7 +2,10 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { raidLogs, raids } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
-import { getDiscordWarcraftLogs } from "../discord-helpers";
+import {
+  getDiscordWarcraftLogs,
+  getDiscordChannelInfo,
+} from "../discord-helpers";
 
 export const discordRouter = createTRPCRouter({
   getRecentWarcraftLogs: publicProcedure.query(async () => {
@@ -51,6 +54,16 @@ export const discordRouter = createTRPCRouter({
     } catch (error) {
       console.error("Error fetching Discord Warcraft Logs:", error);
       throw new Error("Failed to fetch Discord messages");
+    }
+  }),
+
+  getChannelInfo: publicProcedure.query(async () => {
+    try {
+      const channelInfo = await getDiscordChannelInfo();
+      return channelInfo;
+    } catch (error) {
+      console.error("Error fetching Discord channel info:", error);
+      throw new Error("Failed to fetch Discord channel info");
     }
   }),
 });
