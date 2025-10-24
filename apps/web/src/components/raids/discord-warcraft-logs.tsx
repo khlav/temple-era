@@ -33,7 +33,7 @@ function renderMessageWithClickableLinks(content: string) {
           rel="noopener noreferrer"
           className="text-blue-600 underline hover:text-blue-800"
         >
-          {matches[i]}
+          Warcraft Logs
         </a>,
       );
     }
@@ -120,7 +120,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
                     })}
                   </div>
                   <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">
+                  <span className="truncate text-muted-foreground">
                     {renderMessageWithClickableLinks(log.content)}
                   </span>
                 </div>
