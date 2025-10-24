@@ -8,6 +8,16 @@ export async function POST(request: Request) {
   try {
     // 1. Verify API auth token
     const authHeader = request.headers.get("authorization");
+
+    // Check if environment variable is set
+    if (!env.TEMPLE_WEB_API_TOKEN) {
+      console.error("TEMPLE_WEB_API_TOKEN environment variable not set");
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 },
+      );
+    }
+
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
       console.error("Unauthorized API access attempt", {
         ip: request.headers.get("x-forwarded-for"),
