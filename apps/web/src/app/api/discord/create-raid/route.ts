@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { users, accounts, raids, raidLogs } from "~/server/db/schema";
+import { users, accounts, raidLogs } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { env } from "~/env.js";
+import { createCaller } from "~/server/api/root";
 
 export async function POST(request: Request) {
   try {
@@ -43,12 +44,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Check user permissions
+    // 3. Fetch complete user data for session
     const userResult = await db
       .select({
-        userId: users.id,
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
         isRaidManager: users.isRaidManager,
-        userName: users.name,
+        isAdmin: users.isAdmin,
+        characterId: users.characterId,
       })
       .from(users)
       .innerJoin(accounts, eq(users.id, accounts.userId))
@@ -81,6 +86,24 @@ export async function POST(request: Request) {
         error: "User does not have raid manager permissions",
       });
     }
+
+    // Create tRPC caller with user session
+    const caller = createCaller({
+      db,
+      headers: new Headers(),
+      session: {
+        user: {
+          id: user.id,
+          name: user.name ?? "",
+          email: user.email ?? "",
+          image: user.image ?? "",
+          isRaidManager: user.isRaidManager ?? false,
+          isAdmin: user.isAdmin ?? false,
+          characterId: user.characterId ?? 0,
+        },
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      },
+    });
 
     // 4. Extract report ID from WCL URL
     const reportIdMatch = wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
@@ -117,69 +140,50 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. For now, create a basic raid without WCL data
-    // TODO: Implement proper WCL data fetching
-    const wclData = {
-      name: `Raid ${reportId}`,
-      zone: "Unknown",
-      startTimeUTC: new Date(),
-      participants: {},
-      kills: [],
-    };
+    // 6. Import WCL log (fetches from WCL API, imports attendees)
+    const raidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId({
+      raidLogId: reportId,
+      forceRaidLogRefresh: false,
+    });
 
-    // 7. Create raid entry
-    const raidDate = new Date(wclData.startTimeUTC);
-    const raidInsertResult = await db
-      .insert(raids)
-      .values({
-        name: wclData.name || "Unknown Raid",
-        date: raidDate.toISOString().split("T")[0],
-        zone: wclData.zone || "Unknown",
-        attendanceWeight: 1, // Default weight
-        createdById: user.userId,
-        updatedById: user.userId,
-      } as any)
-      .returning({ raidId: raids.raidId, name: raids.name });
-
-    const insertedRaid = raidInsertResult[0];
-    if (!insertedRaid) {
+    if (!raidLog) {
       return NextResponse.json({
         success: false,
-        error: "Failed to create raid entry",
+        error: "Failed to import WarcraftLogs data",
       });
     }
 
-    // 8. Import raid log and associate with raid
-    // Note: This would need to be implemented with proper imports
-    // For now, we'll skip the complex raid log association
+    // 7. Create raid entry with imported log
+    let raidDate: string;
+    if (raidLog.startTimeUTC) {
+      raidDate = new Date(raidLog.startTimeUTC).toISOString().split("T")[0]!;
+    } else {
+      raidDate = new Date().toISOString().split("T")[0]!;
+    }
+    const raidZone = raidLog.zone ?? "Unknown";
+    const raidName = raidLog.name ?? `Raid ${reportId}`;
+    const result = await caller.raid.insertRaid({
+      name: raidName,
+      date: raidDate,
+      zone: raidZone,
+      attendanceWeight: 1,
+      raidLogIds: [reportId],
+      bench: {},
+    });
 
-    // 9. Get raid details for the response
-    const raidDetails = await db
-      .select({
-        raidId: raids.raidId,
-        name: raids.name,
-        zone: raids.zone,
-        date: raids.date,
-      })
-      .from(raids)
-      .where(eq(raids.raidId, insertedRaid.raidId))
-      .limit(1);
+    // Get participant count from raidLog
+    const participantCount = Object.keys(raidLog.participants || {}).length;
+    const killCount = raidLog.kills?.length || 0;
 
-    // Get participant count from WCL data
-    const participantCount = Object.keys(wclData.participants || {}).length;
-
-    // Get kill count from WCL data
-    const killCount = wclData.kills?.length || 0;
-
-    const raidUrl = `${env.NEXT_PUBLIC_APP_URL}/raids/${insertedRaid.raidId}`;
+    const raidUrl = `${env.NEXT_PUBLIC_APP_URL}/raids/${result.raid?.raidId}`;
 
     return NextResponse.json({
       success: true,
-      raidId: insertedRaid.raidId,
-      raidName: insertedRaid.name,
-      zone: wclData.zone || "Unknown",
-      date: raidDetails[0]?.date,
-      participantCount: participantCount,
+      raidId: result.raid?.raidId,
+      raidName: result.raid?.name,
+      zone: raidLog.zone ?? "Unknown",
+      date: new Date(raidLog.startTimeUTC).toISOString().split("T")[0],
+      participantCount,
       killCount,
       raidUrl,
     });
