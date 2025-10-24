@@ -143,7 +143,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
               {log.raidId && log.raidName ? (
                 <Link href={`/raids/${log.raidId}`}>
                   <Button variant="outline" size="sm" className="w-24">
-                    View Raid
+                    View
                   </Button>
                 </Link>
               ) : (
@@ -159,7 +159,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
                   {loadingUrl === log.wclUrl ? (
                     <Loader className="animate-spin" />
                   ) : (
-                    "Create Raid"
+                    "Create"
                   )}
                 </Button>
               )}
