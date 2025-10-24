@@ -4,7 +4,7 @@ dotenv.config();
 export const config = {
   discordBotToken: process.env.DISCORD_BOT_TOKEN!,
   discordGuildId: process.env.DISCORD_GUILD_ID!,
-  discordLogsChannelId: process.env.DISCORD_LOGS_CHANNEL_ID!,
+  discordLogsChannelId: process.env.DISCORD_RAID_LOGS_CHANNEL_ID!,
   apiBaseUrl: process.env.API_BASE_URL!,
   templeWebApiToken: process.env.TEMPLE_WEB_API_TOKEN!,
 };
