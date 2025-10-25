@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { users, accounts, raidLogs } from "~/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  users,
+  accounts,
+  raidLogs,
+  raidLogAttendeeMap,
+} from "~/server/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
+
+function getBaseUrl(request: Request): string {
+  // Try environment variable first
+  if (env.NEXT_PUBLIC_APP_URL) {
+    return env.NEXT_PUBLIC_APP_URL;
+  }
+
+  // Fall back to request headers
+  const host = request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -133,10 +150,38 @@ export async function POST(request: Request) {
         });
       }
       if (raidLog.raidId) {
+        // Use tRPC function to get full raid data
+        const raid = await caller.raid.getRaidById(raidLog.raidId);
+
+        if (!raid || !raid.raidId) {
+          return NextResponse.json({
+            success: false,
+            error: "Associated raid not found",
+          });
+        }
+
+        const baseUrl = getBaseUrl(request);
+        const raidUrl = `${baseUrl}/raids/${raid.raidId}`;
+
+        // Get participant count from raidLogAttendeeMap for this specific raid log
+        const participantCountResult = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(raidLogAttendeeMap)
+          .where(eq(raidLogAttendeeMap.raidLogId, reportId));
+
+        const participantCount = participantCountResult[0]?.count || 0;
+        const killCount = raid.kills?.length || 0;
+
         return NextResponse.json({
-          success: false,
-          error: "Raid log is already associated with a raid",
-          raidId: raidLog.raidId,
+          success: true,
+          isNew: false,
+          raidId: raid.raidId,
+          raidName: raid.name,
+          zone: raid.zone,
+          date: raid.date,
+          participantCount,
+          killCount,
+          raidUrl,
         });
       }
     }
@@ -185,10 +230,12 @@ export async function POST(request: Request) {
     const participantCount = Object.keys(raidLog.participants || {}).length;
     const killCount = raidLog.kills?.length || 0;
 
-    const raidUrl = `${env.NEXT_PUBLIC_APP_URL}/raids/${result.raid?.raidId}`;
+    const baseUrl = getBaseUrl(request);
+    const raidUrl = `${baseUrl}/raids/${result.raid?.raidId}`;
 
     return NextResponse.json({
       success: true,
+      isNew: true,
       raidId: result.raid?.raidId,
       raidName: result.raid?.name,
       zone: raidLog.zone ?? "Unknown",

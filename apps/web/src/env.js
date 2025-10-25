@@ -43,10 +43,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_ENABLED: z
       .string()
       .transform((val) => val.toLowerCase() === "true"),
-    NEXT_PUBLIC_APP_URL: z
-      .string()
-      .url()
-      .default("https://www.templeashkandi.com"),
+    NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   },
 
   /**
