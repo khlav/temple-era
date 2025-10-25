@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, Events } from 'discord.js';
-import { config } from './config/env';
-import { handleMessage } from './handlers/messageHandler';
+import { config } from './config/env.js';
+import { handleMessage } from './handlers/messageHandler.js';
 
 export function createBot(): Client {
   const client = new Client({

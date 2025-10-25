@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { config } from '../config/env';
+import { config } from '../config/env.js';
 
 export function buildLoginRequiredResponse(reportId: string) {
   const row = new ActionRowBuilder<ButtonBuilder>()
