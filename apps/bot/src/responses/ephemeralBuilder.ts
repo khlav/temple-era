@@ -11,7 +11,6 @@ export function buildLoginRequiredResponse(reportId: string) {
     );
 
   return {
-    content: 'To create raid entries, you need to log in to templeashkandi.com first',
     components: [row],
     ephemeral: true,
   };
@@ -27,7 +26,6 @@ export function buildPermissionRequiredResponse() {
     );
 
   return {
-    content: 'You need Raid Manager permissions to create raid entries. Please contact an admin on templeashkandi.com',
     components: [row],
     ephemeral: true,
   };
@@ -43,7 +41,6 @@ export function buildRaidCreationResponse(reportId: string) {
     );
 
   return {
-    content: 'Click here to create a new Raid log entry on templeashkandi.com',
     components: [row],
     ephemeral: true,
   };
