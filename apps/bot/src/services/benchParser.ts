@@ -34,8 +34,17 @@ export async function extractRaidIdFromThread(thread: ThreadChannel): Promise<nu
  * @returns Array of character names (excluding "bench" keyword)
  */
 export function parseCharacterNames(messageContent: string): string[] {
+  // Handle bench: pattern by splitting on it first
+  let contentToParse = messageContent;
+  if (messageContent.toLowerCase().includes('bench:')) {
+    const parts = messageContent.split(/bench:/i);
+    if (parts.length > 1) {
+      contentToParse = parts.slice(1).join(' '); // Take everything after "bench:"
+    }
+  }
+  
   // Split by comma, space, or newline
-  const words = messageContent
+  const words = contentToParse
     .split(/[,\s\n]+/)
     .map(word => word.trim())
     .filter(word => word.length > 0);
@@ -61,5 +70,10 @@ export function parseCharacterNames(messageContent: string): string[] {
  * @returns True if message contains "bench" keyword
  */
 export function containsBenchKeyword(messageContent: string): boolean {
-  return messageContent.toLowerCase().includes('bench');
+  const lowerContent = messageContent.toLowerCase();
+  // Check for various bench keyword patterns
+  return lowerContent.includes('bench:') || 
+         lowerContent.includes('bench ') || 
+         lowerContent.includes(' bench') ||
+         lowerContent.includes('bench');
 }
