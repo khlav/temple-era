@@ -17,20 +17,7 @@ import {
   toastRaidLogLoaded,
   toastRaidSaved,
 } from "~/components/raids/raid-toasts";
-
-const getDefaultAttendanceWeight = (zoneName: string) => {
-  const attendanceWeightedZones = {
-    Naxxramas: 1,
-    "Temple of Ahn'Qiraj": 1,
-    "Blackwing Lair": 1,
-    "Molten Core": 0.5,
-  } as const; // Make the object immutable
-
-  return (
-    attendanceWeightedZones[zoneName as keyof typeof attendanceWeightedZones] ??
-    0
-  );
-};
+import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 
 export function CreateRaid() {
   const router = useRouter();

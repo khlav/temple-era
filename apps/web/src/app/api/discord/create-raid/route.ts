@@ -4,6 +4,7 @@ import { users, accounts, raidLogs } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
+import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 
 export async function POST(request: Request) {
   try {
@@ -162,11 +163,12 @@ export async function POST(request: Request) {
     }
     const raidZone = raidLog.zone ?? "Unknown";
     const raidName = raidLog.name ?? `Raid ${reportId}`;
+    const attendanceWeight = getDefaultAttendanceWeight(raidZone);
     const result = await caller.raid.insertRaid({
       name: raidName,
       date: raidDate,
       zone: raidZone,
-      attendanceWeight: 1,
+      attendanceWeight,
       raidLogIds: [reportId],
       bench: {},
     });
