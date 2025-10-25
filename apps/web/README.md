@@ -15,7 +15,7 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 | ![Dashboard](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/dashboard-attendance.png) | ![Raid Detail](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/raid-detail.png) | ![Characters](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/character-management.png) |
 | _Attendance tracking_ | _Raid Management_ | _Main+Alt Mapping_ |
 | ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png) | ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png) | ![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png) |
-| _Quick Launcher_ | _Recipes and Crafters_ | _Discord + WCL Integration_ |
+| _Quick Launcher_ | _Recipes and Crafters_ | _Discord + WCL Bot_ |
 
 </div>
 
