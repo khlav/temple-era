@@ -8,40 +8,25 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 
 ## Screenshots
 
-### Dashboard - 6-Week Rolling Attendance
+<div align="center">
 
-![Dashboard showing attendance tracking](../../docs/images/dashboard-attendance.png)
-_Track guild member attendance over rolling 6-week periods with detailed statistics_
+### Key Features Overview
 
-### Raid Detail Page
+| Dashboard & Attendance | Raid Management | Rare Recipes |
+|:---:|:---:|:---:|
+| ![Dashboard](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/dashboard-attendance.png) | ![Raid Detail](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/raid-detail.png) | ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png) |
+| _6-week rolling attendance tracking_ | _Raid roster and bench management_ | _Searchable recipe database_ |
 
-![Raid roster and attendance management](../../docs/images/raid-detail.png)
-_Manage raid rosters, mark attendance, and track benched characters_
-
-### Rare Recipes Database
-
-![Searchable recipe database with filters](../../docs/images/rare-recipes.png)
-_Search and filter rare crafting recipes, find guild members who can craft items_
-
-### Create Raid from Warcraft Logs
-
-![Create raid from WCL URL](../../docs/images/create-raid-wcl.png)
-_Automatically import raid data from Warcraft Logs URLs_
-
-### Character Management
-
-![Main and alt character mapping](../../docs/images/character-management.png)
-_Link multiple characters to mains for cross-toon attendance credit_
-
-### Global Quick Launcher
-
-![Quick navigation with Cmd/Ctrl+K](../../docs/images/quick-launcher.png)
-_Fast navigation to any page with keyboard shortcuts_
+| WCL Integration | Character Management | Quick Launcher |
+|:---:|:---:|:---:|
+| ![WCL](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/create-raid-wcl.png) | ![Characters](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/character-management.png) | ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png) |
+| _Import raids from Warcraft Logs_ | _Main/alt character mapping_ | _Fast Cmd/Ctrl+K navigation_ |
 
 ### Discord Bot Integration
-
-![Discord bot automatically creating raids](../../docs/images/discord-bot.png)
+![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png)
 _Bot automatically detects WCL links and creates raid entries with Discord threads_
+
+</div>
 
 ## Key Features
 
