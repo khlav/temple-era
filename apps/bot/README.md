@@ -1,27 +1,28 @@
 # Temple Raids Discord Bot
 
-A Discord bot that monitors the Temple Raids Discord server for Warcraft Logs links and provides contextual responses to users based on their permissions.
+A Discord bot that automatically creates raid entries when raid managers post Warcraft Logs links in the designated channel.
 
 ## Features
 
-- **Real-time monitoring** of Discord messages for WCL links
-- **Permission-based responses** based on user account status
-- **Ephemeral messages** that are only visible to the message author
+- **Automatic raid creation** for raid managers posting WCL links
+- **Thread management** - Creates Discord threads for each raid
+- **Permission-based filtering** - Only processes messages from raid managers
+- **WCL link detection** - Supports vanilla.warcraftlogs.com and classic.warcraftlogs.com URLs
 - **Secure API communication** with the Temple Ashkandi website
+- **Duplicate prevention** - Tracks processed messages to avoid duplicates
 
-## User Scenarios
+## How It Works
 
-### 1. No Website Account
-- User posts WCL link → Bot responds with login prompt
-- Button: "Log in to templeashkandi.com"
+### For Raid Managers
+1. **Post WCL link** in the designated raid logs channel
+2. **Bot automatically detects** the WCL link and extracts the report ID
+3. **Bot creates raid entry** via API call to templeashkandi.com
+4. **Bot creates Discord thread** with the raid name
+5. **Bot posts raid URL** in the thread for easy access
 
-### 2. Has Account, No Permissions
-- User posts WCL link → Bot responds with permission request
-- Button: "View your profile"
-
-### 3. Has Permissions
-- User posts WCL link → Bot responds with raid creation link
-- Button: "Create Raid Entry" → Opens `/raids/new?wcl={reportId}`
+### For Non-Raid Managers
+- Bot ignores messages from users who don't have raid manager permissions
+- No response or notification is sent
 
 ## Setup
 
@@ -38,11 +39,10 @@ Copy `env.example` to `.env` and fill in the values:
 ```bash
 # Discord Bot Configuration
 DISCORD_BOT_TOKEN=your_bot_token_here
-DISCORD_GUILD_ID=your_guild_id_here
-DISCORD_LOGS_CHANNEL_ID=your_channel_id_here
+DISCORD_RAID_LOGS_CHANNEL_ID=your_channel_id_here
 
 # Temple Ashkandi API Configuration
-API_BASE_URL=https://templeashkandi.com
+API_BASE_URL=https://www.templeashkandi.com
 TEMPLE_WEB_API_TOKEN=your_generated_token_here
 ```
 
@@ -88,12 +88,21 @@ The bot will run 24/7 and automatically restart on failures.
 ```
 Discord Gateway (WebSocket)
     ↓
-Message Handler
+Message Handler (filter by channel & permissions)
     ↓
 WCL Detector → Permission Checker → API Call
     ↓
-Response Builder → Ephemeral Message
+Raid Creation API → Thread Creation → Raid URL Post
 ```
+
+### Flow Details
+
+1. **Message Detection**: Bot monitors the designated raid logs channel
+2. **Permission Check**: Verifies user has raid manager permissions via API
+3. **WCL Processing**: Extracts report ID from Warcraft Logs URLs
+4. **Raid Creation**: Calls `/api/discord/create-raid` endpoint
+5. **Thread Management**: Creates Discord thread with raid name
+6. **URL Posting**: Posts raid URL in the thread for easy access
 
 ## Security
 
@@ -104,23 +113,32 @@ Response Builder → Ephemeral Message
 
 ## Future Enhancements
 
-- Auto-create raid button (creates raid directly via bot)
 - Slash commands for raid management
 - Discord embeds with raid previews
 - Attendance reports in Discord
+- Support for multiple WCL links in a single message
+- Raid status updates in Discord threads
+- Integration with raid scheduling features
 
 ## Troubleshooting
 
 ### Bot Not Responding
 1. Check environment variables are set correctly
-2. Verify bot has proper permissions in Discord server
+2. Verify bot has proper permissions in Discord server (needs `Send Messages` and `Create Public Threads`)
 3. Check Railway logs for errors
 4. Ensure API endpoint is accessible
+5. Verify the bot is monitoring the correct channel ID
 
-### Permission Issues
-1. Verify user has logged into templeashkandi.com
-2. Check user has Raid Manager permissions
-3. Test API endpoint manually
+### Raid Creation Issues
+1. Verify user has Raid Manager permissions on templeashkandi.com
+2. Check that the WCL URL is valid and accessible
+3. Test API endpoint manually: `POST /api/discord/create-raid`
+4. Check that the user's Discord account is linked to their website account
+
+### Thread Creation Issues
+1. Verify bot has `Create Public Threads` permission in the channel
+2. Check that the channel allows thread creation
+3. Ensure the bot has `Send Messages` permission in the thread
 
 ## Contributing
 
