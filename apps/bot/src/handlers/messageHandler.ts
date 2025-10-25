@@ -1,12 +1,12 @@
 import { Message } from 'discord.js';
-import { config } from '../config/env';
-import { extractWarcraftLogsUrls, extractReportId } from '../services/wclDetector';
-import { checkUserPermissions } from '../services/permissionChecker';
+import { config } from '../config/env.js';
+import { extractWarcraftLogsUrls, extractReportId } from '../services/wclDetector.js';
+import { checkUserPermissions } from '../services/permissionChecker.js';
 import {
   buildLoginRequiredResponse,
   buildPermissionRequiredResponse,
   buildRaidCreationResponse,
-} from '../responses/ephemeralBuilder';
+} from '../responses/ephemeralBuilder.js';
 
 // Track processed messages to prevent duplicate processing
 const processedMessages = new Set<string>();

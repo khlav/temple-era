@@ -1,5 +1,5 @@
-import { createBot } from './bot';
-import { config } from './config/env';
+import { createBot } from './bot.js';
+import { config } from './config/env.js';
 
 async function main() {
   console.log('🚀 Starting Discord bot...');
