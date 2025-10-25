@@ -10,21 +10,12 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 
 <div align="center">
 
-### Key Features Overview
-
-| Dashboard & Attendance | Raid Management | Rare Recipes |
+| | | |
 |:---:|:---:|:---:|
-| ![Dashboard](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/dashboard-attendance.png) | ![Raid Detail](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/raid-detail.png) | ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png) |
-| _6-week rolling attendance tracking_ | _Raid roster and bench management_ | _Searchable recipe database_ |
-
-| WCL Integration | Character Management | Quick Launcher |
-|:---:|:---:|:---:|
-| ![WCL](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/create-raid-wcl.png) | ![Characters](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/character-management.png) | ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png) |
-| _Import raids from Warcraft Logs_ | _Main/alt character mapping_ | _Fast Cmd/Ctrl+K navigation_ |
-
-### Discord Bot Integration
-![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png)
-_Bot automatically detects WCL links and creates raid entries with Discord threads_
+| ![Dashboard](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/dashboard-attendance.png) | ![Raid Detail](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/raid-detail.png) | ![Characters](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/character-management.png) |
+| _Attendance tracking_ | _Raid Management_ | _Main+Alt Mapping_ |
+| ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png) | ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png) | ![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png) |
+| _Quick Launcher_ | _Recipes and Crafters_ | _Discord + WCL Integration_ |
 
 </div>
 
