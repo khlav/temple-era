@@ -322,4 +322,52 @@ export const raid = createTRPCRouter({
         .where(eq(raids.raidId, input))
         .returning({ raidId: raids.raidId, name: raids.name });
     }),
+
+  addBenchCharacters: raidManagerProcedure
+    .input(
+      z.object({
+        raidId: z.number(),
+        characterIds: z.array(z.number()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get existing bench characters for this raid
+      const existingBench = await ctx.db
+        .select({ characterId: raidBenchMap.characterId })
+        .from(raidBenchMap)
+        .where(eq(raidBenchMap.raidId, input.raidId));
+
+      const existingIds = new Set(existingBench.map((b) => b.characterId));
+
+      // Filter to only NEW characters (additive only)
+      const newCharacterIds = input.characterIds.filter(
+        (id) => !existingIds.has(id),
+      );
+
+      // Insert only new bench entries
+      if (newCharacterIds.length > 0) {
+        await ctx.db.insert(raidBenchMap).values(
+          newCharacterIds.map((characterId) => ({
+            raidId: input.raidId,
+            characterId,
+            createdById: ctx.session.user.id,
+          })),
+        );
+      }
+
+      // Return full updated bench with character details
+      return await ctx.db.query.raidBenchMap.findMany({
+        where: eq(raidBenchMap.raidId, input.raidId),
+        with: {
+          character: {
+            columns: {
+              characterId: true,
+              name: true,
+              class: true,
+              server: true,
+            },
+          },
+        },
+      });
+    }),
 });
