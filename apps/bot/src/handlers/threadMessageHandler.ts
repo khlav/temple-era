@@ -70,7 +70,7 @@ export async function handleThreadMessage(message: Message) {
       
       if (matchedCharacters.length > 0) {
         replyMessage += `**Added to bench:**\n`;
-        matchedCharacters.forEach(char => {
+        matchedCharacters.forEach((char: { name: string; class: string }) => {
           replyMessage += `• ${char.name} (${char.class})\n`;
         });
         replyMessage += `\n`;
@@ -78,7 +78,7 @@ export async function handleThreadMessage(message: Message) {
       
       if (unmatchedNames.length > 0) {
         replyMessage += `**Could not find:**\n`;
-        unmatchedNames.forEach(name => {
+        unmatchedNames.forEach((name: string) => {
           replyMessage += `• ${name}\n`;
         });
         replyMessage += `\n`;
