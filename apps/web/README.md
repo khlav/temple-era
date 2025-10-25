@@ -6,8 +6,6 @@ A comprehensive raid management and attendance tracking system for **Temple**, a
 
 Temple Raids provides a modern web interface for managing guild raids, tracking attendance, and coordinating crafting resources. Built specifically for the Temple guild's needs, it streamlines raid organization and provides valuable insights into guild member participation.
 
-## Screenshots
-
 <div align="center">
 
 | | | |
