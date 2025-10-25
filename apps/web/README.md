@@ -15,6 +15,7 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 - **Character Management** - View and manage your characters and their raid history
 - **Rare Recipes Database** - Search and discover rare crafting recipes with advanced filtering
 - **Crafter Identification** - Find guild members who can craft specific items
+- **Global Quick Launcher** - Fast navigation with keyboard shortcuts (Cmd/Ctrl + K)
 
 ### 🎯 Raid Managers
 
@@ -29,6 +30,25 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 - **User Permission Management** - Grant and revoke Raid Manager and Admin roles
 - **Role-Based Access Control** - Secure access to administrative functions
 - **User Management** - Monitor and manage guild member access
+
+## Discord Bot Integration
+
+Temple Raids includes a companion Discord bot that automatically creates raid entries when raid managers post Warcraft Logs links in Discord.
+
+### How It Works
+
+1. **Raid managers** post WCL links in the designated Discord channel
+2. **Bot automatically detects** the WCL link and verifies permissions
+3. **Bot creates raid entry** via API call to the website
+4. **Bot creates Discord thread** with the raid name for easy access
+
+### Discord Bot Repository
+
+The Discord bot is a separate application with its own repository:
+
+- **Repository**: [temple-raids-discord-bot](https://github.com/khlav/temple-raids-discord-bot)
+- **Features**: Automatic raid creation, thread management, permission-based filtering
+- **Integration**: Secure API communication with the website
 
 ## Getting Started
 
@@ -59,7 +79,6 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
    Create a `.env` file in the root directory with the following variables:
 
    **Required Variables:**
-
    - `DATABASE_URL` - Your PostgreSQL connection string
    - `AUTH_SECRET` - Generate with: `npx auth secret`
    - `AUTH_DISCORD_ID` & `AUTH_DISCORD_SECRET` - From Discord Developer Portal
@@ -67,7 +86,6 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
    - `BATTLENET_CLIENT_ID` & `BATTLENET_CLIENT_SECRET` - From Battle.net API
 
    **Optional Variables:**
-
    - `NEXT_PUBLIC_POSTHOG_ENABLED` - Set to "true" (case-insensitive) to enable PostHog analytics (default: false)
    - `NEXT_PUBLIC_POSTHOG_KEY` - For analytics (can be left as placeholder)
 
@@ -97,31 +115,26 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
    Copy the generated secret to `AUTH_SECRET` in your `.env` file.
 
 2. **Configure Discord OAuth**
-
    - Create a Discord application at [Discord Developer Portal](https://discord.com/developers/applications)
    - Go to OAuth2 → General
    - Add redirect URI: `http://localhost:3000/api/auth/callback/discord`
    - Copy Client ID to `AUTH_DISCORD_ID` and Client Secret to `AUTH_DISCORD_SECRET` in your `.env` file
 
 3. **Set up Warcraft Logs API**
-
    - Create an account at [Warcraft Logs](https://classic.warcraftlogs.com/)
    - Go to Account → API Access
    - Create a new client and copy the credentials to `WCL_CLIENT_ID` and `WCL_CLIENT_SECRET`
 
 4. **Set up Battle.net API**
-
    - Create an application at [Battle.net Developer Portal](https://develop.battle.net/)
    - Copy the Client ID and Client Secret to your `.env` file
 
 5. **Set up PostHog Analytics (Optional)**
-
    - Create an account at [PostHog](https://posthog.com/)
    - Create a new project and copy the Project API Key
    - Set `NEXT_PUBLIC_POSTHOG_ENABLED=true` and `NEXT_PUBLIC_POSTHOG_KEY=your_key` in your `.env` file
 
 6. **Set up Database**
-
    - For local development: Install PostgreSQL and create a database
    - For production: Use a service like Neon, Supabase, or Railway
    - Update `DATABASE_URL` with your connection string
@@ -141,6 +154,22 @@ Built with the [T3 Stack](https://create.t3.gg/) for a modern, type-safe develop
 - **[Tailwind CSS](https://tailwindcss.com)** - Utility-first styling
 - **[tRPC](https://trpc.io)** - End-to-end typesafe APIs
 - **[TypeScript](https://typescriptlang.org)** - Type safety throughout
+
+## API Endpoints
+
+### Discord Integration
+
+The website provides API endpoints for Discord bot integration:
+
+- **`POST /api/discord/create-raid`** - Creates a raid from a Warcraft Logs URL
+  - Requires: `discordUserId`, `wclUrl`
+  - Returns: `{ success: boolean, raidId?: number, raidName?: string, raidUrl?: string, isNew?: boolean }`
+
+- **`POST /api/discord/check-permissions`** - Checks if a Discord user has raid manager permissions
+  - Requires: `discordUserId`
+  - Returns: `{ hasAccount: boolean, isRaidManager: boolean }`
+
+Both endpoints require authentication via `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header.
 
 ## Deployment
 
