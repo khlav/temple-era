@@ -351,7 +351,7 @@ function getExpectedBossCount(zone: string): number {
     "Temple of Ahn'Qiraj": 9,
     Naxxramas: 15,
     "Onyxia's Lair": 1,
-    "Zul'Gurub": 8,
+    "Zul'Gurub": 9,
     "Ruins of Ahn'Qiraj": 6,
     "Blackrock Depths": 5,
     Stratholme: 4,
