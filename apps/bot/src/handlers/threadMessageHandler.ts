@@ -17,6 +17,9 @@ export async function handleThreadMessage(message: Message) {
   // Only process messages in threads
   if (!message.channel.isThread()) return;
 
+  // Only process threads that belong to the target channel
+  if (message.channel.parentId !== config.discordLogsChannelId) return;
+
   // Check if we've already processed this message
   if (processedMessages.has(message.id)) {
     console.log(`⏭️ Thread message ${message.id} already processed, skipping`);
