@@ -10,18 +10,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
-
-function getBaseUrl(request: Request): string {
-  // Try environment variable first
-  if (env.NEXT_PUBLIC_APP_URL) {
-    return env.NEXT_PUBLIC_APP_URL;
-  }
-
-  // Fall back to request headers
-  const host = request.headers.get("host");
-  const protocol = request.headers.get("x-forwarded-proto") || "http";
-  return `${protocol}://${host}`;
-}
+import { getBaseUrl } from "~/lib/get-base-url";
 
 export async function POST(request: Request) {
   try {

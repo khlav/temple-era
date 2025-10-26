@@ -4,6 +4,7 @@ import { users, accounts, characters } from "~/server/db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
+import { getBaseUrl } from "~/lib/get-base-url";
 
 export async function POST(request: Request) {
   try {
@@ -110,12 +111,23 @@ export async function POST(request: Request) {
       );
 
     const matchedCharacterIds = matchedCharacters.map((c) => c.characterId);
-    const matchedNames = matchedCharacters.map((c) => c.name);
+
+    // Helper function to normalize strings (remove accents and lowercase)
+    const normalizeString = (str: string): string => {
+      return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    };
+
+    // Create a set of normalized matched names for efficient lookup
+    const normalizedMatchedNames = new Set(
+      matchedCharacters.map((c) => normalizeString(c.name)),
+    );
+
+    // Find unmatched names using the same normalization
     const unmatchedNames = characterNames.filter(
-      (name) =>
-        !matchedNames.some(
-          (matched) => matched.toLowerCase() === name.toLowerCase(),
-        ),
+      (name) => !normalizedMatchedNames.has(normalizeString(name)),
     );
 
     // 5. Create tRPC caller with user session
@@ -149,7 +161,7 @@ export async function POST(request: Request) {
       success: true,
       raidId: raidDetails.raidId,
       raidName: raidDetails.name,
-      raidUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com"}/raids/${raidDetails.raidId}`,
+      raidUrl: `${getBaseUrl(request)}/raids/${raidDetails.raidId}`,
       matchedCharacters: matchedCharacters,
       unmatchedNames,
       totalBenchCharacters: benchResult.length,
