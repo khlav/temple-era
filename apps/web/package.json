@@ -20,7 +20,7 @@
     "preview": "next build && next start",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "postbuild": "echo 'Skipping migration - already applied'"
+    "postbuild": "drizzle-kit migrate"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.2",
