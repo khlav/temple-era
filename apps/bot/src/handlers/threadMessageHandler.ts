@@ -7,6 +7,9 @@ import {
   containsBenchKeyword 
 } from '../services/benchParser.js';
 
+// Track processed messages to prevent duplicate processing
+const processedMessages = new Set<string>();
+
 export async function handleThreadMessage(message: Message) {
   // Ignore bot messages
   if (message.author.bot) return;
@@ -14,8 +17,20 @@ export async function handleThreadMessage(message: Message) {
   // Only process messages in threads
   if (!message.channel.isThread()) return;
 
+  // Only process threads that belong to the target channel
+  if (message.channel.parentId !== config.discordLogsChannelId) return;
+
+  // Check if we've already processed this message
+  if (processedMessages.has(message.id)) {
+    console.log(`⏭️ Thread message ${message.id} already processed, skipping`);
+    return;
+  }
+
   // Check if message contains "bench" keyword
   if (!containsBenchKeyword(message.content)) return;
+
+  // Mark this message as processed
+  processedMessages.add(message.id);
 
   console.log(`📝 Bench message detected in thread: ${message.content}`);
 
