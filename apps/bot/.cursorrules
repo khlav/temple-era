@@ -7,13 +7,21 @@ When generating or referencing PRs, always provide clickable links in the format
 - `[PR #123: Title](https://github.com/khlav/temple-raids-discord-bot/pull/123)`
 - Use full GitHub URLs for maximum compatibility
 
-### 2. "Ship It" Command Behavior
-**CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
+### 2. Branch Management Rules
+**CRITICAL**: All development work MUST be done on non-main branches. Never commit directly to `main`.
 
 #### Pre-flight Checks
 - **Verify working tree**: Run `git status` to confirm there are changes to commit
 - **Check current branch**: If on `main`, create new branch; if on feature branch, use existing branch
 - **Validate changes**: Ensure all changes are ready and tested
+
+#### Branch Creation Rules
+- **Always create feature branches** for any changes, no matter how small
+- **Never work directly on main** - main is for stable, merged code only
+- **Use descriptive branch names** following the naming convention below
+
+### 3. "Ship It" Command Behavior
+**CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
 
 #### Step-by-Step Process
 1. **Create branch** (if on main): Use format `{type}/{kebab-case-description}` where type is:
@@ -34,7 +42,9 @@ When generating or referencing PRs, always provide clickable links in the format
 4. **Create PR**:
    - Use `gh pr create` with title and description
    - Title format: `{Action} {what was changed}`
-   - Description: Use the template at `.github/pull_request_template.md` if it exists
+   - Description: **Always use** `.github/pull_request_template.md` if it exists
+   - Fill out all required sections in the template
+   - If no template exists, use standard format with key changes and technical context
 
 5. **Apply user-facing label**:
    - **Always apply** for `feature/` and `fix/` branches (unless only config files changed)
@@ -54,7 +64,7 @@ When generating or referencing PRs, always provide clickable links in the format
 - The `user-facing` label controls Discord notifications for merged PRs
 - Label can be manually adjusted after PR creation if auto-detection is incorrect
 
-### 3. PR Description Formatting
+### 4. PR Description Formatting
 When creating PR descriptions, ensure proper escaping for code blocks and special characters:
 
 **For inline code**: Use single backticks with proper escaping
@@ -97,11 +107,13 @@ When creating PR descriptions, ensure proper escaping for code blocks and specia
 - Include scope if relevant: "Add slash command support"
 
 ### 7. PR Description Standards
+- **Follow the PR template** - Always use `.github/pull_request_template.md` if it exists
 - **Be crisp and concise** - avoid overly wordy descriptions
 - **Focus on key changes** - what was added, fixed, or improved
 - **Use bullet points** for easy scanning
 - **Include technical context** only when relevant
-- **Reference the PR template** at `.github/pull_request_template.md` if it exists
+- **Template compliance** - Fill out all required sections in the template
+- **Custom sections** - Add any additional context in appropriate template sections
 
 ## Discord Bot Specific Rules
 

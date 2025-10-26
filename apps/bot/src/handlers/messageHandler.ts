@@ -60,6 +60,7 @@ export async function handleMessage(message: Message) {
       body: JSON.stringify({
         discordUserId: message.author.id,
         wclUrl: firstUrl,
+        discordMessageId: message.id,
       }),
     });
 
