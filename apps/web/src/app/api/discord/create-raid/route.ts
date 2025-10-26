@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Validate request body
-    const { discordUserId, wclUrl } = await request.json();
+    const { discordUserId, wclUrl, discordMessageId } = await request.json();
 
     if (!/^\d{17,19}$/.test(discordUserId)) {
       return NextResponse.json(
@@ -47,6 +47,13 @@ export async function POST(request: Request) {
     if (!wclUrl || !wclUrl.includes("warcraftlogs.com/reports/")) {
       return NextResponse.json(
         { error: "Invalid WarcraftLogs URL" },
+        { status: 400 },
+      );
+    }
+
+    if (discordMessageId && !/^\d{17,19}$/.test(discordMessageId)) {
+      return NextResponse.json(
+        { error: "Invalid Discord message ID" },
         { status: 400 },
       );
     }
@@ -211,7 +218,16 @@ export async function POST(request: Request) {
     if (existingRaidLog.length > 0 && result.raid?.raidId) {
       await db
         .update(raidLogs)
-        .set({ raidId: result.raid.raidId })
+        .set({
+          raidId: result.raid.raidId,
+          ...(discordMessageId && { discordMessageId }),
+        })
+        .where(eq(raidLogs.raidLogId, reportId));
+    } else if (discordMessageId) {
+      // If raid log was newly created, update it with the discord message ID
+      await db
+        .update(raidLogs)
+        .set({ discordMessageId })
         .where(eq(raidLogs.raidLogId, reportId));
     }
 

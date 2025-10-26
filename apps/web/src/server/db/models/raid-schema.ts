@@ -76,11 +76,15 @@ export const raidLogs = tableCreator(
     ),
     startTimeUTC: timestamp("start_time_utc"),
     endTimeUTC: timestamp("end_time_utc"),
+    discordMessageId: varchar("discord_message_id", { length: 64 }),
     ...CreatedBy,
     ...DefaultTimestamps,
   },
   (table) => ({
     idIdx: uniqueIndex("raid_log__raid_log_id_idx").on(table.raidLogId),
+    discordMessageIdIdx: index("raid_log__discord_message_id_idx").on(
+      table.discordMessageId,
+    ),
   }),
 );
 
