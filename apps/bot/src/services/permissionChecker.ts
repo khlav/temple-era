@@ -1,4 +1,4 @@
-import { config } from '../config/env.js';
+import { config } from "../config/env.js";
 
 interface PermissionCheckResult {
   hasAccount: boolean;
@@ -12,10 +12,10 @@ export async function checkUserPermissions(
     const response = await fetch(
       `${config.apiBaseUrl}/api/discord/check-permissions`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.templeWebApiToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.templeWebApiToken}`,
         },
         body: JSON.stringify({ discordUserId }),
       }
@@ -27,7 +27,7 @@ export async function checkUserPermissions(
 
     return await response.json();
   } catch (error) {
-    console.error('Error checking user permissions:', error);
+    console.error("Error checking user permissions:", error);
     return { hasAccount: false, isRaidManager: false };
   }
 }
