@@ -47,7 +47,9 @@ export function parseCharacterNames(messageContent: string): string[] {
   const words = contentToParse
     .split(/[,\s\n]+/)
     .map(word => word.trim())
-    .filter(word => word.length > 0);
+    .filter(word => word.length > 0)
+    .map(word => word.replace(/^[,.:;!?]+|[,.:;!?]+$/g, '')) // Strip punctuation from start/end
+    .filter(word => word.length > 0); // Remove any empty strings after punctuation stripping
   
   // Filter out only the first occurrence of "bench" (case-insensitive)
   // This allows "bench" to appear as a character name if it appears multiple times
@@ -70,10 +72,8 @@ export function parseCharacterNames(messageContent: string): string[] {
  * @returns True if message contains "bench" keyword
  */
 export function containsBenchKeyword(messageContent: string): boolean {
-  const lowerContent = messageContent.toLowerCase();
-  // Check for various bench keyword patterns
-  return lowerContent.includes('bench:') || 
-         lowerContent.includes('bench ') || 
-         lowerContent.includes(' bench') ||
-         lowerContent.includes('bench');
+  const trimmedContent = messageContent.trim().toLowerCase();
+  // Check if message starts with "bench" followed by whitespace or punctuation
+  return trimmedContent.startsWith('bench') && 
+         (trimmedContent.length === 5 || /^bench[\s:;,.]/.test(trimmedContent));
 }
