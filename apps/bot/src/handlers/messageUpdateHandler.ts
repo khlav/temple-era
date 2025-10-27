@@ -1,19 +1,27 @@
-import { Message } from 'discord.js';
-import { config } from '../config/env.js';
-import { extractWarcraftLogsUrls, extractReportId } from '../services/wclDetector.js';
-import { checkUserPermissions } from '../services/permissionChecker.js';
+import { type Message } from "discord.js";
+import { config } from "../config/env.js";
+import {
+  extractWarcraftLogsUrls,
+  extractReportId,
+} from "../services/wclDetector.js";
+import { checkUserPermissions } from "../services/permissionChecker.js";
 
 // Track recently processed message updates to prevent duplicate processing
 const processedUpdates = new Set<string>();
 const UPDATE_COOLDOWN_MS = 5000; // 5 seconds cooldown between processing the same message
 
-export async function handleMessageUpdate(oldMessage: Message, newMessage: Message) {
+export async function handleMessageUpdate(
+  oldMessage: Message,
+  newMessage: Message
+) {
   // Create a unique key for this message update
   const updateKey = `${newMessage.id}-${newMessage.editedTimestamp || 0}`;
-  
+
   // Check if we've already processed this exact update recently
   if (processedUpdates.has(updateKey)) {
-    console.log(`⏭️ Message update ${updateKey} already processed recently, skipping`);
+    console.log(
+      `⏭️ Message update ${updateKey} already processed recently, skipping`
+    );
     return;
   }
 
@@ -33,14 +41,19 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   // Check if edit is within 15 minutes of original message
   const fifteenMinutesInMs = 15 * 60 * 1000;
   const timeSinceCreation = Date.now() - newMessage.createdTimestamp;
-  
+
   if (timeSinceCreation > fifteenMinutesInMs) {
     // Post informational message in thread if it exists
     if (newMessage.thread) {
       try {
-        await newMessage.thread.send("⏰ Raid edits are only allowed within 15 minutes of the original message.");
+        await newMessage.thread.send(
+          "⏰ Raid edits are only allowed within 15 minutes of the original message."
+        );
       } catch (error) {
-        console.log("Could not post 15-minute window message to thread:", error);
+        console.log(
+          "Could not post 15-minute window message to thread:",
+          error
+        );
       }
     }
     return;
@@ -60,7 +73,9 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
     // Invalid WCL URL, post error message in thread
     if (newMessage.thread) {
       try {
-        await newMessage.thread.send("❌ Invalid WarcraftLogs URL. Please check the link and try again.");
+        await newMessage.thread.send(
+          "❌ Invalid WarcraftLogs URL. Please check the link and try again."
+        );
       } catch (error) {
         console.log("Could not post invalid URL message to thread:", error);
       }
@@ -69,7 +84,9 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   }
 
   // Check user permissions
-  const { hasAccount, isRaidManager } = await checkUserPermissions(newMessage.author.id);
+  const { hasAccount, isRaidManager } = await checkUserPermissions(
+    newMessage.author.id
+  );
 
   // Only proceed if user is a raid manager
   if (!hasAccount || !isRaidManager) {
@@ -78,25 +95,30 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   }
 
   try {
-    console.log(`🔄 Attempting to update raid for ${newMessage.author.tag} with new WCL URL: ${firstUrl}`);
-    
-    const response = await fetch(`${config.apiBaseUrl}/api/discord/update-raid`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.templeWebApiToken}`,
-      },
-      body: JSON.stringify({
-        discordUserId: newMessage.author.id,
-        newWclUrl: firstUrl,
-        discordMessageId: newMessage.id,
-      }),
-    });
+    console.log(
+      `🔄 Attempting to update raid for ${newMessage.author.tag} with new WCL URL: ${firstUrl}`
+    );
+
+    const response = await fetch(
+      `${config.apiBaseUrl}/api/discord/update-raid`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.templeWebApiToken}`,
+        },
+        body: JSON.stringify({
+          discordUserId: newMessage.author.id,
+          newWclUrl: firstUrl,
+          discordMessageId: newMessage.id,
+        }),
+      }
+    );
 
     let result;
     try {
       result = await response.json();
-    } catch (error) {
+    } catch {
       console.log(`❌ API endpoint not available yet`);
       return;
     }
@@ -109,7 +131,7 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       }
 
       console.log(`✅ Raid updated: ${result.raidName} (ID: ${result.raidId})`);
-      
+
       // Post success message in thread
       if (newMessage.thread) {
         try {
@@ -133,7 +155,7 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       }
     } else {
       console.log(`❌ Failed to update raid: ${result.error}`);
-      
+
       // Post error message in thread
       if (newMessage.thread) {
         try {
@@ -148,12 +170,14 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       }
     }
   } catch (error) {
-    console.error('Error updating raid automatically:', error);
-    
+    console.error("Error updating raid automatically:", error);
+
     // Post generic error message in thread
     if (newMessage.thread) {
       try {
-        await newMessage.thread.send("❌ An error occurred while updating the raid. Please try again.");
+        await newMessage.thread.send(
+          "❌ An error occurred while updating the raid. Please try again."
+        );
       } catch (threadError) {
         console.log("Could not post error message to thread:", threadError);
       }

@@ -14,6 +14,7 @@ A Discord bot that automatically creates raid entries when raid managers post Wa
 ## How It Works
 
 ### For Raid Managers
+
 1. **Post WCL link** in the designated raid logs channel
 2. **Bot automatically detects** the WCL link and extracts the report ID
 3. **Bot creates raid entry** via API call to templeashkandi.com
@@ -21,6 +22,7 @@ A Discord bot that automatically creates raid entries when raid managers post Wa
 5. **Bot posts raid URL** in the thread for easy access
 
 ### For Non-Raid Managers
+
 - Bot ignores messages from users who don't have raid manager permissions
 - No response or notification is sent
 
@@ -28,7 +30,7 @@ A Discord bot that automatically creates raid entries when raid managers post Wa
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Discord Bot Token
 - Temple Ashkandi API access
 
@@ -123,6 +125,7 @@ Raid Creation API → Thread Creation → Raid URL Post
 ## Troubleshooting
 
 ### Bot Not Responding
+
 1. Check environment variables are set correctly
 2. Verify bot has proper permissions in Discord server (needs `Send Messages` and `Create Public Threads`)
 3. Check Railway logs for errors
@@ -130,12 +133,14 @@ Raid Creation API → Thread Creation → Raid URL Post
 5. Verify the bot is monitoring the correct channel ID
 
 ### Raid Creation Issues
+
 1. Verify user has Raid Manager permissions on templeashkandi.com
 2. Check that the WCL URL is valid and accessible
 3. Test API endpoint manually: `POST /api/discord/create-raid`
 4. Check that the user's Discord account is linked to their website account
 
 ### Thread Creation Issues
+
 1. Verify bot has `Create Public Threads` permission in the channel
 2. Check that the channel allows thread creation
 3. Ensure the bot has `Send Messages` permission in the thread

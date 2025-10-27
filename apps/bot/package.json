@@ -8,9 +8,20 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\" --cache",
+    "format:write": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\" --cache",
+    "check": "eslint src --ext .ts && tsc --noEmit",
+    "prepare": "husky"
   },
-  "keywords": ["discord", "bot", "warcraft-logs", "raid-tracking"],
+  "keywords": [
+    "discord",
+    "bot",
+    "warcraft-logs",
+    "raid-tracking"
+  ],
   "author": "Temple Ashkandi",
   "license": "MIT",
   "dependencies": {
@@ -19,10 +30,28 @@
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.35.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "prettier": "^3.3.2",
     "typescript": "^5.3.3",
     "tsx": "^4.7.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --max-warnings=0 --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.ts": [
+      "bash -c 'if grep -q \"console\\.log\" \"$1\"; then echo \"⚠️  Warning: console.log found in $1\"; fi' --"
+    ]
   }
 }

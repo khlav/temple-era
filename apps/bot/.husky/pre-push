@@ -1,0 +1,58 @@
+echo "🚀 Running pre-push checks..."
+
+# Task 0: Validate branch name
+echo "0/4 🌿 Validating branch name..."
+current_branch=$(git branch --show-current)
+if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev)/.+'; then
+  echo "0/4 ✅ Branch name follows convention: $current_branch"
+else
+  echo "0/4 ❌ Branch name does not follow convention: $current_branch"
+  echo "   Expected format: {type}/{description}"
+  echo "   Types: feature, fix, chore, refactor, hotfix, dev"
+  echo "   Example: feature/add-search-functionality"
+  exit 1
+fi
+
+# Task 1: Linting
+echo "1/4 ⚡ Linting codebase..."
+if pnpm lint > /dev/null 2>&1; then
+  echo "1/4 ✅ Linting passed"
+else
+  echo "1/4 ❌ Linting failed"
+  echo "Running lint to show errors:"
+  pnpm lint
+  exit 1
+fi
+
+# Task 2: Type checking
+echo "2/4 🔍 Type checking..."
+if pnpm typecheck > /dev/null 2>&1; then
+  echo "2/4 ✅ Type checking passed"
+else
+  echo "2/4 ❌ Type checking failed"
+  echo "Running typecheck to show errors:"
+  pnpm typecheck
+  exit 1
+fi
+
+# Task 3: Building
+echo "3/4 🔨 Building application..."
+if pnpm build > /dev/null 2>&1; then
+  echo "3/4 ✅ Build passed"
+else
+  echo "3/4 ❌ Build failed"
+  echo "Running build to show errors:"
+  pnpm build
+  exit 1
+fi
+
+# Task 4: Final validation
+echo "4/4 🔍 Final validation..."
+# Check for any remaining console.log statements
+if find src -name "*.ts" | xargs grep -l "console\.log" 2>/dev/null; then
+  echo "4/4 ⚠️  Warning: console.log statements found in codebase"
+  echo "   Consider removing or replacing with proper logging"
+fi
+
+echo "4/4 ✅ All pre-push checks completed successfully!"
+echo "🎉 Ready to push!"

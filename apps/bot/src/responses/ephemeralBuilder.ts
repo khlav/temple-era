@@ -1,14 +1,13 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { config } from '../config/env.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { config } from "../config/env.js";
 
-export function buildLoginRequiredResponse(reportId: string) {
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setLabel('Log in to templeashkandi.com')
-        .setURL(config.apiBaseUrl)
-        .setStyle(ButtonStyle.Link)
-    );
+export function buildLoginRequiredResponse(_reportId: string) {
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Log in to templeashkandi.com")
+      .setURL(config.apiBaseUrl)
+      .setStyle(ButtonStyle.Link)
+  );
 
   return {
     components: [row],
@@ -17,13 +16,12 @@ export function buildLoginRequiredResponse(reportId: string) {
 }
 
 export function buildPermissionRequiredResponse() {
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setLabel('View your profile')
-        .setURL(`${config.apiBaseUrl}/profile`)
-        .setStyle(ButtonStyle.Link)
-    );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("View your profile")
+      .setURL(`${config.apiBaseUrl}/profile`)
+      .setStyle(ButtonStyle.Link)
+  );
 
   return {
     components: [row],
@@ -32,13 +30,12 @@ export function buildPermissionRequiredResponse() {
 }
 
 export function buildRaidCreationResponse(reportId: string) {
-  const row = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(
-      new ButtonBuilder()
-        .setLabel('Create Raid Entry')
-        .setURL(`${config.apiBaseUrl}/raids/new?wcl=${reportId}`)
-        .setStyle(ButtonStyle.Link)
-    );
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Create Raid Entry")
+      .setURL(`${config.apiBaseUrl}/raids/new?wcl=${reportId}`)
+      .setStyle(ButtonStyle.Link)
+  );
 
   return {
     components: [row],
