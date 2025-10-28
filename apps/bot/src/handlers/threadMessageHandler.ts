@@ -6,9 +6,10 @@ import {
   parseCharacterNames,
   containsBenchKeyword,
 } from "../services/benchParser.js";
+import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
 // Track processed messages to prevent duplicate processing
-const processedMessages = new Set<string>();
+const deduplicator = new MessageDeduplicator();
 
 export async function handleThreadMessage(message: Message) {
   // Ignore bot messages
@@ -21,7 +22,7 @@ export async function handleThreadMessage(message: Message) {
   if (message.channel.parentId !== config.discordLogsChannelId) return;
 
   // Check if we've already processed this message
-  if (processedMessages.has(message.id)) {
+  if (deduplicator.has(message.id)) {
     console.log(`⏭️ Thread message ${message.id} already processed, skipping`);
     return;
   }
@@ -30,7 +31,7 @@ export async function handleThreadMessage(message: Message) {
   if (!containsBenchKeyword(message.content)) return;
 
   // Mark this message as processed
-  processedMessages.add(message.id);
+  deduplicator.add(message.id);
 
   console.log(`📝 Bench message detected in thread: ${message.content}`);
 
