@@ -1,8 +1,10 @@
 import { Client, GatewayIntentBits, Events, type Message } from "discord.js";
+import * as cron from "node-cron";
 import { config } from "./config/env.js";
 import { handleMessage } from "./handlers/messageHandler.js";
 import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
+import { cleanupOldThreads } from "./services/threadCleanup.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -16,6 +18,26 @@ export function createBot(): Client {
   client.on(Events.ClientReady, () => {
     console.log(`✅ Bot logged in as ${client.user?.tag}`);
     console.log(`📡 Monitoring channel: ${config.discordLogsChannelId}`);
+
+    // Schedule thread cleanup job
+    if (config.threadCleanupEnabled) {
+      cron.schedule(
+        config.threadCleanupCron,
+        () => {
+          void cleanupOldThreads(client);
+        },
+        {
+          timezone: "America/New_York",
+        }
+      );
+
+      console.log(
+        `🧹 Thread cleanup scheduled: ${config.threadCleanupCron} (ET)`
+      );
+      console.log(`⏰ Cleanup will run daily at 1am Eastern Time`);
+    } else {
+      console.log("🧹 Thread cleanup is disabled");
+    }
   });
 
   client.on(Events.MessageCreate, (message) => {
