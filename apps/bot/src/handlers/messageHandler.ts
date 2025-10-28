@@ -5,9 +5,10 @@ import {
   extractReportId,
 } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
+import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
 // Track processed messages to prevent duplicate processing
-const processedMessages = new Set<string>();
+const deduplicator = new MessageDeduplicator();
 
 export async function handleMessage(message: Message) {
   // Ignore bot messages
@@ -17,7 +18,7 @@ export async function handleMessage(message: Message) {
   if (message.channelId !== config.discordLogsChannelId) return;
 
   // Check if we've already processed this message
-  if (processedMessages.has(message.id)) {
+  if (deduplicator.has(message.id)) {
     console.log(`⏭️ Message ${message.id} already processed, skipping`);
     return;
   }
@@ -35,7 +36,7 @@ export async function handleMessage(message: Message) {
   if (!reportId) return;
 
   // Mark this message as processed
-  processedMessages.add(message.id);
+  deduplicator.add(message.id);
 
   // Check user permissions
   const { hasAccount, isRaidManager } = await checkUserPermissions(

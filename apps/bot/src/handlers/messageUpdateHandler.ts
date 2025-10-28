@@ -5,29 +5,36 @@ import {
   extractReportId,
 } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
+import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
 // Track recently processed message updates to prevent duplicate processing
-const processedUpdates = new Set<string>();
-const UPDATE_COOLDOWN_MS = 5000; // 5 seconds cooldown between processing the same message
+const deduplicator = new MessageDeduplicator();
 
 export async function handleMessageUpdate(
   oldMessage: Message,
   newMessage: Message
 ) {
+  // Skip if this is not actually an edit (editedTimestamp is null or 0)
+  if (!newMessage.editedTimestamp || newMessage.editedTimestamp === 0) {
+    console.log(
+      `⏭️ Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`
+    );
+    return;
+  }
+
   // Create a unique key for this message update
-  const updateKey = `${newMessage.id}-${newMessage.editedTimestamp || 0}`;
+  const updateKey = `${newMessage.id}-${newMessage.editedTimestamp}`;
 
   // Check if we've already processed this exact update recently
-  if (processedUpdates.has(updateKey)) {
+  if (deduplicator.has(updateKey)) {
     console.log(
       `⏭️ Message update ${updateKey} already processed recently, skipping`
     );
     return;
   }
 
-  // Add to processed set and set up cleanup
-  processedUpdates.add(updateKey);
-  setTimeout(() => processedUpdates.delete(updateKey), UPDATE_COOLDOWN_MS);
+  // Add to processed set with automatic cleanup
+  deduplicator.add(updateKey);
 
   // Ignore bot messages
   if (newMessage.author.bot) return;

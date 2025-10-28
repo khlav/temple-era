@@ -38,6 +38,17 @@ export function createBot(): Client {
     } else {
       console.log("🧹 Thread cleanup is disabled");
     }
+
+    // Schedule memory monitoring
+    setInterval(
+      () => {
+        const memUsage = process.memoryUsage();
+        console.log(
+          `💾 Memory usage: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
+        );
+      },
+      30 * 60 * 1000
+    ); // Every 30 minutes
   });
 
   client.on(Events.MessageCreate, (message) => {
