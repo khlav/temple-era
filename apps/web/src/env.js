@@ -26,6 +26,7 @@ export const env = createEnv({
 
     DISCORD_BOT_TOKEN: z.string(),
     DISCORD_RAID_LOGS_CHANNEL_ID: z.string(),
+    DISCORD_WEBHOOK_PUBLIC_KEY: z.string(),
     TEMPLE_WEB_API_TOKEN: z.string(),
 
     NODE_ENV: z
