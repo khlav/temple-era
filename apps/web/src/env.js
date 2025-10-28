@@ -26,6 +26,7 @@ export const env = createEnv({
 
     DISCORD_BOT_TOKEN: z.string(),
     DISCORD_RAID_LOGS_CHANNEL_ID: z.string(),
+    DISCORD_WEBHOOK_PUBLIC_KEY: z.string().optional(),
     TEMPLE_WEB_API_TOKEN: z.string(),
 
     NODE_ENV: z
@@ -67,6 +68,7 @@ export const env = createEnv({
 
     DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
     DISCORD_RAID_LOGS_CHANNEL_ID: process.env.DISCORD_RAID_LOGS_CHANNEL_ID,
+    DISCORD_WEBHOOK_PUBLIC_KEY: process.env.DISCORD_WEBHOOK_PUBLIC_KEY,
     TEMPLE_WEB_API_TOKEN: process.env.TEMPLE_WEB_API_TOKEN,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
