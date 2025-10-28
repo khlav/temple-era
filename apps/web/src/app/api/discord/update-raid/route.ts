@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
 import { getBaseUrl } from "~/lib/get-base-url";
+import { getEasternDate } from "~/lib/raid-formatting";
 
 export async function POST(request: Request) {
   try {
@@ -229,11 +230,9 @@ export async function POST(request: Request) {
     // 11. Prepare new raid data
     let newRaidDate: string;
     if (newRaidLog.startTimeUTC) {
-      newRaidDate = new Date(newRaidLog.startTimeUTC)
-        .toISOString()
-        .split("T")[0]!;
+      newRaidDate = getEasternDate(newRaidLog.startTimeUTC);
     } else {
-      newRaidDate = new Date().toISOString().split("T")[0]!;
+      newRaidDate = getEasternDate(new Date());
     }
 
     const newRaidName = newRaidLog.name ?? `Raid ${newReportId}`;

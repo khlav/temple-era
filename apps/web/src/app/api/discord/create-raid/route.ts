@@ -11,6 +11,7 @@ import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 import { getBaseUrl } from "~/lib/get-base-url";
+import { getEasternDate } from "~/lib/raid-formatting";
 
 export async function POST(request: Request) {
   try {
@@ -198,9 +199,9 @@ export async function POST(request: Request) {
     // 7. Create raid entry with imported log
     let raidDate: string;
     if (raidLog.startTimeUTC) {
-      raidDate = new Date(raidLog.startTimeUTC).toISOString().split("T")[0]!;
+      raidDate = getEasternDate(raidLog.startTimeUTC);
     } else {
-      raidDate = new Date().toISOString().split("T")[0]!;
+      raidDate = getEasternDate(new Date());
     }
     const raidZone = raidLog.zone ?? "Unknown";
     const raidName = raidLog.name ?? `Raid ${reportId}`;
@@ -244,7 +245,7 @@ export async function POST(request: Request) {
       raidId: result.raid?.raidId,
       raidName: result.raid?.name,
       zone: raidLog.zone ?? "Unknown",
-      date: new Date(raidLog.startTimeUTC).toISOString().split("T")[0],
+      date: getEasternDate(raidLog.startTimeUTC),
       participantCount,
       killCount,
       raidUrl,
