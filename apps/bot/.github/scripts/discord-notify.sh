@@ -79,6 +79,11 @@ else
     DESCRIPTION=$(truncate_text "$DESCRIPTION" $MAX_DESCRIPTION_LENGTH)
 fi
 
+# Ensure title is not too long (Discord limit: 256 chars)
+if [ ${#PR_TITLE} -gt 256 ]; then
+    PR_TITLE="${PR_TITLE:0:253}..."
+fi
+
 # Escape the description for JSON
 ESCAPED_DESCRIPTION=$(escape_json "$DESCRIPTION")
 ESCAPED_TITLE=$(escape_json "$PR_TITLE")
@@ -100,8 +105,7 @@ JSON_PAYLOAD=$(cat <<EOF
       "url": "$PR_URL",
       "footer": {
         "text": "Merged to main"
-      },
-      "timestamp": "$MERGED_AT"
+      }
     }
   ]
 }
