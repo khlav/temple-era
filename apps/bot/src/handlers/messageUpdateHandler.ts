@@ -14,8 +14,16 @@ export async function handleMessageUpdate(
   oldMessage: Message,
   newMessage: Message
 ) {
+  // Skip if this is not actually an edit (editedTimestamp is null or 0)
+  if (!newMessage.editedTimestamp || newMessage.editedTimestamp === 0) {
+    console.log(
+      `⏭️ Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`
+    );
+    return;
+  }
+
   // Create a unique key for this message update
-  const updateKey = `${newMessage.id}-${newMessage.editedTimestamp || 0}`;
+  const updateKey = `${newMessage.id}-${newMessage.editedTimestamp}`;
 
   // Check if we've already processed this exact update recently
   if (deduplicator.has(updateKey)) {
