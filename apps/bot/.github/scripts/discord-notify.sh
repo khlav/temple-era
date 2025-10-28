@@ -99,7 +99,7 @@ JSON_PAYLOAD=$(cat <<EOF
 {
   "embeds": [
     {
-      "title": "PR #$PR_NUMBER: $ESCAPED_TITLE",
+      "title": "Bot PR #$PR_NUMBER: $ESCAPED_TITLE",
       "description": "$ESCAPED_DESCRIPTION",
       "color": 5763719,
       "url": "$PR_URL",
