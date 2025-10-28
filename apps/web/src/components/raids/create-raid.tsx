@@ -18,6 +18,7 @@ import {
   toastRaidSaved,
 } from "~/components/raids/raid-toasts";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
+import { getEasternDate } from "~/lib/raid-formatting";
 
 export function CreateRaid() {
   const router = useRouter();
@@ -47,16 +48,14 @@ export function CreateRaid() {
       if (initialRaidLog.raidId) {
         toastRaidLogInUse(toast, initialRaidLog);
       } else {
-        const raidDate = new Date(initialRaidLog.startTimeUTC);
-        const approxServerUTCOffsetInHours = 5;
-        raidDate.setHours(raidDate.getHours() - approxServerUTCOffsetInHours);
+        const raidDate = getEasternDate(new Date(initialRaidLog.startTimeUTC));
 
         setRaidData((raidData) => ({
           ...raidData,
 
           raidId: undefined,
           name: initialRaidLog.name,
-          date: raidDate.toISOString().split("T")[0] ?? "",
+          date: raidDate,
           zone: initialRaidLog.zone ?? "",
           attendanceWeight: getDefaultAttendanceWeight(initialRaidLog.zone),
           kills: initialRaidLog.kills ?? [],
