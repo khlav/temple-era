@@ -17,7 +17,13 @@ export const config = {
 };
 
 // Validate required environment variables
-const required = Object.keys(config);
+const required = [
+  "discordBotToken",
+  "discordLogsChannelId",
+  "apiBaseUrl",
+  "templeWebApiToken",
+];
+
 for (const key of required) {
   if (!config[key as keyof typeof config]) {
     throw new Error(`Missing required environment variable: ${key}`);
