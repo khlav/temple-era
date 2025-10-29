@@ -151,14 +151,12 @@ export function RaidEditor({
           <div className="flex flex-wrap-reverse gap-4 xl:flex-nowrap">
             <div className="w-full xl:w-1/2">
               <div className="">Attendees from logs:</div>
-              <div className="max-h-[600px] overflow-x-auto overflow-y-auto">
-                <CharactersTable
-                  characters={raidParticipants}
-                  isLoading={isLoadingParticipants}
-                  targetNewTab
-                  showRaidColumns={false}
-                />
-              </div>
+              <CharactersTable
+                characters={raidParticipants}
+                isLoading={isLoadingParticipants}
+                targetNewTab
+                showRaidColumns={false}
+              />
               <div className="text-center text-sm text-muted-foreground">
                 List of characters appearing in WCL logs. <br />
                 Alts are mapped to primary characters when calc&apos;ing
