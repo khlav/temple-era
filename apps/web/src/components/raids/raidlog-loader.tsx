@@ -10,7 +10,6 @@ import type { RaidLog } from "~/server/api/interfaces/raid";
 interface RaidLogLoaderProps {
   label?: string;
   onDataLoaded?: (raidLog: RaidLog | undefined) => void; // onLoad callback function
-  forceRefresh?: boolean;
   urlInput?: string;
   setUrlInput?: (value: string) => void;
 }
@@ -18,7 +17,6 @@ interface RaidLogLoaderProps {
 export function RaidLogLoader({
   label,
   onDataLoaded,
-  forceRefresh,
   urlInput: externalUrlInput,
   setUrlInput: externalSetUrlInput,
 }: RaidLogLoaderProps): React.ReactNode {
@@ -35,16 +33,10 @@ export function RaidLogLoader({
     isLoading,
     isSuccess,
     isError,
-  } = api.raidLog.importAndGetRaidLogByRaidLogId.useQuery(
-    {
-      raidLogId: raidLogId,
-      forceRaidLogRefresh: forceRefresh,
-    },
-    {
-      enabled: !!raidLogId,
-      staleTime: 0, // Ensures no caching and always fetches from the server
-    }, // Fetch only if a raidLogId is present
-  );
+  } = api.raidLog.importAndGetRaidLogByRaidLogId.useQuery(raidLogId, {
+    enabled: !!raidLogId,
+    staleTime: 0, // Ensures no caching and always fetches from the server
+  });
   const onUrlInputChange = useCallback(
     (value: string) => {
       const reportIdRegex = /([a-zA-Z0-9]{16})/;
@@ -54,7 +46,6 @@ export function RaidLogLoader({
 
       if (match) {
         setRaidLogId(match[1] ?? "");
-      } else {
       }
     },
     [setUrlInput],

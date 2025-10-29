@@ -184,10 +184,8 @@ export async function POST(request: Request) {
     }
 
     // 6. Import WCL log (fetches from WCL API, imports attendees)
-    const raidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId({
-      raidLogId: reportId,
-      forceRaidLogRefresh: false,
-    });
+    const raidLog =
+      await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
 
     if (!raidLog) {
       return NextResponse.json({
