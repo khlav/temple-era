@@ -34,15 +34,6 @@ const queryGetWclLogById = async (input: string) => {
   return RaidReportDataShaper(await rawRaidReportResponse.json());
 };
 
-const queryRaidLogExists = async (db: DB, input: string) => {
-  const raidLogResult = await db
-    .select()
-    .from(raidLogs)
-    .where(eq(raidLogs.raidLogId, input))
-    .limit(1);
-  return !!raidLogResult.length;
-};
-
 const queryGetRaidLogById = async (db: DB, input: string) => {
   const raidLogResult = await db.query.raidLogs.findFirst({
     where: eq(raidLogs.raidLogId, input),
@@ -102,6 +93,7 @@ const mutateInsertRaidLogWithAttendees = async (
   session: Session,
   input: RaidLog,
 ) => {
+  // Insert or update raid log with onConflictDoUpdate
   await db
     .insert(raidLogs)
     // @ts-expect-error Ignore mapping issue
@@ -116,19 +108,29 @@ const mutateInsertRaidLogWithAttendees = async (
       createdById: session.user.id,
       updatedById: session.user.id,
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [raidLogs.raidLogId],
+      set: {
+        name: input.name,
+        kills: input.kills,
+        zone: input.zone,
+        startTimeUTC: input.startTimeUTC,
+        endTimeUTC: input.endTimeUTC,
+        // Preserve existing raidId by not including it in the update set
+      },
+    });
 
-  await db
-    .insert(characters)
-    .values(
-      Object.values(input.participants).map((participant) => ({
+  // Insert or update characters
+  for (const participant of Object.values(input.participants)) {
+    await db
+      .insert(characters)
+      .values({
         characterId: participant.characterId,
         name: participant.name,
         class: participant.class,
         classDetail: participant.classDetail,
         server: participant.server,
-        createdBy: session.user.id,
-        updatedBy: session.user.id,
+        createdById: session.user.id,
         slug: Slugify(
           [
             participant.name,
@@ -136,23 +138,33 @@ const mutateInsertRaidLogWithAttendees = async (
             participant.characterId.toString(),
           ].join("-"),
         ),
-      })),
-    )
-    .onConflictDoNothing({ target: characters.characterId });
+      })
+      .onConflictDoUpdate({
+        target: [characters.characterId],
+        set: {
+          name: participant.name,
+          class: participant.class,
+          classDetail: participant.classDetail,
+          server: participant.server,
+        },
+      });
+  }
 
+  // Clear existing attendee mappings for this raid log to handle roster changes
   await db
-    .insert(raidLogAttendeeMap)
-    .values(
-      Object.values(input.participants).map((participant) => {
-        return {
-          raidLogId: input.raidLogId,
-          characterId: participant.characterId,
-          createdBy: session.user.id,
-          updatedBy: session.user.id,
-        };
-      }),
-    )
-    .onConflictDoNothing();
+    .delete(raidLogAttendeeMap)
+    .where(eq(raidLogAttendeeMap.raidLogId, input.raidLogId));
+
+  // Insert fresh attendee mappings
+  await db.insert(raidLogAttendeeMap).values(
+    Object.values(input.participants).map((participant) => {
+      return {
+        raidLogId: input.raidLogId,
+        characterId: participant.characterId,
+        createdById: session.user.id,
+      };
+    }),
+  );
 };
 
 const inputInsertRaidLogWithAttendees = z.object({
@@ -183,10 +195,6 @@ export const raidLog = createTRPCRouter({
   getRaidLogByRaidLogId: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => await queryGetRaidLogById(ctx.db, input)),
-
-  raidLogExists: publicProcedure
-    .input(z.string())
-    .query(async ({ ctx, input }) => await queryRaidLogExists(ctx.db, input)),
 
   getParticipants: publicProcedure
     .input(z.string())
@@ -269,20 +277,12 @@ export const raidLog = createTRPCRouter({
     .query(async ({ input }) => await queryGetWclLogById(input)),
 
   importAndGetRaidLogByRaidLogId: raidManagerProcedure
-    .input(
-      z.object({
-        raidLogId: z.string(),
-        forceRaidLogRefresh: z.boolean().optional(),
-      }),
-    )
+    .input(z.string())
     .query(async ({ ctx, input }) => {
-      const logExistsInDb = await queryRaidLogExists(ctx.db, input.raidLogId);
-
-      if (!logExistsInDb || input.forceRaidLogRefresh) {
-        const wclLog = await queryGetWclLogById(input.raidLogId);
-        await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
-      }
-      return await queryGetRaidLogById(ctx.db, input.raidLogId);
+      // Always fetch fresh data from WCL and update database
+      const wclLog = await queryGetWclLogById(input);
+      await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
+      return await queryGetRaidLogById(ctx.db, input);
     }),
 
   insertRaidLogWithAttendees: raidManagerProcedure
@@ -290,4 +290,17 @@ export const raidLog = createTRPCRouter({
     .mutation(async ({ ctx, input }) =>
       mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, input),
     ),
+
+  refreshRaidLogByRaidLogId: raidManagerProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      // Fetch fresh data from WCL API
+      const wclLog = await queryGetWclLogById(input);
+
+      // Update database with fresh data
+      await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
+
+      // Return updated raid log data
+      return await queryGetRaidLogById(ctx.db, input);
+    }),
 });

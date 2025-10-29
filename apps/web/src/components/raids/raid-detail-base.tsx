@@ -7,10 +7,16 @@ import { CharactersTable } from "~/components/characters/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
-import { Edit, ExternalLinkIcon } from "lucide-react";
+import { Edit, ExternalLinkIcon, RefreshCw } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
-import React from "react";
+import React, { useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { CharacterSummaryGrid } from "~/components/characters/character-summary-grid";
 
@@ -22,11 +28,32 @@ export function RaidDetailBase({
   showEditButton?: boolean;
   isPreview?: boolean;
 }) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const utils = api.useUtils();
+
   const { data: raidParticipants, isLoading: isLoadingParticipants } =
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
       raidData.raidLogIds ?? [],
       { enabled: !!raidData },
     );
+
+  const refreshRaidLogMutation =
+    api.raidLog.refreshRaidLogByRaidLogId.useMutation({
+      onSuccess: async () => {
+        // Invalidate relevant queries to refresh the UI
+        await utils.raid.getRaidById.invalidate();
+        await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
+        setIsRefreshing(false);
+      },
+      onError: () => {
+        setIsRefreshing(false);
+      },
+    });
+
+  const handleRefresh = async (raidLogId: string) => {
+    setIsRefreshing(true);
+    await refreshRaidLogMutation.mutateAsync(raidLogId);
+  };
 
   const curPath = usePathname();
 
@@ -73,30 +100,51 @@ export function RaidDetailBase({
         {/* WCL Logs */}
         <div className="grow-0 whitespace-nowrap text-sm">WCL logs:</div>
         <div className="flex grow items-center gap-2 overflow-x-hidden">
-          {(raidData.raidLogIds ?? []).map((raidLogId) => {
-            const reportUrl = GenerateWCLReportUrl(raidLogId);
-            return (
-              <div
-                key={raidLogId}
-                className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
-              >
-                <Link
-                  href={reportUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="hidden md:inline-block">
-                    {reportUrl.replace("https://", "")}
-                  </span>
-                  <span className="inline-block md:hidden">{raidLogId}</span>
-                  <ExternalLinkIcon
-                    className="ml-1 inline-block align-text-top"
-                    size={15}
-                  />
-                </Link>
-              </div>
-            );
-          })}
+          <TooltipProvider>
+            {(raidData.raidLogIds ?? []).map((raidLogId) => {
+              const reportUrl = GenerateWCLReportUrl(raidLogId);
+              return (
+                <div key={raidLogId} className="flex items-center gap-1">
+                  <Link
+                    href={reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
+                  >
+                    <span className="hidden md:inline-block">
+                      {reportUrl.replace("https://", "")}
+                    </span>
+                    <span className="inline-block md:hidden">{raidLogId}</span>
+                    <ExternalLinkIcon
+                      className="ml-1 inline-block align-text-top"
+                      size={15}
+                    />
+                  </Link>
+                  {showEditButton && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleRefresh(raidLogId)}
+                          disabled={isRefreshing}
+                        >
+                          <RefreshCw
+                            className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-secondary text-muted-foreground">
+                        <p>Refresh log from WarcraftLogs</p>
+                        <p className="text-xs">Updates kills and attendees</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              );
+            })}
+          </TooltipProvider>
         </div>
 
         {/* Creator Info */}

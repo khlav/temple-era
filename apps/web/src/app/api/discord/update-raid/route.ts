@@ -206,10 +206,8 @@ export async function POST(request: Request) {
     }
 
     // 9. Import new WCL log
-    const newRaidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId({
-      raidLogId: newReportId,
-      forceRaidLogRefresh: false,
-    });
+    const newRaidLog =
+      await caller.raidLog.importAndGetRaidLogByRaidLogId(newReportId);
 
     if (!newRaidLog) {
       return NextResponse.json({

@@ -67,8 +67,10 @@ When generating or referencing PRs, always provide clickable links in the format
 ### 4. PR Description Formatting
 When creating PR descriptions, ensure proper escaping for code blocks and special characters:
 
-**For inline code**: Use single backticks with proper escaping
-- Example: `\`code\`` becomes `code` in the description
+**For inline code references**: Use *italics* instead of backticks for better readability
+- Example: Use *functionName* instead of `functionName`
+- Example: Use *variableName* instead of `variableName`
+- Example: Use *onConflictDoUpdate* instead of `onConflictDoUpdate`
 
 **For code blocks**: Use triple backticks with language specification
 - Example: 
@@ -83,9 +85,9 @@ When creating PR descriptions, ensure proper escaping for code blocks and specia
 - `_` becomes `\_` when not used for emphasis
 - `#` becomes `\#` when not used for headers
 
-**Zone acronyms and technical terms**: Always wrap in backticks
-- Example: `MC`, `BWL`, `AQ40`, `Naxx` for zone acronyms
-- Example: `warriors OR mages` for search syntax
+**Zone acronyms and technical terms**: Use *italics* for better readability
+- Example: *MC*, *BWL*, *AQ40*, *Naxx* for zone acronyms
+- Example: *warriors OR mages* for search syntax
 
 ### 5. Branch Naming Convention
 - `feature/description` for new features
