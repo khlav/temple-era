@@ -13,8 +13,8 @@ const levels = {
 const colors = {
   error: "red",
   warn: "yellow",
-  info: "green",
-  debug: "blue",
+  info: "white",
+  debug: "gray",
 };
 
 // Add colors to winston
