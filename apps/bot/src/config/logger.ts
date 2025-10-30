@@ -20,25 +20,44 @@ const colors = {
 // Add colors to winston
 winston.addColors(colors);
 
+// Detect if running on Railway
+const isRailway = process.env.RAILWAY_ENVIRONMENT === "production";
+
 // Create the logger
 export const logger = winston.createLogger({
   level: config.logLevel,
   levels,
   format: winston.format.combine(
-    winston.format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
-    }),
-    winston.format.colorize({ all: true }),
-    winston.format.printf(({ timestamp, level, message, ...metadata }) => {
-      let msg = `[${timestamp}] ${level}: ${message}`;
+    // Only add timestamps when not running on Railway (Railway adds its own)
+    isRailway
+      ? winston.format.printf(({ level, message, ...metadata }) => {
+          let msg = `${level}: ${message}`;
 
-      // Add metadata if present
-      if (Object.keys(metadata).length > 0) {
-        msg += ` ${JSON.stringify(metadata)}`;
-      }
+          // Add metadata if present
+          if (Object.keys(metadata).length > 0) {
+            msg += ` ${JSON.stringify(metadata)}`;
+          }
 
-      return msg;
-    })
+          return msg;
+        })
+      : winston.format.combine(
+          winston.format.timestamp({
+            format: "YYYY-MM-DD HH:mm:ss",
+          }),
+          winston.format.colorize({ all: true }),
+          winston.format.printf(
+            ({ timestamp, level, message, ...metadata }) => {
+              let msg = `[${timestamp}] ${level}: ${message}`;
+
+              // Add metadata if present
+              if (Object.keys(metadata).length > 0) {
+                msg += ` ${JSON.stringify(metadata)}`;
+              }
+
+              return msg;
+            }
+          )
+        )
   ),
   transports: [
     new winston.transports.Console({
@@ -51,24 +70,32 @@ export const logger = winston.createLogger({
 // Handle uncaught exceptions and rejections
 logger.exceptions.handle(
   new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.colorize(),
-      winston.format.printf(({ timestamp, level, message }) => {
-        return `[${timestamp}] ${level}: ${message}`;
-      })
-    ),
+    format: isRailway
+      ? winston.format.printf(({ level, message }) => {
+          return `${level}: ${message}`;
+        })
+      : winston.format.combine(
+          winston.format.timestamp(),
+          winston.format.colorize(),
+          winston.format.printf(({ timestamp, level, message }) => {
+            return `[${timestamp}] ${level}: ${message}`;
+          })
+        ),
   })
 );
 
 logger.rejections.handle(
   new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.colorize(),
-      winston.format.printf(({ timestamp, level, message }) => {
-        return `[${timestamp}] ${level}: ${message}`;
-      })
-    ),
+    format: isRailway
+      ? winston.format.printf(({ level, message }) => {
+          return `${level}: ${message}`;
+        })
+      : winston.format.combine(
+          winston.format.timestamp(),
+          winston.format.colorize(),
+          winston.format.printf(({ timestamp, level, message }) => {
+            return `[${timestamp}] ${level}: ${message}`;
+          })
+        ),
   })
 );
