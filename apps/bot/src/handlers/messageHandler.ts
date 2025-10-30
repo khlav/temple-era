@@ -1,5 +1,6 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import {
   extractWarcraftLogsUrls,
   extractReportId,
@@ -19,12 +20,12 @@ export async function handleMessage(message: Message) {
 
   // Check if we've already processed this message
   if (deduplicator.has(message.id)) {
-    console.log(`⏭️ Message ${message.id} already processed, skipping`);
+    logger.debug(`Message ${message.id} already processed, skipping`);
     return;
   }
 
   // Log messages in the target channel
-  console.log(`📨 Message from ${message.author.tag}: ${message.content}`);
+  logger.debug(`Message from ${message.author.tag}: ${message.content}`);
 
   // Extract WCL URLs
   const wclUrls = extractWarcraftLogsUrls(message.content);
@@ -45,13 +46,13 @@ export async function handleMessage(message: Message) {
 
   // Only proceed if user is a raid manager
   if (!hasAccount || !isRaidManager) {
-    console.log(`❌ User ${message.author.tag} is not a raid manager`);
+    logger.warn(`User ${message.author.tag} is not a raid manager`);
     return;
   }
 
   try {
-    console.log(
-      `🚀 Attempting to create raid for ${message.author.tag} with WCL URL: ${firstUrl}`
+    logger.info(
+      `Attempting to create raid for ${message.author.tag} with WCL URL: ${firstUrl}`
     );
 
     const response = await fetch(
@@ -74,20 +75,20 @@ export async function handleMessage(message: Message) {
     try {
       result = await response.json();
     } catch {
-      console.log(`❌ API endpoint not available yet`);
+      logger.warn(`API endpoint not available yet`);
       return;
     }
 
     if (result.success) {
       const raidStatus = result.isNew ? "created" : "found existing";
-      console.log(
-        `✅ Raid ${raidStatus}: ${result.raidName} (ID: ${result.raidId})`
+      logger.info(
+        `Raid ${raidStatus}: ${result.raidName} (ID: ${result.raidId})`
       );
 
       // Check if thread already exists for this message
       if (message.thread) {
-        console.log(
-          `📝 Thread already exists for this message, posting raid link in existing thread`
+        logger.info(
+          `Thread already exists for this message, posting raid link in existing thread`
         );
         await message.thread.send(result.raidUrl);
       } else {
@@ -101,9 +102,9 @@ export async function handleMessage(message: Message) {
         await thread.send(result.raidUrl);
       }
     } else {
-      console.log(`❌ Failed to create raid: ${result.error}`);
+      logger.error(`Failed to create raid: ${result.error}`);
     }
   } catch (error) {
-    console.error("Error creating raid automatically:", error);
+    logger.error("Error creating raid automatically:", error);
   }
 }

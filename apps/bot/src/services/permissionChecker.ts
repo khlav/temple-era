@@ -1,4 +1,5 @@
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 
 interface PermissionCheckResult {
   hasAccount: boolean;
@@ -27,7 +28,7 @@ export async function checkUserPermissions(
 
     return await response.json();
   } catch (error) {
-    console.error("Error checking user permissions:", error);
+    logger.error("Error checking user permissions:", error);
     return { hasAccount: false, isRaidManager: false };
   }
 }

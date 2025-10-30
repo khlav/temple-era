@@ -1,4 +1,5 @@
 import { type ThreadChannel } from "discord.js";
+import { logger } from "../config/logger.js";
 
 /**
  * Extract raid ID from thread messages by parsing raid URLs
@@ -25,7 +26,7 @@ export async function extractRaidIdFromThread(
 
     return null;
   } catch (error) {
-    console.error("Error extracting raid ID from thread:", error);
+    logger.error("Error extracting raid ID from thread:", error);
     return null;
   }
 }
