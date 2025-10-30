@@ -1,8 +1,12 @@
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 
 interface PermissionCheckResult {
+  success: boolean;
   hasAccount: boolean;
   isRaidManager: boolean;
+  error?: string; // Optional error message when success = false
+  statusCode?: number; // Optional HTTP status code
 }
 
 export async function checkUserPermissions(
@@ -22,12 +26,38 @@ export async function checkUserPermissions(
     );
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      logger.error("API error checking user permissions", {
+        endpoint: "/api/discord/check-permissions",
+        userId: discordUserId,
+        statusCode: response.status,
+        error: `HTTP ${response.status}`,
+      });
+      return {
+        success: false,
+        hasAccount: false,
+        isRaidManager: false,
+        error: `HTTP ${response.status}`,
+        statusCode: response.status,
+      };
     }
 
-    return await response.json();
+    const result = await response.json();
+    return {
+      success: true,
+      hasAccount: result.hasAccount,
+      isRaidManager: result.isRaidManager,
+    };
   } catch (error) {
-    console.error("Error checking user permissions:", error);
-    return { hasAccount: false, isRaidManager: false };
+    logger.error("Error checking user permissions", {
+      endpoint: "/api/discord/check-permissions",
+      userId: discordUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      success: false,
+      hasAccount: false,
+      isRaidManager: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

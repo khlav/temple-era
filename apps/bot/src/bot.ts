@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Events, type Message } from "discord.js";
 import * as cron from "node-cron";
 import { config } from "./config/env.js";
+import { logger } from "./config/logger.js";
 import { handleMessage } from "./handlers/messageHandler.js";
 import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
@@ -16,8 +17,8 @@ export function createBot(): Client {
   });
 
   client.on(Events.ClientReady, () => {
-    console.log(`✅ Bot logged in as ${client.user?.tag}`);
-    console.log(`📡 Monitoring channel: ${config.discordLogsChannelId}`);
+    logger.info(`Bot logged in as ${client.user?.tag}`);
+    logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
 
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {
@@ -31,24 +32,11 @@ export function createBot(): Client {
         }
       );
 
-      console.log(
-        `🧹 Thread cleanup scheduled: ${config.threadCleanupCron} (ET)`
-      );
-      console.log(`⏰ Cleanup will run daily at 1am Eastern Time`);
+      logger.info(`Thread cleanup scheduled: ${config.threadCleanupCron} (ET)`);
+      logger.info(`Cleanup will run daily at 1am Eastern Time`);
     } else {
-      console.log("🧹 Thread cleanup is disabled");
+      logger.info("Thread cleanup is disabled");
     }
-
-    // Schedule memory monitoring
-    setInterval(
-      () => {
-        const memUsage = process.memoryUsage();
-        console.log(
-          `💾 Memory usage: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
-        );
-      },
-      30 * 60 * 1000
-    ); // Every 30 minutes
   });
 
   client.on(Events.MessageCreate, (message) => {
@@ -63,7 +51,7 @@ export function createBot(): Client {
     // Only process if newMessage is a partial message (Discord.js behavior)
     if (newMessage.partial) {
       void newMessage.fetch().catch((error) => {
-        console.log("Could not fetch the updated message:", error);
+        logger.error("Could not fetch the updated message:", error);
       });
       return;
     }
@@ -75,7 +63,7 @@ export function createBot(): Client {
   });
 
   client.on(Events.Error, (error) => {
-    console.error("Discord client error:", error);
+    logger.error("Discord client error:", error);
   });
 
   return client;

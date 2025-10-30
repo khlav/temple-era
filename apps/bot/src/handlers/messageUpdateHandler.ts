@@ -1,5 +1,6 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import {
   extractWarcraftLogsUrls,
   extractReportId,
@@ -16,8 +17,8 @@ export async function handleMessageUpdate(
 ) {
   // Skip if this is not actually an edit (editedTimestamp is null or 0)
   if (!newMessage.editedTimestamp || newMessage.editedTimestamp === 0) {
-    console.log(
-      `⏭️ Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`
+    logger.debug(
+      `Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`
     );
     return;
   }
@@ -27,8 +28,8 @@ export async function handleMessageUpdate(
 
   // Check if we've already processed this exact update recently
   if (deduplicator.has(updateKey)) {
-    console.log(
-      `⏭️ Message update ${updateKey} already processed recently, skipping`
+    logger.debug(
+      `Message update ${updateKey} already processed recently, skipping`
     );
     return;
   }
@@ -57,7 +58,7 @@ export async function handleMessageUpdate(
           "⏰ Raid edits are only allowed within 15 minutes of the original message."
         );
       } catch (error) {
-        console.log(
+        logger.error(
           "Could not post 15-minute window message to thread:",
           error
         );
@@ -84,27 +85,40 @@ export async function handleMessageUpdate(
           "❌ Invalid WarcraftLogs URL. Please check the link and try again."
         );
       } catch (error) {
-        console.log("Could not post invalid URL message to thread:", error);
+        logger.error("Could not post invalid URL message to thread:", error);
       }
     }
     return;
   }
 
   // Check user permissions
-  const { hasAccount, isRaidManager } = await checkUserPermissions(
-    newMessage.author.id
-  );
+  const permissionResult = await checkUserPermissions(newMessage.author.id);
+
+  if (!permissionResult.success) {
+    logger.error("Failed to check permissions - API unavailable", {
+      user: newMessage.author.tag,
+      userId: newMessage.author.id,
+      error: permissionResult.error,
+      statusCode: permissionResult.statusCode,
+      messageId: newMessage.id,
+    });
+    return;
+  }
 
   // Only proceed if user is a raid manager
-  if (!hasAccount || !isRaidManager) {
+  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
     // Return silently (same as create flow - no permission spam)
     return;
   }
 
   try {
-    console.log(
-      `🔄 Attempting to update raid for ${newMessage.author.tag} with new WCL URL: ${firstUrl}`
-    );
+    logger.info("Attempting to update raid", {
+      user: newMessage.author.tag,
+      userId: newMessage.author.id,
+      newWclUrl: firstUrl,
+      messageId: newMessage.id,
+      oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
+    });
 
     const response = await fetch(
       `${config.apiBaseUrl}/api/discord/update-raid`,
@@ -126,18 +140,36 @@ export async function handleMessageUpdate(
     try {
       result = await response.json();
     } catch {
-      console.log(`❌ API endpoint not available yet`);
+      logger.warn("API endpoint not available yet", {
+        endpoint: "/api/discord/update-raid",
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        statusCode: response.status,
+        messageId: newMessage.id,
+      });
       return;
     }
 
     if (result.success) {
       if (result.message) {
         // No change detected (same report ID)
-        console.log(`ℹ️ ${result.message}`);
+        logger.info("No change detected in raid update", {
+          message: result.message,
+          user: newMessage.author.tag,
+          userId: newMessage.author.id,
+          messageId: newMessage.id,
+        });
         return;
       }
 
-      console.log(`✅ Raid updated: ${result.raidName} (ID: ${result.raidId})`);
+      logger.info("Raid updated successfully", {
+        raidName: result.raidName,
+        raidId: result.raidId,
+        nameChanged: result.nameChanged,
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        messageId: newMessage.id,
+      });
 
       // Post success message in thread
       if (newMessage.thread) {
@@ -148,7 +180,12 @@ export async function handleMessageUpdate(
           }
           await newMessage.thread.send(message);
         } catch (error) {
-          console.log("Could not post success message to thread:", error);
+          logger.error("Could not post success message to thread", {
+            error: error instanceof Error ? error.message : String(error),
+            threadId: newMessage.thread.id,
+            raidId: result.raidId,
+            user: newMessage.author.tag,
+          });
         }
       }
 
@@ -156,12 +193,29 @@ export async function handleMessageUpdate(
       if (result.nameChanged && newMessage.thread) {
         try {
           await newMessage.thread.setName(`Raid: ${result.raidName}`);
+          logger.info("Updated thread name", {
+            threadId: newMessage.thread.id,
+            oldName: newMessage.thread.name,
+            newName: `Raid: ${result.raidName}`,
+            raidId: result.raidId,
+          });
         } catch (error) {
-          console.log("Could not update thread name:", error);
+          logger.error("Could not update thread name", {
+            error: error instanceof Error ? error.message : String(error),
+            threadId: newMessage.thread.id,
+            raidId: result.raidId,
+            user: newMessage.author.tag,
+          });
         }
       }
     } else {
-      console.log(`❌ Failed to update raid: ${result.error}`);
+      logger.error("Failed to update raid", {
+        error: result.error,
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        messageId: newMessage.id,
+        newWclUrl: firstUrl,
+      });
 
       // Post error message in thread
       if (newMessage.thread) {
@@ -172,12 +226,23 @@ export async function handleMessageUpdate(
           }
           await newMessage.thread.send(errorMessage);
         } catch (error) {
-          console.log("Could not post error message to thread:", error);
+          logger.error("Could not post error message to thread", {
+            error: error instanceof Error ? error.message : String(error),
+            threadId: newMessage.thread.id,
+            user: newMessage.author.tag,
+            messageId: newMessage.id,
+          });
         }
       }
     }
   } catch (error) {
-    console.error("Error updating raid automatically:", error);
+    logger.error("Error updating raid automatically", {
+      error: error instanceof Error ? error.message : String(error),
+      user: newMessage.author.tag,
+      userId: newMessage.author.id,
+      messageId: newMessage.id,
+      newWclUrl: firstUrl,
+    });
 
     // Post generic error message in thread
     if (newMessage.thread) {
@@ -186,7 +251,15 @@ export async function handleMessageUpdate(
           "❌ An error occurred while updating the raid. Please try again."
         );
       } catch (threadError) {
-        console.log("Could not post error message to thread:", threadError);
+        logger.error("Could not post error message to thread", {
+          error:
+            threadError instanceof Error
+              ? threadError.message
+              : String(threadError),
+          threadId: newMessage.thread.id,
+          user: newMessage.author.tag,
+          messageId: newMessage.id,
+        });
       }
     }
   }

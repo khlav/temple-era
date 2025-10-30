@@ -1,27 +1,26 @@
 import { type Client } from "discord.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 
 export async function cleanupOldThreads(client: Client) {
   if (!config.threadCleanupEnabled) {
-    console.log("🧹 Thread cleanup is disabled via environment variable");
+    logger.info("Thread cleanup is disabled via environment variable");
     return;
   }
 
   try {
-    console.log("🧹 Starting thread cleanup process...");
+    logger.info("Starting thread cleanup process...");
 
     // Get the logs channel
     const channel = await client.channels.fetch(config.discordLogsChannelId);
     if (!channel || !channel.isTextBased()) {
-      console.error(
-        "❌ Could not find logs channel or channel is not text-based"
-      );
+      logger.error("Could not find logs channel or channel is not text-based");
       return;
     }
 
     // Check if channel supports threads (TextChannel or NewsChannel)
     if (!("threads" in channel)) {
-      console.error("❌ Channel does not support threads");
+      logger.error("Channel does not support threads");
       return;
     }
 
@@ -33,14 +32,14 @@ export async function cleanupOldThreads(client: Client) {
       ...archivedThreads.threads.values(),
     ];
 
-    console.log(`📊 Found ${allThreads.length} total threads in logs channel`);
+    logger.info(`Found ${allThreads.length} total threads in logs channel`);
 
     // Filter for bot-created threads
     const botThreads = allThreads.filter((thread) => {
       return thread.ownerId === client.user?.id;
     });
 
-    console.log(`🤖 Found ${botThreads.length} bot-created threads`);
+    logger.info(`Found ${botThreads.length} bot-created threads`);
 
     // Calculate cutoff time (3 days ago in milliseconds)
     const cutoffTime =
@@ -51,12 +50,12 @@ export async function cleanupOldThreads(client: Client) {
       return thread.createdTimestamp && thread.createdTimestamp < cutoffTime;
     });
 
-    console.log(
-      `⏰ Found ${oldThreads.length} threads older than ${config.threadCleanupDays} days`
+    logger.info(
+      `Found ${oldThreads.length} threads older than ${config.threadCleanupDays} days`
     );
 
     if (oldThreads.length === 0) {
-      console.log("✅ No old threads to clean up");
+      logger.info("No old threads to clean up");
       return;
     }
 
@@ -72,18 +71,18 @@ export async function cleanupOldThreads(client: Client) {
         await thread.delete();
         deletedCount++;
 
-        console.log(
-          `🗑️ Deleted thread: "${threadName}" (created: ${createdDate})`
+        logger.info(
+          `Deleted thread: "${threadName}" (created: ${createdDate})`
         );
       } catch (error) {
-        console.error(`❌ Failed to delete thread "${thread.name}":`, error);
+        logger.error(`Failed to delete thread "${thread.name}":`, error);
       }
     }
 
-    console.log(
-      `✅ Thread cleanup completed: ${deletedCount}/${oldThreads.length} threads deleted`
+    logger.info(
+      `Thread cleanup completed: ${deletedCount}/${oldThreads.length} threads deleted`
     );
   } catch (error) {
-    console.error("❌ Thread cleanup failed:", error);
+    logger.error("Thread cleanup failed:", error);
   }
 }

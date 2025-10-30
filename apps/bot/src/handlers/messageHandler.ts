@@ -1,5 +1,6 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import {
   extractWarcraftLogsUrls,
   extractReportId,
@@ -19,12 +20,12 @@ export async function handleMessage(message: Message) {
 
   // Check if we've already processed this message
   if (deduplicator.has(message.id)) {
-    console.log(`⏭️ Message ${message.id} already processed, skipping`);
+    logger.debug(`Message ${message.id} already processed, skipping`);
     return;
   }
 
   // Log messages in the target channel
-  console.log(`📨 Message from ${message.author.tag}: ${message.content}`);
+  logger.debug(`Message from ${message.author.tag}: ${message.content}`);
 
   // Extract WCL URLs
   const wclUrls = extractWarcraftLogsUrls(message.content);
@@ -39,20 +40,30 @@ export async function handleMessage(message: Message) {
   deduplicator.add(message.id);
 
   // Check user permissions
-  const { hasAccount, isRaidManager } = await checkUserPermissions(
-    message.author.id
-  );
+  const permissionResult = await checkUserPermissions(message.author.id);
 
-  // Only proceed if user is a raid manager
-  if (!hasAccount || !isRaidManager) {
-    console.log(`❌ User ${message.author.tag} is not a raid manager`);
+  if (!permissionResult.success) {
+    logger.error("Failed to check permissions - API unavailable", {
+      user: message.author.tag,
+      userId: message.author.id,
+      error: permissionResult.error,
+      statusCode: permissionResult.statusCode,
+    });
+    return;
+  }
+
+  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
+    logger.warn(`User ${message.author.tag} is not a raid manager`);
     return;
   }
 
   try {
-    console.log(
-      `🚀 Attempting to create raid for ${message.author.tag} with WCL URL: ${firstUrl}`
-    );
+    logger.info("Attempting to create raid", {
+      user: message.author.tag,
+      userId: message.author.id,
+      wclUrl: firstUrl,
+      messageId: message.id,
+    });
 
     const response = await fetch(
       `${config.apiBaseUrl}/api/discord/create-raid`,
@@ -74,21 +85,31 @@ export async function handleMessage(message: Message) {
     try {
       result = await response.json();
     } catch {
-      console.log(`❌ API endpoint not available yet`);
+      logger.warn("API endpoint not available yet", {
+        endpoint: "/api/discord/create-raid",
+        user: message.author.tag,
+        userId: message.author.id,
+        statusCode: response.status,
+      });
       return;
     }
 
     if (result.success) {
       const raidStatus = result.isNew ? "created" : "found existing";
-      console.log(
-        `✅ Raid ${raidStatus}: ${result.raidName} (ID: ${result.raidId})`
-      );
+      logger.info("Raid operation successful", {
+        status: raidStatus,
+        raidName: result.raidName,
+        raidId: result.raidId,
+        user: message.author.tag,
+        userId: message.author.id,
+      });
 
       // Check if thread already exists for this message
       if (message.thread) {
-        console.log(
-          `📝 Thread already exists for this message, posting raid link in existing thread`
-        );
+        logger.info("Thread already exists, posting raid link", {
+          threadId: message.thread.id,
+          raidId: result.raidId,
+        });
         await message.thread.send(result.raidUrl);
       } else {
         // Create thread with raid name
@@ -97,13 +118,29 @@ export async function handleMessage(message: Message) {
           autoArchiveDuration: 60, // 1 hour (valid Discord enum value)
         });
 
+        logger.info("Created new thread for raid", {
+          threadId: thread.id,
+          threadName: thread.name,
+          raidId: result.raidId,
+        });
+
         // Post simple raid link in the thread
         await thread.send(result.raidUrl);
       }
     } else {
-      console.log(`❌ Failed to create raid: ${result.error}`);
+      logger.error("Failed to create raid", {
+        error: result.error,
+        user: message.author.tag,
+        userId: message.author.id,
+        wclUrl: firstUrl,
+      });
     }
   } catch (error) {
-    console.error("Error creating raid automatically:", error);
+    logger.error("Error creating raid automatically", {
+      error: error instanceof Error ? error.message : String(error),
+      user: message.author.tag,
+      userId: message.author.id,
+      wclUrl: firstUrl,
+    });
   }
 }

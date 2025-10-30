@@ -6,6 +6,8 @@ export const config = {
   discordLogsChannelId: process.env.DISCORD_RAID_LOGS_CHANNEL_ID!,
   apiBaseUrl: process.env.API_BASE_URL!,
   templeWebApiToken: process.env.TEMPLE_WEB_API_TOKEN!,
+  // Logging configuration
+  logLevel: process.env.LOG_LEVEL || "info",
   // Thread cleanup configuration (optional - disabled by default)
   threadCleanupEnabled:
     process.env.DISCORD_LOG_THREAD_CLEANUP_ENABLED === "true",

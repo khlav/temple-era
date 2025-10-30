@@ -1,5 +1,6 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import {
   extractRaidIdFromThread,
@@ -23,7 +24,7 @@ export async function handleThreadMessage(message: Message) {
 
   // Check if we've already processed this message
   if (deduplicator.has(message.id)) {
-    console.log(`⏭️ Thread message ${message.id} already processed, skipping`);
+    logger.debug(`Thread message ${message.id} already processed, skipping`);
     return;
   }
 
@@ -33,15 +34,24 @@ export async function handleThreadMessage(message: Message) {
   // Mark this message as processed
   deduplicator.add(message.id);
 
-  console.log(`📝 Bench message detected in thread: ${message.content}`);
+  logger.debug(`Bench message detected in thread: ${message.content}`);
 
   // Check user permissions
-  const { hasAccount, isRaidManager } = await checkUserPermissions(
-    message.author.id
-  );
+  const permissionResult = await checkUserPermissions(message.author.id);
 
-  if (!hasAccount || !isRaidManager) {
-    console.log(`❌ User ${message.author.tag} is not a raid manager`);
+  if (!permissionResult.success) {
+    logger.error("Failed to check permissions - API unavailable", {
+      user: message.author.tag,
+      userId: message.author.id,
+      error: permissionResult.error,
+      statusCode: permissionResult.statusCode,
+      threadId: message.channel.id,
+    });
+    return;
+  }
+
+  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
+    logger.warn(`User ${message.author.tag} is not a raid manager`);
     return;
   }
 
@@ -49,7 +59,11 @@ export async function handleThreadMessage(message: Message) {
     // Extract raid ID from thread messages
     const raidId = await extractRaidIdFromThread(message.channel);
     if (!raidId) {
-      console.log(`❌ Could not find raid ID in thread`);
+      logger.warn("Could not find raid ID in thread", {
+        threadId: message.channel.id,
+        user: message.author.tag,
+        userId: message.author.id,
+      });
       await message.reply(
         "❌ Could not find raid ID in this thread. Make sure a raid URL was posted."
       );
@@ -59,12 +73,21 @@ export async function handleThreadMessage(message: Message) {
     // Parse character names from the message
     const characterNames = parseCharacterNames(message.content);
     if (characterNames.length === 0) {
-      console.log(`❌ No character names found in message`);
+      logger.warn("No character names found in message", {
+        threadId: message.channel.id,
+        user: message.author.tag,
+        userId: message.author.id,
+        messageContent: message.content,
+      });
       await message.reply("❌ No character names found in your message.");
       return;
     }
 
-    console.log(`🔍 Found character names: ${characterNames.join(", ")}`);
+    logger.debug("Found character names", {
+      characterNames: characterNames.join(", "),
+      threadId: message.channel.id,
+      user: message.author.tag,
+    });
 
     // Call the API to update bench
     const response = await fetch(
@@ -116,13 +139,32 @@ export async function handleThreadMessage(message: Message) {
       replyMessage += `**Total benched characters:** ${totalBenchCharacters}`;
 
       await message.reply(replyMessage);
-      console.log(`✅ Successfully updated bench for raid ${raidId}`);
+      logger.info("Successfully updated bench", {
+        raidId: raidId,
+        matchedCharacters: matchedCharacters.length,
+        unmatchedNames: unmatchedNames.length,
+        totalBenchCharacters: totalBenchCharacters,
+        user: message.author.tag,
+        userId: message.author.id,
+        threadId: message.channel.id,
+      });
     } else {
-      console.log(`❌ Failed to update bench: ${result.error}`);
+      logger.error("Failed to update bench", {
+        error: result.error,
+        raidId: raidId,
+        user: message.author.tag,
+        userId: message.author.id,
+        threadId: message.channel.id,
+      });
       await message.reply(`❌ Failed to update bench: ${result.error}`);
     }
   } catch (error) {
-    console.error("Error handling thread message:", error);
+    logger.error("Error handling thread message", {
+      error: error instanceof Error ? error.message : String(error),
+      user: message.author.tag,
+      userId: message.author.id,
+      threadId: message.channel.id,
+    });
     await message.reply("❌ An error occurred while updating the bench.");
   }
 }
