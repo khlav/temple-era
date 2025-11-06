@@ -25,9 +25,6 @@ export function createBot(): Client {
       MessageManager: {
         maxSize: 0, // Disable message caching - we fetch when needed
       },
-      ChannelManager: {
-        maxSize: 0, // Disable channel caching - we fetch when needed
-      },
       GuildManager: {
         maxSize: 2, // Keep minimal guild cache (1-2 guilds)
       },
