@@ -1,8 +1,7 @@
 {
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "pnpm install --ignore-scripts && pnpm build && pnpm prune --prod"
-
+    "buildCommand": "sh -c 'export HUSKY=0 && pnpm install --ignore-scripts && pnpm build && pnpm prune --prod'"
   },
   "deploy": {
     "startCommand": "node dist/index.js",
