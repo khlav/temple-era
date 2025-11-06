@@ -10,8 +10,9 @@ export async function extractRaidIdFromThread(
   thread: ThreadChannel
 ): Promise<number | null> {
   try {
-    // Fetch up to 50 messages to find raid URL
-    const messages = await thread.messages.fetch({ limit: 50 });
+    // Fetch up to 20 messages to find raid URL (raid URLs are typically posted early)
+    // cache: false prevents messages from being added to Discord.js cache
+    const messages = await thread.messages.fetch({ limit: 20, cache: false });
 
     // Look for raid URLs in the messages
     for (const [, message] of messages) {

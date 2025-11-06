@@ -1,4 +1,10 @@
-import { Client, GatewayIntentBits, Events, type Message } from "discord.js";
+import {
+  Client,
+  GatewayIntentBits,
+  Events,
+  type Message,
+  Options,
+} from "discord.js";
 import * as cron from "node-cron";
 import { config } from "./config/env.js";
 import { logger } from "./config/logger.js";
@@ -14,6 +20,39 @@ export function createBot(): Client {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
     ],
+    // Aggressive cache limits to reduce memory usage
+    makeCache: Options.cacheWithLimits({
+      MessageManager: {
+        maxSize: 0, // Disable message caching - we fetch when needed
+      },
+      ChannelManager: {
+        maxSize: 0, // Disable channel caching - we fetch when needed
+      },
+      GuildManager: {
+        maxSize: 2, // Keep minimal guild cache (1-2 guilds)
+      },
+      UserManager: {
+        maxSize: 20, // Keep small user cache for permissions
+      },
+      ThreadManager: {
+        maxSize: 0, // Disable thread caching - we fetch when needed
+      },
+      ThreadMemberManager: {
+        maxSize: 0, // Disable thread member caching
+      },
+      ReactionManager: {
+        maxSize: 0, // Disable reaction caching
+      },
+      PresenceManager: {
+        maxSize: 0, // Disable presence caching
+      },
+      VoiceStateManager: {
+        maxSize: 0, // Disable voice state caching
+      },
+      ApplicationCommandManager: {
+        maxSize: 0, // Disable application command caching
+      },
+    }),
   });
 
   client.on(Events.ClientReady, () => {
