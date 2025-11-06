@@ -21,12 +21,10 @@ export function createBot(): Client {
       GatewayIntentBits.MessageContent,
     ],
     // Aggressive cache limits to reduce memory usage
+    // Note: GuildManager, ChannelManager, GuildChannelManager, RoleManager, and PermissionOverwriteManager are unsupported
     makeCache: Options.cacheWithLimits({
       MessageManager: {
         maxSize: 0, // Disable message caching - we fetch when needed
-      },
-      GuildManager: {
-        maxSize: 2, // Keep minimal guild cache (1-2 guilds)
       },
       UserManager: {
         maxSize: 20, // Keep small user cache for permissions
