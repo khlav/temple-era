@@ -1,7 +1,7 @@
 {
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "sh -c 'export HUSKY=0 && pnpm install --ignore-scripts && npx tsc -p tsconfig.prod.json && pnpm prune --prod'"
+    "buildCommand": "sh -c 'export HUSKY=0 && pnpm install --ignore-scripts && ./node_modules/.bin/tsc -p tsconfig.prod.json && test -f dist/index.js && pnpm prune --prod'"
   },
   "deploy": {
     "startCommand": "node dist/index.js",
