@@ -41,7 +41,9 @@ export function RaidEditor({
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handleInputChangeAction = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChangeAction = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setRaidDataAction((raidData) => ({
       ...raidData,
       [e.target.name]: e.target.value,
