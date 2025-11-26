@@ -13,7 +13,7 @@
  */
 
 import type { RaidZone } from "./raid-zones";
-import { getInstancesForZone } from "./zone-instance-map";
+import { getInstancesForZone } from "./raid-zones";
 
 /**
  * Equipment slot types for items
@@ -174,7 +174,7 @@ export async function getItemById(
   // If no zone provided, we need to search across instances
   // This is less efficient but maintains backward compatibility
   // We search through all zone-mapped instances first (most common case)
-  const { ZONE_TO_INSTANCES } = await import("./zone-instance-map");
+  const { ZONE_TO_INSTANCES } = await import("./raid-zones");
   const allMappedInstances = Object.values(ZONE_TO_INSTANCES).flat();
 
   for (const instance of allMappedInstances) {
