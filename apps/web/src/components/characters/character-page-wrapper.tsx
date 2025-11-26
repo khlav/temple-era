@@ -2,11 +2,12 @@
 
 import { CharacterDetail } from "~/components/characters/character-detail";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
-import { api } from "~/trpc/react";
 import { useEffect } from "react";
+import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
 interface CharacterPageWrapperProps {
   characterId: number;
+  characterData: RaidParticipant;
   showEditButton?: boolean;
   showRecipeEdit?: boolean;
   initialBreadcrumbData?: { [key: string]: string };
@@ -14,13 +15,12 @@ interface CharacterPageWrapperProps {
 
 export function CharacterPageWrapper({
   characterId,
+  characterData,
   showEditButton,
   showRecipeEdit,
   initialBreadcrumbData,
 }: CharacterPageWrapperProps) {
   const { updateBreadcrumbSegment } = useBreadcrumb();
-  const { data: characterData, isSuccess } =
-    api.character.getCharacterById.useQuery(characterId);
 
   // Set initial breadcrumb data from server
   useEffect(() => {
@@ -31,27 +31,13 @@ export function CharacterPageWrapper({
     }
   }, [initialBreadcrumbData, updateBreadcrumbSegment]);
 
-  useEffect(() => {
-    if (isSuccess && characterData) {
-      // Update breadcrumb with character name (only if not already set by server)
-      if (!initialBreadcrumbData?.[characterId.toString()]) {
-        updateBreadcrumbSegment(characterId.toString(), characterData.name);
-      }
-    }
-  }, [
-    isSuccess,
-    characterData,
-    characterId,
-    updateBreadcrumbSegment,
-    initialBreadcrumbData,
-  ]);
-
   return (
     <div className="w-full px-4">
-      {characterId && (
+      {characterId && characterData && (
         <>
           <CharacterDetail
             characterId={characterId}
+            characterData={characterData}
             showEditButton={showEditButton}
             showRecipeEdit={showRecipeEdit}
           />

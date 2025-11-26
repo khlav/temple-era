@@ -87,6 +87,38 @@ export const recipe = createTRPCRouter({
     },
   ),
 
+  getRecipesForCharacter: publicProcedure
+    .input(z.number())
+    .query(async ({ ctx, input }): Promise<Recipe[]> => {
+      // Fetch only recipes for the specified character using a join
+      const characterRecipesResult = await ctx.db
+        .select({
+          recipeSpellId: recipes.recipeSpellId,
+          itemId: recipes.itemId,
+          profession: recipes.profession,
+          recipe: recipes.recipe,
+          isCommon: recipes.isCommon,
+          notes: recipes.notes,
+          tags: recipes.tags,
+          createdById: recipes.createdById,
+          updatedById: recipes.updatedById,
+          createdAt: recipes.createdAt,
+          updatedAt: recipes.updatedAt,
+        })
+        .from(recipes)
+        .innerJoin(
+          characterRecipeMap,
+          eq(recipes.recipeSpellId, characterRecipeMap.recipeSpellId),
+        )
+        .where(eq(characterRecipeMap.characterId, input))
+        .orderBy(
+          sql<string>`CAST(${recipes.profession} as TEXT)`,
+          recipes.recipe,
+        );
+
+      return characterRecipesResult;
+    }),
+
   addRecipe: adminProcedure
     .input(
       z.object({

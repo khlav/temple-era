@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { env } from "~/env";
 
 /**
  * 1. CONTEXT
@@ -34,6 +35,42 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     session,
     ...opts,
   };
+};
+
+/**
+ * Check if DATABASE_URL points to a local database
+ */
+const isLocalDatabase = () => {
+  try {
+    const url = new URL(env.DATABASE_URL);
+    const hostname = url.hostname.toLowerCase();
+    // Check if hostname is localhost, 127.0.0.1, or a local IP range
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname.startsWith("172.17.") ||
+      hostname.startsWith("172.18.") ||
+      hostname.startsWith("172.19.") ||
+      hostname.startsWith("172.20.") ||
+      hostname.startsWith("172.21.") ||
+      hostname.startsWith("172.22.") ||
+      hostname.startsWith("172.23.") ||
+      hostname.startsWith("172.24.") ||
+      hostname.startsWith("172.25.") ||
+      hostname.startsWith("172.26.") ||
+      hostname.startsWith("172.27.") ||
+      hostname.startsWith("172.28.") ||
+      hostname.startsWith("172.29.") ||
+      hostname.startsWith("172.30.") ||
+      hostname.startsWith("172.31.")
+    );
+  } catch {
+    // If URL parsing fails, assume remote to be safe
+    return false;
+  }
 };
 
 /**
@@ -83,12 +120,16 @@ export const createTRPCRouter = t.router;
  *
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
  * network latency that would occur in production but not in local development.
+ *
+ * Note: Artificial delay is only applied when using a local database. If connecting to a remote
+ * database, real network latency will already be present, so no artificial delay is added.
  */
 const timingMiddleware = t.middleware(async ({ next, path }) => {
   const start = Date.now();
 
-  if (t._config.isDev) {
-    // artificial delay in dev
+  if (t._config.isDev && isLocalDatabase()) {
+    // artificial delay in dev (only for local database connections)
+    // Remote databases already have real network latency
     const waitMs = Math.floor(Math.random() * 400) + 100;
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }

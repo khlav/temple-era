@@ -1,11 +1,19 @@
 import { auth } from "~/server/auth";
 import { RaidEditPageWrapper } from "~/components/raids/raid-edit-page-wrapper";
 import { redirect } from "next/navigation";
-import {
-  getRaidMetadataWithStats,
-  getRaidBreadcrumbName,
-} from "~/server/metadata-helpers";
+import { getRaidMetadataWithStats } from "~/server/metadata-helpers";
 import { type Metadata } from "next";
+import { cache, Suspense } from "react";
+import { RaidEditSkeleton } from "~/components/raids/skeletons";
+import type { Session } from "next-auth";
+import { createCaller } from "~/server/api/root";
+import { createTRPCContext } from "~/server/api/trpc";
+import { headers } from "next/headers";
+
+// Cache the raid data fetch to avoid duplicate calls between generateMetadata and page component
+const getCachedRaidData = cache(async (raidId: number) => {
+  return await getRaidMetadataWithStats(raidId);
+});
 
 export async function generateMetadata({
   params,
@@ -14,7 +22,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const p = await params;
   const raidId = parseInt(String(p.raidId));
-  const raidData = await getRaidMetadataWithStats(raidId);
+  const raidData = await getCachedRaidData(raidId);
 
   if (!raidData) {
     return {
@@ -39,26 +47,52 @@ export async function generateMetadata({
   };
 }
 
+async function RaidEditPageContent({
+  raidId,
+  session,
+}: {
+  raidId: number;
+  session: Session | null;
+}) {
+  if (!session?.user?.isRaidManager) {
+    redirect("/raids");
+  }
+
+  // Fetch raid data using tRPC
+  const heads = new Headers(await headers());
+  heads.set("x-trpc-source", "rsc");
+  const ctx = await createTRPCContext({ headers: heads });
+  const caller = createCaller(ctx);
+  const raidData = await caller.raid.getRaidById(raidId);
+
+  if (!raidData) {
+    redirect("/raids");
+  }
+
+  // Get raid name for breadcrumb from the fetched data
+  const raidName = raidData.name;
+
+  return (
+    <RaidEditPageWrapper
+      raidId={raidId}
+      raidData={raidData}
+      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
+    />
+  );
+}
+
 export default async function RaidEditPage({
   params,
 }: {
   params: Promise<{ raidId: number }>;
 }) {
   const p = await params;
-  const raidId = parseInt(String(p.raidId)); // Access your dynamic URL parameter here (e.g., /raids/[[raidId]])
+  const raidId = parseInt(String(p.raidId));
   const session = await auth();
 
-  if (!session?.user?.isRaidManager) {
-    redirect("/raids");
-  }
-
-  // Get raid name for breadcrumb
-  const raidName = await getRaidBreadcrumbName(raidId);
-
   return (
-    <RaidEditPageWrapper
-      raidId={raidId}
-      initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
-    />
+    <Suspense fallback={<RaidEditSkeleton />}>
+      <RaidEditPageContent raidId={raidId} session={session} />
+    </Suspense>
   );
 }
