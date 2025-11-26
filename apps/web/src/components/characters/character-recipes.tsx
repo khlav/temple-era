@@ -40,14 +40,20 @@ export const CharacterRecipes = ({
   const { toast } = useToast();
   const characterId = character.characterId;
 
-  // Fetch all recipes with character data
-  const { data: allRecipesWithCharacters, isLoading: allRecipesLoading } =
-    api.recipe.getAllRecipesWithCharacters.useQuery();
+  // Fetch character-specific recipes for view mode (lightweight query)
+  const { data: characterRecipesData, isLoading: characterRecipesLoading } =
+    api.recipe.getRecipesForCharacter.useQuery(characterId, {
+      enabled: !isEditMode,
+    });
 
-  // Group recipes by profession for the character
-  const characterRecipes = allRecipesWithCharacters?.filter((recipe) =>
-    recipe.characters.some((char) => char.characterId === characterId),
-  );
+  // Fetch all recipes with character data only when in edit mode (heavier query)
+  const { data: allRecipesWithCharacters, isLoading: allRecipesLoading } =
+    api.recipe.getAllRecipesWithCharacters.useQuery(undefined, {
+      enabled: isEditMode,
+    });
+
+  // Group recipes by profession for the character (from character-specific query)
+  const characterRecipes = characterRecipesData;
 
   // Group all recipes by profession
   const recipesByProfession = allRecipesWithCharacters?.reduce(
@@ -77,13 +83,18 @@ export const CharacterRecipes = ({
 
   const addRecipeToCharacter = api.recipe.addRecipeToCharacter.useMutation({
     onSuccess: async (data, variables) => {
-      // Invalidate the recipes query to refresh data
+      // Invalidate both recipe queries to refresh data
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
+      await utils.recipe.getRecipesForCharacter.invalidate(characterId);
 
       // Find recipe name based on spellId
-      const recipe = allRecipesWithCharacters?.find(
-        (r) => r.recipeSpellId === variables.recipeSpellId,
-      );
+      const recipe =
+        allRecipesWithCharacters?.find(
+          (r) => r.recipeSpellId === variables.recipeSpellId,
+        ) ??
+        characterRecipes?.find(
+          (r) => r.recipeSpellId === variables.recipeSpellId,
+        );
       const recipeName = recipe?.recipe ?? "Recipe";
 
       const characterName = character.name;
@@ -105,13 +116,18 @@ export const CharacterRecipes = ({
   const removeRecipeFromCharacter =
     api.recipe.removeRecipeFromCharacter.useMutation({
       onSuccess: async (data, variables) => {
-        // Invalidate the recipes query to refresh data
+        // Invalidate both recipe queries to refresh data
         await utils.recipe.getAllRecipesWithCharacters.invalidate();
+        await utils.recipe.getRecipesForCharacter.invalidate(characterId);
 
         // Find recipe name based on spellId
-        const recipe = allRecipesWithCharacters?.find(
-          (r) => r.recipeSpellId === variables.recipeSpellId,
-        );
+        const recipe =
+          allRecipesWithCharacters?.find(
+            (r) => r.recipeSpellId === variables.recipeSpellId,
+          ) ??
+          characterRecipes?.find(
+            (r) => r.recipeSpellId === variables.recipeSpellId,
+          );
         const recipeName = recipe?.recipe ?? "Recipe";
 
         const characterName = character.name;
@@ -132,11 +148,19 @@ export const CharacterRecipes = ({
 
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
-    return characterRecipes?.some(
-      (recipe) =>
-        recipe.recipeSpellId === recipeSpellId &&
-        recipe.characters.some((char) => char.characterId === characterId),
-    );
+    if (isEditMode) {
+      // In edit mode, check against allRecipesWithCharacters
+      return allRecipesWithCharacters?.some(
+        (recipe) =>
+          recipe.recipeSpellId === recipeSpellId &&
+          recipe.characters.some((char) => char.characterId === characterId),
+      );
+    } else {
+      // In view mode, check against character-specific recipes
+      return characterRecipes?.some(
+        (recipe) => recipe.recipeSpellId === recipeSpellId,
+      );
+    }
   };
 
   // Handle checkbox change
@@ -166,7 +190,11 @@ export const CharacterRecipes = ({
     }
   };
 
-  if (allRecipesLoading) {
+  const isLoading =
+    (isEditMode && allRecipesLoading) ||
+    (!isEditMode && characterRecipesLoading);
+
+  if (isLoading) {
     return <div className="py-8 text-center">Loading recipes...</div>;
   }
 

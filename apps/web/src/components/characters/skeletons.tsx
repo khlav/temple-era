@@ -9,6 +9,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
+import { Separator } from "~/components/ui/separator";
 
 export function PrimaryCharacterRaidsTableRowSkeleton({
   rows = 10,
@@ -110,5 +111,89 @@ export function GenericCharactersTableSkeleton({
         </TableBody>
       </Table>
     </>
+  );
+}
+
+export function CharacterDetailSkeleton() {
+  return (
+    <div className="flex flex-col">
+      {/* Character header */}
+      <div className="flex flex-row items-center gap-1">
+        <div className="grow-0">
+          <Skeleton className="h-8 w-8 rounded" />
+        </div>
+        <div className="grow-0">
+          <Skeleton className="h-7 w-48" />
+        </div>
+        <div className="grow" />
+        <div className="grow-0">
+          <Skeleton className="h-10 w-40" />
+        </div>
+      </div>
+
+      {/* Secondary characters section (conditional) */}
+      <Separator className="my-2 w-full" />
+      <div className="flex flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-5 w-12" />
+          <Skeleton className="h-9 w-32 rounded-xl" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Recipes section */}
+      <Separator className="my-2 w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-32" />
+        <div className="space-y-1">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+
+      {/* Raids table section (for primary characters) */}
+      <Separator className="my-2 w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-40" />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-1/2">Raid</TableHead>
+              <TableHead className="w-1/4">Zone</TableHead>
+              <TableHead className="w-1/4">Date</TableHead>
+              <TableHead className="w-16 text-center">WCL</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, rowIndex) => (
+              <TableRow key={rowIndex}>
+                <TableCell>
+                  <Skeleton
+                    className="h-4 w-full"
+                    style={{ width: `${40 + ((rowIndex * 45) % 40)}%` }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Skeleton
+                    className="h-4 w-full"
+                    style={{ width: `${50 + ((rowIndex * 45 + 1) % 30)}%` }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Skeleton
+                    className="h-4 w-full"
+                    style={{ width: `${60 + ((rowIndex * 45 + 2) % 20)}%` }}
+                  />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="m-auto h-4 w-4" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

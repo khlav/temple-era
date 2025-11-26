@@ -24,11 +24,14 @@ import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
+import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
 export function PrimaryCharacterRaidsTable({
   characterId,
+  characterData,
 }: {
   characterId: number;
+  characterData: RaidParticipant;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,8 +58,11 @@ export function PrimaryCharacterRaidsTable({
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchTerms, router, searchParams]);
 
+  // Only fetch raids if this is a primary character
   const { data: raids, isSuccess } =
-    api.character.getRaidsForPrimaryCharacterId.useQuery(characterId);
+    api.character.getRaidsForPrimaryCharacterId.useQuery(characterId, {
+      enabled: characterData.isPrimary === true,
+    });
 
   // Filter raids based on search terms
   const filteredRaids = useMemo(() => {

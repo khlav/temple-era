@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
 import { RaidEditor } from "~/components/raids/raid-editor";
-import { EmptyRaid, type Raid } from "~/server/api/interfaces/raid";
+import type { Raid } from "~/server/api/interfaces/raid";
 import { useRouter } from "next/navigation";
 import {
   toastRaidDeleted,
@@ -11,13 +11,19 @@ import {
 } from "~/components/raids/raid-toasts";
 import { useToast } from "~/hooks/use-toast";
 
-export function EditRaid({ raidId }: { raidId: number }) {
+export function EditRaid({
+  raidId,
+  raidData: initialRaidData,
+}: {
+  raidId: number;
+  raidData: Raid;
+}) {
   const router = useRouter();
   const utils = api.useUtils();
   const { toast } = useToast();
 
   const [sendingData, setSendingData] = useState(false);
-  const [raidData, setRaidData] = useState<Raid>(EmptyRaid());
+  const [raidData, setRaidData] = useState<Raid>(initialRaidData);
 
   const updateRaid = api.raid.updateRaid.useMutation({
     onError: (error) => {
@@ -60,31 +66,22 @@ export function EditRaid({ raidId }: { raidId: number }) {
     setSendingData(true);
     deleteRaid.mutate(raidData.raidId ?? -1);
   };
-  const { data: fetchedRaidData, isSuccess } =
-    api.raid.getRaidById.useQuery(raidId);
 
+  // Update local state if initialRaidData changes
   useEffect(() => {
-    if (isSuccess && fetchedRaidData) {
-      setRaidData(fetchedRaidData);
-    }
-  }, [isSuccess, fetchedRaidData]);
+    setRaidData(initialRaidData);
+  }, [initialRaidData]);
 
   return (
     <div className="px-2">
-      {fetchedRaidData ? (
-        <RaidEditor
-          raidData={raidData}
-          setRaidDataAction={setRaidData}
-          isSendingData={sendingData}
-          editingMode="existing"
-          handleSubmitAction={handleSubmitAction}
-          handleDeleteAction={handleDeleteAction}
-        />
-      ) : (
-        <div>
-          <div></div>
-        </div>
-      )}
+      <RaidEditor
+        raidData={raidData}
+        setRaidDataAction={setRaidData}
+        isSendingData={sendingData}
+        editingMode="existing"
+        handleSubmitAction={handleSubmitAction}
+        handleDeleteAction={handleDeleteAction}
+      />
     </div>
   );
 }
