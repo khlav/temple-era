@@ -12,6 +12,7 @@ import { createCaller } from "~/server/api/root";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { getEasternDate } from "~/lib/raid-formatting";
+import { compressResponse } from "~/lib/compression";
 
 export async function POST(request: Request) {
   try {
@@ -20,10 +21,14 @@ export async function POST(request: Request) {
 
     if (!env.TEMPLE_WEB_API_TOKEN) {
       console.error("TEMPLE_WEB_API_TOKEN environment variable not set");
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Server configuration error" },
-        { status: 500 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 500,
+        headers: response.headers,
+      });
     }
 
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
@@ -32,31 +37,50 @@ export async function POST(request: Request) {
         userAgent: request.headers.get("user-agent"),
         timestamp: new Date().toISOString(),
       });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const response = await compressResponse(
+        { error: "Unauthorized" },
+        request,
+      );
+      return new NextResponse(response.body, {
+        status: 401,
+        headers: response.headers,
+      });
     }
 
     // 2. Validate request body
     const { discordUserId, wclUrl, discordMessageId } = await request.json();
 
     if (!/^\d{17,19}$/.test(discordUserId)) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid Discord user ID" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     if (!wclUrl || !wclUrl.includes("warcraftlogs.com/reports/")) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid WarcraftLogs URL" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     if (discordMessageId && !/^\d{17,19}$/.test(discordMessageId)) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid Discord message ID" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     // 3. Fetch complete user data for session
@@ -81,25 +105,34 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (userResult.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "User not found or not linked to Discord account",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User not found or not linked to Discord account",
+        },
+        request,
+      );
     }
 
     const user = userResult[0];
     if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: "User not found",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User not found",
+        },
+        request,
+      );
     }
 
     if (!user.isRaidManager) {
-      return NextResponse.json({
-        success: false,
-        error: "User does not have raid manager permissions",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User does not have raid manager permissions",
+        },
+        request,
+      );
     }
 
     // Create tRPC caller with user session
@@ -123,10 +156,13 @@ export async function POST(request: Request) {
     // 4. Extract report ID from WCL URL
     const reportIdMatch = wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
     if (!reportIdMatch) {
-      return NextResponse.json({
-        success: false,
-        error: "Could not extract report ID from WarcraftLogs URL",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Could not extract report ID from WarcraftLogs URL",
+        },
+        request,
+      );
     }
 
     const reportId = reportIdMatch[1];
@@ -151,10 +187,13 @@ export async function POST(request: Request) {
         const raid = await caller.raid.getRaidById(raidLog.raidId);
 
         if (!raid || !raid.raidId) {
-          return NextResponse.json({
-            success: false,
-            error: "Associated raid not found",
-          });
+          return await compressResponse(
+            {
+              success: false,
+              error: "Associated raid not found",
+            },
+            request,
+          );
         }
 
         const baseUrl = getBaseUrl(request);
@@ -169,17 +208,20 @@ export async function POST(request: Request) {
         const participantCount = participantCountResult[0]?.count || 0;
         const killCount = raid.kills?.length || 0;
 
-        return NextResponse.json({
-          success: true,
-          isNew: false,
-          raidId: raid.raidId,
-          raidName: raid.name,
-          zone: raid.zone,
-          date: raid.date,
-          participantCount,
-          killCount,
-          raidUrl,
-        });
+        return await compressResponse(
+          {
+            success: true,
+            isNew: false,
+            raidId: raid.raidId,
+            raidName: raid.name,
+            zone: raid.zone,
+            date: raid.date,
+            participantCount,
+            killCount,
+            raidUrl,
+          },
+          request,
+        );
       }
     }
 
@@ -188,10 +230,13 @@ export async function POST(request: Request) {
       await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
 
     if (!raidLog) {
-      return NextResponse.json({
-        success: false,
-        error: "Failed to import WarcraftLogs data",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Failed to import WarcraftLogs data",
+        },
+        request,
+      );
     }
 
     // 7. Create raid entry with imported log
@@ -237,22 +282,29 @@ export async function POST(request: Request) {
     const baseUrl = getBaseUrl(request);
     const raidUrl = `${baseUrl}/raids/${result.raid?.raidId}`;
 
-    return NextResponse.json({
-      success: true,
-      isNew: true,
-      raidId: result.raid?.raidId,
-      raidName: result.raid?.name,
-      zone: raidLog.zone ?? "Unknown",
-      date: getEasternDate(raidLog.startTimeUTC),
-      participantCount,
-      killCount,
-      raidUrl,
-    });
+    return await compressResponse(
+      {
+        success: true,
+        isNew: true,
+        raidId: result.raid?.raidId,
+        raidName: result.raid?.name,
+        zone: raidLog.zone ?? "Unknown",
+        date: getEasternDate(raidLog.startTimeUTC),
+        participantCount,
+        killCount,
+        raidUrl,
+      },
+      request,
+    );
   } catch (error) {
     console.error("Error creating raid:", error);
-    return NextResponse.json(
+    const response = await compressResponse(
       { success: false, error: "Internal server error" },
-      { status: 500 },
+      request,
     );
+    return new NextResponse(response.body, {
+      status: 500,
+      headers: response.headers,
+    });
   }
 }

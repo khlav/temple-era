@@ -53,8 +53,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           headers: () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+            headers.set("Accept-Encoding", "gzip");
             return headers;
           },
+          // Browser's native fetch automatically handles gzip decompression
+          // when Content-Encoding: gzip is present, so no custom fetch needed
         }),
       ],
     }),

@@ -6,6 +6,7 @@ import { env } from "~/env.js";
 import { createCaller } from "~/server/api/root";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { getEasternDate } from "~/lib/raid-formatting";
+import { compressResponse } from "~/lib/compression";
 
 export async function POST(request: Request) {
   try {
@@ -14,10 +15,14 @@ export async function POST(request: Request) {
 
     if (!env.TEMPLE_WEB_API_TOKEN) {
       console.error("TEMPLE_WEB_API_TOKEN environment variable not set");
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Server configuration error" },
-        { status: 500 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 500,
+        headers: response.headers,
+      });
     }
 
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
@@ -26,31 +31,50 @@ export async function POST(request: Request) {
         userAgent: request.headers.get("user-agent"),
         timestamp: new Date().toISOString(),
       });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const response = await compressResponse(
+        { error: "Unauthorized" },
+        request,
+      );
+      return new NextResponse(response.body, {
+        status: 401,
+        headers: response.headers,
+      });
     }
 
     // 2. Validate request body
     const { discordUserId, newWclUrl, discordMessageId } = await request.json();
 
     if (!/^\d{17,19}$/.test(discordUserId)) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid Discord user ID" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     if (!newWclUrl || !newWclUrl.includes("warcraftlogs.com/reports/")) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid WarcraftLogs URL" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     if (!discordMessageId || !/^\d{17,19}$/.test(discordMessageId)) {
-      return NextResponse.json(
+      const response = await compressResponse(
         { error: "Invalid Discord message ID" },
-        { status: 400 },
+        request,
       );
+      return new NextResponse(response.body, {
+        status: 400,
+        headers: response.headers,
+      });
     }
 
     // 3. Fetch complete user data for session
@@ -75,25 +99,34 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (userResult.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "User not found or not linked to Discord account",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User not found or not linked to Discord account",
+        },
+        request,
+      );
     }
 
     const user = userResult[0];
     if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: "User not found",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User not found",
+        },
+        request,
+      );
     }
 
     if (!user.isRaidManager) {
-      return NextResponse.json({
-        success: false,
-        error: "User does not have raid manager permissions",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "User does not have raid manager permissions",
+        },
+        request,
+      );
     }
 
     // Create tRPC caller with user session
@@ -129,54 +162,72 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (existingRaidLog.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "No raid found for this Discord message",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "No raid found for this Discord message",
+        },
+        request,
+      );
     }
 
     const oldRaidLog = existingRaidLog[0];
     if (!oldRaidLog) {
-      return NextResponse.json({
-        success: false,
-        error: "Raid log not found",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Raid log not found",
+        },
+        request,
+      );
     }
 
     if (!oldRaidLog.raidId) {
-      return NextResponse.json({
-        success: false,
-        error: "Raid log is not associated with a raid",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Raid log is not associated with a raid",
+        },
+        request,
+      );
     }
 
     // 5. Verify ownership - only the original creator can update the raid
     if (oldRaidLog.createdById !== user.id) {
-      return NextResponse.json({
-        success: false,
-        error: "You can only update raids you originally created",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "You can only update raids you originally created",
+        },
+        request,
+      );
     }
 
     // 6. Extract new report ID from WCL URL
     const reportIdMatch = newWclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
     if (!reportIdMatch) {
-      return NextResponse.json({
-        success: false,
-        error: "Could not extract report ID from WarcraftLogs URL",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Could not extract report ID from WarcraftLogs URL",
+        },
+        request,
+      );
     }
 
     const newReportId = reportIdMatch[1];
 
     // 7. Check if it's the same report ID (no change needed)
     if (oldRaidLog.raidLogId === newReportId) {
-      return NextResponse.json({
-        success: true,
-        isNew: false,
-        message: "No change detected - same WarcraftLogs report",
-        raidId: oldRaidLog.raidId,
-      });
+      return await compressResponse(
+        {
+          success: true,
+          isNew: false,
+          message: "No change detected - same WarcraftLogs report",
+          raidId: oldRaidLog.raidId,
+        },
+        request,
+      );
     }
 
     // 8. Check if the new WCL report is already being used by another raid
@@ -197,11 +248,14 @@ export async function POST(request: Request) {
         existingLog.raidId &&
         existingLog.raidId !== oldRaidLog.raidId
       ) {
-        return NextResponse.json({
-          success: false,
-          error:
-            "This WarcraftLogs report is already being used by another raid",
-        });
+        return await compressResponse(
+          {
+            success: false,
+            error:
+              "This WarcraftLogs report is already being used by another raid",
+          },
+          request,
+        );
       }
     }
 
@@ -210,19 +264,25 @@ export async function POST(request: Request) {
       await caller.raidLog.importAndGetRaidLogByRaidLogId(newReportId);
 
     if (!newRaidLog) {
-      return NextResponse.json({
-        success: false,
-        error: "Failed to import new WarcraftLogs data",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Failed to import new WarcraftLogs data",
+        },
+        request,
+      );
     }
 
     // 10. Get current raid data
     const currentRaid = await caller.raid.getRaidById(oldRaidLog.raidId);
     if (!currentRaid || !currentRaid.raidId) {
-      return NextResponse.json({
-        success: false,
-        error: "Associated raid not found",
-      });
+      return await compressResponse(
+        {
+          success: false,
+          error: "Associated raid not found",
+        },
+        request,
+      );
     }
 
     // 11. Prepare new raid data
@@ -268,23 +328,30 @@ export async function POST(request: Request) {
     const baseUrl = getBaseUrl(request);
     const raidUrl = `${baseUrl}/raids/${oldRaidLog.raidId}`;
 
-    return NextResponse.json({
-      success: true,
-      isNew: false,
-      raidId: oldRaidLog.raidId,
-      raidName: newRaidName,
-      zone: newRaidZone,
-      date: newRaidDate,
-      participantCount: Object.keys(newRaidLog.participants || {}).length,
-      killCount: newRaidLog.kills?.length || 0,
-      raidUrl,
-      nameChanged: newRaidName !== oldRaidLog.name,
-    });
+    return await compressResponse(
+      {
+        success: true,
+        isNew: false,
+        raidId: oldRaidLog.raidId,
+        raidName: newRaidName,
+        zone: newRaidZone,
+        date: newRaidDate,
+        participantCount: Object.keys(newRaidLog.participants || {}).length,
+        killCount: newRaidLog.kills?.length || 0,
+        raidUrl,
+        nameChanged: newRaidName !== oldRaidLog.name,
+      },
+      request,
+    );
   } catch (error) {
     console.error("Error updating raid:", error);
-    return NextResponse.json(
+    const response = await compressResponse(
       { success: false, error: "Internal server error" },
-      { status: 500 },
+      request,
     );
+    return new NextResponse(response.body, {
+      status: 500,
+      headers: response.headers,
+    });
   }
 }
