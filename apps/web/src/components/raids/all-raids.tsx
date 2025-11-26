@@ -9,9 +9,20 @@ import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrettyPrintDate } from "~/lib/helpers";
+import type { Raid } from "~/server/api/interfaces/raid";
 
-export function AllRaids({ session }: { session?: Session }) {
-  const { data: raids, isLoading } = api.raid.getRaids.useQuery();
+export function AllRaids({
+  session,
+  raids: initialRaids,
+}: {
+  session?: Session;
+  raids?: Raid[] | null;
+}) {
+  const { data: fetchedRaids, isLoading } = api.raid.getRaids.useQuery(
+    undefined,
+    { enabled: !initialRaids },
+  );
+  const raids = initialRaids ?? fetchedRaids;
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSearch = searchParams?.get("s") ?? "";
@@ -44,9 +55,14 @@ export function AllRaids({ session }: { session?: Session }) {
     });
   }, [raids, searchTerms]);
 
+  // Show loading skeleton only if we don't have initial data AND the query is loading
+  const isActuallyLoading = !initialRaids && isLoading;
+  // Show content if we have data (either from server or client fetch)
+  const hasData = !!raids;
+
   return (
     <>
-      {isLoading ? (
+      {isActuallyLoading || !hasData ? (
         <RaidsTableSkeleton rows={10} />
       ) : (
         <div className="space-y-2">

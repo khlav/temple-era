@@ -8,8 +8,20 @@ import type { RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { AllCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
 
-export function AllCharacters({ session }: { session?: Session }) {
-  const { data: players, isSuccess } = api.character.getCharacters.useQuery();
+export function AllCharacters({
+  session,
+  characters: initialCharacters,
+}: {
+  session?: Session;
+  characters?: RaidParticipantCollection | null;
+}) {
+  const { data: fetchedCharacters } = api.character.getCharacters.useQuery(
+    undefined,
+    {
+      enabled: !initialCharacters,
+    },
+  );
+  const players = initialCharacters ?? fetchedCharacters;
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Function to normalize text (remove non-ASCII characters and convert to lowercase)
@@ -58,9 +70,12 @@ export function AllCharacters({ session }: { session?: Session }) {
     return acc;
   }, {} as RaidParticipantCollection);
 
+  // Show content if we have data (either from server or client fetch)
+  const hasData = !!players;
+
   return (
     <>
-      {isSuccess ? (
+      {hasData ? (
         <div className="space-y-2">
           <div className="space-y-1">
             <TableSearchInput
