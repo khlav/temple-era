@@ -1,0 +1,542 @@
+{
+  "21452": {
+    "id": 21452,
+    "name": "Staff of the Ruins",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21453": {
+    "id": 21453,
+    "name": "Mantle of the Horusath",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21454": {
+    "id": 21454,
+    "name": "Runic Stone Shoulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21455": {
+    "id": 21455,
+    "name": "Southwind Helm",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21456": {
+    "id": 21456,
+    "name": "Sandstorm Cloak",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21457": {
+    "id": 21457,
+    "name": "Bracers of Brutality",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21458": {
+    "id": 21458,
+    "name": "Gauntlets of New Life",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21459": {
+    "id": 21459,
+    "name": "Crossbow of Imminent Doom",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21460": {
+    "id": 21460,
+    "name": "Helm of Domination",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21461": {
+    "id": 21461,
+    "name": "Leggings of the Black Blizzard",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21462": {
+    "id": 21462,
+    "name": "Gloves of Dark Wisdom",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21463": {
+    "id": 21463,
+    "name": "Ossirian's Binding",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21464": {
+    "id": 21464,
+    "name": "Shackles of the Unscarred",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21466": {
+    "id": 21466,
+    "name": "Stinger of Ayamiss",
+    "equipslot": "Main Hand",
+    "quality": "Epic",
+    "ilvl": 69,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21467": {
+    "id": 21467,
+    "name": "Thick Silithid Chestguard",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 69,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21468": {
+    "id": 21468,
+    "name": "Mantle of Maz'Nadir",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21469": {
+    "id": 21469,
+    "name": "Gauntlets of Southwind",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21470": {
+    "id": 21470,
+    "name": "Cloak of the Savior",
+    "equipslot": "Back",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21471": {
+    "id": 21471,
+    "name": "Talon of Furious Concentration",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 69,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21472": {
+    "id": 21472,
+    "name": "Dustwind Turban",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 69,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21473": {
+    "id": 21473,
+    "name": "Eye of Moam",
+    "equipslot": "Trinket",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21474": {
+    "id": 21474,
+    "name": "Chitinous Shoulderguards",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21475": {
+    "id": 21475,
+    "name": "Legplates of the Destroyer",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21476": {
+    "id": 21476,
+    "name": "Obsidian Scaled Leggings",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21477": {
+    "id": 21477,
+    "name": "Ring of Fury",
+    "equipslot": "Finger",
+    "quality": "Rare",
+    "ilvl": 74,
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21478": {
+    "id": 21478,
+    "name": "Bow of Taut Sinew",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 68,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21479": {
+    "id": 21479,
+    "name": "Gauntlets of the Immovable",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 68,
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21480": {
+    "id": 21480,
+    "name": "Scaled Silithid Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21481": {
+    "id": 21481,
+    "name": "Boots of the Desert Protector",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21482": {
+    "id": 21482,
+    "name": "Boots of the Fiery Sands",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21483": {
+    "id": 21483,
+    "name": "Ring of the Desert Winds",
+    "equipslot": "Finger",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21484": {
+    "id": 21484,
+    "name": "Helm of Regrowth",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21485": {
+    "id": 21485,
+    "name": "Buru's Skull Fragment",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 68,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21486": {
+    "id": 21486,
+    "name": "Gloves of the Swarm",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 68,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21487": {
+    "id": 21487,
+    "name": "Slimy Scaled Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 68,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21488": {
+    "id": 21488,
+    "name": "Fetish of Chitinous Spikes",
+    "equipslot": "Trinket",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21489": {
+    "id": 21489,
+    "name": "Quicksand Waders",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21490": {
+    "id": 21490,
+    "name": "Slime Kickers",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21491": {
+    "id": 21491,
+    "name": "Scaled Bracers of the Gorger",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "ilvl": 73,
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21492": {
+    "id": 21492,
+    "name": "Manslayer of the Qiraji",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 66,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21493": {
+    "id": 21493,
+    "name": "Boots of the Vanguard",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 66,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21494": {
+    "id": 21494,
+    "name": "Southwind's Grasp",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21495": {
+    "id": 21495,
+    "name": "Legplates of the Qiraji Command",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21496": {
+    "id": 21496,
+    "name": "Bracers of Qiraji Command",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21497": {
+    "id": 21497,
+    "name": "Boots of the Qiraji General",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21498": {
+    "id": 21498,
+    "name": "Qiraji Sacrificial Dagger",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 66,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21499": {
+    "id": 21499,
+    "name": "Vestments of the Shifting Sands",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 66,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21500": {
+    "id": 21500,
+    "name": "Belt of the Inquisition",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21501": {
+    "id": 21501,
+    "name": "Toughened Silithid Hide Gloves",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21502": {
+    "id": 21502,
+    "name": "Sand Reaver Wristguards",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21503": {
+    "id": 21503,
+    "name": "Belt of the Sand Reaver",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21715": {
+    "id": 21715,
+    "name": "Sand Polished Hammer",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21800": {
+    "id": 21800,
+    "name": "Silithid Husked Launcher",
+    "equipslot": "Ranged",
+    "quality": "Rare",
+    "ilvl": 68,
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21801": {
+    "id": 21801,
+    "name": "Antenna of Invigoration",
+    "equipslot": "Ranged",
+    "quality": "Rare",
+    "ilvl": 68,
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21802": {
+    "id": 21802,
+    "name": "The Lost Kris of Zedd",
+    "equipslot": "Main Hand",
+    "quality": "Rare",
+    "ilvl": 68,
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21804": {
+    "id": 21804,
+    "name": "Coif of Elemental Fury",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "ilvl": 68,
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21805": {
+    "id": 21805,
+    "name": "Polished Obsidian Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "ilvl": 68,
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21806": {
+    "id": 21806,
+    "name": "Gavel of Qiraji Authority",
+    "equipslot": "Two-Hand",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21809": {
+    "id": 21809,
+    "name": "Fury of the Forgotten Swarm",
+    "equipslot": "Neck",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21810": {
+    "id": 21810,
+    "name": "Treads of the Wandering Nomad",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "ilvl": 71,
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  }
+}

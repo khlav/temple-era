@@ -1,0 +1,155 @@
+{
+  "16900": {
+    "id": 16900,
+    "name": "Stormrage Cover",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16908": {
+    "id": 16908,
+    "name": "Bloodfang Hood",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16914": {
+    "id": 16914,
+    "name": "Netherwind Crown",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16921": {
+    "id": 16921,
+    "name": "Halo of Transcendence",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16929": {
+    "id": 16929,
+    "name": "Nemesis Skullcap",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16939": {
+    "id": 16939,
+    "name": "Dragonstalker's Helm",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16947": {
+    "id": 16947,
+    "name": "Helmet of Ten Storms",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16955": {
+    "id": 16955,
+    "name": "Judgement Crown",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "16963": {
+    "id": 16963,
+    "name": "Helm of Wrath",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17064": {
+    "id": 17064,
+    "name": "Shard of the Scale",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 71,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17067": {
+    "id": 17067,
+    "name": "Ancient Cornerstone Grimoire",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17068": {
+    "id": 17068,
+    "name": "Deathbringer",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17075": {
+    "id": 17075,
+    "name": "Vis'kag the Bloodletter",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 74,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17078": {
+    "id": 17078,
+    "name": "Sapphiron Drape",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 72,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "17966": {
+    "id": 17966,
+    "name": "Onyxia Hide Backpack",
+    "equipslot": "Bag",
+    "quality": "Uncommon",
+    "ilvl": 55,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "18205": {
+    "id": 18205,
+    "name": "Eskhandar's Collar",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 71,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "18813": {
+    "id": 18813,
+    "name": "Ring of Binding",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 73,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  }
+}

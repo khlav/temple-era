@@ -1,0 +1,1190 @@
+{
+  "16818": {
+    "id": 16818,
+    "name": "Netherwind Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16832": {
+    "id": 16832,
+    "name": "Bloodfang Spaulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16897": {
+    "id": 16897,
+    "name": "Stormrage Chestguard",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16898": {
+    "id": 16898,
+    "name": "Stormrage Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16899": {
+    "id": 16899,
+    "name": "Stormrage Handguards",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16902": {
+    "id": 16902,
+    "name": "Stormrage Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16903": {
+    "id": 16903,
+    "name": "Stormrage Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16904": {
+    "id": 16904,
+    "name": "Stormrage Bracers",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16905": {
+    "id": 16905,
+    "name": "Bloodfang Chestpiece",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16906": {
+    "id": 16906,
+    "name": "Bloodfang Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16907": {
+    "id": 16907,
+    "name": "Bloodfang Gloves",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16910": {
+    "id": 16910,
+    "name": "Bloodfang Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16911": {
+    "id": 16911,
+    "name": "Bloodfang Bracers",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16912": {
+    "id": 16912,
+    "name": "Netherwind Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16913": {
+    "id": 16913,
+    "name": "Netherwind Gloves",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16916": {
+    "id": 16916,
+    "name": "Netherwind Robes",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16917": {
+    "id": 16917,
+    "name": "Netherwind Mantle",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16918": {
+    "id": 16918,
+    "name": "Netherwind Bindings",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16919": {
+    "id": 16919,
+    "name": "Boots of Transcendence",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16920": {
+    "id": 16920,
+    "name": "Handguards of Transcendence",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16923": {
+    "id": 16923,
+    "name": "Robes of Transcendence",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16924": {
+    "id": 16924,
+    "name": "Pauldrons of Transcendence",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16925": {
+    "id": 16925,
+    "name": "Belt of Transcendence",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16926": {
+    "id": 16926,
+    "name": "Bindings of Transcendence",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16927": {
+    "id": 16927,
+    "name": "Nemesis Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16928": {
+    "id": 16928,
+    "name": "Nemesis Gloves",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16931": {
+    "id": 16931,
+    "name": "Nemesis Robes",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16932": {
+    "id": 16932,
+    "name": "Nemesis Spaulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16933": {
+    "id": 16933,
+    "name": "Nemesis Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16934": {
+    "id": 16934,
+    "name": "Nemesis Bracers",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16935": {
+    "id": 16935,
+    "name": "Dragonstalker's Bracers",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16936": {
+    "id": 16936,
+    "name": "Dragonstalker's Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16937": {
+    "id": 16937,
+    "name": "Dragonstalker's Spaulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16940": {
+    "id": 16940,
+    "name": "Dragonstalker's Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16941": {
+    "id": 16941,
+    "name": "Dragonstalker's Greaves",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16942": {
+    "id": 16942,
+    "name": "Dragonstalker's Breastplate",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16943": {
+    "id": 16943,
+    "name": "Bracers of Ten Storms",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16944": {
+    "id": 16944,
+    "name": "Belt of Ten Storms",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16945": {
+    "id": 16945,
+    "name": "Epaulets of Ten Storms",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16948": {
+    "id": 16948,
+    "name": "Gauntlets of Ten Storms",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16949": {
+    "id": 16949,
+    "name": "Greaves of Ten Storms",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16950": {
+    "id": 16950,
+    "name": "Breastplate of Ten Storms",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16951": {
+    "id": 16951,
+    "name": "Judgement Bindings",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16952": {
+    "id": 16952,
+    "name": "Judgement Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16953": {
+    "id": 16953,
+    "name": "Judgement Spaulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16956": {
+    "id": 16956,
+    "name": "Judgement Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16957": {
+    "id": 16957,
+    "name": "Judgement Sabatons",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16958": {
+    "id": 16958,
+    "name": "Judgement Breastplate",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "16959": {
+    "id": 16959,
+    "name": "Bracelets of Wrath",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "16960": {
+    "id": 16960,
+    "name": "Waistband of Wrath",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "16961": {
+    "id": 16961,
+    "name": "Pauldrons of Wrath",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "16964": {
+    "id": 16964,
+    "name": "Gauntlets of Wrath",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "16965": {
+    "id": 16965,
+    "name": "Sabatons of Wrath",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "16966": {
+    "id": 16966,
+    "name": "Breastplate of Wrath",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19334": {
+    "id": 19334,
+    "name": "The Untamed Blade",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 73,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19335": {
+    "id": 19335,
+    "name": "Spineshatter",
+    "equipslot": "Main Hand",
+    "quality": "Epic",
+    "ilvl": 73,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19336": {
+    "id": 19336,
+    "name": "Arcane Infused Gem",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19337": {
+    "id": 19337,
+    "name": "The Black Book",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19339": {
+    "id": 19339,
+    "name": "Mind Quickening Gem",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19340": {
+    "id": 19340,
+    "name": "Rune of Metamorphosis",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19341": {
+    "id": 19341,
+    "name": "Lifegiving Gem",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19342": {
+    "id": 19342,
+    "name": "Venomous Totem",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19343": {
+    "id": 19343,
+    "name": "Scrolls of Blinding Light",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19344": {
+    "id": 19344,
+    "name": "Natural Alignment Crystal",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19345": {
+    "id": 19345,
+    "name": "Aegis of Preservation",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 76,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19346": {
+    "id": 19346,
+    "name": "Dragonfang Blade",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 74,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19347": {
+    "id": 19347,
+    "name": "Claw of Chromaggus",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19348": {
+    "id": 19348,
+    "name": "Red Dragonscale Protector",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 74,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19349": {
+    "id": 19349,
+    "name": "Elementium Reinforced Bulwark",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19350": {
+    "id": 19350,
+    "name": "Heartstriker",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19351": {
+    "id": 19351,
+    "name": "Maladath, Runed Blade of the Black Flight",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19352": {
+    "id": 19352,
+    "name": "Chromatically Tempered Sword",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19353": {
+    "id": 19353,
+    "name": "Drake Talon Cleaver",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19354": {
+    "id": 19354,
+    "name": "Draconic Avenger",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 71,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19355": {
+    "id": 19355,
+    "name": "Shadow Wing Focus Staff",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19356": {
+    "id": 19356,
+    "name": "Staff of the Shadow Flame",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19357": {
+    "id": 19357,
+    "name": "Herald of Woe",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19358": {
+    "id": 19358,
+    "name": "Draconic Maul",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19360": {
+    "id": 19360,
+    "name": "Lok'amir il Romathis",
+    "equipslot": "Main Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19361": {
+    "id": 19361,
+    "name": "Ashjre'thul, Crossbow of Smiting",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19362": {
+    "id": 19362,
+    "name": "Doom's Edge",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19363": {
+    "id": 19363,
+    "name": "Crul'shorukh, Edge of Chaos",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19364": {
+    "id": 19364,
+    "name": "Ashkandi, Greatsword of the Brotherhood",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19365": {
+    "id": 19365,
+    "name": "Claw of the Black Drake",
+    "equipslot": "Main Hand",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19367": {
+    "id": 19367,
+    "name": "Dragon's Touch",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19368": {
+    "id": 19368,
+    "name": "Dragonbreath Hand Cannon",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19369": {
+    "id": 19369,
+    "name": "Gloves of Rapid Evolution",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 73,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19370": {
+    "id": 19370,
+    "name": "Mantle of the Blackwing Cabal",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 73,
+    "from": "Razorgore the Untamed",
+    "instance": "bwl"
+  },
+  "19371": {
+    "id": 19371,
+    "name": "Pendant of the Fallen Dragon",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 74,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19372": {
+    "id": 19372,
+    "name": "Helm of Endless Rage",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 74,
+    "from": "Vaelastrasz the Corrupt",
+    "instance": "bwl"
+  },
+  "19373": {
+    "id": 19373,
+    "name": "Black Brood Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19374": {
+    "id": 19374,
+    "name": "Bracers of Arcane Accuracy",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Broodlord Lashlayer",
+    "instance": "bwl"
+  },
+  "19375": {
+    "id": 19375,
+    "name": "Mish'undare, Circlet of the Mind Flayer",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19376": {
+    "id": 19376,
+    "name": "Archimtiros' Ring of Reckoning",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19377": {
+    "id": 19377,
+    "name": "Prestor's Talisman of Connivery",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19378": {
+    "id": 19378,
+    "name": "Cloak of the Brood Lord",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19379": {
+    "id": 19379,
+    "name": "Neltharion's Tear",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19380": {
+    "id": 19380,
+    "name": "Therazane's Link",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19381": {
+    "id": 19381,
+    "name": "Boots of the Shadow Flame",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19382": {
+    "id": 19382,
+    "name": "Pure Elementium Band",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Nefarian",
+    "instance": "bwl"
+  },
+  "19385": {
+    "id": 19385,
+    "name": "Empowered Leggings",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19386": {
+    "id": 19386,
+    "name": "Elementium Threaded Cloak",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19387": {
+    "id": 19387,
+    "name": "Chromatic Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19388": {
+    "id": 19388,
+    "name": "Angelista's Grasp",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19389": {
+    "id": 19389,
+    "name": "Taut Dragonhide Shoulderpads",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19390": {
+    "id": 19390,
+    "name": "Taut Dragonhide Gloves",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19391": {
+    "id": 19391,
+    "name": "Shimmering Geta",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19392": {
+    "id": 19392,
+    "name": "Girdle of the Fallen Crusader",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19393": {
+    "id": 19393,
+    "name": "Primalist's Linked Waistguard",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 77,
+    "from": "Chromaggus",
+    "instance": "bwl"
+  },
+  "19394": {
+    "id": 19394,
+    "name": "Drake Talon Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19395": {
+    "id": 19395,
+    "name": "Rejuvenating Gem",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19396": {
+    "id": 19396,
+    "name": "Taut Dragonhide Belt",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19397": {
+    "id": 19397,
+    "name": "Ring of Blackrock",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Shared",
+    "instance": "bwl"
+  },
+  "19398": {
+    "id": 19398,
+    "name": "Cloak of Firemaw",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19399": {
+    "id": 19399,
+    "name": "Black Ash Robe",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19400": {
+    "id": 19400,
+    "name": "Firemaw's Clutch",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19401": {
+    "id": 19401,
+    "name": "Primalist's Linked Legguards",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19402": {
+    "id": 19402,
+    "name": "Legguards of the Fallen Crusader",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Firemaw",
+    "instance": "bwl"
+  },
+  "19403": {
+    "id": 19403,
+    "name": "Band of Forced Concentration",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19405": {
+    "id": 19405,
+    "name": "Malfurion's Blessed Bulwark",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19406": {
+    "id": 19406,
+    "name": "Drake Fang Talisman",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19407": {
+    "id": 19407,
+    "name": "Ebony Flame Gloves",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Ebonroc",
+    "instance": "bwl"
+  },
+  "19430": {
+    "id": 19430,
+    "name": "Shroud of Pure Thought",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19431": {
+    "id": 19431,
+    "name": "Styleen's Impeding Scarab",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19432": {
+    "id": 19432,
+    "name": "Circle of Applied Force",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19433": {
+    "id": 19433,
+    "name": "Emberweave Leggings",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 75,
+    "from": "Flamegor",
+    "instance": "bwl"
+  },
+  "19434": {
+    "id": 19434,
+    "name": "Band of Dark Dominion",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19435": {
+    "id": 19435,
+    "name": "Essence Gatherer",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19436": {
+    "id": 19436,
+    "name": "Cloak of Draconic Might",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19437": {
+    "id": 19437,
+    "name": "Boots of Pure Thought",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 70,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19438": {
+    "id": 19438,
+    "name": "Ringo's Blizzard Boots",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 71,
+    "from": "Trash",
+    "instance": "bwl"
+  },
+  "19439": {
+    "id": 19439,
+    "name": "Interlaced Shadow Jerkin",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 71,
+    "from": "Trash",
+    "instance": "bwl"
+  }
+}

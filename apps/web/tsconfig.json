@@ -27,7 +27,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      "@/components/*" : ["./src/components/*"]
+      "@/components/*": ["./src/components/*"]
     }
   },
   "include": [
@@ -39,5 +39,5 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "scripts"]
 }
