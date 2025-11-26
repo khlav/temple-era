@@ -1,5 +1,6 @@
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { compressedFetch } from "../utils/compressedFetch.js";
 
 interface PermissionCheckResult {
   success: boolean;
@@ -13,7 +14,7 @@ export async function checkUserPermissions(
   discordUserId: string
 ): Promise<PermissionCheckResult> {
   try {
-    const response = await fetch(
+    const response = await compressedFetch(
       `${config.apiBaseUrl}/api/discord/check-permissions`,
       {
         method: "POST",
