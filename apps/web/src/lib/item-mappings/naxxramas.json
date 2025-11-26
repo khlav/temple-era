@@ -1,0 +1,1001 @@
+{
+  "22691": {
+    "id": 22691,
+    "name": "Corrupted Ashbringer",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 86,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "22798": {
+    "id": 22798,
+    "name": "Might of Menethil",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22799": {
+    "id": 22799,
+    "name": "Soulseeker",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22800": {
+    "id": 22800,
+    "name": "Brimstone Staff",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Loatheb",
+    "instance": "naxxramas"
+  },
+  "22801": {
+    "id": 22801,
+    "name": "Spire of Twilight",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Thaddius",
+    "instance": "naxxramas"
+  },
+  "22802": {
+    "id": 22802,
+    "name": "Kingsfall",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22803": {
+    "id": 22803,
+    "name": "Midnight Haze",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Grobbulus",
+    "instance": "naxxramas"
+  },
+  "22804": {
+    "id": 22804,
+    "name": "Maexxna's Fang",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Maexxna",
+    "instance": "naxxramas"
+  },
+  "22806": {
+    "id": 22806,
+    "name": "Widow's Remorse",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Grand Widow Faerlina",
+    "instance": "naxxramas"
+  },
+  "22807": {
+    "id": 22807,
+    "name": "Wraith Blade",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Maexxna",
+    "instance": "naxxramas"
+  },
+  "22808": {
+    "id": 22808,
+    "name": "The Castigator",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Thaddius",
+    "instance": "naxxramas"
+  },
+  "22809": {
+    "id": 22809,
+    "name": "Maul of the Redeemed Crusader",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "22810": {
+    "id": 22810,
+    "name": "Toxin Injector",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Grobbulus",
+    "instance": "naxxramas"
+  },
+  "22811": {
+    "id": 22811,
+    "name": "Soulstring",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "22812": {
+    "id": 22812,
+    "name": "Nerubian Slavemaker",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22813": {
+    "id": 22813,
+    "name": "Claymore of Unholy Might",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Gluth",
+    "instance": "naxxramas"
+  },
+  "22815": {
+    "id": 22815,
+    "name": "Severance",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Patchwerk",
+    "instance": "naxxramas"
+  },
+  "22816": {
+    "id": 22816,
+    "name": "Hatchet of Sundered Bone",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "22818": {
+    "id": 22818,
+    "name": "The Plague Bearer",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Patchwerk",
+    "instance": "naxxramas"
+  },
+  "22819": {
+    "id": 22819,
+    "name": "Shield of Condemnation",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22820": {
+    "id": 22820,
+    "name": "Wand of Fates",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Patchwerk",
+    "instance": "naxxramas"
+  },
+  "22821": {
+    "id": 22821,
+    "name": "Doomfinger",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "22935": {
+    "id": 22935,
+    "name": "Touch of Frost",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Anub'Rekhan",
+    "instance": "naxxramas"
+  },
+  "22936": {
+    "id": 22936,
+    "name": "Wristguards of Vengeance",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Anub'Rekhan",
+    "instance": "naxxramas"
+  },
+  "22937": {
+    "id": 22937,
+    "name": "Gem of Nerubis",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Anub'Rekhan",
+    "instance": "naxxramas"
+  },
+  "22938": {
+    "id": 22938,
+    "name": "Cryptfiend Silk Cloak",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Anub'Rekhan",
+    "instance": "naxxramas"
+  },
+  "22939": {
+    "id": 22939,
+    "name": "Band of Unanswered Prayers",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Anub'Rekhan",
+    "instance": "naxxramas"
+  },
+  "22940": {
+    "id": 22940,
+    "name": "Icebane Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grand Widow Faerlina",
+    "instance": "naxxramas"
+  },
+  "22941": {
+    "id": 22941,
+    "name": "Polar Shoulder Pads",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grand Widow Faerlina",
+    "instance": "naxxramas"
+  },
+  "22942": {
+    "id": 22942,
+    "name": "The Widow's Embrace",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Grand Widow Faerlina",
+    "instance": "naxxramas"
+  },
+  "22943": {
+    "id": 22943,
+    "name": "Malice Stone Pendant",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grand Widow Faerlina",
+    "instance": "naxxramas"
+  },
+  "22947": {
+    "id": 22947,
+    "name": "Pendant of Forgotten Names",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Maexxna",
+    "instance": "naxxramas"
+  },
+  "22954": {
+    "id": 22954,
+    "name": "Kiss of the Spider",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Maexxna",
+    "instance": "naxxramas"
+  },
+  "22960": {
+    "id": 22960,
+    "name": "Cloak of Suturing",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Patchwerk",
+    "instance": "naxxramas"
+  },
+  "22961": {
+    "id": 22961,
+    "name": "Band of Reanimation",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Patchwerk",
+    "instance": "naxxramas"
+  },
+  "22967": {
+    "id": 22967,
+    "name": "Icy Scale Spaulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grobbulus",
+    "instance": "naxxramas"
+  },
+  "22968": {
+    "id": 22968,
+    "name": "Glacial Mantle",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grobbulus",
+    "instance": "naxxramas"
+  },
+  "22981": {
+    "id": 22981,
+    "name": "Gluth's Missing Collar",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gluth",
+    "instance": "naxxramas"
+  },
+  "22983": {
+    "id": 22983,
+    "name": "Rime Covered Mantle",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gluth",
+    "instance": "naxxramas"
+  },
+  "22988": {
+    "id": 22988,
+    "name": "The End of Dreams",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Grobbulus",
+    "instance": "naxxramas"
+  },
+  "22994": {
+    "id": 22994,
+    "name": "Digested Hand of Power",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gluth",
+    "instance": "naxxramas"
+  },
+  "23000": {
+    "id": 23000,
+    "name": "Plated Abomination Ribcage",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Thaddius",
+    "instance": "naxxramas"
+  },
+  "23001": {
+    "id": 23001,
+    "name": "Eye of Diminution",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Thaddius",
+    "instance": "naxxramas"
+  },
+  "23004": {
+    "id": 23004,
+    "name": "Idol of Longevity",
+    "equipslot": "Relic",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23005": {
+    "id": 23005,
+    "name": "Totem of Flowing Water",
+    "equipslot": "Relic",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23006": {
+    "id": 23006,
+    "name": "Libram of Light",
+    "equipslot": "Relic",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23009": {
+    "id": 23009,
+    "name": "Wand of the Whispering Dead",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23014": {
+    "id": 23014,
+    "name": "Iblis, Blade of the Fallen Seraph",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 81,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23017": {
+    "id": 23017,
+    "name": "Veil of Eclipse",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23018": {
+    "id": 23018,
+    "name": "Signet of the Fallen Defender",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23019": {
+    "id": 23019,
+    "name": "Icebane Helmet",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Heigan the Unclean",
+    "instance": "naxxramas"
+  },
+  "23020": {
+    "id": 23020,
+    "name": "Polar Helmet",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gothik the Harvester",
+    "instance": "naxxramas"
+  },
+  "23021": {
+    "id": 23021,
+    "name": "The Soul Harvester's Bindings",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gothik the Harvester",
+    "instance": "naxxramas"
+  },
+  "23023": {
+    "id": 23023,
+    "name": "Sadist's Collar",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gothik the Harvester",
+    "instance": "naxxramas"
+  },
+  "23025": {
+    "id": 23025,
+    "name": "Seal of the Damned",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "23027": {
+    "id": 23027,
+    "name": "Warmth of Forgiveness",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "23028": {
+    "id": 23028,
+    "name": "Hailstone Band",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23029": {
+    "id": 23029,
+    "name": "Noth's Frigid Heart",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23030": {
+    "id": 23030,
+    "name": "Cloak of the Scourge",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23031": {
+    "id": 23031,
+    "name": "Band of the Inevitable",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Noth the Plaguebringer",
+    "instance": "naxxramas"
+  },
+  "23032": {
+    "id": 23032,
+    "name": "Glacial Headdress",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gothik the Harvester",
+    "instance": "naxxramas"
+  },
+  "23033": {
+    "id": 23033,
+    "name": "Icy Scale Coif",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Heigan the Unclean",
+    "instance": "naxxramas"
+  },
+  "23035": {
+    "id": 23035,
+    "name": "Preceptor's Hat",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Heigan the Unclean",
+    "instance": "naxxramas"
+  },
+  "23036": {
+    "id": 23036,
+    "name": "Necklace of Necropsy",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Heigan the Unclean",
+    "instance": "naxxramas"
+  },
+  "23037": {
+    "id": 23037,
+    "name": "Ring of Spiritual Fervor",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Loatheb",
+    "instance": "naxxramas"
+  },
+  "23038": {
+    "id": 23038,
+    "name": "Band of Unnatural Forces",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Loatheb",
+    "instance": "naxxramas"
+  },
+  "23039": {
+    "id": 23039,
+    "name": "The Eye of Nerub",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Loatheb",
+    "instance": "naxxramas"
+  },
+  "23040": {
+    "id": 23040,
+    "name": "Glyph of Deflection",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23041": {
+    "id": 23041,
+    "name": "Slayer's Crest",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23042": {
+    "id": 23042,
+    "name": "Loatheb's Reflection",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Loatheb",
+    "instance": "naxxramas"
+  },
+  "23043": {
+    "id": 23043,
+    "name": "The Face of Death",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23044": {
+    "id": 23044,
+    "name": "Harbinger of Doom",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23045": {
+    "id": 23045,
+    "name": "Shroud of Dominion",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23046": {
+    "id": 23046,
+    "name": "The Restrained Essence of Sapphiron",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23047": {
+    "id": 23047,
+    "name": "Eye of the Dead",
+    "equipslot": "Trinket",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23048": {
+    "id": 23048,
+    "name": "Sapphiron's Right Eye",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23049": {
+    "id": 23049,
+    "name": "Sapphiron's Left Eye",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23050": {
+    "id": 23050,
+    "name": "Cloak of the Necropolis",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "ilvl": 90,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23053": {
+    "id": 23053,
+    "name": "Stormrage's Talisman of Seething",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23054": {
+    "id": 23054,
+    "name": "Gressil, Dawn of Ruin",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23056": {
+    "id": 23056,
+    "name": "Hammer of the Twisting Nether",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23057": {
+    "id": 23057,
+    "name": "Gem of Trapped Innocents",
+    "equipslot": "Neck",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23059": {
+    "id": 23059,
+    "name": "Ring of the Dreadnaught",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23060": {
+    "id": 23060,
+    "name": "Bonescythe Ring",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23061": {
+    "id": 23061,
+    "name": "Ring of Faith",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23062": {
+    "id": 23062,
+    "name": "Frostfire Ring",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23063": {
+    "id": 23063,
+    "name": "Plagueheart Ring",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23064": {
+    "id": 23064,
+    "name": "Ring of the Dreamwalker",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23065": {
+    "id": 23065,
+    "name": "Ring of the Earthshatterer",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23066": {
+    "id": 23066,
+    "name": "Ring of Redemption",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23067": {
+    "id": 23067,
+    "name": "Ring of the Cryptstalker",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 92,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23068": {
+    "id": 23068,
+    "name": "Legplates of Carnage",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Heigan the Unclean",
+    "instance": "naxxramas"
+  },
+  "23069": {
+    "id": 23069,
+    "name": "Necro-Knight's Garb",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23070": {
+    "id": 23070,
+    "name": "Leggings of Polarity",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Thaddius",
+    "instance": "naxxramas"
+  },
+  "23071": {
+    "id": 23071,
+    "name": "Leggings of Apocalypse",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "The Four Horsemen",
+    "instance": "naxxramas"
+  },
+  "23073": {
+    "id": 23073,
+    "name": "Boots of Displacement",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gothik the Harvester",
+    "instance": "naxxramas"
+  },
+  "23075": {
+    "id": 23075,
+    "name": "Death's Bargain",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Gluth",
+    "instance": "naxxramas"
+  },
+  "23219": {
+    "id": 23219,
+    "name": "Girdle of the Mentor",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Instructor Razuvious",
+    "instance": "naxxramas"
+  },
+  "23220": {
+    "id": 23220,
+    "name": "Crystal Webbed Robe",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Maexxna",
+    "instance": "naxxramas"
+  },
+  "23221": {
+    "id": 23221,
+    "name": "Misplaced Servo Arm",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23226": {
+    "id": 23226,
+    "name": "Ghoul Skin Tunic",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23237": {
+    "id": 23237,
+    "name": "Ring of the Eternal Flame",
+    "equipslot": "Finger",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23238": {
+    "id": 23238,
+    "name": "Stygian Buckler",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "ilvl": 83,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23242": {
+    "id": 23242,
+    "name": "Claw of the Frost Wyrm",
+    "equipslot": "Off Hand",
+    "quality": "Epic",
+    "ilvl": 88,
+    "from": "Sapphiron",
+    "instance": "naxxramas"
+  },
+  "23577": {
+    "id": 23577,
+    "name": "The Hungering Cold",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "ilvl": 89,
+    "from": "Kel'Thuzad",
+    "instance": "naxxramas"
+  },
+  "23663": {
+    "id": 23663,
+    "name": "Girdle of Elemental Fury",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23664": {
+    "id": 23664,
+    "name": "Pauldrons of Elemental Fury",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23665": {
+    "id": 23665,
+    "name": "Leggings of Elemental Fury",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23666": {
+    "id": 23666,
+    "name": "Belt of the Grand Crusader",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23667": {
+    "id": 23667,
+    "name": "Spaulders of the Grand Crusader",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  },
+  "23668": {
+    "id": 23668,
+    "name": "Leggings of the Grand Crusader",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "ilvl": 85,
+    "from": "Trash",
+    "instance": "naxxramas"
+  }
+}
