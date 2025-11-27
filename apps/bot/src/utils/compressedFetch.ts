@@ -29,21 +29,36 @@ export async function compressedFetch(
   const contentEncoding = response.headers.get("content-encoding");
 
   if (contentEncoding === "gzip") {
+    // Get the body as a buffer first (before trying to decompress)
+    const buffer = Buffer.from(await response.arrayBuffer());
+
     try {
-      // Get the compressed body as a buffer
-      const buffer = Buffer.from(await response.arrayBuffer());
-      // Decompress the buffer
+      // Try to decompress the buffer
       const decompressed = await gunzipAsync(buffer);
       // Create a new Response with decompressed data
+      // Remove content-encoding header since we've decompressed
+      const responseHeaders = new Headers(response.headers);
+      responseHeaders.delete("content-encoding");
       return new Response(decompressed, {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers,
+        headers: responseHeaders,
       });
     } catch (error) {
-      // If decompression fails, log and return original response
-      console.error("Error decompressing response:", error);
-      return response;
+      // If decompression fails, the body might not actually be compressed
+      // Use the buffer as-is (it might be uncompressed JSON)
+      // Remove content-encoding header since we're treating it as uncompressed
+      const responseHeaders = new Headers(response.headers);
+      responseHeaders.delete("content-encoding");
+      console.error(
+        "Error decompressing response, treating as uncompressed:",
+        error
+      );
+      return new Response(buffer, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
     }
   }
 
