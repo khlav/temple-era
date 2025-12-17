@@ -8,7 +8,6 @@ import {
   containsBenchKeyword,
 } from "../services/benchParser.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
-import { compressedFetch } from "../utils/compressedFetch.js";
 
 // Track processed messages to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
@@ -91,7 +90,7 @@ export async function handleThreadMessage(message: Message) {
     });
 
     // Call the API to update bench
-    const response = await compressedFetch(
+    const response = await fetch(
       `${config.apiBaseUrl}/api/discord/update-bench`,
       {
         method: "POST",
