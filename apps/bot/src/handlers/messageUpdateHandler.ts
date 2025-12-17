@@ -7,7 +7,6 @@ import {
 } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
-import { compressedFetch } from "../utils/compressedFetch.js";
 
 // Track recently processed message updates to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
@@ -121,7 +120,7 @@ export async function handleMessageUpdate(
       oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
     });
 
-    const response = await compressedFetch(
+    const response = await fetch(
       `${config.apiBaseUrl}/api/discord/update-raid`,
       {
         method: "POST",
