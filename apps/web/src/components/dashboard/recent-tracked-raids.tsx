@@ -14,14 +14,10 @@ import {
 import Link from "next/link";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { Armchair, ExternalLinkIcon, Swords } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
+import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 
 export function RecentTrackedRaids() {
   const { data: trackedRaidData, isLoading } =
@@ -74,32 +70,18 @@ export function RecentTrackedRaids() {
                         </Link>
                       </div>
                       <div className="my-auto grow-0">
-                        {r.currentUserAttendance &&
-                          (r.currentUserAttendance == "bench" ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Armchair
-                                  className="mx-auto text-chart-2"
-                                  size={20}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-secondary text-muted-foreground">
-                                Bench
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Swords
-                                  className="mx-auto text-chart-2"
-                                  size={20}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-secondary text-muted-foreground">
-                                Attended
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
+                        {r.currentUserAttendance && (
+                          <AttendanceStatusIcon
+                            status={
+                              r.currentUserAttendance === "bench"
+                                ? "bench"
+                                : "attendee"
+                            }
+                            size={20}
+                            variant="centered"
+                            iconClassName="text-chart-2"
+                          />
+                        )}
                       </div>
                     </div>
                   </TableCell>

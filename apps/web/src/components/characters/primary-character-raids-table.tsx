@@ -10,16 +10,12 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import Link from "next/link";
-import { Armchair, ExternalLinkIcon, Search } from "lucide-react";
+import { ExternalLinkIcon, Search } from "lucide-react";
+import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/characters/skeletons";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -195,14 +191,11 @@ export function PrimaryCharacterRaidsTable({
                   </TableCell>
                   <TableCell className="hidden gap-1 md:flex">
                     {r.attendeeOrBench == "bench" && (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Armchair size={16} className="cursor-default" />
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-secondary text-muted-foreground">
-                          Bench
-                        </TooltipContent>
-                      </Tooltip>
+                      <AttendanceStatusIcon
+                        status="bench"
+                        size={16}
+                        iconClassName="cursor-default"
+                      />
                     )}
                     {(r.allCharacters ?? []).map((c) => {
                       return (

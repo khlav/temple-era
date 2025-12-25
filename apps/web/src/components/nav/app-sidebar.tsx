@@ -1,7 +1,6 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -10,8 +9,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ModeToggle } from "@/components/ui/mode-toggle";
-
 import {
   ChartBarSquareIcon,
   MapIcon,
@@ -21,7 +18,14 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
 import Image from "next/image";
-import { FilePlus, Users, ListRestart, ShieldCheck, Wand } from "lucide-react";
+import {
+  FilePlus,
+  Users,
+  ListRestart,
+  ShieldCheck,
+  Wand,
+  ClipboardList,
+} from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
 const coreItems = [
@@ -29,6 +33,11 @@ const coreItems = [
   { title: "Raids", url: "/raids", icon: MapIcon },
   { title: "Raiding characters", url: "/characters", icon: UserGroupIcon },
   { title: "Rare recipes & crafters", url: "/rare-recipes", icon: Wand },
+  {
+    title: "Attendance report",
+    url: "/reports/attendance",
+    icon: ClipboardList,
+  },
 ];
 
 const raidManagerTitle = "Raid Manager";
@@ -147,11 +156,6 @@ export async function AppSidebar({
           </SidebarGroup>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        <div className="m-auto py-0.5">
-          <ModeToggle />
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

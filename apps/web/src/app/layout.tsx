@@ -34,14 +34,13 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={GeistSans.className}
+      className={`${GeistSans.className} dark`}
       suppressHydrationWarning={true}
     >
       <body className="flex h-screen">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem
+          forcedTheme="dark"
           disableTransitionOnChange
         >
           <TRPCReactProvider>
