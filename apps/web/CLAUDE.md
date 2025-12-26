@@ -76,6 +76,8 @@ src/
 │   ├── raid-manager/            # Raid manager pages
 │   ├── raids/                   # Raid detail/edit pages
 │   ├── rare-recipes/            # Recipe search pages
+│   ├── reports/                 # Reports pages
+│   │   └── attendance/         # Side-by-side attendance report
 │   └── profile/                 # User profile pages
 ├── components/                   # React components organized by feature
 │   ├── admin/                   # Admin components
@@ -85,6 +87,8 @@ src/
 │   ├── raid-manager/            # Raid manager components
 │   ├── raids/                   # Raid components
 │   ├── rare-recipes/            # Recipe search components
+│   ├── reports/                 # Report components
+│   │   └── attendance/         # Attendance report components
 │   └── ui/                      # Reusable UI components (shadcn/ui)
 ├── server/
 │   ├── api/
@@ -95,6 +99,7 @@ src/
 │   │   │   ├── raid.ts         # Raid operations
 │   │   │   ├── raidlog.ts      # Raid log operations
 │   │   │   ├── recipe.ts       # Recipe operations
+│   │   │   ├── reports.ts      # Attendance report operations
 │   │   │   ├── search.ts       # Global search
 │   │   │   └── user.ts         # User operations
 │   │   ├── interfaces/         # TypeScript interfaces for external APIs
@@ -213,8 +218,13 @@ The `user-facing` label controls Discord notifications for merged PRs.
 
 - Use _italics_ for inline code references instead of backticks (better readability in GitHub)
 - Follow the PR template structure
-- Be concise and focus on key changes
-- Include technical context only when relevant
+- Be crisp and concise - Keep descriptions brief and to the point
+- Focus on key changes - What was added, fixed, or improved (2-4 bullet points max)
+- Use bullet points for easy scanning (limit to essential items only)
+- Include technical context only when necessary for understanding (avoid implementation details unless critical)
+- Keep each template section brief
+- Avoid repetition - Don't restate what's already clear from the title or commit message
+- User-focused - Prioritize what users will see/experience over technical implementation details
 
 ### Environment Setup
 
