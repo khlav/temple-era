@@ -110,12 +110,14 @@ When creating PR descriptions, ensure proper escaping for code blocks and specia
 
 ### 8. PR Description Standards
 - **Follow the PR template** - Always use `.github/pull_request_template.md` if it exists
-- **Be crisp and concise** - avoid overly wordy descriptions
-- **Focus on key changes** - what was added, fixed, or improved
-- **Use bullet points** for easy scanning
-- **Include technical context** only when relevant
-- **Template compliance** - Fill out all required sections in the template
-- **Custom sections** - Add any additional context in appropriate template sections
+- **Be crisp and concise** - Keep descriptions brief and to the point
+- **Focus on key changes** - What was added, fixed, or improved (2-4 bullet points max)
+- **Use bullet points** for easy scanning (limit to essential items only)
+- **Include technical context** only when necessary for understanding (avoid implementation details unless critical)
+- **Template compliance** - Fill out all required sections in the template, but keep each section brief
+- **Custom sections** - Add any additional context in appropriate template sections, but be brief
+- **Avoid repetition** - Don't restate what's already clear from the title or commit message
+- **User-focused** - Prioritize what users will see/experience over technical implementation details
 
 ## Code Quality Rules
 
