@@ -57,6 +57,7 @@ export function AttendanceReportTable({
   characters,
   attendance,
   selectedCharacterIds,
+  displayMode,
   onAddCharacter,
   onRemoveCharacter,
 }: {
@@ -66,31 +67,55 @@ export function AttendanceReportTable({
     raidId: number;
     primaryCharacterId: number;
     status: string | null;
+    allCharacters?: Array<{ characterId: number; name: string; class: string }>;
   }>;
   selectedCharacterIds: number[];
+  displayMode: "icons" | "names";
   onAddCharacter: (characterId: number) => void;
   onRemoveCharacter: (characterId: number) => void;
 }) {
   // Build attendance lookup map
   const attendanceMap = useMemo(() => {
-    const map = new Map<string, string | null>();
+    const map = new Map<
+      string,
+      {
+        status: string | null;
+        allCharacters?: Array<{
+          characterId: number;
+          name: string;
+          class: string;
+        }>;
+      }
+    >();
     for (const entry of attendance) {
       const key = `${entry.raidId}-${entry.primaryCharacterId}`;
-      map.set(key, entry.status);
+      map.set(key, {
+        status: entry.status,
+        allCharacters: entry.allCharacters,
+      });
     }
     return map;
   }, [attendance]);
 
-  const getAttendanceStatus = (
+  const getAttendanceData = (
     raidId: number,
     characterId: number,
-  ): "attendee" | "bench" | null => {
+  ): {
+    status: "attendee" | "bench" | null;
+    allCharacters?: Array<{ characterId: number; name: string; class: string }>;
+  } => {
     const key = `${raidId}-${characterId}`;
-    const status = attendanceMap.get(key);
-    if (status === "attendee" || status === "bench") {
-      return status;
+    const entry = attendanceMap.get(key);
+    if (entry) {
+      const status = entry.status;
+      if (status === "attendee" || status === "bench") {
+        return {
+          status,
+          allCharacters: entry.allCharacters,
+        };
+      }
     }
-    return null;
+    return { status: null };
   };
 
   // Group raids by lockout week and calculate rowspans
@@ -242,10 +267,12 @@ export function AttendanceReportTable({
                           </Link>
                         </td>
                         {characters.map((char) => {
-                          const status = getAttendanceStatus(
+                          const attendanceData = getAttendanceData(
                             raid.raidId,
                             char.characterId,
                           );
+                          const status = attendanceData.status;
+                          const allCharacters = attendanceData.allCharacters;
                           // Add background color based on status
                           const bgClass =
                             status === "attendee"
@@ -258,16 +285,209 @@ export function AttendanceReportTable({
                               key={char.characterId}
                               className={`min-w-[150px] max-w-[300px] p-2 text-center align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] ${bgClass}`}
                             >
-                              <AttendanceStatusIcon
-                                status={status}
-                                size={20}
-                                variant="inline"
-                                iconClassName={
-                                  status === "attendee"
-                                    ? "text-chart-2"
-                                    : "text-muted-foreground"
-                                }
-                              />
+                              {/* OPTION 1: Simple Fade Transition - Uncomment to test */}
+                              {/* {displayMode === "icons" ? (
+                                <div className="transition-opacity duration-200">
+                                  <AttendanceStatusIcon
+                                    status={status}
+                                    size={20}
+                                    variant="inline"
+                                    iconClassName={
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }
+                                  />
+                                </div>
+                              ) : status &&
+                                allCharacters &&
+                                allCharacters.length > 0 ? (
+                                <div className="transition-opacity duration-200">
+                                  <div
+                                    className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-sm ${
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {allCharacters.map((attendingChar, index) => {
+                                      const tooltipContent =
+                                        status === "attendee"
+                                          ? "Attended"
+                                          : "Bench";
+                                      return (
+                                        <span
+                                          key={attendingChar.characterId}
+                                          className="flex items-center gap-1"
+                                        >
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="flex cursor-default items-center gap-1">
+                                                <ClassIcon
+                                                  characterClass={
+                                                    attendingChar.class
+                                                  }
+                                                  px={14}
+                                                />
+                                                <span>{attendingChar.name}</span>
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-secondary text-muted-foreground">
+                                              {tooltipContent}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                          {index < allCharacters.length - 1 && (
+                                            <span>,</span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ) : null} */}
+
+                              {/* OPTION 2: Cross-Fade Transition - Uncomment to test */}
+                              {/* <div className="relative">
+                                <div
+                                  className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+                                    displayMode === "icons" && status
+                                      ? "opacity-100"
+                                      : "opacity-0 pointer-events-none"
+                                  }`}
+                                >
+                                  <AttendanceStatusIcon
+                                    status={status}
+                                    size={20}
+                                    variant="inline"
+                                    iconClassName={
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }
+                                  />
+                                </div>
+                                {status && allCharacters && allCharacters.length > 0 && (
+                                  <div
+                                    className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-sm transition-opacity duration-300 ${
+                                      displayMode === "names"
+                                        ? "opacity-100"
+                                        : "opacity-0 pointer-events-none"
+                                    } ${
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {allCharacters.map((attendingChar, index) => {
+                                      const tooltipContent =
+                                        status === "attendee"
+                                          ? "Attended"
+                                          : "Bench";
+                                      return (
+                                        <span
+                                          key={attendingChar.characterId}
+                                          className="flex items-center gap-1"
+                                        >
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="flex cursor-default items-center gap-1">
+                                                <ClassIcon
+                                                  characterClass={
+                                                    attendingChar.class
+                                                  }
+                                                  px={14}
+                                                />
+                                                <span>{attendingChar.name}</span>
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-secondary text-muted-foreground">
+                                              {tooltipContent}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                          {index < allCharacters.length - 1 && (
+                                            <span>,</span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div> */}
+
+                              {/* OPTION 3: Slide + Fade Transition - Currently Active */}
+                              <div className="relative overflow-hidden">
+                                <div
+                                  className={`transition-all duration-300 ${
+                                    displayMode === "icons" && status
+                                      ? "translate-y-0 opacity-100"
+                                      : "absolute inset-0 flex -translate-y-2 items-center justify-center opacity-0"
+                                  }`}
+                                >
+                                  <AttendanceStatusIcon
+                                    status={status}
+                                    size={20}
+                                    variant="inline"
+                                    iconClassName={
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }
+                                  />
+                                </div>
+                                {status &&
+                                  allCharacters &&
+                                  allCharacters.length > 0 && (
+                                    <div
+                                      className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-sm transition-all duration-300 ${
+                                        displayMode === "names"
+                                          ? "translate-y-0 opacity-100"
+                                          : "absolute inset-0 translate-y-2 opacity-0"
+                                      } ${
+                                        status === "attendee"
+                                          ? "text-chart-2"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {allCharacters.map(
+                                        (attendingChar, index) => {
+                                          const tooltipContent =
+                                            status === "attendee"
+                                              ? "Attended"
+                                              : "Bench";
+                                          return (
+                                            <span
+                                              key={attendingChar.characterId}
+                                              className="flex items-center gap-1"
+                                            >
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span className="flex cursor-default items-center gap-1">
+                                                    <ClassIcon
+                                                      characterClass={
+                                                        attendingChar.class
+                                                      }
+                                                      px={14}
+                                                    />
+                                                    <span>
+                                                      {attendingChar.name}
+                                                    </span>
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-secondary text-muted-foreground">
+                                                  {tooltipContent}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                              {index <
+                                                allCharacters.length - 1 && (
+                                                <span>,</span>
+                                              )}
+                                            </span>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
                             </td>
                           );
                         })}

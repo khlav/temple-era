@@ -9,7 +9,7 @@ import { ZoneFilter } from "./zone-filter";
 import { DayOfWeekFilter } from "./day-of-week-filter";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Share2, Swords } from "lucide-react";
 import { useToast } from "~/hooks/use-toast";
 
 const DEFAULT_ZONES = ["naxxramas", "aq40", "mc", "bwl"];
@@ -20,6 +20,7 @@ interface ReportFilters {
   zones: string[];
   daysOfWeek: string[];
   characterIds: number[];
+  displayMode: "icons" | "names";
 }
 
 // Helper to parse URL params into filter state
@@ -35,6 +36,11 @@ function parseUrlParams(
   const urlCharacters =
     searchParams.get("characters")?.split(",").map(Number).filter(Boolean) ||
     [];
+  const urlDisplayMode = searchParams.get("displayMode");
+  const displayMode =
+    urlDisplayMode === "names" || urlDisplayMode === "icons"
+      ? urlDisplayMode
+      : "icons";
 
   return {
     startDate: urlStartDate,
@@ -47,6 +53,7 @@ function parseUrlParams(
         : defaultCharacterId
           ? [defaultCharacterId]
           : [],
+    displayMode,
   };
 }
 
@@ -60,6 +67,8 @@ function buildUrlParams(filters: ReportFilters): URLSearchParams {
     params.set("days", filters.daysOfWeek.join(","));
   if (filters.characterIds.length > 0)
     params.set("characters", filters.characterIds.join(","));
+  if (filters.displayMode !== "icons")
+    params.set("displayMode", filters.displayMode);
   return params;
 }
 
@@ -73,7 +82,8 @@ function filtersEqual(a: ReportFilters, b: ReportFilters): boolean {
     a.daysOfWeek.length === b.daysOfWeek.length &&
     a.daysOfWeek.every((d) => b.daysOfWeek.includes(d)) &&
     a.characterIds.length === b.characterIds.length &&
-    a.characterIds.every((c) => b.characterIds.includes(c))
+    a.characterIds.every((c) => b.characterIds.includes(c)) &&
+    a.displayMode === b.displayMode
   );
 }
 
@@ -202,7 +212,7 @@ export function AttendanceReportClient({
   return (
     <div className="space-y-3">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2">
         <DateRangeFilter
           startDate={filters.startDate}
           endDate={filters.endDate}
@@ -227,15 +237,48 @@ export function AttendanceReportClient({
           }
         />
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShareUrl}
-          className="ml-auto"
-        >
-          <Share2 className="mr-2 h-4 w-4" />
-          Share Report
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handleShareUrl}>
+            <Share2 className="h-4 w-4" />
+          </Button>
+
+          <div className="flex items-center gap-1 rounded-md border p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-3 text-xs ${
+                filters.displayMode === "icons"
+                  ? "bg-chart-2/10 text-chart-2"
+                  : ""
+              }`}
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, displayMode: "icons" }))
+              }
+            >
+              <Swords
+                className={`h-3.5 w-3.5 ${
+                  filters.displayMode === "icons"
+                    ? "text-chart-2"
+                    : "text-muted-foreground"
+                }`}
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-3 text-xs ${
+                filters.displayMode === "names"
+                  ? "bg-chart-2/10 text-chart-2"
+                  : ""
+              }`}
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, displayMode: "names" }))
+              }
+            >
+              Names
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Main Table */}
@@ -245,6 +288,7 @@ export function AttendanceReportClient({
           characters={data.characters}
           attendance={data.attendance}
           selectedCharacterIds={filters.characterIds}
+          displayMode={filters.displayMode}
           onAddCharacter={handleAddCharacter}
           onRemoveCharacter={handleRemoveCharacter}
         />

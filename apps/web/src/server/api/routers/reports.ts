@@ -157,6 +157,11 @@ export const reports = createTRPCRouter({
         raidId: number;
         primaryCharacterId: number;
         status: string | null;
+        allCharacters?: Array<{
+          characterId: number;
+          name: string;
+          class: string;
+        }>;
       }> = [];
 
       if (raidIds.length > 0 && characterIds.length > 0) {
@@ -166,6 +171,7 @@ export const reports = createTRPCRouter({
             primaryCharacterId:
               primaryRaidAttendeeAndBenchMap.primaryCharacterId,
             status: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
+            allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
           })
           .from(primaryRaidAttendeeAndBenchMap)
           .where(
@@ -179,7 +185,7 @@ export const reports = createTRPCRouter({
           );
 
         // Filter out nulls and ensure types
-        attendanceData = rawAttendance
+        const filteredAttendance = rawAttendance
           .filter(
             (
               a,
@@ -187,13 +193,91 @@ export const reports = createTRPCRouter({
               raidId: number;
               primaryCharacterId: number;
               status: string | null;
+              allCharacters: Array<{
+                characterId: number;
+                name: string;
+              }> | null;
             } => a.raidId !== null && a.primaryCharacterId !== null,
           )
           .map((a) => ({
             raidId: a.raidId!,
             primaryCharacterId: a.primaryCharacterId!,
             status: a.status,
+            allCharacters: a.allCharacters,
           }));
+
+        // Collect all unique character IDs from allCharacters arrays
+        const allCharacterIds = new Set<number>();
+        for (const entry of filteredAttendance) {
+          if (entry.allCharacters) {
+            for (const char of entry.allCharacters) {
+              if (char.characterId) {
+                allCharacterIds.add(char.characterId);
+              }
+            }
+          }
+        }
+
+        // Fetch character details (including class) for all attending characters
+        const characterDetailsMap = new Map<
+          number,
+          { characterId: number; name: string; class: string }
+        >();
+
+        if (allCharacterIds.size > 0) {
+          const characterDetails = await ctx.db
+            .select({
+              characterId: characters.characterId,
+              name: characters.name,
+              class: characters.class,
+            })
+            .from(characters)
+            .where(
+              inArray(characters.characterId, Array.from(allCharacterIds)),
+            );
+
+          for (const char of characterDetails) {
+            characterDetailsMap.set(char.characterId, char);
+          }
+        }
+
+        // Enrich attendance data with class information
+        attendanceData = filteredAttendance.map((entry) => {
+          const enrichedAllCharacters =
+            entry.allCharacters
+              ?.map((char) => {
+                const details = characterDetailsMap.get(char.characterId);
+                if (details) {
+                  return {
+                    characterId: details.characterId,
+                    name: details.name,
+                    class: details.class,
+                  };
+                }
+                // Fallback to original data if class not found
+                return {
+                  characterId: char.characterId,
+                  name: char.name,
+                  class: "Unknown",
+                };
+              })
+              .filter(
+                (
+                  c,
+                ): c is { characterId: number; name: string; class: string } =>
+                  c !== undefined,
+              ) || [];
+
+          return {
+            raidId: entry.raidId,
+            primaryCharacterId: entry.primaryCharacterId,
+            status: entry.status,
+            allCharacters:
+              enrichedAllCharacters.length > 0
+                ? enrichedAllCharacters
+                : undefined,
+          };
+        });
       }
 
       return {
