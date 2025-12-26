@@ -14,6 +14,69 @@ import { useToast } from "~/hooks/use-toast";
 
 const DEFAULT_ZONES = ["naxxramas", "aq40", "mc", "bwl"];
 
+interface ReportFilters {
+  startDate?: string;
+  endDate?: string;
+  zones: string[];
+  daysOfWeek: string[];
+  characterIds: number[];
+}
+
+// Helper to parse URL params into filter state
+function parseUrlParams(
+  searchParams: URLSearchParams,
+  defaultCharacterId?: number,
+): ReportFilters {
+  const urlStartDate = searchParams.get("startDate") || undefined;
+  const urlEndDate = searchParams.get("endDate") || undefined;
+  const urlZones =
+    searchParams.get("zones")?.split(",").filter(Boolean) || DEFAULT_ZONES;
+  const urlDays = searchParams.get("days")?.split(",").filter(Boolean) || [];
+  const urlCharacters =
+    searchParams.get("characters")?.split(",").map(Number).filter(Boolean) ||
+    [];
+
+  return {
+    startDate: urlStartDate,
+    endDate: urlEndDate,
+    zones: urlZones,
+    daysOfWeek: urlDays,
+    characterIds:
+      urlCharacters.length > 0
+        ? urlCharacters
+        : defaultCharacterId
+          ? [defaultCharacterId]
+          : [],
+  };
+}
+
+// Helper to build URL params from filter state
+function buildUrlParams(filters: ReportFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.startDate) params.set("startDate", filters.startDate);
+  if (filters.endDate) params.set("endDate", filters.endDate);
+  if (filters.zones.length > 0) params.set("zones", filters.zones.join(","));
+  if (filters.daysOfWeek.length > 0)
+    params.set("days", filters.daysOfWeek.join(","));
+  if (filters.characterIds.length > 0)
+    params.set("characters", filters.characterIds.join(","));
+  return params;
+}
+
+// Helper to compare two filter objects
+function filtersEqual(a: ReportFilters, b: ReportFilters): boolean {
+  return (
+    a.startDate === b.startDate &&
+    a.endDate === b.endDate &&
+    a.zones.length === b.zones.length &&
+    a.zones.every((z) => b.zones.includes(z)) &&
+    a.daysOfWeek.length === b.daysOfWeek.length &&
+    a.daysOfWeek.every((d) => b.daysOfWeek.includes(d)) &&
+    a.characterIds.length === b.characterIds.length &&
+    a.characterIds.every((c) => b.characterIds.includes(c))
+  );
+}
+
 export function AttendanceReportClient({
   initialData,
   defaultCharacterId,
@@ -25,105 +88,81 @@ export function AttendanceReportClient({
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  // Initialize state - start with defaults to avoid hydration mismatch
-  // We'll sync with URL params in useEffect (client-side only)
-  const [startDate, setStartDate] = useState<string | undefined>(undefined);
-  const [endDate, setEndDate] = useState<string | undefined>(undefined);
-  const [selectedZones, setSelectedZones] = useState<string[]>(DEFAULT_ZONES);
-  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<string[]>([]); // Empty = all days
-  const [selectedCharacterIds, setSelectedCharacterIds] = useState<number[]>(
-    defaultCharacterId ? [defaultCharacterId] : [],
+  // State - initialize with defaults (will sync from URL on mount)
+  const [filters, setFilters] = useState<ReportFilters>(() =>
+    parseUrlParams(searchParams, defaultCharacterId),
   );
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Sync with URL params on mount (client-side only) - this prevents hydration mismatch
+  // Initialize on mount (client-side only to avoid hydration mismatch)
   useEffect(() => {
-    const urlStartDate = searchParams.get("startDate");
-    const urlEndDate = searchParams.get("endDate");
-    const urlZones = searchParams.get("zones")?.split(",").filter(Boolean);
-    const urlDays = searchParams.get("days")?.split(",").filter(Boolean);
-    const urlCharacters = searchParams
-      .get("characters")
-      ?.split(",")
-      .map(Number)
-      .filter(Boolean);
-
-    if (urlStartDate) setStartDate(urlStartDate);
-    if (urlEndDate) setEndDate(urlEndDate);
-    if (urlZones && urlZones.length > 0) setSelectedZones(urlZones);
-    if (urlDays && urlDays.length > 0) setSelectedDaysOfWeek(urlDays);
-    if (urlCharacters && urlCharacters.length > 0) {
-      setSelectedCharacterIds(urlCharacters);
-    } else if (defaultCharacterId && urlCharacters?.length === 0) {
-      // Only use default if no URL params
-      setSelectedCharacterIds([defaultCharacterId]);
-    }
-
+    const initialFilters = parseUrlParams(searchParams, defaultCharacterId);
+    setFilters(initialFilters);
     setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
+  // Sync state with URL when it changes (browser back/forward)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const newFilters = parseUrlParams(searchParams, defaultCharacterId);
+    if (!filtersEqual(filters, newFilters)) {
+      setFilters(newFilters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, isInitialized]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const params = buildUrlParams(filters);
+    const currentUrl = params.toString();
+    const urlFromSearch = buildUrlParams(
+      parseUrlParams(searchParams, defaultCharacterId),
+    ).toString();
+
+    // Only update URL if it differs (prevents loops)
+    if (currentUrl !== urlFromSearch) {
+      router.push(`/reports/attendance?${currentUrl}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, isInitialized, router]);
+
   // Fetch report data
-  // Only use initialData on the very first render (before URL sync)
-  // After that, let the query refetch normally when inputs change
-  // Fetch report data - query will automatically refetch when inputs change
   const { data } = api.reports.getAttendanceReportData.useQuery(
     {
-      startDate,
-      endDate,
-      zones: selectedZones, // Pass instance identifiers
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      zones: filters.zones,
       daysOfWeek:
-        selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : undefined,
+        filters.daysOfWeek.length > 0 ? filters.daysOfWeek : undefined,
       primaryCharacterIds:
-        selectedCharacterIds.length > 0 ? selectedCharacterIds : undefined,
+        filters.characterIds.length > 0 ? filters.characterIds : undefined,
     },
     {
-      // Only use initialData on the very first render (before URL sync)
-      // After initialization, let the query refetch normally when inputs change
       initialData: isInitialized ? undefined : initialData,
-      // Ensure fresh data when inputs change
       staleTime: 0,
     },
   );
 
-  // Sync default dates into state when they're available (if no explicit dates are set)
+  // Sync default dates into state when available
   useEffect(() => {
     if (!isInitialized || !data?.dateRange) return;
-    // Only sync defaults if no explicit dates are set
     if (
-      !startDate &&
-      !endDate &&
+      !filters.startDate &&
+      !filters.endDate &&
       data.dateRange.startDate &&
       data.dateRange.endDate
     ) {
-      setStartDate(data.dateRange.startDate);
-      setEndDate(data.dateRange.endDate);
+      setFilters((prev) => ({
+        ...prev,
+        startDate: data.dateRange.startDate,
+        endDate: data.dateRange.endDate,
+      }));
     }
-  }, [data?.dateRange, isInitialized, startDate, endDate]);
-
-  // Update URL when filters change (skip initial mount to avoid hydration issues)
-  useEffect(() => {
-    if (!isInitialized) return; // Don't update URL until we've synced from URL params
-
-    const params = new URLSearchParams();
-    if (startDate) params.set("startDate", startDate);
-    if (endDate) params.set("endDate", endDate);
-    if (selectedZones.length > 0) params.set("zones", selectedZones.join(","));
-    if (selectedDaysOfWeek.length > 0)
-      params.set("days", selectedDaysOfWeek.join(","));
-    if (selectedCharacterIds.length > 0)
-      params.set("characters", selectedCharacterIds.join(","));
-
-    router.push(`/reports/attendance?${params.toString()}`, { scroll: false });
-  }, [
-    startDate,
-    endDate,
-    selectedZones,
-    selectedDaysOfWeek,
-    selectedCharacterIds,
-    router,
-    isInitialized,
-  ]);
+  }, [data?.dateRange, isInitialized, filters.startDate, filters.endDate]);
 
   // Share URL handler
   const handleShareUrl = async () => {
@@ -137,7 +176,7 @@ export function AttendanceReportClient({
 
   // Character management
   const handleAddCharacter = (characterId: number) => {
-    if (selectedCharacterIds.length >= 10) {
+    if (filters.characterIds.length >= 10) {
       toast({
         title: "Character limit reached",
         description: "Maximum 10 characters can be selected",
@@ -145,15 +184,19 @@ export function AttendanceReportClient({
       });
       return;
     }
-    if (!selectedCharacterIds.includes(characterId)) {
-      setSelectedCharacterIds([...selectedCharacterIds, characterId]);
+    if (!filters.characterIds.includes(characterId)) {
+      setFilters((prev) => ({
+        ...prev,
+        characterIds: [...prev.characterIds, characterId],
+      }));
     }
   };
 
   const handleRemoveCharacter = (characterId: number) => {
-    setSelectedCharacterIds(
-      selectedCharacterIds.filter((id) => id !== characterId),
-    );
+    setFilters((prev) => ({
+      ...prev,
+      characterIds: prev.characterIds.filter((id) => id !== characterId),
+    }));
   };
 
   return (
@@ -163,21 +206,29 @@ export function AttendanceReportClient({
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-center gap-4">
             <DateRangeFilter
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
+              startDate={filters.startDate}
+              endDate={filters.endDate}
+              onStartDateChange={(date) =>
+                setFilters((prev) => ({ ...prev, startDate: date }))
+              }
+              onEndDateChange={(date) =>
+                setFilters((prev) => ({ ...prev, endDate: date }))
+              }
               defaultDateRange={data?.dateRange}
             />
 
             <ZoneFilter
-              selectedZones={selectedZones}
-              onZonesChange={setSelectedZones}
+              selectedZones={filters.zones}
+              onZonesChange={(zones) =>
+                setFilters((prev) => ({ ...prev, zones }))
+              }
             />
 
             <DayOfWeekFilter
-              selectedDays={selectedDaysOfWeek}
-              onDaysChange={setSelectedDaysOfWeek}
+              selectedDays={filters.daysOfWeek}
+              onDaysChange={(days) =>
+                setFilters((prev) => ({ ...prev, daysOfWeek: days }))
+              }
             />
 
             <Button
@@ -199,7 +250,7 @@ export function AttendanceReportClient({
           raids={data.raids}
           characters={data.characters}
           attendance={data.attendance}
-          selectedCharacterIds={selectedCharacterIds}
+          selectedCharacterIds={filters.characterIds}
           onAddCharacter={handleAddCharacter}
           onRemoveCharacter={handleRemoveCharacter}
         />
