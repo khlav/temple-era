@@ -7,7 +7,7 @@ import { auth } from "~/server/auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Raid Attendance Report | Temple Raids",
+  title: "Side-by-side attendance | Temple Raids",
   description:
     "View detailed raid attendance reports with customizable filters and date ranges",
 };
@@ -29,12 +29,12 @@ export default async function AttendanceReportPage() {
     <main className="w-full px-4">
       <div className="flex gap-4">
         <div className="grow-0 pb-4 text-3xl font-bold">
-          Raid Attendance Report
+          Side-by-side attendance
         </div>
       </div>
       <p className="-mt-4 mb-4 text-muted-foreground">
-        View and share detailed attendance reports. Select characters, adjust
-        filters, and share the URL.
+        Compare attendance across multiple characters side-by-side with
+        customizable filters.
       </p>
 
       <Suspense fallback={<div>Loading...</div>}>

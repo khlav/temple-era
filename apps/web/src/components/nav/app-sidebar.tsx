@@ -33,8 +33,12 @@ const coreItems = [
   { title: "Raids", url: "/raids", icon: MapIcon },
   { title: "Raiding characters", url: "/characters", icon: UserGroupIcon },
   { title: "Rare recipes & crafters", url: "/rare-recipes", icon: Wand },
+];
+
+const reportsSectionTitle = "Reports";
+const reportsLinks = [
   {
-    title: "Attendance report",
+    title: "Side-by-side attendance",
     url: "/reports/attendance",
     icon: ClipboardList,
   },
@@ -101,6 +105,25 @@ export async function AppSidebar({
             </div>
             <SidebarMenu>
               {coreItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="py-0">
+          <SidebarGroupLabel className="py-0">
+            {reportsSectionTitle}
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="py-0">
+            <SidebarMenu>
+              {reportsLinks.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>

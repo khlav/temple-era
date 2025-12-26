@@ -200,49 +200,43 @@ export function AttendanceReportClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <DateRangeFilter
-              startDate={filters.startDate}
-              endDate={filters.endDate}
-              onStartDateChange={(date) =>
-                setFilters((prev) => ({ ...prev, startDate: date }))
-              }
-              onEndDateChange={(date) =>
-                setFilters((prev) => ({ ...prev, endDate: date }))
-              }
-              defaultDateRange={data?.dateRange}
-            />
+      <div className="flex flex-wrap items-center gap-4">
+        <DateRangeFilter
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+          onStartDateChange={(date) =>
+            setFilters((prev) => ({ ...prev, startDate: date }))
+          }
+          onEndDateChange={(date) =>
+            setFilters((prev) => ({ ...prev, endDate: date }))
+          }
+          defaultDateRange={data?.dateRange}
+        />
 
-            <ZoneFilter
-              selectedZones={filters.zones}
-              onZonesChange={(zones) =>
-                setFilters((prev) => ({ ...prev, zones }))
-              }
-            />
+        <ZoneFilter
+          selectedZones={filters.zones}
+          onZonesChange={(zones) => setFilters((prev) => ({ ...prev, zones }))}
+        />
 
-            <DayOfWeekFilter
-              selectedDays={filters.daysOfWeek}
-              onDaysChange={(days) =>
-                setFilters((prev) => ({ ...prev, daysOfWeek: days }))
-              }
-            />
+        <DayOfWeekFilter
+          selectedDays={filters.daysOfWeek}
+          onDaysChange={(days) =>
+            setFilters((prev) => ({ ...prev, daysOfWeek: days }))
+          }
+        />
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShareUrl}
-              className="ml-auto"
-            >
-              <Share2 className="mr-2 h-4 w-4" />
-              Share Report
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleShareUrl}
+          className="ml-auto"
+        >
+          <Share2 className="mr-2 h-4 w-4" />
+          Share Report
+        </Button>
+      </div>
 
       {/* Main Table */}
       {data && (
