@@ -25,6 +25,7 @@ import {
   raidLogAttendeeMap,
   raidBenchMap,
   raidLogs,
+  primaryRaidAttendanceL6LockoutWk,
 } from "~/server/db/schema";
 import type {
   RaidParticipant,
@@ -453,4 +454,25 @@ export const character = createTRPCRouter({
         });
       return updated[0];
     }),
+
+  getPrimaryRaidAttendanceL6LockoutWk: publicProcedure
+    .input(z.object({ characterId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const raids = await ctx.db
+        .select()
+        .from(primaryRaidAttendanceL6LockoutWk)
+        .where(
+          eq(primaryRaidAttendanceL6LockoutWk.characterId, input.characterId),
+        );
+      return raids ?? [];
+    }),
+
+  getAllPrimaryRaidAttendanceL6LockoutWk: publicProcedure.query(
+    async ({ ctx }) => {
+      const raids = await ctx.db
+        .select()
+        .from(primaryRaidAttendanceL6LockoutWk);
+      return raids ?? [];
+    },
+  ),
 });

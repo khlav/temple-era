@@ -37,9 +37,10 @@ export default function DashboardBanner({ session }: { session?: Session }) {
               }`}
             >
               <div className="flex flex-row items-center gap-2">
-                <div className="grow-0 font-bold text-primary">
-                  Please Read <InfoIcon className="inline h-4 w-4" /> Temple
-                  Raid Attendance & Loot Policy
+                <div className="flex grow-0 items-center gap-1 font-bold text-primary">
+                  <span>Please Read</span>
+                  <InfoIcon className="h-4 w-4" />
+                  <span>Temple Raid Attendance & Loot Policy</span>
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${

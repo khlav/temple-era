@@ -10,7 +10,40 @@ import React from "react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterRecipes } from "~/components/characters/character-recipes";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import { AttendanceProgressBar } from "~/components/common/attendance-progress-bar";
+import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { api } from "~/trpc/react";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
+
+function CharacterAttendanceContent({ characterId }: { characterId: number }) {
+  const { data: attendanceData } =
+    api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery({
+      characterId,
+    });
+
+  // The query already filters by characterId, so we should get at most one result
+  const userAttendance = attendanceData?.[0];
+
+  const attendancePct = userAttendance?.weightedAttendancePct ?? 0;
+  const weightedAttendance = userAttendance?.weightedAttendance ?? 0;
+
+  return (
+    <>
+      <AttendanceProgressBar
+        attendancePct={attendancePct}
+        weightedAttendance={weightedAttendance}
+        showEligibility={true}
+      />
+      <AttendanceHeatmapGrid
+        characterId={characterId}
+        showCreditsRow={true}
+        showSubtitle={true}
+        showMaxCreditsHelper={false}
+      />
+    </>
+  );
+}
 
 export function CharacterDetail({
   characterId,
@@ -80,6 +113,21 @@ export function CharacterDetail({
           character={characterData}
           showRecipeEditor={showRecipeEdit}
         />
+        {characterData.isPrimary && (
+          <>
+            <Separator className="my-2 w-full" />
+            <Card>
+              <CardHeader className="pb-0">
+                <div className="font-bold">
+                  Raid Attendance, Last 6 lockouts
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <CharacterAttendanceContent characterId={characterId} />
+              </CardContent>
+            </Card>
+          </>
+        )}
         {characterData.isPrimary == false && (
           <>
             <Separator className="my-2 w-full" />

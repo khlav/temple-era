@@ -47,7 +47,7 @@ export function AttendanceReport({
     Raider[]
   >([]);
   const { data: attendanceData, isSuccess } =
-    api.dashboard.getPrimaryRaidAttendanceL6LockoutWk.useQuery();
+    api.character.getAllPrimaryRaidAttendanceL6LockoutWk.useQuery();
 
   useEffect(() => {
     if (isSuccess) {
