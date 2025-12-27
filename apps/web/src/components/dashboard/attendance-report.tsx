@@ -145,7 +145,7 @@ export function AttendanceReport({
     <Card className="min-h-[1700px]">
       <CardHeader>
         <div className="flex flex-row gap-1">
-          <div className="grow-0">Tracked raid attendance credit</div>
+          <div className="grow-0">Raid Attendance Leaderboard</div>
           <div className="grow pt-1 text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
