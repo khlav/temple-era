@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Armchair } from "lucide-react";
 import { api } from "~/trpc/react";
 import {
   Tooltip,
@@ -23,6 +24,14 @@ const ZONE_COLORS = {
   aq40: "bg-chart-4", // Purple in dark mode
   bwl: "bg-chart-5", // Pink/red in dark mode
   mc: "bg-chart-3", // Orange in dark mode (close to yellow)
+} as const;
+
+// Map zones to text colors for icons
+const ZONE_TEXT_COLORS = {
+  naxxramas: "text-chart-2",
+  aq40: "text-chart-4",
+  bwl: "text-chart-5",
+  mc: "text-chart-3",
 } as const;
 
 // For SVG fill, use CSS variable format
@@ -112,7 +121,15 @@ export function AttendanceHeatmapGrid({
     }
 
     const zoneColor = ZONE_COLORS[zone];
+    const zoneTextColor = ZONE_TEXT_COLORS[zone];
     const isGrayed = weekData.isGrayed ?? false;
+
+    // Check if any raid was attended (prioritize attendee over bench)
+    const hasAttendee = weekData.raids.some(
+      (raid) => raid.status === "attendee",
+    );
+    // Only show bench icon if all raids were bench (no attendee raids)
+    const allBench = !hasAttendee && weekData.raids.length > 0;
 
     const tooltipContent = (
       <div className="text-xs">
@@ -128,6 +145,29 @@ export function AttendanceHeatmapGrid({
         })}
       </div>
     );
+
+    // If all raids were bench, show bench icon
+    if (allBench) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`flex h-4 w-4 items-center justify-center ${
+                isGrayed ? "opacity-50" : ""
+              }`}
+            >
+              <Armchair
+                size={16}
+                className={`${zoneTextColor} ${isGrayed ? "grayscale" : ""}`}
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="bg-secondary text-muted-foreground">
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
 
     if (isMC) {
       // Half-square with diagonal cut from bottom-left to top-right, filled in top-left
