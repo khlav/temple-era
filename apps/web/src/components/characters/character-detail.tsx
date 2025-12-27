@@ -39,7 +39,7 @@ function CharacterAttendanceContent({ characterId }: { characterId: number }) {
         characterId={characterId}
         showCreditsRow={true}
         showSubtitle={true}
-        showMaxCreditsHelper={false}
+        showMaxCreditsHelper={true}
       />
     </>
   );

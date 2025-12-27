@@ -7,6 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { Progress } from "~/components/ui/progress";
+import { cn } from "~/lib/utils";
 
 interface AttendanceProgressBarProps {
   attendancePct: number;
@@ -21,7 +23,6 @@ export function AttendanceProgressBar({
 }: AttendanceProgressBarProps) {
   const attendancePercent = Math.round(attendancePct * 100);
   const isAboveThreshold = attendancePercent >= 50;
-  const progressColor = isAboveThreshold ? "bg-chart-2" : "bg-gray-400";
 
   return (
     <div>
@@ -32,24 +33,28 @@ export function AttendanceProgressBar({
               {attendancePercent}%
             </span>
             <div className="relative flex-1">
-              <div className="h-4 w-full rounded-full bg-muted">
-                <div
-                  className={`h-4 rounded-full ${progressColor} transition-all`}
-                  style={{ width: `${attendancePercent}%` }}
-                />
-              </div>
+              <Progress
+                value={attendancePercent}
+                className="h-4 bg-muted"
+                indicatorClassName={cn(
+                  isAboveThreshold ? "bg-chart-2" : "bg-gray-400",
+                )}
+              />
               {/* 50% dotted line */}
               <div
-                className="absolute top-0 h-4 border-l-2 border-dotted border-muted-foreground"
+                className={cn(
+                  "pointer-events-none absolute top-0 h-4 border-l-2 border-dotted",
+                  isAboveThreshold
+                    ? "border-background"
+                    : "border-muted-foreground",
+                )}
                 style={{ left: "50%" }}
               />
             </div>
           </div>
         </TooltipTrigger>
         <TooltipContent className="bg-secondary text-muted-foreground">
-          <div className="text-xs">
-            {weightedAttendance} of 18 attendance credits
-          </div>
+          <div className="text-xs">{weightedAttendance} of 18</div>
         </TooltipContent>
       </Tooltip>
       {showEligibility && (

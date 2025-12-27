@@ -1,149 +1,57 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "~/components/ui/chart";
-import { type ChartConfig } from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  LabelList,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Progress } from "~/components/ui/progress";
 import { useRouter } from "next/navigation";
-import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
-
-interface Raider {
-  name: string | null;
-  characterId: number | null;
-  weightedAttendance: number | null;
-  weightedRaidTotal: number | null;
-  weightedAttendancePct: number | null;
-}
+import { cn } from "~/lib/utils";
 
 export function AttendanceReport({
   currentUserCharacterId,
 }: {
   currentUserCharacterId?: number;
 }) {
-  const attendanceThreshold = 9; // Changed from 0.4 to 7 (integer threshold)
-  const minDisplayThreshold = 2; // Changed from 0.1 to 2 (integer threshold)
-  const targetAttendance = 9; // Reference line at 9 points
+  const attendanceThreshold = 9; // 50% threshold (9 of 18 points)
+  const minDisplayThreshold = 2; // Minimum attendance to display
+  const maxAttendance = 18; // Maximum possible attendance
   const router = useRouter();
-  const [chartAttendenceData, setChartAttendenceData] = React.useState<
-    Raider[]
-  >([]);
   const { data: attendanceData, isSuccess } =
     api.character.getAllPrimaryRaidAttendanceL6LockoutWk.useQuery();
 
-  useEffect(() => {
-    if (isSuccess) {
-      const attendanceDataFiltered = attendanceData.filter(
+  // Filter and prepare raider data
+  const raiders = React.useMemo(() => {
+    if (!attendanceData) return [];
+    return attendanceData
+      .filter(
         (raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold,
-      );
-      const raiderData = attendanceDataFiltered.map((raider) => {
-        const raiderAttendance = raider.weightedAttendance ?? 0;
-        return {
-          ...raider,
-          weightedAttendanceAtOrAboveThresh:
-            raiderAttendance >= attendanceThreshold &&
-            currentUserCharacterId !== raider.characterId
-              ? raiderAttendance
-              : null,
-          weightedAttendanceAtOrAboveThreshHighlight:
-            raiderAttendance >= attendanceThreshold &&
-            currentUserCharacterId === raider.characterId
-              ? raiderAttendance
-              : null,
-          weightedAttendanceBelowThresh:
-            raiderAttendance < attendanceThreshold &&
-            currentUserCharacterId !== raider.characterId
-              ? raiderAttendance
-              : null,
-          weightedAttendanceBelowThreshHighlight:
-            raiderAttendance < attendanceThreshold &&
-            currentUserCharacterId === raider.characterId
-              ? raiderAttendance
-              : null,
-        };
-      });
-      setChartAttendenceData(raiderData);
-    }
-  }, [attendanceData, currentUserCharacterId, isSuccess]);
+      )
+      .map((raider) => ({
+        ...raider,
+        weightedAttendance: raider.weightedAttendance ?? 0,
+        attendancePercent: Math.round(
+          ((raider.weightedAttendance ?? 0) / maxAttendance) * 100,
+        ),
+        isEligible: (raider.weightedAttendance ?? 0) >= attendanceThreshold,
+        isCurrentUser: currentUserCharacterId === raider.characterId,
+      }));
+  }, [attendanceData, currentUserCharacterId]);
 
-  const chartConfig = {
-    weightedAttendanceAtOrAboveThresh: {
-      label: "Attendance",
-      color: "hsl(var(--primary))",
-    },
-    weightedAttendanceAtOrAboveThreshHighlight: {
-      label: "Attendance",
-      color: "hsl(var(--chart-2))",
-    },
-    weightedAttendanceBelowThresh: {
-      label: "Attendance",
-      color: "hsl(var(--muted))",
-    },
-    weightedAttendanceBelowThreshHighlight: {
-      label: "Attendance",
-      color: "hsl(var(--chart-2))",
-    },
-  } satisfies ChartConfig;
-
-  const handleBarClick = (data: any, index: number) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(data);
+  const handleRowClick = (characterId: number | null) => {
+    if (characterId) {
+      router.push(`/characters/${characterId}`);
     }
-    // Extract the raider data from the chart data using the index
-    const raider = chartAttendenceData[index];
-    if (raider?.characterId) {
-      router.push(`/characters/${raider.characterId}`);
-    }
-  };
-
-  const renderCustomTick = ({
-    x,
-    y,
-    payload,
-  }: {
-    x: number;
-    y: number;
-    payload: { index: number; value: string };
-  }) => {
-    const character = chartAttendenceData[payload.index];
-    const isHighlighted = currentUserCharacterId === character?.characterId;
-    return (
-      <text
-        x={x}
-        y={y}
-        style={{
-          fill: isHighlighted ? "hsl(var(--chart-2))" : undefined,
-        }}
-        fontWeight={isHighlighted ? "bold" : "normal"}
-        textAnchor="end"
-        alignmentBaseline="middle"
-      >
-        {payload?.value}
-      </text>
-    );
   };
 
   return (
     <Card className="min-h-[1700px]">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <div className="flex flex-row gap-1">
           <div className="grow-0">Raid Attendance Leaderboard</div>
           <div className="grow pt-1 text-muted-foreground">
@@ -171,156 +79,92 @@ export function AttendanceReport({
           Last 6 full lockouts -- 50%+ = able to SR
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent>
         {isSuccess ? (
-          <div>
-            <ChartContainer
-              config={chartConfig}
-              className="min-h-600 mx-auto h-[2000px] w-[320px] pr-4"
-            >
-              <BarChart
-                accessibilityLayer
-                data={chartAttendenceData}
-                layout="vertical"
-                margin={{
-                  left: 35,
-                }}
-              >
-                <XAxis
-                  type="number"
-                  dataKey="weightedAttendanceAtOrAboveThresh"
-                  domain={[0, 18]}
-                  tickFormatter={(value) => `${value}`}
-                  hide
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tickLine={false}
-                  axisLine={false}
-                  interval={0}
-                  tick={renderCustomTick}
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      indicator="line"
-                      valueFormatter={(value: ValueType) => (
-                        <div className="inline-block pl-1">
-                          {parseFloat(value.toString())} of 18
-                        </div>
+          <div className="mx-auto min-h-[600px] pr-4">
+            {/* Raider List - using grid for table-like column widths */}
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-[1px]">
+              {raiders.map((raider, index) => {
+                const isHighlighted = raider.isCurrentUser;
+                // Fill color: green for current user, primary for >=50%, gray for <50%
+                const barColor = isHighlighted
+                  ? "bg-chart-2"
+                  : raider.isEligible
+                    ? "bg-primary"
+                    : "bg-gray-400";
+
+                return (
+                  <div
+                    key={raider.characterId ?? index}
+                    className="group contents cursor-pointer"
+                    onClick={() => handleRowClick(raider.characterId)}
+                  >
+                    {/* Character Name */}
+                    <div
+                      className={cn(
+                        "flex items-center justify-end whitespace-nowrap text-right text-xs leading-tight transition-opacity group-hover:opacity-80",
+                        isHighlighted
+                          ? "font-bold text-chart-2"
+                          : "text-muted-foreground",
                       )}
-                      additionalContentFromItem={() => <></>}
-                    />
-                  }
-                />
-                {/* Reference Line at 9 pts */}
-                <ReferenceLine
-                  x={targetAttendance}
-                  stroke="#666"
-                  strokeWidth={1}
-                  strokeDasharray="3 3"
-                  label={{
-                    value: "50% attendance credit",
-                    position: "top",
-                    fill: "#666",
-                    fontSize: 12,
-                  }}
-                />
-                <Bar
-                  dataKey="weightedAttendanceAtOrAboveThresh"
-                  fill="var(--color-weightedAttendanceAtOrAboveThresh)"
-                  radius={4}
-                  barSize={20}
-                  stackId={1}
-                  className="cursor-pointer"
-                  onClick={handleBarClick}
-                >
-                  <LabelList
-                    dataKey="weightedAttendanceAtOrAboveThresh"
-                    position="insideRight"
-                    offset={8}
-                    className="fill-primary-foreground font-bold"
-                    fontSize={12}
-                    style={{ pointerEvents: "none" }}
-                    formatter={(label: any) => {
-                      const value =
-                        typeof label === "number" ? label : parseFloat(label);
-                      return `${Math.round((value / 18) * 100)}%`;
-                    }}
-                  />
-                </Bar>
-                <Bar
-                  dataKey="weightedAttendanceAtOrAboveThreshHighlight"
-                  fill="var(--color-weightedAttendanceAtOrAboveThreshHighlight)"
-                  radius={4}
-                  barSize={20}
-                  stackId={1}
-                  className="cursor-pointer"
-                  onClick={handleBarClick}
-                >
-                  <LabelList
-                    dataKey="weightedAttendanceAtOrAboveThreshHighlight"
-                    position="insideRight"
-                    offset={8}
-                    className="fill-background font-bold"
-                    fontSize={12}
-                    style={{ pointerEvents: "none" }}
-                    formatter={(label: any) => {
-                      const value =
-                        typeof label === "number" ? label : parseFloat(label);
-                      return `${Math.round((value / 18) * 100)}%`;
-                    }}
-                  />
-                </Bar>
-                <Bar
-                  dataKey="weightedAttendanceBelowThresh"
-                  fill="var(--color-weightedAttendanceBelowThresh)"
-                  radius={4}
-                  barSize={20}
-                  stackId={1}
-                  className="cursor-pointer"
-                  onClick={handleBarClick}
-                >
-                  <LabelList
-                    dataKey="weightedAttendanceBelowThresh"
-                    position="right"
-                    offset={8}
-                    className="fill-muted-foreground"
-                    fontSize={12}
-                    style={{ pointerEvents: "none" }}
-                    formatter={(label: any) => {
-                      const value =
-                        typeof label === "number" ? label : parseFloat(label);
-                      return `${Math.round((value / 18) * 100)}%`;
-                    }}
-                  />
-                </Bar>
-                <Bar
-                  dataKey="weightedAttendanceBelowThreshHighlight"
-                  fill="var(--color-weightedAttendanceBelowThreshHighlight)"
-                  radius={4}
-                  barSize={20}
-                  stackId={1}
-                  className="cursor-pointer"
-                  onClick={handleBarClick}
-                >
-                  <LabelList
-                    dataKey="weightedAttendanceBelowThreshHighlight"
-                    position="right"
-                    offset={8}
-                    className="fill-muted-foreground"
-                    fontSize={12}
-                    style={{ pointerEvents: "none" }}
-                    formatter={(label: any) => {
-                      const value =
-                        typeof label === "number" ? label : parseFloat(label);
-                      return `${Math.round((value / 18) * 100)}%`;
-                    }}
-                  />
-                </Bar>
-              </BarChart>
-            </ChartContainer>
+                      style={{ height: "1rem" }}
+                    >
+                      {raider.name ?? "Unknown"}
+                    </div>
+
+                    {/* Progress Bar Container with 50% reference line */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative min-w-0 transition-opacity group-hover:opacity-80">
+                          <Progress
+                            value={raider.attendancePercent}
+                            className="h-4 bg-muted"
+                            indicatorClassName={cn("rounded-full", barColor)}
+                          />
+
+                          {/* 50% Reference Line - always displayed */}
+                          <div className="pointer-events-none absolute left-[50%] top-0 z-[1] h-4 border-l-2 border-dotted border-foreground/40" />
+
+                          {/* Percentage Label */}
+                          {raider.attendancePercent > 0 && (
+                            <div
+                              className={cn(
+                                "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 whitespace-nowrap text-xs font-bold",
+                                isHighlighted
+                                  ? raider.attendancePercent >= 20
+                                    ? "text-background"
+                                    : "text-chart-2"
+                                  : raider.attendancePercent >= 20
+                                    ? "text-primary-foreground"
+                                    : "text-muted-foreground",
+                              )}
+                              style={
+                                raider.attendancePercent >= 20
+                                  ? {
+                                      // >= 20%: inside the end of filled bar, evenly spaced from right edge
+                                      right: `${100 - raider.attendancePercent + 1.5}%`,
+                                    }
+                                  : {
+                                      // < 20%: outside filled end, evenly spaced from right edge of fill
+                                      left: `${raider.attendancePercent + 2}%`,
+                                    }
+                              }
+                            >
+                              {raider.attendancePercent}%
+                            </div>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-secondary text-muted-foreground">
+                        <div className="text-xs">
+                          {raider.weightedAttendance} of 18
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           "Loading..."
