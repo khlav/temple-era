@@ -54,12 +54,12 @@ export function AttendanceHeatmapGrid({
   showMaxCreditsHelper = true,
 }: AttendanceHeatmapGridProps) {
   const { data: heatmapData, isLoading: isLoadingHeatmap } =
-    api.dashboard.getPersonalAttendanceHeatmap.useQuery(
+    api.character.getPersonalAttendanceHeatmap.useQuery(
       characterId ? { characterId } : undefined,
       { enabled: !!characterId },
     );
   const { data: thisWeekData, isLoading: isLoadingThisWeek } =
-    api.dashboard.getPersonalAttendanceThisWeek.useQuery(
+    api.character.getPersonalAttendanceThisWeek.useQuery(
       characterId ? { characterId } : undefined,
       { enabled: !!characterId },
     );
