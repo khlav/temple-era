@@ -1,5 +1,27 @@
 # Cursor Rules for Temple Raids T3
 
+## CRITICAL: Codebase Familiarization & Documentation
+
+**MANDATORY RULES - ALWAYS APPLY:**
+
+1. **When familiarizing with the codebase**, you MUST:
+   - **ALWAYS read `CLAUDE.md` first** before exploring the codebase
+   - Use `CLAUDE.md` as the primary reference for architecture, patterns, and workflows
+   - Reference `CLAUDE.md` when answering questions about project structure, development commands, or architectural decisions
+
+2. **When making repository updates**, you MUST:
+   - **Update `CLAUDE.md`** to reflect any changes to:
+     - Architecture or tech stack
+     - Project structure or file organization
+     - Development commands or workflows
+     - Database schema or patterns
+     - API endpoints or integrations
+     - Common patterns or best practices
+   - Keep `CLAUDE.md` synchronized with the actual codebase state
+   - Treat `CLAUDE.md` as living documentation that must be maintained
+
+3. **These rules apply to ALL interactions** - no exceptions. Always check and update `CLAUDE.md` as part of your workflow.
+
 ## PR Generation Rules
 
 ### 1. Always Return Clickable Links
@@ -24,6 +46,10 @@ When generating or referencing PRs, always provide clickable links in the format
 **CRITICAL**: When the user says "ship it", you MUST follow these exact steps in order. Do not use your own "ship it" logic - follow these rules precisely:
 
 #### Step-by-Step Process
+0. **Before shipping, ensure `CLAUDE.md` is up to date**:
+   - If changes affect architecture, structure, commands, or patterns, update `CLAUDE.md` first
+   - Commit `CLAUDE.md` updates as part of the same PR
+
 1. **Create branch** (if on main): Use format `{type}/{kebab-case-description}` where type is:
    - `feature/` - New user-facing functionality
    - `fix/` - Bug fixes or corrections  
