@@ -148,6 +148,39 @@ export function AttendanceHeatmapGrid({
 
     // If all raids were bench, show bench icon
     if (allBench) {
+      // For MC, clip the icon to show only the triangle portion (matching filled triangle)
+      if (isMC) {
+        // Use CSS clip-path to match the triangle shape (top-left triangle)
+        // This approximates the rounded-corner triangle used for filled MC cells
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={`relative h-4 w-4 overflow-hidden ${
+                  isGrayed ? "opacity-50" : ""
+                }`}
+                style={{
+                  clipPath: "polygon(0 0, 0 100%, 100% 0)",
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Armchair
+                    size={16}
+                    className={`${zoneTextColor} ${
+                      isGrayed ? "grayscale" : ""
+                    }`}
+                  />
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="bg-secondary text-muted-foreground">
+              {tooltipContent}
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+
+      // For non-MC zones, show full icon
       return (
         <Tooltip>
           <TooltipTrigger asChild>

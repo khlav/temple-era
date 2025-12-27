@@ -61,24 +61,24 @@ export function AttendanceProgressBar({
         <div className="mt-[1px] flex justify-end text-xs text-muted-foreground">
           {isAboveThreshold ? (
             <span>
-              <span className="text-chart-2">Eligible</span> for{" "}
+              <span className="text-chart-2">Eligible</span> to SR{" "}
               <Link
                 href="https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0"
                 target="_blank"
                 className="underline hover:text-foreground"
               >
-                restricted Naxx loot
+                restricted Naxx items
               </Link>
             </span>
           ) : (
             <span>
-              <span className="text-gray-400">Not Eligible</span> for{" "}
+              <span className="text-gray-400">Not Eligible</span> to SR{" "}
               <Link
                 href="https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0"
                 target="_blank"
                 className="underline hover:text-foreground"
               >
-                restricted Naxx loot
+                restricted Naxx items
               </Link>
             </span>
           )}
