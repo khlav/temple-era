@@ -83,7 +83,7 @@ export function AttendanceReport({
         {isSuccess ? (
           <div className="mx-auto min-h-[600px] pr-4">
             {/* Raider List - using grid for table-like column widths */}
-            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-[1px]">
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-0.5">
               {raiders.map((raider, index) => {
                 const isHighlighted = raider.isCurrentUser;
                 // Fill color: green for current user, primary for >=50%, gray for <50%
@@ -102,12 +102,12 @@ export function AttendanceReport({
                     {/* Character Name */}
                     <div
                       className={cn(
-                        "flex items-center justify-end whitespace-nowrap text-right text-xs leading-tight transition-opacity group-hover:opacity-80",
+                        "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none transition-opacity group-hover:opacity-80",
                         isHighlighted
                           ? "font-bold text-chart-2"
                           : "text-muted-foreground",
                       )}
-                      style={{ height: "1rem" }}
+                      style={{ minHeight: "1rem", height: "1rem" }}
                     >
                       {raider.name ?? "Unknown"}
                     </div>
@@ -115,7 +115,10 @@ export function AttendanceReport({
                     {/* Progress Bar Container with 50% reference line */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="relative min-w-0 transition-opacity group-hover:opacity-80">
+                        <div
+                          className="relative min-w-0 transition-opacity group-hover:opacity-80"
+                          style={{ minHeight: "1rem", height: "1rem" }}
+                        >
                           <Progress
                             value={raider.attendancePercent}
                             className="h-4 bg-muted"
