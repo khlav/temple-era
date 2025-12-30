@@ -6,9 +6,9 @@ import { DebouncedInput } from "~/components/ui/debounced-input";
 
 type TableSearchInputProps = Omit<
   React.ComponentProps<typeof DebouncedInput>,
-  "value" | "onChange" | "onDebouncedChange"
+  "value" | "onDebouncedChange" | "defaultValue"
 > & {
-  initialValue?: string;
+  defaultValue?: string;
   delay?: number;
   placeholder?: string;
   onDebouncedChange?: (value: string) => void;
@@ -22,7 +22,7 @@ export const TableSearchInput = React.forwardRef<
   TableSearchInputProps
 >(function TableSearchInputImpl(
   {
-    initialValue = "",
+    defaultValue = "",
     delay = 300,
     placeholder = "Search…",
     className,
@@ -34,11 +34,24 @@ export const TableSearchInput = React.forwardRef<
   },
   ref,
 ) {
-  const [inputValue, setInputValue] = React.useState(initialValue);
+  const [inputValue, setInputValue] = React.useState(defaultValue);
+  const [debouncedInputKey, setDebouncedInputKey] = React.useState(0);
 
-  React.useEffect(() => {
-    setInputValue(initialValue);
-  }, [initialValue]);
+  // Track immediate input value for clear button visibility
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputValue(e.target.value);
+    },
+    [],
+  );
+
+  // Handle clear button click
+  const handleClear = React.useCallback(() => {
+    setInputValue("");
+    setDebouncedInputKey((prev) => prev + 1); // Force remount with empty value
+    onDebouncedChange?.("");
+    onClear?.();
+  }, [onDebouncedChange, onClear]);
 
   return (
     <div className="relative">
@@ -48,12 +61,13 @@ export const TableSearchInput = React.forwardRef<
       />
       <DebouncedInput
         {...props}
+        key={debouncedInputKey}
         ref={ref}
         delay={delay}
         placeholder={isLoading ? "" : placeholder}
         className={`w-full pl-10 ${className ?? ""}`}
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value ?? "")}
+        defaultValue={debouncedInputKey === 0 ? defaultValue : ""}
+        onChange={handleChange}
         onDebouncedChange={onDebouncedChange}
         autoFocus={autoFocus}
       />
@@ -69,11 +83,7 @@ export const TableSearchInput = React.forwardRef<
           type="button"
           aria-label="Clear search"
           className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => {
-            setInputValue("");
-            onDebouncedChange?.("");
-            onClear?.();
-          }}
+          onClick={handleClear}
         >
           Clear
         </button>

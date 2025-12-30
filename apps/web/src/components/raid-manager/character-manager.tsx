@@ -72,7 +72,7 @@ export function CharacterManager() {
       <div className="space-y-1">
         <TableSearchInput
           placeholder="Search..."
-          initialValue={searchParams.get("s") ?? ""}
+          defaultValue={searchParams.get("s") ?? ""}
           onDebouncedChange={(v) => setSearchTerm(v)}
         />
         <TableSearchTips>

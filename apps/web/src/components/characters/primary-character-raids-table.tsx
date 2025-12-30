@@ -113,7 +113,7 @@ export function PrimaryCharacterRaidsTable({
           type="text"
           placeholder="Search raids by name, zone, date, character..."
           className="w-full pl-10"
-          initialValue={initialSearch}
+          defaultValue={initialSearch}
           onDebouncedChange={(v) => setSearchTerms(v ?? "")}
         />
         <div className="mt-1 flex justify-between text-xs text-muted-foreground">

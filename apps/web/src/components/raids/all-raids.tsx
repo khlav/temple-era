@@ -69,7 +69,7 @@ export function AllRaids({
           <div className="space-y-1">
             <TableSearchInput
               placeholder="Search raids by name, zone, date, creator..."
-              initialValue={initialSearch}
+              defaultValue={initialSearch}
               onDebouncedChange={(v) => setSearchTerms(v ?? "")}
             />
             <TableSearchTips>

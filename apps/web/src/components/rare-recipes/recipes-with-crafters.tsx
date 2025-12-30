@@ -175,7 +175,7 @@ export const RecipesWithCrafters = () => {
                 : "Search recipes, professions, tags, or characters..."
             }
             className="w-full pl-10"
-            initialValue={initialSearch}
+            defaultValue={initialSearch}
             onDebouncedChange={(v) => setSearchTerms(v ?? "")}
             isLoading={isLoading}
           />
