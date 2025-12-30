@@ -82,92 +82,110 @@ export function AttendanceReport({
       <CardContent>
         {isSuccess ? (
           <div className="mx-auto min-h-[600px] pr-4">
-            {/* Raider List - using grid for table-like column widths */}
-            <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-0.5">
-              {raiders.map((raider, index) => {
-                const isHighlighted = raider.isCurrentUser;
-                // Fill color: green for current user, primary for >=50%, gray for <50%
-                const barColor = isHighlighted
-                  ? "bg-chart-2"
-                  : raider.isEligible
-                    ? "bg-primary"
-                    : "bg-gray-400";
+            {/* Raider List - using table for consistent row spacing */}
+            <table
+              className="w-full border-separate"
+              style={{ borderSpacing: "0 2px" }}
+            >
+              <tbody>
+                {raiders.map((raider, index) => {
+                  const isHighlighted = raider.isCurrentUser;
+                  // Fill color: green for current user, primary for >=50%, gray for <50%
+                  const barColor = isHighlighted
+                    ? "bg-chart-2"
+                    : raider.isEligible
+                      ? "bg-primary"
+                      : "bg-gray-400";
 
-                return (
-                  <div
-                    key={raider.characterId ?? index}
-                    className="group contents cursor-pointer"
-                    onClick={() => handleRowClick(raider.characterId)}
-                  >
-                    {/* Character Name */}
-                    <div
-                      className={cn(
-                        "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none transition-opacity group-hover:opacity-80",
-                        isHighlighted
-                          ? "font-bold text-chart-2"
-                          : "text-muted-foreground",
-                      )}
-                      style={{ minHeight: "1rem", height: "1rem" }}
+                  return (
+                    <tr
+                      key={raider.characterId ?? index}
+                      className="group cursor-pointer transition-opacity hover:opacity-80"
+                      onClick={() => handleRowClick(raider.characterId)}
                     >
-                      {raider.name ?? "Unknown"}
-                    </div>
-
-                    {/* Progress Bar Container with 50% reference line */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                      {/* Character Name */}
+                      <td
+                        className="w-auto pr-2 align-middle"
+                        style={{ paddingTop: 0, paddingBottom: 0 }}
+                      >
                         <div
-                          className="relative min-w-0 transition-opacity group-hover:opacity-80"
+                          className={cn(
+                            "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none",
+                            isHighlighted
+                              ? "font-bold text-chart-2"
+                              : "text-muted-foreground",
+                          )}
                           style={{ minHeight: "1rem", height: "1rem" }}
                         >
-                          <Progress
-                            value={raider.attendancePercent}
-                            className="h-4 bg-muted"
-                            indicatorClassName={cn("rounded-full", barColor)}
-                          />
+                          {raider.name ?? "Unknown"}
+                        </div>
+                      </td>
 
-                          {/* 50% Reference Line - always displayed */}
-                          <div className="pointer-events-none absolute left-[50%] top-0 z-[1] h-4 border-l-2 border-dotted border-foreground/40" />
-
-                          {/* Percentage Label */}
-                          {raider.attendancePercent > 0 && (
+                      {/* Progress Bar Container with 50% reference line */}
+                      <td
+                        className="w-full align-middle"
+                        style={{ paddingTop: 0, paddingBottom: 0 }}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <div
-                              className={cn(
-                                "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 whitespace-nowrap text-xs font-bold",
-                                isHighlighted
-                                  ? raider.attendancePercent >= 20
-                                    ? "text-background"
-                                    : "text-chart-2"
-                                  : raider.attendancePercent >= 20
-                                    ? "text-primary-foreground"
-                                    : "text-muted-foreground",
-                              )}
-                              style={
-                                raider.attendancePercent >= 20
-                                  ? {
-                                      // >= 20%: inside the end of filled bar, evenly spaced from right edge
-                                      right: `${100 - raider.attendancePercent + 1.5}%`,
-                                    }
-                                  : {
-                                      // < 20%: outside filled end, evenly spaced from right edge of fill
-                                      left: `${raider.attendancePercent + 2}%`,
-                                    }
-                              }
+                              className="relative min-w-0"
+                              style={{ minHeight: "1rem", height: "1rem" }}
                             >
-                              {raider.attendancePercent}%
+                              <Progress
+                                value={raider.attendancePercent}
+                                className="h-4 bg-muted"
+                                indicatorClassName={cn(
+                                  "rounded-full",
+                                  barColor,
+                                )}
+                              />
+
+                              {/* 50% Reference Line - always displayed */}
+                              <div className="pointer-events-none absolute left-[50%] top-0 z-[1] h-4 border-l-2 border-dotted border-foreground/40" />
+
+                              {/* Percentage Label */}
+                              {raider.attendancePercent > 0 && (
+                                <div
+                                  className={cn(
+                                    "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 whitespace-nowrap text-xs font-bold",
+                                    isHighlighted
+                                      ? raider.attendancePercent >= 20
+                                        ? "text-background"
+                                        : "text-chart-2"
+                                      : raider.attendancePercent >= 20
+                                        ? "text-primary-foreground"
+                                        : "text-muted-foreground",
+                                  )}
+                                  style={
+                                    raider.attendancePercent >= 20
+                                      ? {
+                                          // >= 20%: inside the end of filled bar, evenly spaced from right edge
+                                          right: `${100 - raider.attendancePercent + 1.5}%`,
+                                        }
+                                      : {
+                                          // < 20%: outside filled end, evenly spaced from right edge of fill
+                                          left: `${raider.attendancePercent + 2}%`,
+                                        }
+                                  }
+                                >
+                                  {raider.attendancePercent}%
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="bg-secondary text-muted-foreground">
-                        <div className="text-xs">
-                          {raider.weightedAttendance} of 18
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                );
-              })}
-            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-secondary text-muted-foreground">
+                            <div className="text-xs">
+                              {raider.weightedAttendance} of 18
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           "Loading..."
