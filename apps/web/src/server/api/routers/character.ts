@@ -11,8 +11,10 @@ import {
   count,
   desc,
   eq,
+  gte,
   inArray,
   isNull,
+  lte,
   not,
   or,
   type SQL,
@@ -27,8 +29,6 @@ import {
   raidBenchMap,
   raidLogs,
   primaryRaidAttendanceL6LockoutWk,
-  trackedRaidsCurrentLockout,
-  reportDates,
 } from "~/server/db/schema";
 import type {
   RaidParticipant,
@@ -479,11 +479,13 @@ export const character = createTRPCRouter({
     },
   ),
 
-  getPersonalAttendanceHeatmap: publicProcedure
+  getWeeklyPrimaryCharacterAttendance: publicProcedure
     .input(
       z
         .object({
           characterId: z.number().optional(),
+          weeksBack: z.number().optional().default(6),
+          includeCurrentWeek: z.boolean().optional().default(true),
         })
         .optional(),
     )
@@ -493,70 +495,91 @@ export const character = createTRPCRouter({
         return { weeks: [] };
       }
 
-      // Get report dates to determine the 6 lockout weeks
-      const reportDatesResult = await ctx.db
-        .select()
-        .from(reportDates)
-        .limit(1);
-      const reportPeriodStart = reportDatesResult[0]?.reportPeriodStart;
+      const weeksBack = input?.weeksBack ?? 6;
+      const includeCurrentWeek = input?.includeCurrentWeek ?? true;
 
-      // Calculate the 6 lockout weeks (Tuesday to Monday)
-      // Each lockout week starts on Tuesday
-      const lockoutWeeks: string[] = [];
-      if (reportPeriodStart) {
-        const startDate = new Date(reportPeriodStart);
+      // Calculate date range
+      // Current week starts on Tuesday: date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'
+      // Calculate Tuesday of current week using JavaScript
+      const currentDate = new Date();
+      currentDate.setUTCHours(0, 0, 0, 0); // Normalize to midnight UTC
 
-        // Calculate Tuesday of the first week
-        const firstTuesday = new Date(startDate);
-        firstTuesday.setUTCDate(firstTuesday.getUTCDate() - 1);
-        const dayOfWeek = firstTuesday.getUTCDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        firstTuesday.setUTCDate(firstTuesday.getUTCDate() - daysToMonday);
-        firstTuesday.setUTCDate(firstTuesday.getUTCDate() + 1); // Now it's Tuesday
+      // Calculate Tuesday of current week
+      // date_trunc('week', date - 1) gives Monday before the date
+      // Adding 1 day gives Tuesday
+      const currentDateCopy = new Date(currentDate);
+      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() - 1);
+      const dayOfWeek = currentDateCopy.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() - daysToMonday);
+      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() + 1); // Now it's Tuesday
+      const currentWeekStart = new Date(currentDateCopy);
 
-        // Generate 6 weeks starting from the first Tuesday
-        for (let i = 0; i < 6; i++) {
-          const weekStart = new Date(firstTuesday);
-          weekStart.setUTCDate(weekStart.getUTCDate() + i * 7);
-          lockoutWeeks.push(weekStart.toISOString().split("T")[0] ?? "");
-        }
+      // Calculate start date (go back weeksBack weeks)
+      const startDate = new Date(currentWeekStart);
+      startDate.setUTCDate(startDate.getUTCDate() - weeksBack * 7);
+
+      // Calculate end date
+      const endDate = new Date(currentWeekStart);
+      if (includeCurrentWeek) {
+        endDate.setUTCDate(endDate.getUTCDate() + 7); // End of current week
       }
 
-      // Get all tracked raids from last 6 lockout weeks with user's attendance
-      const raids = await ctx.db
+      // Format dates as YYYY-MM-DD strings for SQL
+      const startDateStr = startDate.toISOString().split("T")[0] ?? "";
+      const endDateStr = endDate.toISOString().split("T")[0] ?? "";
+
+      if (!startDateStr || !endDateStr) {
+        return { weeks: [] };
+      }
+
+      // Get all raids in the date range with user's attendance
+      // Calculate lockout_week using SQL: (date_trunc('week', date - 1) + INTERVAL '1 day')::date
+      const raidsResult = await ctx.db
         .select({
-          raidId: trackedRaidsL6LockoutWk.raidId,
-          name: trackedRaidsL6LockoutWk.name,
-          date: trackedRaidsL6LockoutWk.date,
-          zone: trackedRaidsL6LockoutWk.zone,
-          attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
-          lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
+          raidId: raids.raidId,
+          name: raids.name,
+          date: raids.date,
+          zone: raids.zone,
+          attendanceWeight: raids.attendanceWeight,
+          lockoutWeek: sql<string>`(date_trunc('week', ${raids.date}::date - 1) + INTERVAL '1 day')::date::text`,
           attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
           allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
         })
-        .from(trackedRaidsL6LockoutWk)
+        .from(raids)
         .leftJoin(
           primaryRaidAttendeeAndBenchMap,
           and(
-            eq(
-              trackedRaidsL6LockoutWk.raidId,
-              primaryRaidAttendeeAndBenchMap.raidId,
-            ),
+            eq(raids.raidId, primaryRaidAttendeeAndBenchMap.raidId),
             eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, characterId),
           ),
         )
-        .where(sql`${trackedRaidsL6LockoutWk.attendanceWeight} > 0`)
-        .orderBy(
-          trackedRaidsL6LockoutWk.lockoutWeek,
-          desc(trackedRaidsL6LockoutWk.date),
-        );
+        .where(
+          and(
+            gte(raids.date, startDateStr),
+            lte(raids.date, endDateStr),
+            sql`${raids.attendanceWeight} > 0`,
+          ),
+        )
+        .orderBy(raids.date);
 
       // Filter to only include raids where user attended/benched
-      const filteredRaids = raids.filter(
+      const filteredRaids = raidsResult.filter(
         (raid) => raid.attendeeOrBench !== null,
       );
 
-      // Initialize weekMap with all 6 lockout weeks
+      // Generate all lockout weeks in the range
+      const lockoutWeeks: string[] = [];
+      const currentWeekStartDate = new Date(currentWeekStart);
+      const numWeeks = includeCurrentWeek ? weeksBack + 1 : weeksBack;
+
+      for (let i = 0; i < numWeeks; i++) {
+        const weekStart = new Date(currentWeekStartDate);
+        weekStart.setUTCDate(weekStart.getUTCDate() - weeksBack * 7 + i * 7);
+        lockoutWeeks.push(weekStart.toISOString().split("T")[0] ?? "");
+      }
+
+      // Initialize weekMap with all weeks
       const weekMap = new Map<
         string,
         {
@@ -600,14 +623,29 @@ export const character = createTRPCRouter({
               isGrayed: boolean;
             };
           };
+          isHistorical: boolean;
         }
       >();
 
-      // Initialize all 6 weeks with empty zones
-      for (const weekStart of lockoutWeeks) {
+      // Initialize all weeks with empty zones
+      // Current week (if included) and 6 most recent complete weeks should always be opacity 100
+      // Any weeks before those 6 complete weeks should be historical (opacity 30)
+      for (let i = 0; i < lockoutWeeks.length; i++) {
+        const weekStart = lockoutWeeks[i];
+        if (!weekStart) continue;
+        // Historical = weeks before the 6 most recent complete weeks
+        // If includeCurrentWeek: current week + 6 complete weeks = 7 weeks at opacity 100
+        //   So historical = i < length - 7
+        // If not includeCurrentWeek: 6 complete weeks = 6 weeks at opacity 100
+        //   So historical = i < length - 6
+        const nonHistoricalWeeks = includeCurrentWeek ? 7 : 6;
+        const isHistorical =
+          lockoutWeeks.length > nonHistoricalWeeks &&
+          i < lockoutWeeks.length - nonHistoricalWeeks;
         weekMap.set(weekStart, {
           weekStart,
           zones: {},
+          isHistorical,
         });
       }
 
@@ -617,7 +655,7 @@ export const character = createTRPCRouter({
 
         const weekKey = raid.lockoutWeek;
         if (!weekMap.has(weekKey)) {
-          // Skip if week is not in our 6-week range
+          // Skip if week is not in our range
           continue;
         }
 
@@ -702,168 +740,5 @@ export const character = createTRPCRouter({
       );
 
       return { weeks };
-    }),
-
-  getPersonalAttendanceThisWeek: publicProcedure
-    .input(
-      z
-        .object({
-          characterId: z.number().optional(),
-        })
-        .optional(),
-    )
-    .query(async ({ ctx, input }) => {
-      const characterId = input?.characterId ?? ctx.session?.user.characterId;
-      if (!characterId) {
-        return { zones: {} };
-      }
-
-      // Get all tracked raids from current lockout with user's attendance
-      const raids = await ctx.db
-        .select({
-          raidId: trackedRaidsCurrentLockout.raidId,
-          name: trackedRaidsCurrentLockout.name,
-          date: trackedRaidsCurrentLockout.date,
-          zone: trackedRaidsCurrentLockout.zone,
-          attendanceWeight: trackedRaidsCurrentLockout.attendanceWeight,
-          attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-          allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
-        })
-        .from(trackedRaidsCurrentLockout)
-        .leftJoin(
-          primaryRaidAttendeeAndBenchMap,
-          and(
-            eq(
-              trackedRaidsCurrentLockout.raidId,
-              primaryRaidAttendeeAndBenchMap.raidId,
-            ),
-            eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, characterId),
-          ),
-        )
-        .where(sql`${trackedRaidsCurrentLockout.attendanceWeight} > 0`)
-        .orderBy(desc(trackedRaidsCurrentLockout.date));
-
-      // Filter to only include raids where user attended/benched
-      const filteredRaids = raids.filter(
-        (raid) => raid.attendeeOrBench !== null,
-      );
-
-      const zones: {
-        naxxramas?: {
-          attended: boolean;
-          attendanceWeight: number;
-          raids: Array<{
-            name: string;
-            status: "attendee" | "bench";
-            characterNames: string[];
-          }>;
-        };
-        aq40?: {
-          attended: boolean;
-          attendanceWeight: number;
-          raids: Array<{
-            name: string;
-            status: "attendee" | "bench";
-            characterNames: string[];
-          }>;
-        };
-        bwl?: {
-          attended: boolean;
-          attendanceWeight: number;
-          raids: Array<{
-            name: string;
-            status: "attendee" | "bench";
-            characterNames: string[];
-          }>;
-        };
-        mc?: {
-          attended: boolean;
-          attendanceWeight: number;
-          raids: Array<{
-            name: string;
-            status: "attendee" | "bench";
-            characterNames: string[];
-          }>;
-          isGrayed: boolean;
-        };
-      } = {};
-
-      // Populate with attendance data
-      for (const raid of filteredRaids) {
-        if (!raid.attendeeOrBench) continue;
-
-        const zone = raid.zone ?? "";
-        const status =
-          raid.attendeeOrBench === "attendee" ? "attendee" : "bench";
-        const characterNames =
-          raid.allCharacters?.map((char) => char.name).filter(Boolean) ?? [];
-
-        // Zones are stored as full names: "Naxxramas", "Temple of Ahn'Qiraj", "Blackwing Lair", "Molten Core"
-        if (zone === "Naxxramas") {
-          if (!zones.naxxramas) {
-            zones.naxxramas = {
-              attended: true,
-              attendanceWeight: raid.attendanceWeight ?? 0,
-              raids: [],
-            };
-          }
-          zones.naxxramas.raids.push({
-            name: raid.name ?? "",
-            status,
-            characterNames,
-          });
-        } else if (zone === "Temple of Ahn'Qiraj") {
-          if (!zones.aq40) {
-            zones.aq40 = {
-              attended: true,
-              attendanceWeight: raid.attendanceWeight ?? 0,
-              raids: [],
-            };
-          }
-          zones.aq40.raids.push({
-            name: raid.name ?? "",
-            status,
-            characterNames,
-          });
-        } else if (zone === "Blackwing Lair") {
-          if (!zones.bwl) {
-            zones.bwl = {
-              attended: true,
-              attendanceWeight: raid.attendanceWeight ?? 0,
-              raids: [],
-            };
-          }
-          zones.bwl.raids.push({
-            name: raid.name ?? "",
-            status,
-            characterNames,
-          });
-        } else if (zone === "Molten Core") {
-          if (!zones.mc) {
-            zones.mc = {
-              attended: true,
-              attendanceWeight: raid.attendanceWeight ?? 0,
-              raids: [],
-              isGrayed: false,
-            };
-          }
-          zones.mc.raids.push({
-            name: raid.name ?? "",
-            status,
-            characterNames,
-          });
-        }
-      }
-
-      // Check for MC graying (if Naxx + AQ40 + BWL all attended)
-      const hasNaxx = !!zones.naxxramas;
-      const hasAQ40 = !!zones.aq40;
-      const hasBWL = !!zones.bwl;
-
-      if (zones.mc && hasNaxx && hasAQ40 && hasBWL) {
-        zones.mc.isGrayed = true;
-      }
-
-      return { zones };
     }),
 });

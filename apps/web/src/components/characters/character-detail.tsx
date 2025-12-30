@@ -40,6 +40,7 @@ function CharacterAttendanceContent({ characterId }: { characterId: number }) {
         showCreditsRow={true}
         showSubtitle={true}
         showMaxCreditsHelper={true}
+        weeksBack={18}
       />
     </>
   );

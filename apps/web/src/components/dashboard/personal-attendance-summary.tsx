@@ -180,6 +180,7 @@ export function PersonalAttendanceSummary({
             showCreditsRow={true}
             showSubtitle={true}
             showMaxCreditsHelper={true}
+            weeksBack={6}
           />
         )}
       </CardContent>

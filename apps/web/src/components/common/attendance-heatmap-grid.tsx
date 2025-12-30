@@ -54,6 +54,10 @@ interface AttendanceHeatmapGridProps {
   showCreditsRow?: boolean;
   showSubtitle?: boolean;
   showMaxCreditsHelper?: boolean;
+  compact?: boolean;
+  showThisWeek?: boolean;
+  weeksBack?: number;
+  includeCurrentWeek?: boolean;
 }
 
 export function AttendanceHeatmapGrid({
@@ -61,15 +65,14 @@ export function AttendanceHeatmapGrid({
   showCreditsRow = true,
   showSubtitle = true,
   showMaxCreditsHelper = true,
+  compact = false,
+  showThisWeek = true,
+  weeksBack = 6,
+  includeCurrentWeek = true,
 }: AttendanceHeatmapGridProps) {
   const { data: heatmapData, isLoading: isLoadingHeatmap } =
-    api.character.getPersonalAttendanceHeatmap.useQuery(
-      characterId ? { characterId } : undefined,
-      { enabled: !!characterId },
-    );
-  const { data: thisWeekData, isLoading: isLoadingThisWeek } =
-    api.character.getPersonalAttendanceThisWeek.useQuery(
-      characterId ? { characterId } : undefined,
+    api.character.getWeeklyPrimaryCharacterAttendance.useQuery(
+      characterId ? { characterId, weeksBack, includeCurrentWeek } : undefined,
       { enabled: !!characterId },
     );
 
@@ -88,6 +91,7 @@ export function AttendanceHeatmapGrid({
           isGrayed?: boolean;
         }
       | undefined,
+    isHistorical: boolean = false,
   ) => {
     const isMC = zone === "mc";
 
@@ -95,7 +99,7 @@ export function AttendanceHeatmapGrid({
     if (isMC && (!weekData || !weekData.attended)) {
       const radius = 2; // Corner radius (matches filled triangle)
       return (
-        <div className="relative h-4 w-4">
+        <div className={`relative h-4 w-4 ${isHistorical ? "opacity-30" : ""}`}>
           <svg
             width="16"
             height="16"
@@ -116,7 +120,11 @@ export function AttendanceHeatmapGrid({
     // Handle empty non-MC - show square outline
     if (!weekData || !weekData.attended) {
       return (
-        <div className="h-4 w-4 rounded border border-muted bg-background" />
+        <div
+          className={`h-4 w-4 rounded border border-muted bg-background ${
+            isHistorical ? "opacity-30" : ""
+          }`}
+        />
       );
     }
 
@@ -157,7 +165,7 @@ export function AttendanceHeatmapGrid({
             <TooltipTrigger asChild>
               <div
                 className={`relative h-4 w-4 overflow-hidden ${
-                  isGrayed ? "opacity-50" : ""
+                  isHistorical ? "opacity-30" : ""
                 }`}
                 style={{
                   clipPath: "polygon(0 0, 0 100%, 100% 0)",
@@ -166,9 +174,11 @@ export function AttendanceHeatmapGrid({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Armchair
                     size={16}
-                    className={`${zoneTextColor} ${
-                      isGrayed ? "grayscale" : ""
-                    }`}
+                    className={
+                      isGrayed
+                        ? "text-gray-700 dark:text-gray-500"
+                        : zoneTextColor
+                    }
                   />
                 </div>
               </div>
@@ -186,12 +196,12 @@ export function AttendanceHeatmapGrid({
           <TooltipTrigger asChild>
             <div
               className={`flex h-4 w-4 items-center justify-center ${
-                isGrayed ? "opacity-50" : ""
+                isHistorical ? "opacity-30" : ""
               }`}
             >
               <Armchair
                 size={16}
-                className={`${zoneTextColor} ${isGrayed ? "grayscale" : ""}`}
+                className={isGrayed ? "text-gray-600" : zoneTextColor}
               />
             </div>
           </TooltipTrigger>
@@ -209,7 +219,9 @@ export function AttendanceHeatmapGrid({
       return (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={`relative h-4 w-4 ${isGrayed ? "opacity-50" : ""}`}>
+            <div
+              className={`relative h-4 w-4 ${isHistorical ? "opacity-30" : ""}`}
+            >
               <svg
                 width="16"
                 height="16"
@@ -218,10 +230,11 @@ export function AttendanceHeatmapGrid({
               >
                 <path
                   d={`M ${radius} 0 Q 0 0 0 ${radius} L 0 16 L 16 0 Z`}
-                  fill={fillColor}
-                  style={{
-                    filter: isGrayed ? "grayscale(100%)" : "none",
-                  }}
+                  fill={
+                    isGrayed
+                      ? "#4B5563" // gray-600
+                      : fillColor
+                  }
                 />
               </svg>
             </div>
@@ -238,9 +251,9 @@ export function AttendanceHeatmapGrid({
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`h-4 w-4 rounded ${zoneColor} ${
-              isGrayed ? "opacity-50 grayscale" : ""
-            }`}
+            className={`h-4 w-4 rounded ${
+              isGrayed ? "bg-gray-600 dark:bg-gray-400" : zoneColor
+            } ${isHistorical ? "opacity-30" : ""}`}
           />
         </TooltipTrigger>
         <TooltipContent className="bg-secondary text-muted-foreground">
@@ -250,7 +263,7 @@ export function AttendanceHeatmapGrid({
     );
   };
 
-  if (isLoadingHeatmap || isLoadingThisWeek) {
+  if (isLoadingHeatmap) {
     return <Skeleton className="h-32 w-full" />;
   }
 
@@ -262,118 +275,222 @@ export function AttendanceHeatmapGrid({
     );
   }
 
+  // Determine which week is the current week (last week if includeCurrentWeek is true)
+  const currentWeekIndex =
+    includeCurrentWeek && heatmapData.weeks.length > 0
+      ? heatmapData.weeks.length - 1
+      : -1;
+
+  // Calculate the first scoring week index (6 most recent complete weeks, excluding current week)
+  // Scoring weeks are the 6 weeks before the current week (if current week exists)
+  const firstScoringWeekIndex =
+    heatmapData.weeks.length - (includeCurrentWeek ? 7 : 6);
+  const hasHistoricalWeeks = firstScoringWeekIndex > 0;
+
   return (
-    <div className="flex flex-col items-center space-y-2">
-      <div className="inline-block">
-        {showSubtitle && (
+    <div className={`flex flex-col items-center ${compact ? "" : "space-y-2"}`}>
+      <div className="mx-auto inline-block">
+        {!compact && showSubtitle && (
           <div className="mb-2 text-center text-sm text-muted-foreground">
-            Last 6 lockout weeks
+            {includeCurrentWeek
+              ? `Last ${weeksBack} lockout weeks + current week`
+              : `Last ${weeksBack} lockout weeks`}
           </div>
         )}
-        <table className="table-fixed border-collapse">
-          <colgroup>
-            <col className="w-auto" />
-            {heatmapData.weeks.map((week, idx) => (
-              <col key={`col-${week.weekStart}-${idx}`} className="w-12" />
-            ))}
-            <col className="w-2" />
-            <col className="w-12" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="pr-3 text-left text-xs font-medium text-muted-foreground">
-                Zone
-              </th>
-              {heatmapData.weeks.map((week) => (
-                <th
-                  key={week.weekStart}
-                  className="px-1 text-center text-xs font-medium text-muted-foreground"
-                >
-                  {formatDateMMDD(week.weekStart)}
-                </th>
-              ))}
-              <th className="px-1"></th>
-              <th className="whitespace-nowrap px-1 text-center text-xs font-medium text-muted-foreground">
-                This Week
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {(["naxxramas", "aq40", "bwl", "mc"] as const).map((zone) => (
-              <tr key={zone}>
-                <td className="py-1 pr-3 text-xs font-medium">
-                  {ZONE_LABELS[zone]}
-                </td>
-                {heatmapData.weeks.map((week) => (
-                  <td
-                    key={week.weekStart}
-                    className="px-1 py-1 text-center align-middle"
-                  >
-                    <div className="flex items-center justify-center">
-                      {renderHeatmapCell(zone, week.zones[zone])}
-                    </div>
-                  </td>
-                ))}
-                <td className="px-1 py-1 text-center align-middle">
-                  <div className="h-4 border-l-2 border-dotted border-muted-foreground" />
-                </td>
-                <td className="px-1 py-1 text-center align-middle">
-                  <div className="flex items-center justify-center">
-                    {renderHeatmapCell(zone, thisWeekData?.zones[zone])}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {showCreditsRow && (
-              <tr>
-                <td className="py-1 pr-3 text-xs font-medium"></td>
-                {heatmapData.weeks.map((week) => {
-                  // Calculate total credits for this week
-                  // Naxx, AQ40, BWL = 1 credit each, MC = 0.5 credit
-                  // Max is +3, so MC doesn't count if Naxx + AQ40 + BWL all attended
-                  const hasNaxx = week.zones.naxxramas?.attended ?? false;
-                  const hasAQ40 = week.zones.aq40?.attended ?? false;
-                  const hasBWL = week.zones.bwl?.attended ?? false;
-                  const hasMC = week.zones.mc?.attended ?? false;
-                  const isMCGrayed = week.zones.mc?.isGrayed ?? false;
-
-                  let totalCredits = 0;
-                  if (hasNaxx) totalCredits += 1;
-                  if (hasAQ40) totalCredits += 1;
-                  if (hasBWL) totalCredits += 1;
-
-                  // MC only counts if not grayed (i.e., didn't already hit max of 3)
-                  if (hasMC && !isMCGrayed) totalCredits += 0.5;
-
-                  // Cap at 3
-                  totalCredits = Math.min(totalCredits, 3);
-
-                  return (
-                    <td
-                      key={week.weekStart}
-                      className="px-1 py-1 text-center align-middle text-xs text-muted-foreground"
-                    >
-                      {totalCredits > 0 ? `+${totalCredits}` : ""}
+        <div className="mx-auto w-fit">
+          <table className="table-auto border-collapse md:table-fixed">
+            <colgroup>
+              {!compact && <col className="w-auto" />}
+              {heatmapData.weeks.map((week, idx) => {
+                const isCurrentWeek = idx === currentWeekIndex;
+                const isFirstScoringWeek = idx === firstScoringWeekIndex;
+                const showSeparatorBeforeCurrent =
+                  showThisWeek && isCurrentWeek;
+                const showSeparatorBeforeScoring =
+                  hasHistoricalWeeks && isFirstScoringWeek;
+                const isHistorical = week.isHistorical ?? false;
+                return (
+                  <React.Fragment key={`col-group-${week.weekStart}-${idx}`}>
+                    {(showSeparatorBeforeCurrent ||
+                      showSeparatorBeforeScoring) && (
+                      <col
+                        className={`${compact ? "w-1" : "w-2"} hidden md:table-column`}
+                      />
+                    )}
+                    <col
+                      key={`col-${week.weekStart}-${idx}`}
+                      className={`${compact ? "w-4" : "w-12"} ${
+                        isHistorical ? "hidden md:table-column" : ""
+                      }`}
+                    />
+                  </React.Fragment>
+                );
+              })}
+            </colgroup>
+            {!compact && (
+              <thead>
+                <tr>
+                  <th className="pr-3 text-left text-xs font-medium text-muted-foreground">
+                    Zone
+                  </th>
+                  {heatmapData.weeks.map((week, idx) => {
+                    const isCurrentWeek = idx === currentWeekIndex;
+                    const isFirstScoringWeek = idx === firstScoringWeekIndex;
+                    const showSeparatorBeforeCurrent =
+                      showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring =
+                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const isHistorical = week.isHistorical ?? false;
+                    return (
+                      <React.Fragment key={`header-${week.weekStart}-${idx}`}>
+                        {(showSeparatorBeforeCurrent ||
+                          showSeparatorBeforeScoring) && (
+                          <th className="hidden px-1 md:table-cell"></th>
+                        )}
+                        <th
+                          key={`th-${week.weekStart}-${idx}`}
+                          className={`px-1 text-center text-xs font-medium text-muted-foreground ${
+                            isHistorical ? "hidden md:table-cell" : ""
+                          }`}
+                        >
+                          {isCurrentWeek
+                            ? "This Week"
+                            : formatDateMMDD(week.weekStart)}
+                        </th>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {(["naxxramas", "aq40", "bwl", "mc"] as const).map((zone) => (
+                <tr key={zone}>
+                  {!compact && (
+                    <td className="py-1 pr-3 text-xs font-medium">
+                      {ZONE_LABELS[zone]}
                     </td>
-                  );
-                })}
-                <td className="px-1 py-1"></td>
-                <td className="px-1 py-1"></td>
-              </tr>
-            )}
-            {showMaxCreditsHelper && (
-              <tr>
-                <td
-                  colSpan={heatmapData.weeks.length + 1}
-                  className="py-1 text-center text-xs italic text-muted-foreground"
-                >
-                  Max +3 credits/week, +1 per unique zone (+0.5 for MC)
-                </td>
-                <td colSpan={2} className="px-1 py-1"></td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  )}
+                  {heatmapData.weeks.map((week, idx) => {
+                    const isCurrentWeek = idx === currentWeekIndex;
+                    const isFirstScoringWeek = idx === firstScoringWeekIndex;
+                    const showSeparatorBeforeCurrent =
+                      showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring =
+                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const isHistorical = week.isHistorical ?? false;
+                    return (
+                      <React.Fragment key={`cell-${week.weekStart}-${idx}`}>
+                        {(showSeparatorBeforeCurrent ||
+                          showSeparatorBeforeScoring) && (
+                          <td
+                            className={`${
+                              compact ? "px-0.5 py-0.5" : "px-1 py-1"
+                            } hidden text-center align-middle md:table-cell`}
+                          >
+                            <div className="h-4 border-l-2 border-dotted border-muted-foreground" />
+                          </td>
+                        )}
+                        <td
+                          key={`td-${week.weekStart}-${idx}`}
+                          className={`${
+                            compact ? "px-0.5 py-0.5" : "px-1 py-1"
+                          } text-center align-middle ${
+                            isHistorical ? "hidden md:table-cell" : ""
+                          }`}
+                        >
+                          <div className="flex items-center justify-center">
+                            {renderHeatmapCell(
+                              zone,
+                              week.zones[zone],
+                              isHistorical,
+                            )}
+                          </div>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              ))}
+              {!compact && showCreditsRow && (
+                <tr>
+                  <td className="py-1 pr-3 text-xs font-medium"></td>
+                  {heatmapData.weeks.map((week, idx) => {
+                    const isCurrentWeek = idx === currentWeekIndex;
+                    const isFirstScoringWeek = idx === firstScoringWeekIndex;
+                    const showSeparatorBeforeCurrent =
+                      showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring =
+                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const isHistorical = week.isHistorical ?? false;
+                    // Only show credits for the 6 scoring weeks (not historical, not current week)
+                    const isScoringWeek =
+                      idx >= firstScoringWeekIndex &&
+                      idx < firstScoringWeekIndex + 6;
+                    if (!isScoringWeek) {
+                      // For non-scoring weeks, show empty cell or separator
+                      return (
+                        <React.Fragment
+                          key={`credits-${week.weekStart}-${idx}`}
+                        >
+                          {(showSeparatorBeforeCurrent ||
+                            showSeparatorBeforeScoring) && (
+                            <td className="hidden px-1 py-1 md:table-cell"></td>
+                          )}
+                          <td
+                            key={`credits-td-${week.weekStart}-${idx}`}
+                            className={`px-1 py-1 text-center align-middle text-xs text-muted-foreground ${
+                              isHistorical ? "hidden md:table-cell" : ""
+                            }`}
+                          ></td>
+                        </React.Fragment>
+                      );
+                    }
+                    // Calculate total credits for this week
+                    // Naxx, AQ40, BWL = 1 credit each, MC = 0.5 credit
+                    // Max is +3, so MC doesn't count if Naxx + AQ40 + BWL all attended
+                    const hasNaxx = week.zones.naxxramas?.attended ?? false;
+                    const hasAQ40 = week.zones.aq40?.attended ?? false;
+                    const hasBWL = week.zones.bwl?.attended ?? false;
+                    const hasMC = week.zones.mc?.attended ?? false;
+                    const isMCGrayed = week.zones.mc?.isGrayed ?? false;
+
+                    let totalCredits = 0;
+                    if (hasNaxx) totalCredits += 1;
+                    if (hasAQ40) totalCredits += 1;
+                    if (hasBWL) totalCredits += 1;
+
+                    // MC only counts if not grayed (i.e., didn't already hit max of 3)
+                    if (hasMC && !isMCGrayed) totalCredits += 0.5;
+
+                    // Cap at 3
+                    totalCredits = Math.min(totalCredits, 3);
+
+                    return (
+                      <React.Fragment key={`credits-${week.weekStart}-${idx}`}>
+                        {(showSeparatorBeforeCurrent ||
+                          showSeparatorBeforeScoring) && (
+                          <td className="hidden px-1 py-1 md:table-cell"></td>
+                        )}
+                        <td
+                          key={`credits-td-${week.weekStart}-${idx}`}
+                          className="px-1 py-1 text-center align-middle text-xs text-muted-foreground"
+                        >
+                          {totalCredits > 0 ? `+${totalCredits}` : ""}
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!compact && showMaxCreditsHelper && (
+          <div className="mt-1 text-center text-xs italic text-muted-foreground">
+            Max +3 credits/week, +1 per unique zone (+0.5 for MC)
+          </div>
+        )}
       </div>
     </div>
   );
