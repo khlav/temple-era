@@ -66,6 +66,7 @@ export function SoftResScanForm() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className={error ? "border-red-500" : ""}
+              autoComplete="off"
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
           </div>

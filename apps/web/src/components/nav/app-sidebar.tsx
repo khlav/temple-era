@@ -25,7 +25,7 @@ import {
   ShieldCheck,
   Wand,
   ScanLine,
-  ClipboardList
+  ClipboardList,
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
@@ -59,7 +59,7 @@ const raidManagerLinks = [
     icon: ListRestart,
   },
   {
-    title: "SoftRes Scan",
+    title: "[Beta]SoftRes Scan",
     url: "/softres",
     icon: ScanLine,
   },
