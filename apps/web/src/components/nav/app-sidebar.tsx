@@ -59,7 +59,7 @@ const raidManagerLinks = [
     icon: ListRestart,
   },
   {
-    title: "[Beta]SoftRes Scan",
+    title: "[Beta] SoftRes Scan",
     url: "/softres",
     icon: ScanLine,
   },
