@@ -9,6 +9,7 @@ import { user } from "~/server/api/routers/user";
 import { searchRouter } from "~/server/api/routers/search";
 import { discordRouter } from "~/server/api/routers/discord";
 import { reports } from "~/server/api/routers/reports";
+import { softres } from "~/server/api/routers/softres";
 
 /**
  * This is the primary router for your server.
@@ -26,6 +27,7 @@ export const appRouter = createTRPCRouter({
   search: searchRouter,
   discord: discordRouter,
   reports: reports,
+  softres: softres,
 });
 
 // export type definition of API

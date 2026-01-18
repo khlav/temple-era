@@ -1,10 +1,193 @@
 {
+  "20726": {
+    "id": 20726,
+    "name": "Formula: Enchant Gloves - Threat",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Twin Emperors",
+    "instance": "aq40"
+  },
+  "20727": {
+    "id": 20727,
+    "name": "Formula: Enchant Gloves - Shadow Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20728": {
+    "id": 20728,
+    "name": "Formula: Enchant Gloves - Frost Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20729": {
+    "id": 20729,
+    "name": "Formula: Enchant Gloves - Fire Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20730": {
+    "id": 20730,
+    "name": "Formula: Enchant Gloves - Healing Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20731": {
+    "id": 20731,
+    "name": "Formula: Enchant Gloves - Superior Agility",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20734": {
+    "id": 20734,
+    "name": "Formula: Enchant Cloak - Stealth",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20735": {
+    "id": 20735,
+    "name": "Formula: Enchant Cloak - Subtlety",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Twin Emperors",
+    "instance": "aq40"
+  },
+  "20736": {
+    "id": 20736,
+    "name": "Formula: Enchant Cloak - Dodge",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "20874": {
+    "id": 20874,
+    "name": "Idol of the Sun",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20875": {
+    "id": 20875,
+    "name": "Idol of Night",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20876": {
+    "id": 20876,
+    "name": "Idol of Death",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20877": {
+    "id": 20877,
+    "name": "Idol of the Sage",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20878": {
+    "id": 20878,
+    "name": "Idol of Rebirth",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20879": {
+    "id": 20879,
+    "name": "Idol of Life",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20881": {
+    "id": 20881,
+    "name": "Idol of Strife",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20882": {
+    "id": 20882,
+    "name": "Idol of War",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "20926": {
+    "id": 20926,
+    "name": "Vek\\'nilash\\'s Circlet",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Twin Emperors",
+    "instance": "aq40"
+  },
+  "20927": {
+    "id": 20927,
+    "name": "Ouro\\'s Intact Hide",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Ouro",
+    "instance": "aq40"
+  },
+  "20929": {
+    "id": 20929,
+    "name": "Carapace of the Old God",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "C\\'Thun",
+    "instance": "aq40"
+  },
+  "20930": {
+    "id": 20930,
+    "name": "Vek\\'lor\\'s Diadem",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Twin Emperors",
+    "instance": "aq40"
+  },
+  "20931": {
+    "id": 20931,
+    "name": "Skin of the Great Sandworm",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Ouro",
+    "instance": "aq40"
+  },
+  "20933": {
+    "id": 20933,
+    "name": "Husk of the Old God",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "C\\'Thun",
+    "instance": "aq40"
+  },
   "21126": {
     "id": 21126,
     "name": "Death's Sting",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 84,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -13,7 +196,6 @@
     "name": "Staff of the Qiraji Prophets",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -22,8 +204,63 @@
     "name": "Dark Edge of Insanity",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 84,
     "from": "C'Thun",
+    "instance": "aq40"
+  },
+  "21218": {
+    "id": 21218,
+    "name": "Blue Qiraji Resonating Crystal",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "21221": {
+    "id": 21221,
+    "name": "Eye of C'Thun",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "C'Thun",
+    "instance": "aq40"
+  },
+  "21232": {
+    "id": 21232,
+    "name": "Imperial Qiraji Armaments",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "21237": {
+    "id": 21237,
+    "name": "Imperial Qiraji Regalia",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Shared",
+    "instance": "aq40"
+  },
+  "21321": {
+    "id": 21321,
+    "name": "Red Qiraji Resonating Crystal",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "21323": {
+    "id": 21323,
+    "name": "Green Qiraji Resonating Crystal",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq40"
+  },
+  "21324": {
+    "id": 21324,
+    "name": "Yellow Qiraji Resonating Crystal",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
     "instance": "aq40"
   },
   "21579": {
@@ -31,7 +268,6 @@
     "name": "Vanquished Tentacle of C'Thun",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -40,7 +276,6 @@
     "name": "Gauntlets of Annihilation",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -49,7 +284,6 @@
     "name": "Grasp of the Old God",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -58,7 +292,6 @@
     "name": "Cloak of Clarity",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -67,7 +300,6 @@
     "name": "Dark Storm Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -76,7 +308,6 @@
     "name": "Belt of Never-ending Agony",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -85,7 +316,6 @@
     "name": "Ring of the Godslayer",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -94,7 +324,6 @@
     "name": "Royal Scepter of Vek'lor",
     "equipslot": "Held In Off-hand",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -103,7 +332,6 @@
     "name": "Royal Qiraji Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -112,7 +340,6 @@
     "name": "Vek'lor's Gloves of Devastation",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -121,7 +348,6 @@
     "name": "Boots of Epiphany",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -130,7 +356,6 @@
     "name": "Ring of Emperor Vek'lor",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -139,7 +364,6 @@
     "name": "Qiraji Execution Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -148,7 +372,6 @@
     "name": "Wand of Qiraji Nobility",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Lord Kri",
     "instance": "aq40"
   },
@@ -157,7 +380,6 @@
     "name": "Bracelets of Royal Redemption",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -166,7 +388,6 @@
     "name": "Gloves of the Hidden Temple",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -175,7 +396,6 @@
     "name": "Belt of the Fallen Emperor",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -184,7 +404,6 @@
     "name": "Grasp of the Fallen Emperor",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -193,7 +412,6 @@
     "name": "Amulet of Vek'nilash",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -202,7 +420,6 @@
     "name": "Regenerating Belt of Vek'nilash",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -211,7 +428,6 @@
     "name": "Wormscale Blocker",
     "equipslot": "Shield",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   },
@@ -220,7 +436,6 @@
     "name": "Burrower Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   },
@@ -229,7 +444,6 @@
     "name": "Don Rigoberto's Lost Hat",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   },
@@ -238,7 +452,6 @@
     "name": "Huhuran's Stinger",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -247,7 +460,6 @@
     "name": "Wasphide Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -256,7 +468,6 @@
     "name": "Hive Defiler Wristguards",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -265,7 +476,6 @@
     "name": "Gloves of the Messiah",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -274,7 +484,6 @@
     "name": "Ring of the Martyr",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -283,7 +492,6 @@
     "name": "Cloak of the Golden Hive",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Huhuran",
     "instance": "aq40"
   },
@@ -292,7 +500,6 @@
     "name": "Sharpened Silithid Femur",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -301,7 +508,6 @@
     "name": "Gauntlets of the Righteous Champion",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -310,7 +516,6 @@
     "name": "Gauntlets of Kalimdor",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -319,7 +524,6 @@
     "name": "Scarab Brooch",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -328,7 +532,6 @@
     "name": "Slime-coated Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -337,7 +540,6 @@
     "name": "Cloak of Untold Secrets",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -346,7 +548,6 @@
     "name": "Barb of the Sand Reaver",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -355,7 +556,6 @@
     "name": "Pauldrons of the Unrelenting",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -364,7 +564,6 @@
     "name": "Hive Tunneler's Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -373,7 +572,6 @@
     "name": "Fetish of the Sand Reaver",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -382,7 +580,6 @@
     "name": "Recomposed Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -391,7 +588,6 @@
     "name": "Ancient Qiraji Ripper",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -400,7 +596,6 @@
     "name": "Scaled Sand Reaver Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -409,7 +604,6 @@
     "name": "Silithid Carapace Chestguard",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -418,7 +612,6 @@
     "name": "Robes of the Guardian Saint",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -427,7 +620,6 @@
     "name": "Barbed Choker",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -436,7 +628,6 @@
     "name": "Mantle of Wicked Revenge",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -445,7 +636,6 @@
     "name": "Sartura's Might",
     "equipslot": "Held In Off-hand",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -454,7 +644,6 @@
     "name": "Legplates of Blazing Light",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -463,7 +652,6 @@
     "name": "Scaled Leggings of Qiraji Fury",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -472,7 +660,6 @@
     "name": "Creeping Vine Helm",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -481,7 +668,6 @@
     "name": "Badge of the Swarmguard",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -490,7 +676,6 @@
     "name": "Robes of the Battleguard",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -499,7 +684,6 @@
     "name": "Gloves of Enforcement",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -508,7 +692,6 @@
     "name": "Silithid Claw",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -517,7 +700,6 @@
     "name": "Gauntlets of Steadfast Determination",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -526,7 +708,6 @@
     "name": "Thick Qirajihide Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -535,7 +716,6 @@
     "name": "Leggings of the Festering Swarm",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -544,7 +724,6 @@
     "name": "Ring of the Qiraji Fury",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -553,7 +732,6 @@
     "name": "Necklace of Purity",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Battleguard Sartura",
     "instance": "aq40"
   },
@@ -562,7 +740,6 @@
     "name": "Kalimdor's Revenge",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Twin Emperors",
     "instance": "aq40"
   },
@@ -571,7 +748,6 @@
     "name": "Vest of Swift Execution",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Lord Kri",
     "instance": "aq40"
   },
@@ -580,7 +756,6 @@
     "name": "Ring of the Devoured",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Lord Kri",
     "instance": "aq40"
   },
@@ -589,7 +764,6 @@
     "name": "Bile-Covered Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Princess Yauj",
     "instance": "aq40"
   },
@@ -598,7 +772,6 @@
     "name": "Mantle of the Desert Crusade",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Princess Yauj",
     "instance": "aq40"
   },
@@ -607,7 +780,6 @@
     "name": "Mantle of the Desert's Fury",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Princess Yauj",
     "instance": "aq40"
   },
@@ -616,7 +788,6 @@
     "name": "Petrified Scarab",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Lord Kri",
     "instance": "aq40"
   },
@@ -625,7 +796,6 @@
     "name": "Mantle of Phrenic Power",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Princess Yauj",
     "instance": "aq40"
   },
@@ -634,7 +804,6 @@
     "name": "Ukko's Ring of Darkness",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Princess Yauj",
     "instance": "aq40"
   },
@@ -643,7 +812,6 @@
     "name": "Boots of the Fallen Hero",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Vem",
     "instance": "aq40"
   },
@@ -652,7 +820,6 @@
     "name": "Gloves of Ebru",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Vem",
     "instance": "aq40"
   },
@@ -661,7 +828,6 @@
     "name": "Angelista's Charm",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Vem",
     "instance": "aq40"
   },
@@ -670,7 +836,6 @@
     "name": "Ooze-ridden Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Vem",
     "instance": "aq40"
   },
@@ -679,7 +844,6 @@
     "name": "Triad Girdle",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -688,7 +852,6 @@
     "name": "Guise of the Devourer",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -697,7 +860,6 @@
     "name": "Ternary Mantle",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -706,7 +868,6 @@
     "name": "Angelista's Touch",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -715,7 +876,6 @@
     "name": "Robes of the Triumvirate",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -724,7 +884,6 @@
     "name": "Cape of the Trinity",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Bug Trio",
     "instance": "aq40"
   },
@@ -733,7 +892,6 @@
     "name": "Leggings of Immersion",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -742,7 +900,6 @@
     "name": "Barrage Shoulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -751,7 +908,6 @@
     "name": "Pendant of the Qiraji Guardian",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -760,7 +916,6 @@
     "name": "Cloak of Concentrated Hatred",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -769,7 +924,6 @@
     "name": "Amulet of Foul Warding",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -778,7 +932,6 @@
     "name": "Hammer of Ji'zhi",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -787,7 +940,6 @@
     "name": "Boots of the Redeemed Prophecy",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -796,7 +948,6 @@
     "name": "Boots of the Fallen Prophet",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -805,7 +956,6 @@
     "name": "Boots of the Unwavering Will",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -814,7 +964,6 @@
     "name": "Ring of Swarming Thought",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -823,7 +972,6 @@
     "name": "Beetle Scaled Wristguards",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -832,7 +980,6 @@
     "name": "Breastplate of Annihilation",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "The Prophet Skeram",
     "instance": "aq40"
   },
@@ -841,7 +988,6 @@
     "name": "Ritssyn's Ring of Chaos",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -850,7 +996,6 @@
     "name": "Anubisath Warhammer",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -859,7 +1004,6 @@
     "name": "Garb of Royal Ascension",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -868,7 +1012,6 @@
     "name": "Scepter of the False Prophet",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 84,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -877,7 +1020,6 @@
     "name": "Neretzek, The Blood Drinker",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -886,7 +1028,6 @@
     "name": "Gloves of the Immortal",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -895,7 +1036,6 @@
     "name": "Gloves of the Redeemed Prophecy",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Trash",
     "instance": "aq40"
   },
@@ -904,8 +1044,15 @@
     "name": "Shard of the Fallen Star",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Trash",
+    "instance": "aq40"
+  },
+  "22222": {
+    "id": 22222,
+    "name": "Plans: Thick Obsidian Breastplate",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "The Prophet Skeram",
     "instance": "aq40"
   },
   "22396": {
@@ -913,7 +1060,6 @@
     "name": "Totem of Life",
     "equipslot": "Relic",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -922,7 +1068,6 @@
     "name": "Idol of Health",
     "equipslot": "Relic",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Viscidus",
     "instance": "aq40"
   },
@@ -931,7 +1076,6 @@
     "name": "Libram of Grace",
     "equipslot": "Relic",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Fankriss the Unyielding",
     "instance": "aq40"
   },
@@ -940,7 +1084,6 @@
     "name": "Eyestalk Waist Cord",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -949,7 +1092,6 @@
     "name": "Cloak of the Devoured",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -958,7 +1100,6 @@
     "name": "Mark of C'Thun",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 88,
     "from": "C'Thun",
     "instance": "aq40"
   },
@@ -967,7 +1108,6 @@
     "name": "Larvae of the Great Worm",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   },
@@ -976,7 +1116,6 @@
     "name": "The Burrower's Shell",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   },
@@ -985,7 +1124,6 @@
     "name": "Jom Gabbar",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 81,
     "from": "Ouro",
     "instance": "aq40"
   }

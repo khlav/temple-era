@@ -1,10 +1,17 @@
 {
+  "15410": {
+    "id": 15410,
+    "name": "Scale of Onyxia",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
   "16900": {
     "id": 16900,
     "name": "Stormrage Cover",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -13,7 +20,6 @@
     "name": "Bloodfang Hood",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -22,7 +28,6 @@
     "name": "Netherwind Crown",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -31,7 +36,6 @@
     "name": "Halo of Transcendence",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -40,7 +44,6 @@
     "name": "Nemesis Skullcap",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -49,7 +52,6 @@
     "name": "Dragonstalker's Helm",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -58,7 +60,6 @@
     "name": "Helmet of Ten Storms",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -67,7 +68,6 @@
     "name": "Judgement Crown",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -76,7 +76,6 @@
     "name": "Helm of Wrath",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -85,7 +84,6 @@
     "name": "Shard of the Scale",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -94,7 +92,6 @@
     "name": "Ancient Cornerstone Grimoire",
     "equipslot": "Held In Off-hand",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -103,7 +100,6 @@
     "name": "Deathbringer",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -112,7 +108,6 @@
     "name": "Vis'kag the Bloodletter",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 74,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -121,7 +116,6 @@
     "name": "Sapphiron Drape",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 72,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -130,7 +124,6 @@
     "name": "Onyxia Hide Backpack",
     "equipslot": "Bag",
     "quality": "Uncommon",
-    "ilvl": 55,
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -139,7 +132,30 @@
     "name": "Eskhandar's Collar",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 71,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "18422": {
+    "id": 18422,
+    "name": "Head of Onyxia",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "18423": {
+    "id": 18423,
+    "name": "Head of Onyxia",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "18705": {
+    "id": 18705,
+    "name": "Mature Black Dragon Sinew",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
     "from": "Onyxia",
     "instance": "onyxia"
   },
@@ -148,7 +164,30 @@
     "name": "Ring of Binding",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 73,
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "21108": {
+    "id": 21108,
+    "name": "Draconic for Dummies",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "22393": {
+    "id": 22393,
+    "name": "Codex: Prayer of Shadow Protection",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Onyxia",
+    "instance": "onyxia"
+  },
+  "22891": {
+    "id": 22891,
+    "name": "Grimoire of Shadow Ward IV",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
     "from": "Onyxia",
     "instance": "onyxia"
   }

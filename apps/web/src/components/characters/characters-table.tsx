@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
-import { ClassIcon } from "~/components/ui/class-icon";
+import { CharacterLink } from "~/components/ui/character-link";
 import {
   Tooltip,
   TooltipContent,
@@ -171,33 +171,22 @@ export function CharactersTable({
                         </td>
                       )}
                       <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        <Link
-                          className="group w-full transition-all hover:text-primary"
-                          target={targetNewTab ? "_blank" : "_self"}
-                          href={"/characters/" + c.characterId}
-                        >
-                          <div className="flex flex-row">
-                            <ClassIcon
-                              characterClass={c.class.toLowerCase()}
-                              px={20}
-                              className="mr-1 grow-0"
+                        <div className="flex flex-row items-center">
+                          <CharacterLink
+                            characterId={c.characterId}
+                            characterName={c.name}
+                            characterClass={c.class}
+                            primaryCharacterName={c.primaryCharacterName}
+                            iconSize={20}
+                            target={targetNewTab ? "_blank" : "_self"}
+                          />
+                          {targetNewTab && (
+                            <ExternalLinkIcon
+                              className="ml-1 hidden align-text-top group-hover:inline-block"
+                              size={15}
                             />
-                            <div className="grow-0">{c.name}</div>
-                            {c.primaryCharacterName ? (
-                              <div className="pl-1.5 text-xs font-normal text-muted-foreground">
-                                {c.primaryCharacterName}
-                              </div>
-                            ) : (
-                              ""
-                            )}
-                            {targetNewTab && (
-                              <ExternalLinkIcon
-                                className="ml-1 hidden align-text-top group-hover:inline-block"
-                                size={15}
-                              />
-                            )}
-                          </div>
-                        </Link>
+                          )}
+                        </div>
                       </td>
                       <td className="hidden p-2 align-middle text-muted-foreground md:inline [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         {c.server}

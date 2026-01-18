@@ -24,7 +24,8 @@ import {
   ListRestart,
   ShieldCheck,
   Wand,
-  ClipboardList,
+  ScanLine,
+  ClipboardList
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
@@ -56,6 +57,11 @@ const raidManagerLinks = [
     title: "Refresh WCL log",
     url: "/raid-manager/log-refresh",
     icon: ListRestart,
+  },
+  {
+    title: "SoftRes Scan",
+    url: "/softres",
+    icon: ScanLine,
   },
 ];
 

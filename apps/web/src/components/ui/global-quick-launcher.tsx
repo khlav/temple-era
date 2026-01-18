@@ -12,6 +12,7 @@ import {
   ListRestart,
   ShieldCheck,
   HelpCircle,
+  ScanLine,
 } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { useSession } from "next-auth/react";
@@ -105,6 +106,13 @@ export function GlobalQuickLauncher() {
               name: "Refresh WCL log",
               path: "/raid-manager/log-refresh",
               icon: ListRestart,
+              type: "page" as const,
+              role: "Raid Manager",
+            },
+            {
+              name: "SoftRes Scan",
+              path: "/softres",
+              icon: ScanLine,
               type: "page" as const,
               role: "Raid Manager",
             },

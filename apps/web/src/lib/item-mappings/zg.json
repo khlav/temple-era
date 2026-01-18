@@ -1,10 +1,17 @@
 {
+  "19802": {
+    "id": 19802,
+    "name": "Heart of Hakkar",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Hakkar",
+    "instance": "zg"
+  },
   "19852": {
     "id": 19852,
     "name": "Ancient Hakkari Manslayer",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -13,7 +20,6 @@
     "name": "Gurubashi Dwarf Destroyer",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -22,7 +28,6 @@
     "name": "Zin'rokh, Destroyer of Worlds",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -31,7 +36,6 @@
     "name": "Bloodsoaked Legplates",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -40,7 +44,6 @@
     "name": "The Eye of Hakkar",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -49,7 +52,6 @@
     "name": "Cloak of Consumption",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -58,7 +60,6 @@
     "name": "Fang of the Faceless",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -67,7 +68,6 @@
     "name": "Touch of Chaos",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -76,7 +76,6 @@
     "name": "Aegis of the Blood God",
     "equipslot": "Shield",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -85,7 +84,6 @@
     "name": "Primalist's Seal",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -94,7 +92,6 @@
     "name": "Bloodcaller",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -103,7 +100,6 @@
     "name": "Warblade of the Hakkari",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -112,7 +108,6 @@
     "name": "Warblade of the Hakkari",
     "equipslot": "Off Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -121,7 +116,6 @@
     "name": "Bloodlord's Defender",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -130,7 +124,6 @@
     "name": "Blooddrenched Grips",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -139,7 +132,6 @@
     "name": "Hakkari Loa Cloak",
     "equipslot": "Back",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -148,8 +140,15 @@
     "name": "Talisman of Protection",
     "equipslot": "Neck",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Mar'li",
+    "instance": "zg"
+  },
+  "19872": {
+    "id": 19872,
+    "name": "Swift Razzashi Raptor",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
   "19873": {
@@ -157,7 +156,6 @@
     "name": "Overlord's Crimson Band",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -166,7 +164,6 @@
     "name": "Halberd of Smiting",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -175,7 +172,6 @@
     "name": "Bloodstained Coif",
     "equipslot": "Head",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -184,7 +180,6 @@
     "name": "Soul Corrupter's Necklace",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -193,7 +188,6 @@
     "name": "Animist's Leggings",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -202,7 +196,6 @@
     "name": "Bloodsoaked Pauldrons",
     "equipslot": "Shoulder",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -211,7 +204,6 @@
     "name": "Jin'do's Judgement",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -220,7 +212,6 @@
     "name": "Jin'do's Evil Eye",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -229,7 +220,6 @@
     "name": "The Hexxer's Cover",
     "equipslot": "Head",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -238,7 +228,6 @@
     "name": "Bloodstained Legplates",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -247,7 +236,6 @@
     "name": "Overlord's Embrace",
     "equipslot": "Back",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -256,7 +244,6 @@
     "name": "Blooddrenched Leggings",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -265,7 +252,6 @@
     "name": "Jin'do's Hexxer",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -274,7 +260,6 @@
     "name": "Jin'do's Bag of Whammies",
     "equipslot": "Held In Off-hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -283,7 +268,6 @@
     "name": "Animist's Boots",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -292,7 +276,6 @@
     "name": "Zanzil's Seal",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -301,7 +284,6 @@
     "name": "Bloodsoaked Gauntlets",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -310,7 +292,6 @@
     "name": "Bloodtinged Kilt",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -319,7 +300,6 @@
     "name": "Thekal's Grasp",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -328,7 +308,6 @@
     "name": "Betrayer's Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -337,7 +316,6 @@
     "name": "Seal of Jin",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -346,7 +324,6 @@
     "name": "Ritualistic Legguards",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -355,7 +332,6 @@
     "name": "Zulian Stone Axe",
     "equipslot": "Two-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -364,7 +340,14 @@
     "name": "Zulian Slicer",
     "equipslot": "One-Hand",
     "quality": "Rare",
-    "ilvl": 68,
+    "from": "High Priest Thekal",
+    "instance": "zg"
+  },
+  "19902": {
+    "id": 19902,
+    "name": "Swift Zulian Tiger",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -373,7 +356,6 @@
     "name": "Fang of Venoxis",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -382,7 +364,6 @@
     "name": "Runed Bloodstained Hauberk",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -391,7 +372,6 @@
     "name": "Zanzil's Band",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -400,7 +380,6 @@
     "name": "Blooddrenched Footpads",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -409,7 +388,6 @@
     "name": "Zulian Tigerhide Cloak",
     "equipslot": "Back",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Venoxis",
     "instance": "zg"
   },
@@ -418,7 +396,6 @@
     "name": "Sceptre of Smiting",
     "equipslot": "One-Hand",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -427,7 +404,6 @@
     "name": "Will of Arlokk",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -436,7 +412,6 @@
     "name": "Arlokk's Grasp",
     "equipslot": "Off Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -445,7 +420,6 @@
     "name": "Overlord's Onyx Band",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -454,7 +428,6 @@
     "name": "Bloodsoaked Greaves",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -463,7 +436,6 @@
     "name": "Panther Hide Sack",
     "equipslot": "Bag",
     "quality": "Rare",
-    "ilvl": 55,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -472,7 +444,6 @@
     "name": "Zulian Defender",
     "equipslot": "Shield",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -481,7 +452,6 @@
     "name": "Jeklik's Crusher",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -490,7 +460,6 @@
     "name": "Bloodstained Greaves",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Mar'li",
     "instance": "zg"
   },
@@ -499,7 +468,6 @@
     "name": "Primalist's Band",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -508,7 +476,6 @@
     "name": "Zulian Hacker",
     "equipslot": "One-Hand",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -517,7 +484,6 @@
     "name": "Arlokk's Hoodoo Stick",
     "equipslot": "Held In Off-hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Arlokk",
     "instance": "zg"
   },
@@ -526,7 +492,6 @@
     "name": "Jeklik's Opaline Talisman",
     "equipslot": "Neck",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -535,7 +500,6 @@
     "name": "Band of Jin",
     "equipslot": "Finger",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Mar'li",
     "instance": "zg"
   },
@@ -544,7 +508,6 @@
     "name": "Mar'li's Touch",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priestess Mar'li",
     "instance": "zg"
   },
@@ -553,7 +516,6 @@
     "name": "Animist's Spaulders",
     "equipslot": "Shoulder",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -562,7 +524,6 @@
     "name": "Bloodtinged Gloves",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 71,
     "from": "Jin'do the Hexxer",
     "instance": "zg"
   },
@@ -571,8 +532,39 @@
     "name": "Mar'li's Eye",
     "equipslot": "Trinket",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Mar'li",
+    "instance": "zg"
+  },
+  "19939": {
+    "id": 19939,
+    "name": "Gri\\'lek\\'s Blood",
+    "equipslot": "Miscellaneous",
+    "quality": "Uncommon",
+    "from": "Gri\\'lek",
+    "instance": "zg"
+  },
+  "19940": {
+    "id": 19940,
+    "name": "Renataki\\'s Tooth",
+    "equipslot": "Miscellaneous",
+    "quality": "Uncommon",
+    "from": "Renataki",
+    "instance": "zg"
+  },
+  "19941": {
+    "id": 19941,
+    "name": "Wushoolay\\'s Mane",
+    "equipslot": "Miscellaneous",
+    "quality": "Uncommon",
+    "from": "Wushoolay",
+    "instance": "zg"
+  },
+  "19942": {
+    "id": 19942,
+    "name": "Hazza\\'rah\\'s Dream Thread",
+    "equipslot": "Miscellaneous",
+    "quality": "Uncommon",
+    "from": "Hazza\\'rah",
     "instance": "zg"
   },
   "19944": {
@@ -580,7 +572,6 @@
     "name": "Nat Pagle's Fish Terminator",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Gahz'ranka",
     "instance": "zg"
   },
@@ -589,7 +580,6 @@
     "name": "Lizardscale Eyepatch",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Gahz'ranka",
     "instance": "zg"
   },
@@ -598,7 +588,6 @@
     "name": "Tigule's Harpoon",
     "equipslot": "Two-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Gahz'ranka",
     "instance": "zg"
   },
@@ -607,7 +596,6 @@
     "name": "Nat Pagle's Broken Reel",
     "equipslot": "Trinket",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Gahz'ranka",
     "instance": "zg"
   },
@@ -616,7 +604,6 @@
     "name": "Gri'lek's Grinder",
     "equipslot": "One-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Gri'lek",
     "instance": "zg"
   },
@@ -625,7 +612,6 @@
     "name": "Gri'lek's Carver",
     "equipslot": "Two-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Gri'lek",
     "instance": "zg"
   },
@@ -634,7 +620,6 @@
     "name": "Pitchfork of Madness",
     "equipslot": "Two-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Renataki",
     "instance": "zg"
   },
@@ -643,7 +628,6 @@
     "name": "Renataki's Soul Conduit",
     "equipslot": "Main Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Renataki",
     "instance": "zg"
   },
@@ -652,7 +636,6 @@
     "name": "Wushoolay's Poker",
     "equipslot": "Main Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Wushoolay",
     "instance": "zg"
   },
@@ -661,7 +644,6 @@
     "name": "Thoughtblighter",
     "equipslot": "Ranged",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Hazza'rah",
     "instance": "zg"
   },
@@ -670,7 +652,6 @@
     "name": "Fiery Retributer",
     "equipslot": "Main Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Hazza'rah",
     "instance": "zg"
   },
@@ -679,7 +660,6 @@
     "name": "Hoodoo Hunting Bow",
     "equipslot": "Ranged",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Wushoolay",
     "instance": "zg"
   },
@@ -688,7 +668,6 @@
     "name": "Flowing Ritual Robes",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "High Priestess Mar'li",
     "instance": "zg"
   },
@@ -697,7 +676,6 @@
     "name": "Mandokir's Sting",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Bloodlord Mandokir",
     "instance": "zg"
   },
@@ -706,7 +684,6 @@
     "name": "Seafury Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -715,7 +692,6 @@
     "name": "Zulian Ceremonial Staff",
     "equipslot": "Two-Hand",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -724,7 +700,6 @@
     "name": "Shadow Panther Hide Gloves",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -733,7 +708,6 @@
     "name": "Seafury Leggings",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Thekal",
     "instance": "zg"
   },
@@ -742,7 +716,6 @@
     "name": "Shadow Panther Hide Belt",
     "equipslot": "Waist",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -751,7 +724,6 @@
     "name": "Seafury Boots",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -760,7 +732,6 @@
     "name": "Gurubashi Helm",
     "equipslot": "Head",
     "quality": "Rare",
-    "ilvl": 65,
     "from": "Trash",
     "instance": "zg"
   },
@@ -769,7 +740,6 @@
     "name": "Peacekeeper Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Hakkar",
     "instance": "zg"
   },
@@ -778,7 +748,6 @@
     "name": "Peacekeeper Boots",
     "equipslot": "Feet",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priestess Jeklik",
     "instance": "zg"
   },
@@ -787,8 +756,15 @@
     "name": "Peacekeeper Leggings",
     "equipslot": "Legs",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "High Priest Thekal",
+    "instance": "zg"
+  },
+  "22637": {
+    "id": 22637,
+    "name": "Primal Hakkari Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
     "instance": "zg"
   },
   "22711": {
@@ -796,7 +772,6 @@
     "name": "Cloak of the Hakkari Worshipers",
     "equipslot": "Back",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -805,7 +780,6 @@
     "name": "Might of the Tribe",
     "equipslot": "Back",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -814,7 +788,6 @@
     "name": "Zulian Scepter of Rites",
     "equipslot": "One-Hand",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -823,7 +796,6 @@
     "name": "Sacrificial Gauntlets",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -832,7 +804,6 @@
     "name": "Gloves of the Tormented",
     "equipslot": "Hands",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -841,7 +812,6 @@
     "name": "Belt of Untapped Power",
     "equipslot": "Waist",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -850,7 +820,6 @@
     "name": "Blooddrenched Mask",
     "equipslot": "Head",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -859,7 +828,6 @@
     "name": "Zulian Headdress",
     "equipslot": "Head",
     "quality": "Rare",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "zg"
   },
@@ -868,7 +836,6 @@
     "name": "Band of Servitude",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Shared",
     "instance": "zg"
   },
@@ -877,8 +844,15 @@
     "name": "Seal of the Gurubashi Berserker",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Shared",
+    "instance": "zg"
+  },
+  "22739": {
+    "id": 22739,
+    "name": "Tome of Polymorph: Turtle",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Gahz\\'ranka",
     "instance": "zg"
   }
 }

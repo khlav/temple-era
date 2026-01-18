@@ -4,8 +4,15 @@
     "name": "Teebu's Blazing Longsword",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Trash",
+    "instance": "mc"
+  },
+  "16665": {
+    "id": 16665,
+    "name": "Tome of Tranquilizing Shot",
+    "equipslot": "Miscellaneous",
+    "quality": "Uncommon",
+    "from": "Lucifron",
     "instance": "mc"
   },
   "16795": {
@@ -13,7 +20,6 @@
     "name": "Arcanist Crown",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -22,7 +28,6 @@
     "name": "Arcanist Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -31,7 +36,6 @@
     "name": "Arcanist Mantle",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Baron Geddon",
     "instance": "mc"
   },
@@ -40,7 +44,6 @@
     "name": "Arcanist Robes",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -49,7 +52,6 @@
     "name": "Arcanist Bindings",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -58,7 +60,6 @@
     "name": "Arcanist Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -67,7 +68,6 @@
     "name": "Arcanist Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -76,7 +76,6 @@
     "name": "Arcanist Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -85,7 +84,6 @@
     "name": "Felheart Slippers",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -94,7 +92,6 @@
     "name": "Felheart Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -103,7 +100,6 @@
     "name": "Felheart Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -112,7 +108,6 @@
     "name": "Felheart Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -121,7 +116,6 @@
     "name": "Felheart Shoulder Pads",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Baron Geddon",
     "instance": "mc"
   },
@@ -130,7 +124,6 @@
     "name": "Felheart Horns",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -139,7 +132,6 @@
     "name": "Felheart Robes",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -148,7 +140,6 @@
     "name": "Felheart Pants",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -157,7 +148,6 @@
     "name": "Boots of Prophecy",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -166,7 +156,6 @@
     "name": "Gloves of Prophecy",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -175,7 +164,6 @@
     "name": "Circlet of Prophecy",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -184,7 +172,6 @@
     "name": "Pants of Prophecy",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -193,7 +180,6 @@
     "name": "Robes of Prophecy",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -202,7 +188,6 @@
     "name": "Mantle of Prophecy",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Sulfuron Harbinger",
     "instance": "mc"
   },
@@ -211,7 +196,6 @@
     "name": "Girdle of Prophecy",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -220,7 +204,6 @@
     "name": "Vambraces of Prophecy",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -229,7 +212,6 @@
     "name": "Nightslayer Chestpiece",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -238,7 +220,6 @@
     "name": "Nightslayer Cover",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -247,7 +228,6 @@
     "name": "Nightslayer Pants",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -256,7 +236,6 @@
     "name": "Nightslayer Shoulder Pads",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Sulfuron Harbinger",
     "instance": "mc"
   },
@@ -265,7 +244,6 @@
     "name": "Nightslayer Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -274,7 +252,6 @@
     "name": "Nightslayer Bracelets",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -283,7 +260,6 @@
     "name": "Nightslayer Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -292,7 +268,6 @@
     "name": "Nightslayer Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -301,7 +276,6 @@
     "name": "Cenarion Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -310,7 +284,6 @@
     "name": "Cenarion Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -319,7 +292,6 @@
     "name": "Cenarion Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -328,7 +300,6 @@
     "name": "Cenarion Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -337,7 +308,6 @@
     "name": "Cenarion Vestments",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -346,7 +316,6 @@
     "name": "Cenarion Helm",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -355,7 +324,6 @@
     "name": "Cenarion Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -364,7 +332,6 @@
     "name": "Cenarion Spaulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Baron Geddon",
     "instance": "mc"
   },
@@ -373,7 +340,6 @@
     "name": "Earthfury Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -382,7 +348,6 @@
     "name": "Earthfury Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -391,7 +356,6 @@
     "name": "Earthfury Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -400,7 +364,6 @@
     "name": "Earthfury Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -409,7 +372,6 @@
     "name": "Earthfury Vestments",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -418,7 +380,6 @@
     "name": "Earthfury Helmet",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -427,7 +388,6 @@
     "name": "Earthfury Legguards",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -436,7 +396,6 @@
     "name": "Earthfury Epaulets",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Baron Geddon",
     "instance": "mc"
   },
@@ -445,7 +404,6 @@
     "name": "Giantstalker's Breastplate",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -454,7 +412,6 @@
     "name": "Giantstalker's Helmet",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -463,7 +420,6 @@
     "name": "Giantstalker's Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -472,7 +428,6 @@
     "name": "Giantstalker's Epaulets",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Sulfuron Harbinger",
     "instance": "mc"
   },
@@ -481,7 +436,6 @@
     "name": "Giantstalker's Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -490,7 +444,6 @@
     "name": "Giantstalker's Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -499,7 +452,6 @@
     "name": "Giantstalker's Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -508,7 +460,6 @@
     "name": "Giantstalker's Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shazzrah",
     "instance": "mc"
   },
@@ -517,7 +468,6 @@
     "name": "Lawbringer Chestguard",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -526,7 +476,6 @@
     "name": "Lawbringer Helm",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -535,7 +484,6 @@
     "name": "Lawbringer Legplates",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -544,7 +492,6 @@
     "name": "Lawbringer Spaulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Baron Geddon",
     "instance": "mc"
   },
@@ -553,7 +500,6 @@
     "name": "Lawbringer Bracers",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -562,7 +508,6 @@
     "name": "Lawbringer Belt",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -571,7 +516,6 @@
     "name": "Lawbringer Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -580,7 +524,6 @@
     "name": "Lawbringer Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -589,7 +532,6 @@
     "name": "Bracers of Might",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -598,7 +540,6 @@
     "name": "Sabatons of Might",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Gehennas",
     "instance": "mc"
   },
@@ -607,7 +548,6 @@
     "name": "Gauntlets of Might",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -616,7 +556,6 @@
     "name": "Belt of Might",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Trash",
     "instance": "mc"
   },
@@ -625,7 +564,6 @@
     "name": "Breastplate of Might",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -634,7 +572,6 @@
     "name": "Helm of Might",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Garr",
     "instance": "mc"
   },
@@ -643,7 +580,6 @@
     "name": "Legplates of Might",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -652,7 +588,6 @@
     "name": "Pauldrons of Might",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Sulfuron Harbinger",
     "instance": "mc"
   },
@@ -661,7 +596,6 @@
     "name": "Stormrage Legguards",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -670,7 +604,6 @@
     "name": "Bloodfang Pants",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -679,7 +612,6 @@
     "name": "Netherwind Pants",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -688,7 +620,6 @@
     "name": "Leggings of Transcendence",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -697,7 +628,6 @@
     "name": "Nemesis Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -706,7 +636,6 @@
     "name": "Dragonstalker's Legguards",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -715,7 +644,6 @@
     "name": "Legplates of Ten Storms",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -724,7 +652,6 @@
     "name": "Judgement Legplates",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -733,8 +660,23 @@
     "name": "Legplates of Wrath",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
+    "instance": "mc"
+  },
+  "17010": {
+    "id": 17010,
+    "name": "Fiery Core",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "mc"
+  },
+  "17011": {
+    "id": 17011,
+    "name": "Lava Core",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
     "instance": "mc"
   },
   "17063": {
@@ -742,7 +684,6 @@
     "name": "Band of Accuria",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -751,7 +692,6 @@
     "name": "Medallion of Steadfast Might",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -760,7 +700,6 @@
     "name": "Drillborer Disk",
     "equipslot": "Shield",
     "quality": "Epic",
-    "ilvl": 67,
     "from": "Garr",
     "instance": "mc"
   },
@@ -769,7 +708,6 @@
     "name": "Striker's Mark",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 69,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -778,7 +716,6 @@
     "name": "Gutgore Ripper",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 69,
     "from": "Garr",
     "instance": "mc"
   },
@@ -787,7 +724,6 @@
     "name": "Blastershot Launcher",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -796,7 +732,6 @@
     "name": "Earthshaker",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
     "instance": "mc"
   },
@@ -805,7 +740,6 @@
     "name": "Shadowstrike",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 63,
     "from": "Sulfuron Harbinger",
     "instance": "mc"
   },
@@ -814,7 +748,6 @@
     "name": "Bonereaver's Edge",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -823,7 +756,6 @@
     "name": "Crimson Shocker",
     "equipslot": "Ranged",
     "quality": "Epic",
-    "ilvl": 63,
     "from": "Shared",
     "instance": "mc"
   },
@@ -832,7 +764,6 @@
     "name": "Shard of the Flame",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 74,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -841,7 +772,6 @@
     "name": "Cloak of the Shrouded Mists",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 74,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -850,7 +780,6 @@
     "name": "Azuresong Mageblade",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -859,7 +788,6 @@
     "name": "Spinal Reaper",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -868,7 +796,6 @@
     "name": "Aurastone Hammer",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 69,
     "from": "Garr",
     "instance": "mc"
   },
@@ -877,7 +804,6 @@
     "name": "Malistar's Defender",
     "equipslot": "Shield",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -886,7 +812,6 @@
     "name": "Dragon's Blood Cape",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 73,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -895,7 +820,6 @@
     "name": "Choker of Enlightenment",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Lucifron",
     "instance": "mc"
   },
@@ -904,8 +828,23 @@
     "name": "Seal of the Archmagus",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Baron Geddon",
+    "instance": "mc"
+  },
+  "17203": {
+    "id": 17203,
+    "name": "Sulfuron Ingot",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Golemagg the Incinerator",
+    "instance": "mc"
+  },
+  "17204": {
+    "id": 17204,
+    "name": "Eye of Sulfuras",
+    "equipslot": "Miscellaneous",
+    "quality": "Legendary",
+    "from": "Ragnaros",
     "instance": "mc"
   },
   "18203": {
@@ -913,8 +852,95 @@
     "name": "Eskhandar's Right Claw",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Magmadar",
+    "instance": "mc"
+  },
+  "18252": {
+    "id": 18252,
+    "name": "Pattern: Core Armor Kit",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18257": {
+    "id": 18257,
+    "name": "Recipe: Major Rejuvenation Potion",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18259": {
+    "id": 18259,
+    "name": "Formula: Enchant Weapon - Spell Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18260": {
+    "id": 18260,
+    "name": "Formula: Enchant Weapon - Healing Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18264": {
+    "id": 18264,
+    "name": "Plans: Elemental Sharpening Stone",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18265": {
+    "id": 18265,
+    "name": "Pattern: Flarecore Wraps",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18290": {
+    "id": 18290,
+    "name": "Schematic: Biznicks 247x128 Accurascope",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18291": {
+    "id": 18291,
+    "name": "Schematic: Force Reactive Disk",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18292": {
+    "id": 18292,
+    "name": "Schematic: Core Marksman Rifle",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "18563": {
+    "id": 18563,
+    "name": "Bindings of the Windseeker",
+    "equipslot": "Miscellaneous",
+    "quality": "Legendary",
+    "from": "Baron Geddon",
+    "instance": "mc"
+  },
+  "18564": {
+    "id": 18564,
+    "name": "Bindings of the Windseeker",
+    "equipslot": "Miscellaneous",
+    "quality": "Legendary",
+    "from": "Garr",
     "instance": "mc"
   },
   "18646": {
@@ -922,7 +948,14 @@
     "name": "The Eye of Divinity",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 71,
+    "from": "Majordomo Executus",
+    "instance": "mc"
+  },
+  "18703": {
+    "id": 18703,
+    "name": "Ancient Petrified Leaf",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -931,7 +964,6 @@
     "name": "Hyperthermically Insulated Lava Dredger",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -940,7 +972,6 @@
     "name": "Core Hound Tooth",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -949,7 +980,6 @@
     "name": "Core Forged Greaves",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -958,7 +988,6 @@
     "name": "Gloves of the Hypnotic Flame",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -967,7 +996,6 @@
     "name": "Sash of Whispered Secrets",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -976,7 +1004,6 @@
     "name": "Wild Growth Spaulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -985,7 +1012,6 @@
     "name": "Fireproof Cloak",
     "equipslot": "Back",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -994,7 +1020,6 @@
     "name": "Wristguards of True Flight",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -1003,7 +1028,6 @@
     "name": "Choker of the Fire Lord",
     "equipslot": "Neck",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1012,7 +1036,6 @@
     "name": "Essence of the Pure Flame",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 75,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1021,7 +1044,6 @@
     "name": "Perdition's Blade",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 77,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1030,7 +1052,6 @@
     "name": "Crown of Destruction",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 76,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1039,7 +1060,6 @@
     "name": "Talisman of Ephemeral Power",
     "equipslot": "Trinket",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1048,7 +1068,6 @@
     "name": "Quick Strike Ring",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 67,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1057,7 +1076,6 @@
     "name": "Obsidian Edged Blade",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1066,7 +1084,6 @@
     "name": "Aged Core Leather Gloves",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 69,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1075,7 +1092,6 @@
     "name": "Magma Tempered Boots",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1084,7 +1100,6 @@
     "name": "Deep Earth Spaulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1093,7 +1108,6 @@
     "name": "Brutality Blade",
     "equipslot": "One-Hand",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Garr",
     "instance": "mc"
   },
@@ -1102,7 +1116,6 @@
     "name": "Staff of Dominance",
     "equipslot": "Two-Hand",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Golemagg the Incinerator",
     "instance": "mc"
   },
@@ -1111,7 +1124,6 @@
     "name": "Flamewaker Legplates",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 61,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1120,7 +1132,6 @@
     "name": "Helm of the Lifegiver",
     "equipslot": "Head",
     "quality": "Epic",
-    "ilvl": 62,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1129,7 +1140,6 @@
     "name": "Manastorm Leggings",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 63,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1138,7 +1148,6 @@
     "name": "Salamander Scale Pants",
     "equipslot": "Legs",
     "quality": "Epic",
-    "ilvl": 64,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1147,7 +1156,6 @@
     "name": "Sorcerous Dagger",
     "equipslot": "Main Hand",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1156,8 +1164,15 @@
     "name": "Heavy Dark Iron Ring",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shared",
+    "instance": "mc"
+  },
+  "19017": {
+    "id": 19017,
+    "name": "Essence of the Firelord",
+    "equipslot": "Miscellaneous",
+    "quality": "Legendary",
+    "from": "Ragnaros",
     "instance": "mc"
   },
   "19136": {
@@ -1165,7 +1180,6 @@
     "name": "Mana Igniting Cord",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1174,7 +1188,6 @@
     "name": "Onslaught Girdle",
     "equipslot": "Waist",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1183,7 +1196,6 @@
     "name": "Band of Sulfuras",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 78,
     "from": "Ragnaros",
     "instance": "mc"
   },
@@ -1192,7 +1204,6 @@
     "name": "Fireguard Shoulders",
     "equipslot": "Shoulder",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -1201,7 +1212,6 @@
     "name": "Cauterizing Band",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 71,
     "from": "Majordomo Executus",
     "instance": "mc"
   },
@@ -1210,7 +1220,6 @@
     "name": "Fire Runed Grimoire",
     "equipslot": "Held In Off-hand",
     "quality": "Epic",
-    "ilvl": 70,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1219,7 +1228,6 @@
     "name": "Flameguard Gauntlets",
     "equipslot": "Hands",
     "quality": "Epic",
-    "ilvl": 69,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1228,7 +1236,6 @@
     "name": "Sabatons of the Flamewalker",
     "equipslot": "Feet",
     "quality": "Epic",
-    "ilvl": 68,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1237,7 +1244,6 @@
     "name": "Robe of Volatile Power",
     "equipslot": "Chest",
     "quality": "Epic",
-    "ilvl": 66,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1246,7 +1252,6 @@
     "name": "Wristguards of Stability",
     "equipslot": "Wrist",
     "quality": "Epic",
-    "ilvl": 65,
     "from": "Shared",
     "instance": "mc"
   },
@@ -1255,7 +1260,30 @@
     "name": "Ring of Spell Power",
     "equipslot": "Finger",
     "quality": "Epic",
-    "ilvl": 66,
+    "from": "Shared",
+    "instance": "mc"
+  },
+  "20951": {
+    "id": 20951,
+    "name": "Narain\\'s Scrying Goggles",
+    "equipslot": "Miscellaneous",
+    "quality": "Common",
+    "from": "Trash",
+    "instance": "mc"
+  },
+  "21110": {
+    "id": 21110,
+    "name": "Draconic for Dummies",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Ragnaros",
+    "instance": "mc"
+  },
+  "21371": {
+    "id": 21371,
+    "name": "Pattern: Core Felcloth Bag",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
     "from": "Shared",
     "instance": "mc"
   }
