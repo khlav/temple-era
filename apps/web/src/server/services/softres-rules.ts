@@ -8,25 +8,28 @@ import type { SoftResRule, RuleEvaluationContext } from "./softres-rule-types";
  * Restricted Naxx items requiring 50%+ raid attendance
  */
 const RESTRICTED_NAXX_ITEMS = new Set([
-  22802, // Kingsfall
   22807, // Wraith Blade
-  22812, // Nerubian Slavemaker
-  22816, // Hatchet of Sundered Bone
-  22942, // The Widow's Embrace
   22954, // Kiss of the Spider
-  22983, // Rime Covered Mantle
-  23014, // Iblis, Blade of the Fallen Seraph
-  23031, // Band of the Inevitable
-  23038, // Band of Unnatural Forces
-  23041, // Slayer's Crest
-  23045, // Shroud of Dominion
+  23046, // The Restrained Essence of Sapphiron
   23047, // Eye of the Dead
-  23049, // Sapphiron's Left Eye
-  23050, // Cloak of the Necropolis
-  23054, // Gressil, Dawn of Ruin
+  22802, // Kingsfall
   23056, // Hammer of the Twisting Nether
-  23070, // Leggings of Polarity
+  23054, // Gressil, Dawn of Ruin
   23577, // The Hungering Cold
+
+  // // Removed 1/18/2026
+  // 22812, // Nerubian Slavemaker
+  // 22816, // Hatchet of Sundered Bone
+  // 22942, // The Widow's Embrace
+  // 22983, // Rime Covered Mantle
+  // 23014, // Iblis, Blade of the Fallen Seraph
+  // 23031, // Band of the Inevitable
+  // 23038, // Band of Unnatural Forces
+  // 23041, // Slayer's Crest
+  // 23045, // Shroud of Dominion
+  // 23049, // Sapphiron's Left Eye
+  // 23050, // Cloak of the Necropolis
+  // 23070, // Leggings of Polarity
 ]);
 
 /**
