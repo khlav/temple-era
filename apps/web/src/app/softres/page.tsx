@@ -15,9 +15,8 @@ export default async function SoftResScanPage() {
       <div className="mb-2 text-3xl font-bold tracking-tight">
         [Beta] SoftRes Scan
       </div>
-      <div className="mb-4 text-sm text-muted-foreground">
-        Checks characters and their soft reserves against attendance constraints
-        and other rules + information.
+      <div className="mb-6 text-sm text-muted-foreground">
+        Analyze soft reserves against attendance and raid requirements.
       </div>
       <SoftResScanForm />
     </main>

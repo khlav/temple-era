@@ -165,11 +165,13 @@ export function SoftResScanTable({
                           >
                             {(() => {
                               // Parse description to highlight item names
-                              // Use red for error rules, matching the label color
+                              // Use red for error rules, yellow for warning rules, matching the label colors
                               const itemNameColor =
                                 rule.level === "error"
                                   ? "text-red-700 dark:text-red-400"
-                                  : "text-muted-foreground";
+                                  : rule.level === "warning"
+                                    ? "text-yellow-700 dark:text-yellow-400"
+                                    : "text-muted-foreground";
                               const parts =
                                 rule.description.split(/`([^`]+)`/g);
                               return parts.map((part, index) => {

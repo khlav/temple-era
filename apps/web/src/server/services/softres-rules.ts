@@ -33,10 +33,59 @@ const RESTRICTED_NAXX_ITEMS = new Set([
 ]);
 
 /**
+ * End-game BWL items requiring 4+ logged raids in BWL
+ */
+const ENDGAME_BWL_ITEMS = new Set([
+  19395, // Rejuvenating Gem
+  19406, // Drake Fang Talisman
+  19379, // Neltharion's Tear
+  19363, // Crul'shorukh, Edge of Chaos
+  19377, // Prestor's Talisman of Connivery
+  19382, // Pure Elementium Band
+]);
+
+/**
+ * End-game AQ40 items requiring 4+ logged raids in AQ40
+ */
+const ENDGAME_AQ40_ITEMS = new Set([
+  21839, // Scepter of the False Prophet
+  21581, // Gauntlets of Annihilation
+  21585, // Dark Storm Gauntlets
+  21126, // Death's Sting
+  21620, // Ring of the Martyr
+]);
+
+/**
  * Check if any SR'd item is in the restricted items list
  */
 function hasRestrictedNaxxItem(ctx: RuleEvaluationContext): boolean {
   return ctx.srItems.some((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId));
+}
+
+/**
+ * Check if any SR'd item is an end-game BWL item
+ */
+function hasEndgameBWLItem(ctx: RuleEvaluationContext): boolean {
+  return ctx.srItems.some((itemId) => ENDGAME_BWL_ITEMS.has(itemId));
+}
+
+/**
+ * Check if any SR'd item is an end-game AQ40 item
+ */
+function hasEndgameAQ40Item(ctx: RuleEvaluationContext): boolean {
+  return ctx.srItems.some((itemId) => ENDGAME_AQ40_ITEMS.has(itemId));
+}
+
+/**
+ * Get end-game item names from the context
+ */
+function getEndgameItemNames(
+  ctx: RuleEvaluationContext,
+  itemSet: Set<number>,
+): string[] {
+  return ctx.srItems
+    .filter((itemId) => itemSet.has(itemId))
+    .map((itemId) => ctx.srItemNames?.get(itemId) ?? `Item#${itemId}`);
 }
 
 /**
@@ -118,6 +167,51 @@ const restrictedItemIneligibleRule: SoftResRule = {
 };
 
 /**
+ * Rule 5: Warning - Newer character, end-game item
+ * Character has < 4 logged raids in current zone (or is not found) and SR'd an end-game item
+ */
+const newerCharacterEndgameItemRule: SoftResRule = {
+  id: "newer-character-endgame-item",
+  name: "Newer character, end-game item",
+  description: (ctx) => {
+    const raidCount = ctx.zoneRaidsAttendedBenched ?? 0;
+    let itemNames: string[] = [];
+
+    if (ctx.zone === "Blackwing Lair") {
+      itemNames = getEndgameItemNames(ctx, ENDGAME_BWL_ITEMS);
+    } else if (ctx.zone === "Temple of Ahn'Qiraj") {
+      itemNames = getEndgameItemNames(ctx, ENDGAME_AQ40_ITEMS);
+    }
+
+    if (ctx.characterId === null) {
+      return `Reserved end-game item \`${itemNames.join(", ")}\` but character not found in database.`;
+    }
+
+    return `Reserved end-game item \`${itemNames.join(", ")}\` with only ${raidCount} logged raid${raidCount === 1 ? "" : "s"} in ${ctx.zone}.`;
+  },
+  level: "warning",
+  evaluate: (ctx) => {
+    // Skip if character has 4+ raids in zone
+    if (
+      ctx.zoneRaidsAttendedBenched !== null &&
+      ctx.zoneRaidsAttendedBenched >= 4
+    ) {
+      return false;
+    }
+
+    // Check if they SR'd an end-game item for this zone
+    if (ctx.zone === "Blackwing Lair") {
+      return hasEndgameBWLItem(ctx);
+    } else if (ctx.zone === "Temple of Ahn'Qiraj") {
+      return hasEndgameAQ40Item(ctx);
+    }
+
+    return false;
+  },
+  icon: "AlertTriangle",
+};
+
+/**
  * Registry of all rules
  * Add new rules here to make them available for evaluation
  */
@@ -126,6 +220,7 @@ export const SOFTRES_RULES: SoftResRule[] = [
   newOrUnmatchedRaiderRule,
   restrictedItemOkRule,
   restrictedItemIneligibleRule,
+  newerCharacterEndgameItemRule,
 ];
 
 /**

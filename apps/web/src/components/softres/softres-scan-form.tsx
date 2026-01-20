@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 
 export function SoftResScanForm() {
   const router = useRouter();
@@ -49,16 +43,10 @@ export function SoftResScanForm() {
 
   return (
     <Card className="max-w-2xl">
-      <CardHeader>
-        <CardTitle>Enter SoftRes URL</CardTitle>
-        <CardDescription>
-          Paste a SoftRes raid URL to scan and analyze character reservations
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="softres-url">SoftRes URL</Label>
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <Label htmlFor="softres-url">SoftRes URL</Label>
+          <div className="flex gap-2">
             <Input
               id="softres-url"
               type="url"
@@ -68,9 +56,9 @@ export function SoftResScanForm() {
               className={error ? "border-red-500" : ""}
               autoComplete="off"
             />
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit">Scan</Button>
           </div>
-          <Button type="submit">Scan Raid</Button>
+          {error && <p className="text-sm text-red-500">{error}</p>}
         </form>
       </CardContent>
     </Card>
