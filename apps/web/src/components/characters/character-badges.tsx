@@ -212,8 +212,9 @@ export function CharacterBadges({ characterId }: { characterId: number }) {
 
   return (
     <div className="w-full">
-      <div className="mb-3 text-sm font-semibold text-muted-foreground">
-        Achievements
+      <div className="mb-3 text-sm text-muted-foreground">
+        <span className="font-semibold">Achievements</span> – Based on last 6
+        lockouts
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {rarityOrder.map((rarity) => (
