@@ -385,9 +385,6 @@ export function evaluateBadge(
             week.zones.aq40,
             week.zones.bwl,
             week.zones.mc,
-            week.zones.onyxia,
-            week.zones.aq20,
-            week.zones.zg,
           ].filter((z) => z?.attended).length;
 
           return attendedZones >= 2;

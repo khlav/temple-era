@@ -187,7 +187,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     id: "dedicated",
     name: "Dedicated",
     description:
-      "Demonstrated dedication by attending 2+ zones in 4+ consecutive weeks.",
+      "Demonstrated dedication by attending 2+ 40-man raids in 4+ consecutive weeks.",
     rarity: "epic",
     icon: Target,
     order: 12,
