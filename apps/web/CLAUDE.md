@@ -78,6 +78,7 @@ src/
 │   ├── rare-recipes/            # Recipe search pages
 │   ├── reports/                 # Reports pages
 │   │   └── attendance/         # Side-by-side attendance report
+│   ├── softres/                 # SoftRes scan pages
 │   └── profile/                 # User profile pages
 ├── components/                   # React components organized by feature
 │   ├── admin/                   # Admin components
@@ -89,6 +90,7 @@ src/
 │   ├── rare-recipes/            # Recipe search components
 │   ├── reports/                 # Report components
 │   │   └── attendance/         # Attendance report components
+│   ├── softres/                 # SoftRes scan components
 │   └── ui/                      # Reusable UI components (shadcn/ui)
 ├── server/
 │   ├── api/
@@ -101,6 +103,7 @@ src/
 │   │   │   ├── recipe.ts       # Recipe operations
 │   │   │   ├── reports.ts      # Attendance report operations
 │   │   │   ├── search.ts       # Global search
+│   │   │   ├── softres.ts      # SoftRes scan operations
 │   │   │   └── user.ts         # User operations
 │   │   ├── interfaces/         # TypeScript interfaces for external APIs
 │   │   ├── root.ts             # Main tRPC router
@@ -108,6 +111,10 @@ src/
 │   │   ├── wcl-helpers.ts      # Warcraft Logs API helpers
 │   │   ├── wcl-queries.ts      # Warcraft Logs GraphQL queries
 │   │   └── oauth-helpers.ts    # OAuth utility functions
+│   ├── services/                # Business logic services
+│   │   ├── softres-rules.ts    # SoftRes validation rules
+│   │   ├── softres-rule-types.ts # SoftRes rule type definitions
+│   │   └── softres-matcher-batch.ts # Character matching logic
 │   ├── auth/
 │   │   ├── config.ts           # NextAuth.js configuration
 │   │   └── index.ts            # Auth helpers
@@ -124,6 +131,9 @@ src/
 ├── contexts/                     # React contexts
 ├── hooks/                        # Custom React hooks
 ├── lib/                          # Utility libraries
+│   ├── item-mappings/           # WoW item data by raid zone (JSON)
+│   ├── raid-zones.ts            # Raid zone constants and mappings
+│   └── softres-zone-mapping.ts  # SoftRes instance to DB zone mapping
 ├── trpc/                         # tRPC client setup
 │   ├── react.tsx                # tRPC React Query provider
 │   ├── server.ts                # tRPC server-side caller
@@ -320,6 +330,47 @@ The website provides REST API endpoints for the Discord bot (separate repo):
 - Cache access tokens appropriately
 - Handle errors with proper user feedback
 - Add retry logic for transient failures
+
+### SoftRes Rules System
+
+The SoftRes Scan feature validates character soft reserves against guild policies and attendance requirements.
+
+**Architecture:**
+
+- Rules defined in `src/server/services/softres-rules.ts`
+- Rule types in `src/server/services/softres-rule-types.ts`
+- UI rendering in `src/components/softres/softres-scan-table.tsx`
+
+**Adding a New Rule:**
+
+1. Define item ID constants (e.g., `ENDGAME_BWL_ITEMS`) at the top of `softres-rules.ts`
+2. Create helper functions if needed (e.g., `hasEndgameBWLItem()`)
+3. Define the rule object with:
+   - `id`: Unique kebab-case identifier
+   - `name`: Display name shown in badge
+   - `description`: String or function returning description (support backtick-wrapped item names for highlighting)
+   - `level`: `"info"`, `"highlight"`, `"warning"`, or `"error"`
+   - `evaluate`: Function that returns true when rule applies
+   - `icon`: Lucide icon name (e.g., "AlertTriangle", "XCircle", "Info")
+4. Add rule to `SOFTRES_RULES` array
+
+**Rule Levels & Tooltip Colors:**
+
+- `info`: Gray badge, muted text in tooltip
+- `highlight`: Blue badge, muted text in tooltip
+- `warning`: Yellow badge, yellow-highlighted item names in tooltip
+- `error`: Red badge, red-highlighted item names in tooltip
+
+**Item Name Highlighting:**
+
+- Wrap item names in backticks in rule descriptions
+- Tooltip rendering automatically highlights them based on rule level
+
+**Example Rules:**
+
+- Restricted Naxx items requiring 50%+ attendance (error level)
+- New/unmatched raiders (highlight level)
+- Newer character reserving end-game items (warning level)
 
 ## Testing
 
