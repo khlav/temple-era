@@ -535,6 +535,7 @@ export const character = createTRPCRouter({
 
       // Get all raids in the date range with user's attendance
       // Calculate lockout_week using SQL: (date_trunc('week', date - 1) + INTERVAL '1 day')::date
+      // NOTE: We include ALL raids (attendanceWeight >= 0) to capture 20-man raids for badge evaluation
       const raidsResult = await ctx.db
         .select({
           raidId: raids.raidId,
@@ -558,7 +559,7 @@ export const character = createTRPCRouter({
           and(
             gte(raids.date, startDateStr),
             lte(raids.date, endDateStr),
-            sql`${raids.attendanceWeight} > 0`,
+            sql`${raids.attendanceWeight} >= 0`,
           ),
         )
         .orderBy(raids.date);
@@ -621,6 +622,30 @@ export const character = createTRPCRouter({
                 characterNames: string[];
               }>;
               isGrayed: boolean;
+            };
+            onyxia?: {
+              attended: boolean;
+              raids: Array<{
+                name: string;
+                status: "attendee" | "bench";
+                characterNames: string[];
+              }>;
+            };
+            aq20?: {
+              attended: boolean;
+              raids: Array<{
+                name: string;
+                status: "attendee" | "bench";
+                characterNames: string[];
+              }>;
+            };
+            zg?: {
+              attended: boolean;
+              raids: Array<{
+                name: string;
+                status: "attendee" | "bench";
+                characterNames: string[];
+              }>;
             };
           };
           isHistorical: boolean;
@@ -716,6 +741,42 @@ export const character = createTRPCRouter({
             };
           }
           week.zones.mc.raids.push({
+            name: raid.name ?? "",
+            status,
+            characterNames,
+          });
+        } else if (zone === "Onyxia") {
+          if (!week.zones.onyxia) {
+            week.zones.onyxia = {
+              attended: true,
+              raids: [],
+            };
+          }
+          week.zones.onyxia.raids.push({
+            name: raid.name ?? "",
+            status,
+            characterNames,
+          });
+        } else if (zone === "Ruins of Ahn'Qiraj") {
+          if (!week.zones.aq20) {
+            week.zones.aq20 = {
+              attended: true,
+              raids: [],
+            };
+          }
+          week.zones.aq20.raids.push({
+            name: raid.name ?? "",
+            status,
+            characterNames,
+          });
+        } else if (zone === "Zul'Gurub") {
+          if (!week.zones.zg) {
+            week.zones.zg = {
+              attended: true,
+              raids: [],
+            };
+          }
+          week.zones.zg.raids.push({
             name: raid.name ?? "",
             status,
             characterNames,

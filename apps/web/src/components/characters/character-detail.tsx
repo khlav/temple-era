@@ -14,6 +14,7 @@ import { AttendanceProgressBar } from "~/components/common/attendance-progress-b
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { api } from "~/trpc/react";
+import { CharacterBadges } from "~/components/characters/character-badges";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
 
 function CharacterAttendanceContent({ characterId }: { characterId: number }) {
@@ -42,6 +43,8 @@ function CharacterAttendanceContent({ characterId }: { characterId: number }) {
         showMaxCreditsHelper={true}
         weeksBack={18}
       />
+      <Separator className="my-4 w-full" />
+      <CharacterBadges characterId={characterId} />
     </>
   );
 }
