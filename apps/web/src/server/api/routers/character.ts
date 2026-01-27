@@ -34,6 +34,7 @@ import type {
   RaidParticipant,
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
+import { getEasternNow } from "~/lib/raid-formatting";
 
 export const convertParticipantArrayToCollection = (
   participants: RaidParticipant[],
@@ -500,29 +501,29 @@ export const character = createTRPCRouter({
 
       // Calculate date range
       // Current week starts on Tuesday: date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'
-      // Calculate Tuesday of current week using JavaScript
-      const currentDate = new Date();
-      currentDate.setUTCHours(0, 0, 0, 0); // Normalize to midnight UTC
+      // Calculate Tuesday of current week using JavaScript in Eastern Time
+      const currentDate = getEasternNow();
+      currentDate.setHours(0, 0, 0, 0); // Normalize to midnight ET
 
-      // Calculate Tuesday of current week
+      // Calculate Tuesday of current week in ET
       // date_trunc('week', date - 1) gives Monday before the date
       // Adding 1 day gives Tuesday
       const currentDateCopy = new Date(currentDate);
-      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() - 1);
-      const dayOfWeek = currentDateCopy.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+      currentDateCopy.setDate(currentDateCopy.getDate() - 1);
+      const dayOfWeek = currentDateCopy.getDay(); // 0 = Sunday, 1 = Monday, etc.
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() - daysToMonday);
-      currentDateCopy.setUTCDate(currentDateCopy.getUTCDate() + 1); // Now it's Tuesday
+      currentDateCopy.setDate(currentDateCopy.getDate() - daysToMonday);
+      currentDateCopy.setDate(currentDateCopy.getDate() + 1); // Now it's Tuesday in ET
       const currentWeekStart = new Date(currentDateCopy);
 
       // Calculate start date (go back weeksBack weeks)
       const startDate = new Date(currentWeekStart);
-      startDate.setUTCDate(startDate.getUTCDate() - weeksBack * 7);
+      startDate.setDate(startDate.getDate() - weeksBack * 7);
 
       // Calculate end date
       const endDate = new Date(currentWeekStart);
       if (includeCurrentWeek) {
-        endDate.setUTCDate(endDate.getUTCDate() + 7); // End of current week
+        endDate.setDate(endDate.getDate() + 7); // End of current week
       }
 
       // Format dates as YYYY-MM-DD strings for SQL

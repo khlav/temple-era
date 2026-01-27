@@ -2,7 +2,28 @@
  * Utility functions for formatting raid information consistently across the app
  */
 
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+
+const EASTERN_TIMEZONE = "America/New_York";
+
+/**
+ * Gets the current date/time in Eastern Time
+ * Handles daylight saving time automatically (EST/EDT)
+ * @returns Current date/time as a Date object in Eastern Time
+ */
+export function getEasternNow(): Date {
+  return toZonedTime(new Date(), EASTERN_TIMEZONE);
+}
+
+/**
+ * Converts any date to Eastern Time
+ * Handles daylight saving time automatically (EST/EDT)
+ * @param date - Date to convert
+ * @returns Date object in Eastern Time
+ */
+export function toEasternTime(date: Date): Date {
+  return toZonedTime(date, EASTERN_TIMEZONE);
+}
 
 /**
  * Converts a UTC date to Eastern Time date string (YYYY-MM-DD format)
@@ -11,7 +32,7 @@ import { formatInTimeZone } from "date-fns-tz";
  * @returns Eastern Time date string in YYYY-MM-DD format
  */
 export function getEasternDate(utcDate: Date): string {
-  return formatInTimeZone(utcDate, "America/New_York", "yyyy-MM-dd");
+  return formatInTimeZone(utcDate, EASTERN_TIMEZONE, "yyyy-MM-dd");
 }
 
 /**

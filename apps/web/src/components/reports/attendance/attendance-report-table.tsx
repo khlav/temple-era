@@ -14,22 +14,24 @@ import {
 import { Button } from "~/components/ui/button";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { TableAddCharacterHeader } from "./table-add-character-header";
+import { toEasternTime } from "~/lib/raid-formatting";
 
-// Calculate lockout week (Tuesday to Monday) for a given date
+// Calculate lockout week (Tuesday to Monday) for a given date in Eastern Time
 // SQL: date_trunc('week', date - 1) + INTERVAL '1 day'
 // This gives us the Tuesday of the lockout week
 function getLockoutWeek(date: Date): Date {
-  const d = new Date(date);
+  // Convert to Eastern Time first
+  const d = toEasternTime(new Date(date));
   // Subtract 1 day
-  d.setUTCDate(d.getUTCDate() - 1);
-  // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  const dayOfWeek = d.getUTCDay();
+  d.setDate(d.getDate() - 1);
+  // Get day of week in ET (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  const dayOfWeek = d.getDay();
   // Calculate days to subtract to get to Monday (start of week)
   // Monday is day 1, so we subtract (dayOfWeek - 1) mod 7, but handle Sunday (0) specially
   const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  d.setUTCDate(d.getUTCDate() - daysToMonday);
+  d.setDate(d.getDate() - daysToMonday);
   // Now we're at Monday, add 1 day to get Tuesday
-  d.setUTCDate(d.getUTCDate() + 1);
+  d.setDate(d.getDate() + 1);
   return d;
 }
 
