@@ -10,10 +10,9 @@ import {
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
 import { ChevronDown, InfoIcon } from "lucide-react";
+import { env } from "~/env";
 
 export default function DashboardBanner({ session }: { session?: Session }) {
-  const loot_prio_url =
-    "https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0";
   const raid_policy_channel_url =
     "https://discord.com/channels/1132586324264759390/1194046879508480100";
 
@@ -57,7 +56,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
                   Raiders must maintain 50%+ large raid attendance over 6
                   lockout weeks to roll on{" "}
                   <Link
-                    href={loot_prio_url}
+                    href={env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL}
                     target="_blank"
                     className="text-secondary-foreground hover:underline"
                   >

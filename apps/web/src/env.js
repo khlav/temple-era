@@ -45,6 +45,7 @@ export const env = createEnv({
       .string()
       .transform((val) => val.toLowerCase() === "true"),
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+    NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: z.string().url(),
   },
 
   /**
@@ -73,6 +74,8 @@ export const env = createEnv({
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL:
+      process.env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL,
 
     NODE_ENV: process.env.NODE_ENV,
     GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION,

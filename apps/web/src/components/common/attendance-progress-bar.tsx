@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/tooltip";
 import { Progress } from "~/components/ui/progress";
 import { cn } from "~/lib/utils";
+import { env } from "~/env";
 
 interface AttendanceProgressBarProps {
   attendancePct: number;
@@ -63,7 +64,7 @@ export function AttendanceProgressBar({
             <span>
               <span className="text-chart-2">Eligible</span> to SR{" "}
               <Link
-                href="https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0"
+                href={env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL}
                 target="_blank"
                 className="underline hover:text-foreground"
               >
@@ -74,7 +75,7 @@ export function AttendanceProgressBar({
             <span>
               <span className="text-gray-400">Not Eligible</span> to SR{" "}
               <Link
-                href="https://docs.google.com/spreadsheets/d/1OBcFgT1AXiPL3eW7x3yUx6EjsopPLlFMclph2OGRkXU/edit?gid=0#gid=0"
+                href={env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL}
                 target="_blank"
                 className="underline hover:text-foreground"
               >
