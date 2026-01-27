@@ -16,6 +16,7 @@ import { getMatchingRules } from "~/server/services/softres-rules";
 import type { RuleEvaluationContext } from "~/server/services/softres-rule-types";
 import { getAllItemsForZone, getAllItems } from "~/lib/item-mappings";
 import { getSpecNameById } from "~/lib/class-specs";
+import { getDiscordSoftResLinks } from "~/server/api/discord-helpers";
 
 export interface SoftResScanResult {
   characterId: number | null; // null for unmatched characters
@@ -85,6 +86,45 @@ function getClassDetail(className: string, spec: number): string {
 }
 
 export const softres = createTRPCRouter({
+  /**
+   * Get SoftRes links from Discord channels (raid-helper bot only)
+   * Enriches links with raid instance and date from SoftRes API
+   */
+  getSoftResLinksFromDiscord: raidManagerProcedure.query(async () => {
+    try {
+      const links = await getDiscordSoftResLinks();
+
+      // Enrich links with raid info from SoftRes API
+      const enrichedLinks = await Promise.all(
+        links.map(async (link) => {
+          try {
+            const softResData = await fetchSoftResRaidData(link.softResRaidId);
+            return {
+              ...link,
+              raidInstance: softResData.instance,
+              raidDate: softResData.raidDate,
+            };
+          } catch (error) {
+            console.error(
+              `Failed to fetch raid info for ${link.softResRaidId}:`,
+              error,
+            );
+            // Return link without enrichment if API call fails
+            return link;
+          }
+        }),
+      );
+
+      return enrichedLinks;
+    } catch (error) {
+      console.error("Failed to fetch SoftRes links from Discord:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch SoftRes links from Discord",
+      });
+    }
+  }),
+
   /**
    * Get SoftRes raid data and match characters to database
    * Returns enriched data with attendance stats and rule evaluations
@@ -228,7 +268,12 @@ export const softres = createTRPCRouter({
         const matchingRules = getMatchingRules(evalContext);
 
         // Sort rules by priority: error > warning > highlight > info
-        const severityOrder = { error: 4, warning: 3, highlight: 2, info: 1 } as const;
+        const severityOrder = {
+          error: 4,
+          warning: 3,
+          highlight: 2,
+          info: 1,
+        } as const;
         const sortedRules = [...matchingRules].sort(
           (a, b) => severityOrder[b.level] - severityOrder[a.level],
         );
@@ -286,7 +331,12 @@ export const softres = createTRPCRouter({
         const matchingRules = getMatchingRules(evalContext);
 
         // Sort rules by priority: error > warning > highlight > info
-        const severityOrder = { error: 4, warning: 3, highlight: 2, info: 1 } as const;
+        const severityOrder = {
+          error: 4,
+          warning: 3,
+          highlight: 2,
+          info: 1,
+        } as const;
         const sortedRules = [...matchingRules].sort(
           (a, b) => severityOrder[b.level] - severityOrder[a.level],
         );
@@ -314,7 +364,12 @@ export const softres = createTRPCRouter({
       }
 
       // Sort results by severity (error > warning > highlight > info), then by count of rules at that severity
-      const severityOrder = { error: 4, warning: 3, highlight: 2, info: 1 } as const;
+      const severityOrder = {
+        error: 4,
+        warning: 3,
+        highlight: 2,
+        info: 1,
+      } as const;
 
       results.sort((a, b) => {
         // Get highest severity for each result

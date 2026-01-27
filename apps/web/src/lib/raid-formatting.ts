@@ -54,3 +54,16 @@ export function formatRaidCompletion(zone: string, killCount: number): string {
   const count = Number(killCount);
   return `${count} ${count === 1 ? "kill" : "kills"}`;
 }
+
+/**
+ * Formats a date/time in Eastern Time with timezone abbreviation
+ * @param date - Date to format
+ * @param format - date-fns format string (defaults to readable format with timezone)
+ * @returns Formatted date string in Eastern Time
+ */
+export function formatEasternDateTime(
+  date: Date,
+  format = "EEE, MMM d 'at' h:mm a zzz",
+): string {
+  return formatInTimeZone(date, EASTERN_TIMEZONE, format);
+}

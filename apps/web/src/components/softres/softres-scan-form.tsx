@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Card, CardContent } from "~/components/ui/card";
 
 export function SoftResScanForm() {
   const router = useRouter();
@@ -42,25 +40,20 @@ export function SoftResScanForm() {
   };
 
   return (
-    <Card className="max-w-2xl">
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <Label htmlFor="softres-url">SoftRes URL</Label>
-          <div className="flex gap-2">
-            <Input
-              id="softres-url"
-              type="url"
-              placeholder="https://softres.it/raid/xtkwta"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className={error ? "border-red-500" : ""}
-              autoComplete="off"
-            />
-            <Button type="submit">Scan</Button>
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-2">
+      <div className="flex gap-2">
+        <Input
+          id="softres-url"
+          type="url"
+          placeholder="https://softres.it/raid/xtkwta"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className={error ? "border-red-500" : ""}
+          autoComplete="off"
+        />
+        <Button type="submit">Scan</Button>
+      </div>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </form>
   );
 }
