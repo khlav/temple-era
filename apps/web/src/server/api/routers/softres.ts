@@ -401,8 +401,15 @@ export const softres = createTRPCRouter({
           }
         }
 
-        // Finally, sort by total rule count (descending)
-        return b.matchingRules.length - a.matchingRules.length;
+        // Then sort by total rule count (descending)
+        if (b.matchingRules.length !== a.matchingRules.length) {
+          return b.matchingRules.length - a.matchingRules.length;
+        }
+
+        // Finally, sort alphabetically by character name (case-insensitive)
+        return a.characterName
+          .toLowerCase()
+          .localeCompare(b.characterName.toLowerCase());
       });
 
       return {
