@@ -43,6 +43,7 @@ declare module "next-auth" {
  */
 
 export const authConfig = {
+  basePath: "/login",
   providers: [
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID,

@@ -44,7 +44,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TRPCReactProvider>
-            <SessionProvider>
+            <SessionProvider basePath="/login">
               <PostHogProvider>
                 <TooltipProvider>
                   <BreadcrumbProvider>

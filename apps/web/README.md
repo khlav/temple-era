@@ -8,12 +8,12 @@ Temple Raids provides a modern web interface for managing guild raids, tracking 
 
 <div align="center">
 
-| | | |
-|:---:|:---:|:---:|
+|                                                                                                       |                                                                                                |                                                                                                        |
+| :---------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------: |
 | ![Dashboard](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/dashboard-attendance.png) | ![Raid Detail](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/raid-detail.png) | ![Characters](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/character-management.png) |
-| _Attendance tracking_ | _Raid Management_ | _Main+Alt Mapping_ |
-| ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png) | ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png) | ![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png) |
-| _Quick Launcher_ | _Recipes and Crafters_ | _Discord + WCL Bot_ |
+|                                         _Attendance tracking_                                         |                                       _Raid Management_                                        |                                           _Main+Alt Mapping_                                           |
+|    ![Launcher](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/quick-launcher.png)     |  ![Recipes](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/rare-recipes.png)   |     ![Discord Bot](https://github.com/khlav/temple-raids-t3/blob/main/docs/images/discord-bot.png)     |
+|                                           _Quick Launcher_                                            |                                     _Recipes and Crafters_                                     |                                          _Discord + WCL Bot_                                           |
 
 </div>
 
@@ -128,7 +128,7 @@ The Discord bot is a separate application with its own repository:
 2. **Configure Discord OAuth**
    - Create a Discord application at [Discord Developer Portal](https://discord.com/developers/applications)
    - Go to OAuth2 → General
-   - Add redirect URI: `http://localhost:3000/api/auth/callback/discord`
+   - Add redirect URI: `http://localhost:3000/login/callback/discord`
    - Copy Client ID to `AUTH_DISCORD_ID` and Client Secret to `AUTH_DISCORD_SECRET` in your `.env` file
 
 3. **Set up Warcraft Logs API**
