@@ -99,7 +99,7 @@ export async function AppSidebar({
               priority
             />
             <div className="overflow-hidden whitespace-nowrap px-1 py-0.5 text-center font-bold group-data-[collapsible=icon]:hidden">
-              TempleAshkandi.com
+              Temple-Era.com
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
