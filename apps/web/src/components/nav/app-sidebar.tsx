@@ -26,6 +26,7 @@ import {
   Wand,
   ScanLine,
   ClipboardList,
+  ServerCog,
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
@@ -62,6 +63,11 @@ const raidManagerLinks = [
     title: "[Beta] SoftRes Scan",
     url: "/softres",
     icon: ScanLine,
+  },
+  {
+    title: "MRT Enrich",
+    url: "/mrt-enrich",
+    icon: ServerCog,
   },
 ];
 

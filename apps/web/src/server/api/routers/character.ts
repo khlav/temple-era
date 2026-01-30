@@ -35,6 +35,7 @@ import type {
   RaidParticipantCollection,
 } from "~/server/api/interfaces/raid";
 import { getEasternNow } from "~/lib/raid-formatting";
+import { MRTCodec } from "~/lib/mrt-codec";
 
 export const convertParticipantArrayToCollection = (
   participants: RaidParticipant[],
@@ -802,5 +803,128 @@ export const character = createTRPCRouter({
       );
 
       return { weeks };
+    }),
+
+  enrichMRTComposition: raidManagerProcedure
+    .input(z.string().min(1))
+    .mutation(async ({ ctx, input }) => {
+      // Decode MRT string
+      const codec = new MRTCodec();
+      const { data: raidData, compressed } = codec.decode(input);
+
+      // Extract unique names that need enrichment (no server suffix)
+      const needsEnrichment = new Set<string>();
+      for (const name of Object.values(raidData)) {
+        if (!name.includes("-")) {
+          needsEnrichment.add(name);
+        }
+      }
+
+      // Helper: normalize names (NFD + remove diacritics)
+      const normalizeName = (name: string) =>
+        name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+      // Build lookup map if there are names to enrich
+      const matchMap = new Map<string, { server: string }>();
+
+      if (needsEnrichment.size > 0) {
+        // Build OR conditions for batch lookup
+        const nameConditions = Array.from(needsEnrichment).map(
+          (name) =>
+            sql`LOWER(f_unaccent(${characters.name})) = LOWER(f_unaccent(${name}))`,
+        );
+
+        // Single query for all names
+        const matches = await ctx.db
+          .select({
+            characterId: characters.characterId,
+            name: characters.name,
+            server: characters.server,
+          })
+          .from(characters)
+          .where(and(or(...nameConditions), eq(characters.isIgnored, false)));
+
+        // Build lookup map: normalized name -> candidates
+        const matchesByNormalized = new Map<
+          string,
+          Array<{ characterId: number; name: string; server: string }>
+        >();
+
+        for (const match of matches) {
+          const normalized = normalizeName(match.name);
+          if (!matchesByNormalized.has(normalized)) {
+            matchesByNormalized.set(normalized, []);
+          }
+          matchesByNormalized.get(normalized)!.push(match);
+        }
+
+        // For duplicates, sort alphabetically and take first
+        for (const [normalized, candidates] of matchesByNormalized.entries()) {
+          candidates.sort((a, b) => a.name.localeCompare(b.name));
+          matchMap.set(normalized, { server: candidates[0]!.server });
+        }
+      }
+
+      // Build enriched composition and results
+      const enrichedData: Record<number, string> = { ...raidData };
+      const results: Array<{
+        position: number;
+        name: string;
+        enrichedName: string;
+        status: "already-complete" | "enriched" | "not-found";
+        server: string | null;
+      }> = [];
+
+      for (const [position, name] of Object.entries(raidData)) {
+        const pos = parseInt(position);
+
+        if (name.includes("-")) {
+          // Already has server suffix
+          const serverPart = name.split("-")[1] ?? null;
+          results.push({
+            position: pos,
+            name,
+            enrichedName: name,
+            status: "already-complete",
+            server: serverPart,
+          });
+        } else {
+          // Needs enrichment
+          const normalized = normalizeName(name);
+          const match = matchMap.get(normalized);
+
+          if (match?.server) {
+            const enrichedName = `${name}-${match.server}`;
+            enrichedData[pos] = enrichedName;
+            results.push({
+              position: pos,
+              name,
+              enrichedName,
+              status: "enriched",
+              server: match.server,
+            });
+          } else {
+            results.push({
+              position: pos,
+              name,
+              enrichedName: name,
+              status: "not-found",
+              server: null,
+            });
+          }
+        }
+      }
+
+      // Re-encode with same compression setting
+      const enrichedString = codec.encode(enrichedData, compressed);
+
+      return {
+        original: input,
+        enriched: enrichedString,
+        results: results.sort((a, b) => a.position - b.position),
+      };
     }),
 });
