@@ -3,7 +3,7 @@ import { env } from "~/env.js";
 /**
  * Get the base URL for the application
  * @param request Optional request object to extract host from headers
- * @returns The base URL (e.g., "https://www.templeashkandi.com")
+ * @returns The base URL (e.g., "https://www.temple-era.com")
  */
 export function getBaseUrl(request?: Request): string {
   // Try environment variable first
@@ -19,5 +19,5 @@ export function getBaseUrl(request?: Request): string {
   }
 
   // Fallback to default (should rarely be used)
-  return "https://www.templeashkandi.com";
+  return "https://www.temple-era.com";
 }

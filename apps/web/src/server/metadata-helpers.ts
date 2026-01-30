@@ -581,7 +581,7 @@ export function generateRaidMetadata(raidData: any, raidId: number) {
 
   // Build Open Graph data
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
   const openGraph = {
     title,
     description,
@@ -639,7 +639,7 @@ export function generateCharacterMetadata(
 
   // Build Open Graph data
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
   const openGraph = {
     title,
     description,

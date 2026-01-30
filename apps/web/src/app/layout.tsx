@@ -20,7 +20,7 @@ import { GlobalQuickLauncherProvider } from "~/contexts/global-quick-launcher-co
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com",
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com",
   ),
   icons: [{ rel: "icon", url: "/favicon/favicon.ico" }],
 };

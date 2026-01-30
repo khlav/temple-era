@@ -1,6 +1,6 @@
 # Temple Raids
 
-A comprehensive raid management and attendance tracking system for **Temple**, a Horde guild on the **Ashkandi** server in World of Warcraft Classic. **[Live at TempleAshkandi.com](https://www.templeashkandi.com)**
+A comprehensive raid management and attendance tracking system for **Temple**, a Horde guild on the **Ashkandi** server in World of Warcraft Classic. **[Live at Temple-Era.com](https://www.temple-era.com)**
 
 ## Overview
 

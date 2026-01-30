@@ -4,7 +4,7 @@ import { raids } from "~/server/db/schema";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.templeashkandi.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
 
   // Fetch all raids for dynamic sitemap
   const allRaids = await db

@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
 
   // Block all crawling on non-production domains (Vercel previews, dev, etc.)
   const isProduction =
-    host === "www.templeashkandi.com" || host === "templeashkandi.com";
+    host === "www.temple-era.com" || host === "temple-era.com";
 
   if (!isProduction) {
     const response = NextResponse.next();
