@@ -60,13 +60,13 @@ const raidManagerLinks = [
     icon: ListRestart,
   },
   {
-    title: "[Beta] SoftRes Scan",
+    title: "SoftRes Scan",
     url: "/softres",
     icon: ScanLine,
   },
   {
-    title: "MRT Enrich",
-    url: "/mrt-enrich",
+    title: "MRT Raid Group Fix",
+    url: "/raid-manager/mrt-raid-group-fix",
     icon: ServerCog,
   },
 ];

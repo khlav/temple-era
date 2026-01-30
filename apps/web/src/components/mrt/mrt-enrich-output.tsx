@@ -55,7 +55,7 @@ export function MRTEnrichOutput({ value }: MRTEnrichOutputProps) {
               onClick={handleClick}
               onFocus={handleFocus}
               className="cursor-pointer font-mono text-sm"
-              placeholder="Enriched string will appear here..."
+              placeholder="Updated export/import string will appear here..."
               autoComplete="off"
             />
           </TooltipTrigger>
