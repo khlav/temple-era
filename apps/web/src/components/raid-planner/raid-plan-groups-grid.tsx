@@ -737,6 +737,7 @@ function CharacterCard({
   dragHandleProps,
 }: CharacterCardProps) {
   const hasClassIcon = !!character.class;
+  const isDraggable = editable && dragHandleProps;
 
   return (
     <div
@@ -748,30 +749,23 @@ function CharacterCard({
         isDragOverlay && "shadow-lg ring-2 ring-primary/50",
       )}
     >
-      {/* Show drag handle only if no class icon */}
-      {editable && dragHandleProps && !hasClassIcon && (
-        <button
-          type="button"
-          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
-          {...dragHandleProps}
-        >
-          <GripVertical className="h-3 w-3" />
-        </button>
-      )}
-      {/* Class icon acts as drag handle when present */}
-      {hasClassIcon && (
-        <span
-          className={cn(
-            editable &&
-              dragHandleProps &&
-              "cursor-grab touch-none active:cursor-grabbing",
-          )}
-          {...(editable && dragHandleProps ? dragHandleProps : {})}
-        >
+      {/* Draggable area: icon (or grip) + name */}
+      <span
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-1.5",
+          isDraggable && "cursor-grab touch-none active:cursor-grabbing",
+        )}
+        {...(isDraggable ? dragHandleProps : {})}
+      >
+        {hasClassIcon ? (
           <ClassIcon characterClass={character.class!} px={14} />
-        </span>
-      )}
-      <span className="truncate font-medium">{character.characterName}</span>
+        ) : (
+          isDraggable && (
+            <GripVertical className="h-3 w-3 flex-shrink-0 text-muted-foreground/50" />
+          )
+        )}
+        <span className="truncate font-medium">{character.characterName}</span>
+      </span>
       {editable && onEditClick && (
         <button
           type="button"
