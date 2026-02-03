@@ -169,13 +169,13 @@ function EventRow({
       </div>
       <div>
         {hasPlan ? (
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="default" size="sm" asChild>
             <a href={`/raid-manager/raid-planner/${existingPlanId}`}>
               View Plan
             </a>
           </Button>
         ) : (
-          <Button variant="default" size="sm" onClick={onSelect}>
+          <Button variant="warning" size="sm" onClick={onSelect}>
             Create Plan
           </Button>
         )}
