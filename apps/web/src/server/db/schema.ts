@@ -1,5 +1,6 @@
 import * as AuthSchema from "~/server/db/models/auth-schema";
 import * as RaidSchema from "~/server/db/models/raid-schema";
+import * as RaidPlanSchema from "~/server/db/models/raid-plan-schema";
 import * as RecipeSchema from "~/server/db/models/recipe-schema";
 import * as ViewsSchema from "~/server/db/models/views-schema";
 
@@ -50,6 +51,26 @@ export const {
   // Enums
   professionEnum,
 } = RecipeSchema;
+
+export const {
+  // Template Tables
+  raidPlanTemplates,
+  raidPlanTemplateEncounters,
+
+  // Plan Tables
+  raidPlans,
+  raidPlanCharacters,
+  raidPlanEncounters,
+  raidPlanEncounterAssignments,
+
+  // Relations
+  raidPlanTemplatesRelations,
+  raidPlanTemplateEncountersRelations,
+  raidPlansRelations,
+  raidPlanCharactersRelations,
+  raidPlanEncountersRelations,
+  raidPlanEncounterAssignmentsRelations,
+} = RaidPlanSchema;
 
 export const {
   primaryRaidAttendeeMap,

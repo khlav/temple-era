@@ -1,11 +1,35 @@
 import { z } from "zod";
 import { sql, eq, or, inArray } from "drizzle-orm";
+import { format } from "date-fns";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 import { characters } from "~/server/db/schema";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.dev/api";
+
+/**
+ * Resolve Raid-Helper title templates like "Naxx {eventtime#E MM/dd}"
+ * Converts the {eventtime#FORMAT} placeholder to actual date using startTime
+ */
+function resolveEventTitle(title: string, startTime: number): string {
+  // Match {eventtime#FORMAT} pattern
+  return title.replace(/\{eventtime#([^}]+)\}/gi, (_, formatStr: string) => {
+    const date = new Date(startTime * 1000);
+    // Convert Raid-Helper format to date-fns format
+    // Common patterns: E = day abbrev, MM = month, dd = day, h:mm a = time
+    const dateFnsFormat = formatStr
+      .replace(/E(?!E)/g, "EEE") // E -> EEE (Mon, Tue, etc)
+      .replace(/EEEE/g, "EEEE") // EEEE stays as EEEE (Monday, Tuesday)
+      .replace(/a/g, "aaa"); // a -> aaa for am/pm
+    try {
+      return format(date, dateFnsFormat);
+    } catch {
+      // If format fails, return original placeholder
+      return `{eventtime#${formatStr}}`;
+    }
+  });
+}
 
 // Valid WoW class names (lowercase for comparison)
 const WOW_CLASSES = new Set([
@@ -39,6 +63,7 @@ const TANK_SPEC_TO_CLASS: Record<string, string> = {
 interface ScheduledEvent {
   id: string;
   title: string;
+  displayTitle?: string;
   channelName: string;
   startTime: number;
   endTime: number;
@@ -79,26 +104,26 @@ interface RaidHelperEventResponse {
 }
 
 interface RaidPlanSlot {
-  partyId: number;
-  slotId: number;
+  groupNumber: number;
+  slotNumber: number;
   name: string | null;
-  userid: string | null;
-  class: string | null;
-  spec: string | null;
-  spec1: string | null;
+  id: string | null;
+  className: string | null;
+  specName: string | null;
   color: string | null;
-  isConfirmed: boolean;
+  isConfirmed: string;
+}
+
+interface RaidPlanGroup {
+  name: string;
+  position: number;
 }
 
 interface RaidHelperPlanResponse {
-  _id: string;
-  hash: string;
-  title: string;
-  partyPerRaid: number;
-  slotPerParty: number;
-  raidDrop: RaidPlanSlot[];
-  raidDropBench: RaidPlanSlot[];
-  partyNames: string[];
+  slots: RaidPlanSlot[];
+  groups: RaidPlanGroup[];
+  groupCount?: number;
+  slotCount?: number;
 }
 
 // Types for character matching
@@ -200,7 +225,16 @@ export const raidHelperRouter = createTRPCRouter({
     const data = (await response.json()) as ScheduledEventsResponse;
 
     // Sort by startTime ascending (nearest first)
-    return data.scheduledEvents.sort((a, b) => a.startTime - b.startTime);
+    return data.scheduledEvents
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        displayTitle: resolveEventTitle(e.title, e.startTime),
+        channelName: e.channelName,
+        startTime: e.startTime,
+        leaderName: e.leaderName,
+      }));
   }),
 
   /**
@@ -271,14 +305,14 @@ export const raidHelperRouter = createTRPCRouter({
           specName: string | null;
         }
       >();
-      if (planData?.raidDrop) {
-        for (const slot of planData.raidDrop) {
-          if (slot.userid) {
-            groupAssignments.set(slot.userid, {
-              partyId: slot.partyId,
-              slotId: slot.slotId,
-              className: slot.class ?? null,
-              specName: slot.spec ?? null,
+      if (planData?.slots) {
+        for (const slot of planData.slots) {
+          if (slot.id) {
+            groupAssignments.set(slot.id, {
+              partyId: slot.groupNumber,
+              slotId: slot.slotNumber,
+              className: slot.className ?? null,
+              specName: slot.specName ?? null,
             });
           }
         }
@@ -317,11 +351,14 @@ export const raidHelperRouter = createTRPCRouter({
           leaderName: eventData.leaderName,
           channelName: eventData.channelName,
         },
-        plan: planData
+        plan: planData?.slots
           ? {
-              partyPerRaid: planData.partyPerRaid,
-              slotPerParty: planData.slotPerParty,
-              partyNames: planData.partyNames,
+              partyPerRaid: planData.groupCount ?? 8,
+              slotPerParty: planData.slotCount ?? 5,
+              partyNames:
+                planData.groups
+                  ?.sort((a, b) => a.position - b.position)
+                  .map((g) => g.name) ?? [],
             }
           : null,
         signups: {
