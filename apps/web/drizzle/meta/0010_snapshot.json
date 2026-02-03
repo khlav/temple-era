@@ -1,5 +1,5 @@
 {
-  "id": "86530517-f781-4554-9c4d-0db0a84e4f71",
+  "id": "bb70a7b0-1cf1-4240-a1a1-997e4698e7ba",
   "prevId": "c060f1bb-502c-4482-a883-9d975561af28",
   "version": "7",
   "dialect": "postgresql",
@@ -1165,6 +1165,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "raid_helper_event_id": {
+          "name": "raid_helper_event_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "event_id": {
           "name": "event_id",
           "type": "integer",
@@ -1204,6 +1210,21 @@
         }
       },
       "indexes": {
+        "raid_plan__raid_helper_event_id_idx": {
+          "name": "raid_plan__raid_helper_event_id_idx",
+          "columns": [
+            {
+              "expression": "raid_helper_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "raid_plan__event_id_idx": {
           "name": "raid_plan__event_id_idx",
           "columns": [

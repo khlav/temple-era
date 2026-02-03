@@ -90,6 +90,9 @@ export const raidPlans = tableCreator(
   "raid_plan",
   {
     ...IdPkAsUUID,
+    raidHelperEventId: varchar("raid_helper_event_id", {
+      length: 64,
+    }).notNull(),
     eventId: integer("event_id").references(() => raids.raidId, {
       onDelete: "cascade",
     }),
@@ -99,6 +102,9 @@ export const raidPlans = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
+    raidHelperEventIdIdx: uniqueIndex("raid_plan__raid_helper_event_id_idx").on(
+      table.raidHelperEventId,
+    ),
     eventIdIdx: uniqueIndex("raid_plan__event_id_idx").on(table.eventId),
   }),
 );

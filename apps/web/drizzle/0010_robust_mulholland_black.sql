@@ -54,6 +54,7 @@ CREATE TABLE "raid_plan_template" (
 --> statement-breakpoint
 CREATE TABLE "raid_plan" (
 	"id" uuid PRIMARY KEY NOT NULL,
+	"raid_helper_event_id" varchar(64) NOT NULL,
 	"event_id" integer,
 	"zone_id" varchar(64) NOT NULL,
 	"name" varchar(256) NOT NULL,
@@ -78,4 +79,5 @@ CREATE INDEX "raid_plan_encounter_assignment__plan_character_id_idx" ON "raid_pl
 CREATE INDEX "raid_plan_encounter__raid_plan_id_idx" ON "raid_plan_encounter" USING btree ("raid_plan_id");--> statement-breakpoint
 CREATE INDEX "raid_plan_template_encounter__template_id_idx" ON "raid_plan_template_encounter" USING btree ("template_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "raid_plan_template__zone_id_idx" ON "raid_plan_template" USING btree ("zone_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "raid_plan__raid_helper_event_id_idx" ON "raid_plan" USING btree ("raid_helper_event_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "raid_plan__event_id_idx" ON "raid_plan" USING btree ("event_id");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
+import { useToast } from "~/hooks/use-toast";
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -35,6 +37,14 @@ export function RaidPlannerImport() {
     isLoading,
     error,
   } = api.raidHelper.getScheduledEvents.useQuery();
+
+  // Fetch existing plans for all events
+  const eventIds = events?.map((e) => e.id) ?? [];
+  const { data: existingPlans } =
+    api.raidPlan.getExistingPlansForEvents.useQuery(
+      { raidHelperEventIds: eventIds },
+      { enabled: eventIds.length > 0 },
+    );
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -65,6 +75,7 @@ export function RaidPlannerImport() {
                 key={event.id}
                 event={event}
                 isSelected={selectedEventId === event.id}
+                existingPlanId={existingPlans?.[event.id]}
                 onSelect={() =>
                   setSelectedEventId(
                     selectedEventId === event.id ? null : event.id,
@@ -105,15 +116,22 @@ interface EventRowProps {
   event: {
     id: string;
     title: string;
+    displayTitle?: string;
     channelName: string;
     startTime: number;
     leaderName: string;
   };
   isSelected: boolean;
+  existingPlanId?: string;
   onSelect: () => void;
 }
 
-function EventRow({ event, isSelected, onSelect }: EventRowProps) {
+function EventRow({
+  event,
+  isSelected,
+  existingPlanId,
+  onSelect,
+}: EventRowProps) {
   const formattedDate = new Date(event.startTime * 1000).toLocaleDateString(
     "en-US",
     {
@@ -131,22 +149,36 @@ function EventRow({ event, isSelected, onSelect }: EventRowProps) {
     },
   );
 
+  const hasPlan = !!existingPlanId;
+
   return (
     <div
       className={cn(
         "flex items-center justify-between rounded-lg border p-3",
-        "cursor-pointer transition-colors hover:border-primary hover:bg-accent",
+        "transition-colors hover:border-primary hover:bg-accent",
         isSelected && "border-primary bg-accent",
       )}
-      onClick={onSelect}
     >
       <div className="flex flex-col gap-1">
-        <div className="font-medium">{event.title}</div>
+        <div className="font-medium">{event.displayTitle ?? event.title}</div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{formattedDate}</span>
           <span>{formattedTime}</span>
           <span>{event.leaderName}</span>
         </div>
+      </div>
+      <div>
+        {hasPlan ? (
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/raid-manager/raid-planner/${existingPlanId}`}>
+              View Plan
+            </a>
+          </Button>
+        ) : (
+          <Button variant="default" size="sm" onClick={onSelect}>
+            Create Plan
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -163,6 +195,9 @@ function CharacterMatchingDialog({
   open,
   onOpenChange,
 }: CharacterMatchingDialogProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+
   const { data: eventDetails, isLoading: isLoadingDetails } =
     api.raidHelper.getEventDetails.useQuery(
       { eventId: eventId! },
@@ -221,7 +256,90 @@ function CharacterMatchingDialog({
     };
   }, [matchResults]);
 
+  // Detect zone from event title
+  const detectedZone = useMemo(() => {
+    const rawTitle =
+      eventDetails?.event.displayTitle || eventDetails?.event.title;
+    if (!rawTitle) return null;
+    const title = rawTitle.toLowerCase();
+
+    // Check for zone abbreviations and names
+    const zonePatterns: Array<{ pattern: RegExp; zoneId: string }> = [
+      { pattern: /\bbwl\b|blackwing/i, zoneId: "bwl" },
+      { pattern: /\bmc\b|molten\s*core/i, zoneId: "mc" },
+      { pattern: /\bnaxx?\b|naxxramas/i, zoneId: "naxxramas" },
+      { pattern: /\bony\b|onyxia/i, zoneId: "onyxia" },
+      { pattern: /\baq20\b|ruins/i, zoneId: "aq20" },
+      { pattern: /\baq40\b|temple\s*of\s*ahn/i, zoneId: "aq40" },
+      { pattern: /\bzg\b|zul.?gurub/i, zoneId: "zg" },
+    ];
+
+    for (const { pattern, zoneId } of zonePatterns) {
+      if (pattern.test(title)) {
+        return zoneId;
+      }
+    }
+    return null;
+  }, [eventDetails?.event.displayTitle, eventDetails?.event.title]);
+
   const [copied, setCopied] = useState(false);
+
+  const createPlanMutation = api.raidPlan.create.useMutation({
+    onSuccess: (data) => {
+      toast({
+        title: "Plan created",
+        description: "Redirecting to plan details...",
+      });
+      onOpenChange(false);
+      router.push(`/raid-manager/raid-planner/${data.id}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreatePlan = useCallback(() => {
+    if (!eventId || !eventDetails || !matchResults || !detectedZone) return;
+
+    // Build characters array from match results (excluding skipped)
+    const characters = matchResults
+      .filter((r) => r.status !== "skipped")
+      .map((r) => {
+        // Convert partyId/slotId from 1-indexed to 0-indexed
+        const defaultGroup =
+          r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
+        const defaultPosition = r.slotId !== null ? r.slotId - 1 : null;
+
+        // Use matched character name if available, otherwise use discord name
+        const characterName =
+          r.status === "matched" && r.matchedCharacter
+            ? r.matchedCharacter.characterName
+            : r.discordName;
+
+        const characterId =
+          r.status === "matched" && r.matchedCharacter
+            ? r.matchedCharacter.characterId
+            : null;
+
+        return {
+          characterId,
+          characterName,
+          defaultGroup,
+          defaultPosition,
+        };
+      });
+
+    createPlanMutation.mutate({
+      raidHelperEventId: eventId,
+      name: eventDetails.event.displayTitle || eventDetails.event.title,
+      zoneId: detectedZone,
+      characters,
+    });
+  }, [eventId, eventDetails, matchResults, detectedZone, createPlanMutation]);
 
   const handleCopyMRT = useCallback(() => {
     if (!matchResults) return;
@@ -271,7 +389,9 @@ function CharacterMatchingDialog({
       <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {eventDetails?.event.title ?? "Character Matching"}
+            {eventDetails?.event.displayTitle ??
+              eventDetails?.event.title ??
+              "Character Matching"}
           </DialogTitle>
         </DialogHeader>
 
@@ -475,12 +595,27 @@ function CharacterMatchingDialog({
 
         {matchStats && (
           <DialogFooter>
-            <Button onClick={handleCopyMRT}>
+            <Button onClick={handleCopyMRT} variant="outline">
               <Copy className="mr-2 h-4 w-4" />
               {copied ? "Copied!" : "Copy MRT Export"}
             </Button>
-            <Button disabled variant="outline">
-              Future: Plan Encounter Groups and AAs
+            <Button
+              onClick={handleCreatePlan}
+              disabled={!detectedZone || createPlanMutation.isPending}
+              title={
+                !detectedZone
+                  ? "Could not detect zone from event title"
+                  : undefined
+              }
+            >
+              {createPlanMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Plan"
+              )}
             </Button>
           </DialogFooter>
         )}
