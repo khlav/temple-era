@@ -31,6 +31,8 @@ export const env = createEnv({
       .transform((str) => str.split(",").map((s) => s.trim())),
     DISCORD_RAID_HELPER_BOT_ID: z.string(),
     DISCORD_WEBHOOK_PUBLIC_KEY: z.string().optional(),
+    DISCORD_SERVER_ID: z.string(),
+    RAID_HELPER_API_KEY: z.string(),
     TEMPLE_WEB_API_TOKEN: z.string(),
 
     NODE_ENV: z
@@ -76,6 +78,8 @@ export const env = createEnv({
     DISCORD_RAID_SR_CHANNEL_IDS: process.env.DISCORD_RAID_SR_CHANNEL_IDS,
     DISCORD_RAID_HELPER_BOT_ID: process.env.DISCORD_RAID_HELPER_BOT_ID,
     DISCORD_WEBHOOK_PUBLIC_KEY: process.env.DISCORD_WEBHOOK_PUBLIC_KEY,
+    DISCORD_SERVER_ID: process.env.DISCORD_SERVER_ID,
+    RAID_HELPER_API_KEY: process.env.RAID_HELPER_API_KEY,
     TEMPLE_WEB_API_TOKEN: process.env.TEMPLE_WEB_API_TOKEN,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
