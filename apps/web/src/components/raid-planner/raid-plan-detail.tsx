@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -29,18 +29,24 @@ import {
 import { AddEncounterDialog } from "./add-encounter-dialog";
 import { MRTCodec } from "~/lib/mrt-codec";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 
 interface RaidPlanDetailProps {
   planId: string;
+  initialBreadcrumbData?: { [key: string]: string };
 }
 
-export function RaidPlanDetail({ planId }: RaidPlanDetailProps) {
+export function RaidPlanDetail({
+  planId,
+  initialBreadcrumbData,
+}: RaidPlanDetailProps) {
   const [activeTab, setActiveTab] = useState("default");
   const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(
     null,
   );
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { updateBreadcrumbSegment } = useBreadcrumb();
 
   const {
     data: plan,
@@ -48,6 +54,19 @@ export function RaidPlanDetail({ planId }: RaidPlanDetailProps) {
     error,
     refetch,
   } = api.raidPlan.getById.useQuery({ planId });
+
+  // Update breadcrumb to show plan name instead of UUID
+  useEffect(() => {
+    // Use initial data from server if available (prevents flash)
+    if (initialBreadcrumbData) {
+      Object.entries(initialBreadcrumbData).forEach(([key, value]) => {
+        updateBreadcrumbSegment(key, value);
+      });
+    } else if (plan?.name) {
+      // Fallback to fetched data
+      updateBreadcrumbSegment(planId, plan.name);
+    }
+  }, [planId, plan?.name, initialBreadcrumbData, updateBreadcrumbSegment]);
 
   const updateEncounterMutation = api.raidPlan.updateEncounter.useMutation({
     onSuccess: () => {
