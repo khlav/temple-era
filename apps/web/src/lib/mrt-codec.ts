@@ -208,10 +208,9 @@ export class MRTCodec {
 
   /**
    * Create a Lua table string from a JavaScript object.
-   * Format: "0,{\"Name1\",\"Name2\",...}"  (array format used by MRT)
+   * Uses explicit indices to preserve gaps: "0,{[1]=\"Name1\",[3]=\"Name3\",...}"
    */
   private createLuaTable(data: Record<number, string>): string {
-    // Create entries in order
     const entries: string[] = [];
     const keys = Object.keys(data)
       .map((k) => parseInt(k))
@@ -221,7 +220,8 @@ export class MRTCodec {
       let value = data[key]!;
       // Escape quotes and backslashes in the value
       value = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      entries.push(`"${value}"`);
+      // Use explicit index format to preserve gaps
+      entries.push(`[${key}]="${value}"`);
     }
 
     const tableStr = "{" + entries.join(",") + "}";

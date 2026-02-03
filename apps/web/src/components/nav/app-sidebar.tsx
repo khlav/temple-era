@@ -26,6 +26,7 @@ import {
   Wand,
   ScanLine,
   ClipboardList,
+  LayoutGrid,
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
@@ -48,6 +49,11 @@ const reportsLinks = [
 const raidManagerTitle = "Raid Manager";
 const raidManagerLinks = [
   { title: "Create new raid", url: "/raids/new", icon: FilePlus },
+  {
+    title: "Raid Planner",
+    url: "/raid-manager/raid-planner",
+    icon: LayoutGrid,
+  },
   {
     title: "Manage mains v. alts",
     url: "/raid-manager/characters",

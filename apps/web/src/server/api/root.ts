@@ -10,6 +10,7 @@ import { searchRouter } from "~/server/api/routers/search";
 import { discordRouter } from "~/server/api/routers/discord";
 import { reports } from "~/server/api/routers/reports";
 import { softres } from "~/server/api/routers/softres";
+import { raidHelperRouter } from "~/server/api/routers/raid-helper";
 
 /**
  * This is the primary router for your server.
@@ -28,6 +29,7 @@ export const appRouter = createTRPCRouter({
   discord: discordRouter,
   reports: reports,
   softres: softres,
+  raidHelper: raidHelperRouter,
 });
 
 // export type definition of API
