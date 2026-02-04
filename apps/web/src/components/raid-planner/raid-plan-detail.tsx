@@ -56,7 +56,7 @@ export function RaidPlanDetail({
     isLoading,
     error,
     refetch,
-  } = api.raidPlan.getById.useQuery({ planId });
+  } = api.raidPlan.getById.useQuery({ planId }, { refetchInterval: 5000 });
 
   // Default home server to the logged-in user's primary character server
   const characterId = session?.user?.characterId;
@@ -478,7 +478,7 @@ export function RaidPlanDetail({
         {/* Tabs above two-column layout */}
         <div className="flex items-center gap-2">
           <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="default">Default</TabsTrigger>
+            <TabsTrigger value="default">Default/Trash</TabsTrigger>
             {plan.encounters.map((encounter) => (
               <TabsTrigger
                 key={encounter.id}

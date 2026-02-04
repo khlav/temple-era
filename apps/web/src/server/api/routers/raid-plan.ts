@@ -14,6 +14,8 @@ import {
   raidPlans,
   raidPlanCharacters,
   raidPlanEncounters,
+  raidPlanTemplates,
+  raidPlanTemplateEncounters,
   characters,
   raids,
 } from "~/server/db/schema";
@@ -414,6 +416,42 @@ export const raidPlanRouter = createTRPCRouter({
             defaultPosition: char.defaultPosition,
           })),
         );
+      }
+
+      // Copy template encounters if an active template exists for this zone
+      const template = await ctx.db
+        .select({ id: raidPlanTemplates.id })
+        .from(raidPlanTemplates)
+        .where(
+          and(
+            eq(raidPlanTemplates.zoneId, input.zoneId),
+            eq(raidPlanTemplates.isActive, true),
+          ),
+        )
+        .limit(1);
+
+      if (template.length > 0) {
+        const templateEncounters = await ctx.db
+          .select({
+            encounterKey: raidPlanTemplateEncounters.encounterKey,
+            encounterName: raidPlanTemplateEncounters.encounterName,
+            sortOrder: raidPlanTemplateEncounters.sortOrder,
+          })
+          .from(raidPlanTemplateEncounters)
+          .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
+          .orderBy(raidPlanTemplateEncounters.sortOrder);
+
+        if (templateEncounters.length > 0) {
+          await ctx.db.insert(raidPlanEncounters).values(
+            templateEncounters.map((enc) => ({
+              raidPlanId: planId,
+              encounterKey: enc.encounterKey,
+              encounterName: enc.encounterName,
+              sortOrder: enc.sortOrder,
+              useDefaultGroups: true,
+            })),
+          );
+        }
       }
 
       return { id: planId };
