@@ -136,12 +136,20 @@ export function RaidPlanGroupsGrid({
     }
   }
 
-  // Sort bench alphabetically, ignoring diacritics
-  bench.sort((a, b) =>
-    a.characterName.localeCompare(b.characterName, undefined, {
+  // Sort bench by class then by name, ignoring diacritics
+  bench.sort((a, b) => {
+    const classA = a.class ?? "";
+    const classB = b.class ?? "";
+    if (!classA && classB) return 1;
+    if (classA && !classB) return -1;
+    const classCmp = classA.localeCompare(classB, undefined, {
       sensitivity: "base",
-    }),
-  );
+    });
+    if (classCmp !== 0) return classCmp;
+    return a.characterName.localeCompare(b.characterName, undefined, {
+      sensitivity: "base",
+    });
+  });
 
   const getCharacterAtSlot = (
     group: number,
