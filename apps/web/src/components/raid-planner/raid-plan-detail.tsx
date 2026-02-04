@@ -478,7 +478,7 @@ export function RaidPlanDetail({
         {/* Tabs above two-column layout */}
         <div className="flex items-center gap-2">
           <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="default">Default</TabsTrigger>
+            <TabsTrigger value="default">Default/Trash</TabsTrigger>
             {plan.encounters.map((encounter) => (
               <TabsTrigger
                 key={encounter.id}

@@ -454,6 +454,12 @@ export function RaidPlannerConfig() {
             <div className="grid grid-cols-2 gap-6">
               {/* Left column: encounters */}
               <div className="space-y-4">
+                {/* Default/Trash — always present */}
+                <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-muted-foreground">
+                  <span className="flex-1 text-sm italic">Default/Trash</span>
+                  <span className="text-xs">Included by default</span>
+                </div>
+
                 {/* Encounter list */}
                 {sortedEncounters.length > 0 && (
                   <div className="space-y-1">
