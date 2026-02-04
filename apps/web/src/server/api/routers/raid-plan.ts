@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { eq, inArray, max, ilike, and, or } from "drizzle-orm";
+import {
+  eq,
+  inArray,
+  notInArray,
+  max,
+  ilike,
+  and,
+  or,
+  desc,
+} from "drizzle-orm";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import {
   raidPlans,
@@ -40,6 +49,40 @@ export const raidPlanRouter = createTRPCRouter({
         result[plan.raidHelperEventId] = plan.id;
       }
       return result;
+    }),
+
+  /**
+   * Get past plans - plans not linked to any of the current scheduled events.
+   * Returns basic plan info for display in a list.
+   */
+  getPastPlans: raidManagerProcedure
+    .input(
+      z.object({
+        currentEventIds: z.array(z.string()),
+        limit: z.number().min(1).max(50).default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build the where clause based on whether we have current events
+      const whereClause =
+        input.currentEventIds.length > 0
+          ? notInArray(raidPlans.raidHelperEventId, input.currentEventIds)
+          : undefined;
+
+      const plans = await ctx.db
+        .select({
+          id: raidPlans.id,
+          name: raidPlans.name,
+          zoneId: raidPlans.zoneId,
+          raidHelperEventId: raidPlans.raidHelperEventId,
+          createdAt: raidPlans.createdAt,
+        })
+        .from(raidPlans)
+        .where(whereClause)
+        .orderBy(desc(raidPlans.createdAt))
+        .limit(input.limit);
+
+      return plans;
     }),
 
   /**

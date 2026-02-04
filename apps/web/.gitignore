@@ -44,6 +44,9 @@ yarn-error.log*
 # idea files
 .idea
 
+# planning md files
+/plans
+
 # BFG Repo-Cleaner files (contain sensitive data)
 bfg-replacements.txt
 ..bfg-report/

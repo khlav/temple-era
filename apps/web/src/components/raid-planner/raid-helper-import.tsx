@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import {
@@ -21,11 +21,14 @@ import {
   Loader2,
   AlertTriangle,
   MinusCircle,
+  History,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
+import { useSession } from "next-auth/react";
+import { WOW_SERVERS } from "./raid-plan-groups-grid";
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -45,6 +48,13 @@ export function RaidPlannerImport() {
       { raidHelperEventIds: eventIds },
       { enabled: eventIds.length > 0 },
     );
+
+  // Fetch past plans (not linked to current scheduled events)
+  const { data: pastPlans, isLoading: isLoadingPastPlans } =
+    api.raidPlan.getPastPlans.useQuery({
+      currentEventIds: eventIds,
+      limit: 20,
+    });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -108,6 +118,29 @@ export function RaidPlannerImport() {
         open={!!selectedEventId}
         onOpenChange={(open) => !open && setSelectedEventId(null)}
       />
+
+      {/* Past Plans Section */}
+      {(pastPlans && pastPlans.length > 0) || isLoadingPastPlans ? (
+        <div className="col-span-full border-t pt-6">
+          <h3 className="mb-3 flex items-center gap-2 font-semibold">
+            <History className="h-5 w-5" />
+            Past Plans
+          </h3>
+          {isLoadingPastPlans ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : pastPlans && pastPlans.length > 0 ? (
+            <div className="space-y-2">
+              {pastPlans.map((plan) => (
+                <PastPlanRow key={plan.id} plan={plan} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -184,6 +217,56 @@ function EventRow({
   );
 }
 
+interface PastPlanRowProps {
+  plan: {
+    id: string;
+    name: string;
+    zoneId: string;
+    createdAt: Date;
+  };
+}
+
+function PastPlanRow({ plan }: PastPlanRowProps) {
+  const formattedDate = new Date(plan.createdAt).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  // Map zone IDs to display names
+  const zoneNames: Record<string, string> = {
+    mc: "Molten Core",
+    bwl: "Blackwing Lair",
+    aq20: "AQ20",
+    aq40: "AQ40",
+    naxxramas: "Naxxramas",
+    onyxia: "Onyxia",
+    zg: "Zul'Gurub",
+  };
+
+  const zoneName = zoneNames[plan.zoneId.toLowerCase()] ?? plan.zoneId;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between rounded-lg border p-3",
+        "transition-colors hover:border-primary hover:bg-accent",
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <div className="font-medium">{plan.name}</div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span>{zoneName}</span>
+          <span>{formattedDate}</span>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" asChild>
+        <a href={`/raid-manager/raid-planner/${plan.id}`}>View Plan</a>
+      </Button>
+    </div>
+  );
+}
+
 interface CharacterMatchingDialogProps {
   eventId: string | null;
   open: boolean;
@@ -197,6 +280,21 @@ function CharacterMatchingDialog({
 }: CharacterMatchingDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
+  const [homeServer, setHomeServer] = useState("");
+
+  // Default home server to user's primary character server
+  const characterId = session?.user?.characterId;
+  const { data: userCharacter } = api.character.getCharacterById.useQuery(
+    characterId ?? -1,
+    { enabled: !!characterId },
+  );
+
+  useEffect(() => {
+    if (userCharacter?.server && !homeServer) {
+      setHomeServer(userCharacter.server);
+    }
+  }, [userCharacter?.server, homeServer]);
 
   const { data: eventDetails, isLoading: isLoadingDetails } =
     api.raidHelper.getEventDetails.useQuery(
@@ -361,7 +459,10 @@ function CharacterMatchingDialog({
       let name: string;
       if (result.status === "matched" && result.matchedCharacter) {
         name = result.matchedCharacter.characterName;
-        if (result.matchedCharacter.characterServer) {
+        if (
+          result.matchedCharacter.characterServer &&
+          result.matchedCharacter.characterServer !== homeServer
+        ) {
           name += `-${result.matchedCharacter.characterServer}`;
         }
       } else {
@@ -382,7 +483,7 @@ function CharacterMatchingDialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [matchResults, eventDetails?.plan?.slotPerParty]);
+  }, [matchResults, eventDetails?.plan?.slotPerParty, homeServer]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -595,6 +696,19 @@ function CharacterMatchingDialog({
 
         {matchStats && (
           <DialogFooter>
+            <label className="text-sm text-muted-foreground">My server:</label>
+            <select
+              value={homeServer}
+              onChange={(e) => setHomeServer(e.target.value)}
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">All servers</option>
+              {WOW_SERVERS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
             <Button onClick={handleCopyMRT} variant="outline">
               <Copy className="mr-2 h-4 w-4" />
               {copied ? "Copied!" : "Copy MRT Export"}

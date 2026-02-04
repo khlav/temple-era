@@ -18,6 +18,26 @@ import { CharacterSelector } from "~/components/characters/character-selector";
 import { cn } from "~/lib/utils";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
+const CLASS_COLORS: Record<string, string> = {
+  Druid: "rgba(255, 124, 10, 0.28)",
+  Hunter: "rgba(171, 212, 115, 0.28)",
+  Mage: "rgba(63, 199, 235, 0.28)",
+  Paladin: "rgba(244, 140, 186, 0.28)",
+  Priest: "rgba(255, 255, 255, 0.18)",
+  Rogue: "rgba(255, 244, 104, 0.22)",
+  Shaman: "rgba(0, 112, 221, 0.28)",
+  Warlock: "rgba(135, 136, 238, 0.28)",
+  Warrior: "rgba(198, 155, 109, 0.28)",
+};
+
+export const WOW_SERVERS = [
+  "Ashkandi",
+  "Mankrik",
+  "Pagle",
+  "Westfall",
+  "Windseeker",
+] as const;
+
 export interface RaidPlanCharacter {
   id: string;
   characterId: number | null;
@@ -65,6 +85,8 @@ interface RaidPlanGroupsGridProps {
   onCharacterDelete?: (event: CharacterDeleteEvent) => void;
   onExportMRT?: () => void;
   mrtCopied?: boolean;
+  homeServer?: string;
+  onHomeServerChange?: (server: string) => void;
 }
 
 export function RaidPlanGroupsGrid({
@@ -79,6 +101,8 @@ export function RaidPlanGroupsGrid({
   onCharacterDelete,
   onExportMRT,
   mrtCopied,
+  homeServer,
+  onHomeServerChange,
 }: RaidPlanGroupsGridProps) {
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
@@ -112,12 +136,20 @@ export function RaidPlanGroupsGrid({
     }
   }
 
-  // Sort bench alphabetically, ignoring diacritics
-  bench.sort((a, b) =>
-    a.characterName.localeCompare(b.characterName, undefined, {
+  // Sort bench by class then by name, ignoring diacritics
+  bench.sort((a, b) => {
+    const classA = a.class ?? "";
+    const classB = b.class ?? "";
+    if (!classA && classB) return 1;
+    if (classA && !classB) return -1;
+    const classCmp = classA.localeCompare(classB, undefined, {
       sensitivity: "base",
-    }),
-  );
+    });
+    if (classCmp !== 0) return classCmp;
+    return a.characterName.localeCompare(b.characterName, undefined, {
+      sensitivity: "base",
+    });
+  });
 
   const getCharacterAtSlot = (
     group: number,
@@ -321,7 +353,20 @@ export function RaidPlanGroupsGrid({
 
       {/* MRT Export Button */}
       {editable && onExportMRT && (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <label className="text-xs text-muted-foreground">My server:</label>
+          <select
+            value={homeServer ?? ""}
+            onChange={(e) => onHomeServerChange?.(e.target.value)}
+            className="h-7 rounded-md border bg-background px-2 text-xs"
+          >
+            <option value="">All servers</option>
+            {WOW_SERVERS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={onExportMRT}
@@ -738,16 +783,21 @@ function CharacterCard({
 }: CharacterCardProps) {
   const hasClassIcon = !!character.class;
   const isDraggable = editable && dragHandleProps;
+  const classColor =
+    character.characterId && character.class
+      ? CLASS_COLORS[character.class]
+      : undefined;
 
   return (
     <div
       className={cn(
         "group relative flex items-center gap-1.5 rounded px-1.5 py-1 text-xs",
-        compact ? "bg-muted/50" : "bg-muted/30",
+        !classColor && (compact ? "bg-muted/50" : "bg-muted/30"),
         isEditing && "ring-2 ring-primary",
         isDragging && "opacity-50",
         isDragOverlay && "shadow-lg ring-2 ring-primary/50",
       )}
+      style={classColor ? { backgroundColor: classColor } : undefined}
     >
       {/* Draggable area: icon (or grip) + name */}
       <span

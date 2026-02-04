@@ -30,6 +30,7 @@ import { AddEncounterDialog } from "./add-encounter-dialog";
 import { MRTCodec } from "~/lib/mrt-codec";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
+import { useSession } from "next-auth/react";
 
 interface RaidPlanDetailProps {
   planId: string;
@@ -45,8 +46,10 @@ export function RaidPlanDetail({
     null,
   );
   const [copied, setCopied] = useState(false);
+  const [homeServer, setHomeServer] = useState("");
   const { toast } = useToast();
   const { updateBreadcrumbSegment } = useBreadcrumb();
+  const { data: session } = useSession();
 
   const {
     data: plan,
@@ -54,6 +57,19 @@ export function RaidPlanDetail({
     error,
     refetch,
   } = api.raidPlan.getById.useQuery({ planId });
+
+  // Default home server to the logged-in user's primary character server
+  const characterId = session?.user?.characterId;
+  const { data: userCharacter } = api.character.getCharacterById.useQuery(
+    characterId ?? -1,
+    { enabled: !!characterId },
+  );
+
+  useEffect(() => {
+    if (userCharacter?.server && !homeServer) {
+      setHomeServer(userCharacter.server);
+    }
+  }, [userCharacter?.server, homeServer]);
 
   // Update breadcrumb to show plan name instead of UUID
   useEffect(() => {
@@ -394,9 +410,9 @@ export function RaidPlanDetail({
 
       let name: string;
       if (char.characterId) {
-        // Known character: Name-Server format
+        // Known character: Name-Server format, omit server if it matches home server
         name = char.characterName;
-        if (char.server) {
+        if (char.server && char.server !== homeServer) {
           name += `-${char.server}`;
         }
       } else {
@@ -416,7 +432,7 @@ export function RaidPlanDetail({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [plan]);
+  }, [plan, homeServer]);
 
   if (isLoading) {
     return <RaidPlanDetailSkeleton />;
@@ -503,6 +519,8 @@ export function RaidPlanDetail({
                 onCharacterDelete={handleCharacterDelete}
                 onExportMRT={handleExportMRT}
                 mrtCopied={copied}
+                homeServer={homeServer}
+                onHomeServerChange={setHomeServer}
               />
             </TabsContent>
 
