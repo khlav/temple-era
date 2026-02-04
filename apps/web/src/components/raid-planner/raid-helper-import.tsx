@@ -153,6 +153,7 @@ interface EventRowProps {
     channelName: string;
     startTime: number;
     leaderName: string;
+    signUpCount?: number;
   };
   isSelected: boolean;
   existingPlanId?: string;
@@ -198,6 +199,9 @@ function EventRow({
           <span>{formattedDate}</span>
           <span>{formattedTime}</span>
           <span>{event.leaderName}</span>
+          {event.signUpCount != null && event.signUpCount > 0 && (
+            <span>{event.signUpCount} signups</span>
+          )}
         </div>
       </div>
       <div>

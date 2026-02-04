@@ -60,7 +60,7 @@ const TANK_SPEC_TO_CLASS: Record<string, string> = {
 };
 
 // Types for Raid-Helper API responses
-interface ScheduledEvent {
+interface PostedEvent {
   id: string;
   title: string;
   displayTitle?: string;
@@ -70,10 +70,13 @@ interface ScheduledEvent {
   leaderName: string;
   description: string;
   imageUrl?: string;
+  signUpCount?: number;
+  softresId?: string;
+  scheduledId?: string;
 }
 
-interface ScheduledEventsResponse {
-  scheduledEvents: ScheduledEvent[];
+interface PostedEventsResponse {
+  postedEvents: PostedEvent[];
 }
 
 interface RaidHelperSignup {
@@ -207,7 +210,7 @@ export const raidHelperRouter = createTRPCRouter({
    */
   getScheduledEvents: raidManagerProcedure.query(async () => {
     const response = await fetch(
-      `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/scheduledevents`,
+      `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/events`,
       {
         headers: {
           Authorization: env.RAID_HELPER_API_KEY,
@@ -222,10 +225,13 @@ export const raidHelperRouter = createTRPCRouter({
       });
     }
 
-    const data = (await response.json()) as ScheduledEventsResponse;
+    const data = (await response.json()) as PostedEventsResponse;
 
-    // Sort by startTime ascending (nearest first)
-    return data.scheduledEvents
+    const now = Math.floor(Date.now() / 1000);
+
+    // Filter to upcoming events and sort by startTime ascending (nearest first)
+    return data.postedEvents
+      .filter((e) => e.startTime >= now)
       .sort((a, b) => a.startTime - b.startTime)
       .map((e) => ({
         id: e.id,
@@ -234,6 +240,7 @@ export const raidHelperRouter = createTRPCRouter({
         channelName: e.channelName,
         startTime: e.startTime,
         leaderName: e.leaderName,
+        signUpCount: e.signUpCount ?? 0,
       }));
   }),
 
