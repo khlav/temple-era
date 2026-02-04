@@ -37,12 +37,12 @@ fi
 
 # Task 3: Building
 echo "3/4 🔨 Building application..."
-if pnpm build > /dev/null 2>&1; then
+if npx next build > /dev/null 2>&1; then
   echo "3/4 ✅ Build passed"
 else
   echo "3/4 ❌ Build failed"
   echo "Running build to show errors:"
-  pnpm build
+  npx next build
   exit 1
 fi
 

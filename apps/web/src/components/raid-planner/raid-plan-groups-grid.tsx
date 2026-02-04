@@ -20,11 +20,11 @@ import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
 const CLASS_COLORS: Record<string, string> = {
   Druid: "rgba(255, 124, 10, 0.28)",
-  Hunter: "rgba(171, 212, 115, 0.28)",
+  Hunter: "rgba(107, 212, 85, 0.28)",
   Mage: "rgba(63, 199, 235, 0.28)",
   Paladin: "rgba(244, 140, 186, 0.28)",
   Priest: "rgba(255, 255, 255, 0.18)",
-  Rogue: "rgba(255, 244, 104, 0.22)",
+  Rogue: "rgba(255, 224, 60, 0.24)",
   Shaman: "rgba(0, 112, 221, 0.28)",
   Warlock: "rgba(135, 136, 238, 0.28)",
   Warrior: "rgba(198, 155, 109, 0.28)",
