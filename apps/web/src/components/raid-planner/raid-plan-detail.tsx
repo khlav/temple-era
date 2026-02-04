@@ -56,7 +56,7 @@ export function RaidPlanDetail({
     isLoading,
     error,
     refetch,
-  } = api.raidPlan.getById.useQuery({ planId });
+  } = api.raidPlan.getById.useQuery({ planId }, { refetchInterval: 5000 });
 
   // Default home server to the logged-in user's primary character server
   const characterId = session?.user?.characterId;
