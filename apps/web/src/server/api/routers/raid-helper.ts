@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { sql, eq, or, inArray } from "drizzle-orm";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
@@ -23,7 +23,7 @@ function resolveEventTitle(title: string, startTime: number): string {
       .replace(/EEEE/g, "EEEE") // EEEE stays as EEEE (Monday, Tuesday)
       .replace(/a/g, "aaa"); // a -> aaa for am/pm
     try {
-      return format(date, dateFnsFormat);
+      return formatInTimeZone(date, "America/New_York", dateFnsFormat);
     } catch {
       // If format fails, return original placeholder
       return `{eventtime#${formatStr}}`;

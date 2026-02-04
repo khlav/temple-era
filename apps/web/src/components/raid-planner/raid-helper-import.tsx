@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import {
@@ -27,6 +27,8 @@ import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
+import { useSession } from "next-auth/react";
+import { WOW_SERVERS } from "./raid-plan-groups-grid";
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -278,6 +280,21 @@ function CharacterMatchingDialog({
 }: CharacterMatchingDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
+  const [homeServer, setHomeServer] = useState("");
+
+  // Default home server to user's primary character server
+  const characterId = session?.user?.characterId;
+  const { data: userCharacter } = api.character.getCharacterById.useQuery(
+    characterId ?? -1,
+    { enabled: !!characterId },
+  );
+
+  useEffect(() => {
+    if (userCharacter?.server && !homeServer) {
+      setHomeServer(userCharacter.server);
+    }
+  }, [userCharacter?.server, homeServer]);
 
   const { data: eventDetails, isLoading: isLoadingDetails } =
     api.raidHelper.getEventDetails.useQuery(
@@ -442,7 +459,10 @@ function CharacterMatchingDialog({
       let name: string;
       if (result.status === "matched" && result.matchedCharacter) {
         name = result.matchedCharacter.characterName;
-        if (result.matchedCharacter.characterServer) {
+        if (
+          result.matchedCharacter.characterServer &&
+          result.matchedCharacter.characterServer !== homeServer
+        ) {
           name += `-${result.matchedCharacter.characterServer}`;
         }
       } else {
@@ -463,7 +483,7 @@ function CharacterMatchingDialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [matchResults, eventDetails?.plan?.slotPerParty]);
+  }, [matchResults, eventDetails?.plan?.slotPerParty, homeServer]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -676,6 +696,19 @@ function CharacterMatchingDialog({
 
         {matchStats && (
           <DialogFooter>
+            <label className="text-sm text-muted-foreground">My server:</label>
+            <select
+              value={homeServer}
+              onChange={(e) => setHomeServer(e.target.value)}
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">All servers</option>
+              {WOW_SERVERS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
             <Button onClick={handleCopyMRT} variant="outline">
               <Copy className="mr-2 h-4 w-4" />
               {copied ? "Copied!" : "Copy MRT Export"}
