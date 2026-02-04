@@ -454,110 +454,104 @@ export function RaidPlannerConfig() {
             <div className="grid grid-cols-2 gap-6">
               {/* Left column: encounters */}
               <div className="space-y-4">
-                {/* Default/Trash — always present */}
-                <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-muted-foreground">
-                  <span className="flex-1 text-sm italic">Default/Trash</span>
-                  <span className="text-xs">Included by default</span>
-                </div>
-
                 {/* Encounter list */}
-                {sortedEncounters.length > 0 && (
-                  <div className="space-y-1">
-                    {sortedEncounters.map((encounter, idx) => (
-                      <div
-                        key={encounter.id}
-                        className="flex items-center gap-2 rounded-md border px-3 py-2"
-                      >
-                        {editingId === encounter.id ? (
-                          <>
-                            <Input
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleRenameSubmit(encounter.id);
-                                } else if (e.key === "Escape") {
-                                  setEditingId(null);
-                                }
-                              }}
-                              className="h-7 flex-1"
-                              autoFocus
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleRenameSubmit(encounter.id)}
-                              disabled={updateEncounter.isPending}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setEditingId(null)}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="flex-1 text-sm">
-                              {encounter.encounterName}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => {
-                                setEditingId(encounter.id);
-                                setEditingName(encounter.encounterName);
-                              }}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              disabled={
-                                idx === 0 || reorderEncounters.isPending
-                              }
-                              onClick={() =>
-                                handleMoveEncounter(encounter, "up")
-                              }
-                            >
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              disabled={
-                                idx === sortedEncounters.length - 1 ||
-                                reorderEncounters.isPending
-                              }
-                              onClick={() =>
-                                handleMoveEncounter(encounter, "down")
-                              }
-                            >
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteEncounterId(encounter.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                <div className="space-y-1">
+                  {/* Default/Trash — always present */}
+                  <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-muted-foreground">
+                    <span className="flex-1 text-sm">Default/Trash</span>
+                    <span className="text-xs">Included by default</span>
                   </div>
-                )}
+
+                  {sortedEncounters.map((encounter, idx) => (
+                    <div
+                      key={encounter.id}
+                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+                    >
+                      {editingId === encounter.id ? (
+                        <>
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleRenameSubmit(encounter.id);
+                              } else if (e.key === "Escape") {
+                                setEditingId(null);
+                              }
+                            }}
+                            className="h-7 flex-1"
+                            autoFocus
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleRenameSubmit(encounter.id)}
+                            disabled={updateEncounter.isPending}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setEditingId(null)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm">
+                            {encounter.encounterName}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setEditingId(encounter.id);
+                              setEditingName(encounter.encounterName);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={idx === 0 || reorderEncounters.isPending}
+                            onClick={() => handleMoveEncounter(encounter, "up")}
+                          >
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={
+                              idx === sortedEncounters.length - 1 ||
+                              reorderEncounters.isPending
+                            }
+                            onClick={() =>
+                              handleMoveEncounter(encounter, "down")
+                            }
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteEncounterId(encounter.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
                 {/* Add encounter form */}
                 <form
