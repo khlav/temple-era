@@ -21,6 +21,7 @@ import {
   Loader2,
   AlertTriangle,
   MinusCircle,
+  History,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
@@ -45,6 +46,13 @@ export function RaidPlannerImport() {
       { raidHelperEventIds: eventIds },
       { enabled: eventIds.length > 0 },
     );
+
+  // Fetch past plans (not linked to current scheduled events)
+  const { data: pastPlans, isLoading: isLoadingPastPlans } =
+    api.raidPlan.getPastPlans.useQuery({
+      currentEventIds: eventIds,
+      limit: 20,
+    });
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -108,6 +116,29 @@ export function RaidPlannerImport() {
         open={!!selectedEventId}
         onOpenChange={(open) => !open && setSelectedEventId(null)}
       />
+
+      {/* Past Plans Section */}
+      {(pastPlans && pastPlans.length > 0) || isLoadingPastPlans ? (
+        <div className="col-span-full border-t pt-6">
+          <h3 className="mb-3 flex items-center gap-2 font-semibold">
+            <History className="h-5 w-5" />
+            Past Plans
+          </h3>
+          {isLoadingPastPlans ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : pastPlans && pastPlans.length > 0 ? (
+            <div className="space-y-2">
+              {pastPlans.map((plan) => (
+                <PastPlanRow key={plan.id} plan={plan} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -180,6 +211,56 @@ function EventRow({
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+interface PastPlanRowProps {
+  plan: {
+    id: string;
+    name: string;
+    zoneId: string;
+    createdAt: Date;
+  };
+}
+
+function PastPlanRow({ plan }: PastPlanRowProps) {
+  const formattedDate = new Date(plan.createdAt).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  // Map zone IDs to display names
+  const zoneNames: Record<string, string> = {
+    mc: "Molten Core",
+    bwl: "Blackwing Lair",
+    aq20: "AQ20",
+    aq40: "AQ40",
+    naxxramas: "Naxxramas",
+    onyxia: "Onyxia",
+    zg: "Zul'Gurub",
+  };
+
+  const zoneName = zoneNames[plan.zoneId.toLowerCase()] ?? plan.zoneId;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between rounded-lg border p-3",
+        "transition-colors hover:border-primary hover:bg-accent",
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <div className="font-medium">{plan.name}</div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span>{zoneName}</span>
+          <span>{formattedDate}</span>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" asChild>
+        <a href={`/raid-manager/raid-planner/${plan.id}`}>View Plan</a>
+      </Button>
     </div>
   );
 }
