@@ -407,14 +407,19 @@ function CharacterMatchingDialog({
   const handleCreatePlan = useCallback(() => {
     if (!eventId || !eventDetails || !matchResults || !detectedZone) return;
 
-    // Build characters array from match results (excluding skipped)
+    // Build characters array from match results (excluding absent signups)
     const characters = matchResults
-      .filter((r) => r.status !== "skipped")
+      .filter((r) => {
+        const lowerClass = r.className.toLowerCase();
+        return lowerClass !== "absent" && lowerClass !== "absence";
+      })
       .map((r) => {
         // Convert partyId/slotId from 1-indexed to 0-indexed
+        // Groups 9+ are bench (null group and position)
         const defaultGroup =
           r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
-        const defaultPosition = r.slotId !== null ? r.slotId - 1 : null;
+        const defaultPosition =
+          defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
 
         // Use matched character name if available, otherwise use discord name
         const characterName =
