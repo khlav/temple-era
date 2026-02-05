@@ -20,6 +20,7 @@ import { useToast } from "~/hooks/use-toast";
 import { RaidPlanHeader } from "./raid-plan-header";
 import {
   RaidPlanGroupsGrid,
+  WOW_SERVERS,
   type RaidPlanCharacter,
   type CharacterMoveEvent,
   type CharacterSwapEvent,
@@ -28,9 +29,42 @@ import {
 } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
 import { MRTCodec } from "~/lib/mrt-codec";
+import { cn } from "~/lib/utils";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { useSession } from "next-auth/react";
+
+interface EncounterAssignment {
+  encounterId: string;
+  planCharacterId: string;
+  groupNumber: number | null;
+  position: number | null;
+}
+
+function buildEncounterCharacters(
+  planCharacters: RaidPlanCharacter[],
+  encounterAssignments: EncounterAssignment[],
+  encounterId: string,
+): RaidPlanCharacter[] {
+  const assignmentMap = new Map(
+    encounterAssignments
+      .filter((a) => a.encounterId === encounterId)
+      .map((a) => [a.planCharacterId, a]),
+  );
+
+  return planCharacters.map((char) => {
+    const assignment = assignmentMap.get(char.id);
+    if (assignment) {
+      return {
+        ...char,
+        defaultGroup: assignment.groupNumber,
+        defaultPosition: assignment.position,
+      };
+    }
+    // No assignment row = bench for this encounter
+    return { ...char, defaultGroup: null, defaultPosition: null };
+  });
+}
 
 interface RaidPlanDetailProps {
   planId: string;
@@ -122,6 +156,10 @@ export function RaidPlanDetail({
   const swapCharactersMutation = api.raidPlan.swapCharacters.useMutation();
   const addCharacterMutation = api.raidPlan.addCharacter.useMutation();
   const deleteCharacterMutation = api.raidPlan.deleteCharacter.useMutation();
+  const moveEncounterCharMutation =
+    api.raidPlan.moveEncounterCharacter.useMutation();
+  const swapEncounterCharsMutation =
+    api.raidPlan.swapEncounterCharacters.useMutation();
 
   const handleCharacterUpdate = useCallback(
     (planCharacterId: string, character: RaidParticipant) => {
@@ -395,44 +433,162 @@ export function RaidPlanDetail({
     [planId, deleteCharacterMutation, utils, toast],
   );
 
-  const handleExportMRT = useCallback(() => {
-    if (!plan) return;
+  const exportMRT = useCallback(
+    (chars: RaidPlanCharacter[]) => {
+      // Build MRT raid data: position (1-40) -> character name with server
+      const raidData: Record<number, string> = {};
 
-    // Build MRT raid data: position (1-40) -> character name with server
-    const raidData: Record<number, string> = {};
+      for (const char of chars) {
+        if (char.defaultGroup === null || char.defaultPosition === null)
+          continue;
+        if (char.defaultGroup > 7) continue; // Only groups 0-7
 
-    for (const char of plan.characters) {
-      if (char.defaultGroup === null || char.defaultPosition === null) continue;
-      if (char.defaultGroup > 7) continue; // Only groups 0-7
+        // Calculate position: group * 5 + position + 1 (MRT is 1-indexed)
+        const position = char.defaultGroup * 5 + char.defaultPosition + 1;
 
-      // Calculate position: group * 5 + position + 1 (MRT is 1-indexed)
-      const position = char.defaultGroup * 5 + char.defaultPosition + 1;
-
-      let name: string;
-      if (char.characterId) {
-        // Known character: Name-Server format, omit server if it matches home server
-        name = char.characterName;
-        if (char.server && char.server !== homeServer) {
-          name += `-${char.server}`;
+        let name: string;
+        if (char.characterId) {
+          // Known character: Name-Server format, omit server if it matches home server
+          name = char.characterName;
+          if (char.server && char.server !== homeServer) {
+            name += `-${char.server}`;
+          }
+        } else {
+          // Placeholder/unknown: --Name-- format
+          name = `--${char.characterName}--`;
         }
-      } else {
-        // Placeholder/unknown: --Name-- format
-        name = `--${char.characterName}--`;
+
+        raidData[position] = name;
       }
 
-      raidData[position] = name;
-    }
+      // Encode using MRT codec
+      const codec = new MRTCodec();
+      const mrtString = codec.encode(raidData);
 
-    // Encode using MRT codec
-    const codec = new MRTCodec();
-    const mrtString = codec.encode(raidData);
+      // Copy to clipboard
+      void navigator.clipboard.writeText(mrtString).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    },
+    [homeServer],
+  );
 
-    // Copy to clipboard
-    void navigator.clipboard.writeText(mrtString).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }, [plan, homeServer]);
+  const handleExportMRT = useCallback(() => {
+    if (!plan) return;
+    exportMRT(plan.characters as RaidPlanCharacter[]);
+  }, [plan, exportMRT]);
+
+  const handleEncounterCharacterMove = useCallback(
+    (encounterId: string, event: CharacterMoveEvent) => {
+      const previousData = utils.raidPlan.getById.getData({ planId });
+
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          encounterAssignments: old.encounterAssignments.map((a) =>
+            a.encounterId === encounterId &&
+            a.planCharacterId === event.planCharacterId
+              ? {
+                  ...a,
+                  groupNumber: event.targetGroup,
+                  position: event.targetPosition,
+                }
+              : a,
+          ),
+        };
+      });
+
+      moveEncounterCharMutation.mutate(
+        {
+          encounterId,
+          planCharacterId: event.planCharacterId,
+          targetGroup: event.targetGroup,
+          targetPosition: event.targetPosition,
+        },
+        {
+          onError: (error) => {
+            if (previousData) {
+              utils.raidPlan.getById.setData({ planId }, previousData);
+            }
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+          onSettled: () => {
+            void utils.raidPlan.getById.invalidate({ planId });
+          },
+        },
+      );
+    },
+    [planId, moveEncounterCharMutation, utils, toast],
+  );
+
+  const handleEncounterCharacterSwap = useCallback(
+    (encounterId: string, event: CharacterSwapEvent) => {
+      const previousData = utils.raidPlan.getById.getData({ planId });
+
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+
+        const assignments = [...old.encounterAssignments];
+        const idxA = assignments.findIndex(
+          (a) =>
+            a.encounterId === encounterId &&
+            a.planCharacterId === event.planCharacterIdA,
+        );
+        const idxB = assignments.findIndex(
+          (a) =>
+            a.encounterId === encounterId &&
+            a.planCharacterId === event.planCharacterIdB,
+        );
+        if (idxA === -1 || idxB === -1) return old;
+
+        const aAssign = assignments[idxA]!;
+        const bAssign = assignments[idxB]!;
+
+        assignments[idxA] = {
+          ...aAssign,
+          groupNumber: bAssign.groupNumber,
+          position: bAssign.position,
+        };
+        assignments[idxB] = {
+          ...bAssign,
+          groupNumber: aAssign.groupNumber,
+          position: aAssign.position,
+        };
+
+        return { ...old, encounterAssignments: assignments };
+      });
+
+      swapEncounterCharsMutation.mutate(
+        {
+          encounterId,
+          planCharacterIdA: event.planCharacterIdA,
+          planCharacterIdB: event.planCharacterIdB,
+        },
+        {
+          onError: (error) => {
+            if (previousData) {
+              utils.raidPlan.getById.setData({ planId }, previousData);
+            }
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+          onSettled: () => {
+            void utils.raidPlan.getById.invalidate({ planId });
+          },
+        },
+      );
+    },
+    [planId, swapEncounterCharsMutation, utils, toast],
+  );
 
   if (isLoading) {
     return <RaidPlanDetailSkeleton />;
@@ -507,7 +663,15 @@ export function RaidPlanDetail({
           {/* Left column: Group planning */}
           <div>
             {/* Default Tab */}
-            <TabsContent value="default" className="mt-0">
+            <TabsContent value="default" className="mt-0 space-y-3">
+              <div className="flex h-7 items-center">
+                <MRTControls
+                  onExportMRT={handleExportMRT}
+                  mrtCopied={copied}
+                  homeServer={homeServer}
+                  onHomeServerChange={setHomeServer}
+                />
+              </div>
               <RaidPlanGroupsGrid
                 characters={plan.characters as RaidPlanCharacter[]}
                 groupCount={groupCount}
@@ -517,10 +681,6 @@ export function RaidPlanDetail({
                 onCharacterSwap={handleCharacterSwap}
                 onSlotFill={handleSlotFill}
                 onCharacterDelete={handleCharacterDelete}
-                onExportMRT={handleExportMRT}
-                mrtCopied={copied}
-                homeServer={homeServer}
-                onHomeServerChange={setHomeServer}
               />
             </TabsContent>
 
@@ -529,29 +689,46 @@ export function RaidPlanDetail({
               <TabsContent
                 key={encounter.id}
                 value={encounter.id}
-                className="mt-0"
+                className="mt-0 space-y-3"
               >
-                <div className="mb-4 flex items-center gap-2">
-                  <Checkbox
-                    id={`use-default-${encounter.id}`}
-                    checked={encounter.useDefaultGroups}
-                    onCheckedChange={(checked) => {
-                      updateEncounterMutation.mutate({
-                        encounterId: encounter.id,
-                        useDefaultGroups: checked === true,
-                      });
-                    }}
-                    disabled={updateEncounterMutation.isPending}
+                <div className="flex h-7 items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`use-default-${encounter.id}`}
+                      checked={encounter.useDefaultGroups}
+                      onCheckedChange={(checked) => {
+                        updateEncounterMutation.mutate({
+                          encounterId: encounter.id,
+                          useDefaultGroups: checked === true,
+                        });
+                      }}
+                      disabled={updateEncounterMutation.isPending}
+                    />
+                    <label
+                      htmlFor={`use-default-${encounter.id}`}
+                      className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Use Default Groups
+                    </label>
+                    {updateEncounterMutation.isPending && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <MRTControls
+                    onExportMRT={() =>
+                      exportMRT(
+                        buildEncounterCharacters(
+                          plan.characters as RaidPlanCharacter[],
+                          plan.encounterAssignments,
+                          encounter.id,
+                        ),
+                      )
+                    }
+                    mrtCopied={copied}
+                    homeServer={homeServer}
+                    onHomeServerChange={setHomeServer}
+                    disabled={encounter.useDefaultGroups}
                   />
-                  <label
-                    htmlFor={`use-default-${encounter.id}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Use Default Groups
-                  </label>
-                  {updateEncounterMutation.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
                 </div>
 
                 {encounter.useDefaultGroups ? (
@@ -561,14 +738,22 @@ export function RaidPlanDetail({
                     dimmed
                   />
                 ) : (
-                  <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-                    Custom encounter assignments coming soon.
-                    <br />
-                    <span className="text-xs">
-                      For now, uncheck &quot;Use Default Groups&quot; to enable
-                      custom assignments later.
-                    </span>
-                  </div>
+                  <RaidPlanGroupsGrid
+                    characters={buildEncounterCharacters(
+                      plan.characters as RaidPlanCharacter[],
+                      plan.encounterAssignments,
+                      encounter.id,
+                    )}
+                    groupCount={groupCount}
+                    editable
+                    showEditControls={false}
+                    onCharacterMove={(event) =>
+                      handleEncounterCharacterMove(encounter.id, event)
+                    }
+                    onCharacterSwap={(event) =>
+                      handleEncounterCharacterSwap(encounter.id, event)
+                    }
+                  />
                 )}
               </TabsContent>
             ))}
@@ -624,6 +809,52 @@ export function RaidPlanDetail({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function MRTControls({
+  onExportMRT,
+  mrtCopied,
+  homeServer,
+  onHomeServerChange,
+  disabled,
+}: {
+  onExportMRT: () => void;
+  mrtCopied: boolean;
+  homeServer: string;
+  onHomeServerChange: (server: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "ml-auto flex items-center gap-2",
+        disabled && "opacity-50",
+      )}
+    >
+      <label className="text-xs text-muted-foreground">My server:</label>
+      <select
+        value={homeServer}
+        onChange={(e) => onHomeServerChange(e.target.value)}
+        disabled={disabled}
+        className="h-7 rounded-md border bg-background px-2 text-xs"
+      >
+        <option value="">All servers</option>
+        {WOW_SERVERS.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={onExportMRT}
+        disabled={disabled}
+        className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none"
+      >
+        {mrtCopied ? "Copied!" : "Copy MRT Export"}
+      </button>
     </div>
   );
 }

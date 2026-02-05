@@ -14,6 +14,7 @@ import {
   raidPlans,
   raidPlanCharacters,
   raidPlanEncounters,
+  raidPlanEncounterAssignments,
   raidPlanTemplates,
   raidPlanTemplateEncounters,
   characters,
@@ -161,11 +162,41 @@ export const raidPlanRouter = createTRPCRouter({
         event = eventResult[0] ?? null;
       }
 
+      // Fetch encounter assignments for encounters with custom groups
+      const customEncounterIds = encounters
+        .filter((e) => !e.useDefaultGroups)
+        .map((e) => e.id);
+
+      let encounterAssignments: {
+        encounterId: string;
+        planCharacterId: string;
+        groupNumber: number | null;
+        position: number | null;
+      }[] = [];
+
+      if (customEncounterIds.length > 0) {
+        encounterAssignments = await ctx.db
+          .select({
+            encounterId: raidPlanEncounterAssignments.encounterId,
+            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
+            groupNumber: raidPlanEncounterAssignments.groupNumber,
+            position: raidPlanEncounterAssignments.position,
+          })
+          .from(raidPlanEncounterAssignments)
+          .where(
+            inArray(
+              raidPlanEncounterAssignments.encounterId,
+              customEncounterIds,
+            ),
+          );
+      }
+
       return {
         ...plan[0]!,
         event,
         characters: planCharacters,
         encounters,
+        encounterAssignments,
       };
     }),
 
@@ -295,6 +326,49 @@ export const raidPlanRouter = createTRPCRouter({
           code: "NOT_FOUND",
           message: "Encounter not found",
         });
+      }
+
+      // Seed encounter assignments from defaults when toggling custom groups on
+      if (input.useDefaultGroups === false) {
+        const existing = await ctx.db
+          .select({ id: raidPlanEncounterAssignments.id })
+          .from(raidPlanEncounterAssignments)
+          .where(
+            eq(raidPlanEncounterAssignments.encounterId, input.encounterId),
+          )
+          .limit(1);
+
+        if (existing.length === 0) {
+          const encounter = await ctx.db
+            .select({ raidPlanId: raidPlanEncounters.raidPlanId })
+            .from(raidPlanEncounters)
+            .where(eq(raidPlanEncounters.id, input.encounterId))
+            .limit(1);
+
+          if (encounter.length > 0) {
+            const planChars = await ctx.db
+              .select({
+                id: raidPlanCharacters.id,
+                defaultGroup: raidPlanCharacters.defaultGroup,
+                defaultPosition: raidPlanCharacters.defaultPosition,
+              })
+              .from(raidPlanCharacters)
+              .where(
+                eq(raidPlanCharacters.raidPlanId, encounter[0]!.raidPlanId),
+              );
+
+            if (planChars.length > 0) {
+              await ctx.db.insert(raidPlanEncounterAssignments).values(
+                planChars.map((c) => ({
+                  encounterId: input.encounterId,
+                  planCharacterId: c.id,
+                  groupNumber: c.defaultGroup,
+                  position: c.defaultPosition,
+                })),
+              );
+            }
+          }
+        }
       }
 
       return { success: true };
@@ -683,6 +757,110 @@ export const raidPlanRouter = createTRPCRouter({
           defaultPosition: charA.defaultPosition,
         })
         .where(eq(raidPlanCharacters.id, input.planCharacterIdB));
+
+      return { success: true };
+    }),
+
+  /**
+   * Move a character to a different group/position within an encounter
+   */
+  moveEncounterCharacter: raidManagerProcedure
+    .input(
+      z.object({
+        encounterId: z.string().uuid(),
+        planCharacterId: z.string().uuid(),
+        targetGroup: z.number().min(0).max(7).nullable(),
+        targetPosition: z.number().min(0).max(4).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db
+        .update(raidPlanEncounterAssignments)
+        .set({
+          groupNumber: input.targetGroup,
+          position: input.targetPosition,
+        })
+        .where(
+          and(
+            eq(raidPlanEncounterAssignments.encounterId, input.encounterId),
+            eq(
+              raidPlanEncounterAssignments.planCharacterId,
+              input.planCharacterId,
+            ),
+          ),
+        )
+        .returning({ id: raidPlanEncounterAssignments.id });
+
+      if (result.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Encounter assignment not found",
+        });
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Swap two characters' positions within an encounter
+   */
+  swapEncounterCharacters: raidManagerProcedure
+    .input(
+      z.object({
+        encounterId: z.string().uuid(),
+        planCharacterIdA: z.string().uuid(),
+        planCharacterIdB: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const assignments = await ctx.db
+        .select({
+          id: raidPlanEncounterAssignments.id,
+          planCharacterId: raidPlanEncounterAssignments.planCharacterId,
+          groupNumber: raidPlanEncounterAssignments.groupNumber,
+          position: raidPlanEncounterAssignments.position,
+        })
+        .from(raidPlanEncounterAssignments)
+        .where(
+          and(
+            eq(raidPlanEncounterAssignments.encounterId, input.encounterId),
+            inArray(raidPlanEncounterAssignments.planCharacterId, [
+              input.planCharacterIdA,
+              input.planCharacterIdB,
+            ]),
+          ),
+        );
+
+      if (assignments.length !== 2) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "One or both encounter assignments not found",
+        });
+      }
+
+      const assignA = assignments.find(
+        (a) => a.planCharacterId === input.planCharacterIdA,
+      )!;
+      const assignB = assignments.find(
+        (a) => a.planCharacterId === input.planCharacterIdB,
+      )!;
+
+      // Swap their positions
+      await ctx.db
+        .update(raidPlanEncounterAssignments)
+        .set({
+          groupNumber: assignB.groupNumber,
+          position: assignB.position,
+        })
+        .where(eq(raidPlanEncounterAssignments.id, assignA.id));
+
+      await ctx.db
+        .update(raidPlanEncounterAssignments)
+        .set({
+          groupNumber: assignA.groupNumber,
+          position: assignA.position,
+        })
+        .where(eq(raidPlanEncounterAssignments.id, assignB.id));
 
       return { success: true };
     }),
