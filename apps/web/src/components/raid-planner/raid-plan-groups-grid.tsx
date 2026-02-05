@@ -75,6 +75,7 @@ interface RaidPlanGroupsGridProps {
   groupCount?: number;
   dimmed?: boolean;
   editable?: boolean;
+  showEditControls?: boolean;
   onCharacterUpdate?: (
     planCharacterId: string,
     character: RaidParticipant,
@@ -83,10 +84,6 @@ interface RaidPlanGroupsGridProps {
   onCharacterSwap?: (event: CharacterSwapEvent) => void;
   onSlotFill?: (event: SlotFillEvent) => void;
   onCharacterDelete?: (event: CharacterDeleteEvent) => void;
-  onExportMRT?: () => void;
-  mrtCopied?: boolean;
-  homeServer?: string;
-  onHomeServerChange?: (server: string) => void;
 }
 
 export function RaidPlanGroupsGrid({
@@ -94,15 +91,12 @@ export function RaidPlanGroupsGrid({
   groupCount = 8,
   dimmed = false,
   editable = false,
+  showEditControls = true,
   onCharacterUpdate,
   onCharacterMove,
   onCharacterSwap,
   onSlotFill,
   onCharacterDelete,
-  onExportMRT,
-  mrtCopied,
-  homeServer,
-  onHomeServerChange,
 }: RaidPlanGroupsGridProps) {
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
@@ -316,16 +310,18 @@ export function RaidPlanGroupsGrid({
   const content = (
     <div className={cn("space-y-4", dimmed && "opacity-50")}>
       {/* Editing bar */}
-      {(editingCharacter || editingSlot || editingBench) && editable && (
-        <EditingBar
-          editingCharacter={editingCharacter ?? null}
-          editingSlot={editingSlot}
-          editingBench={editingBench}
-          onSelect={handleSelect}
-          onClear={handleClear}
-          onCancel={handleCancel}
-        />
-      )}
+      {(editingCharacter || editingSlot || editingBench) &&
+        editable &&
+        showEditControls && (
+          <EditingBar
+            editingCharacter={editingCharacter ?? null}
+            editingSlot={editingSlot}
+            editingBench={editingBench}
+            onSelect={handleSelect}
+            onClear={handleClear}
+            onCancel={handleCancel}
+          />
+        )}
 
       {/* Groups Grid */}
       <div
@@ -343,6 +339,7 @@ export function RaidPlanGroupsGrid({
             groupIndex={groupIndex}
             getCharacterAtSlot={getCharacterAtSlot}
             editable={editable}
+            showEditControls={showEditControls}
             editingCharacterId={editingCharacterId}
             editingSlot={editingSlot}
             onEditClick={handleEditClick}
@@ -351,36 +348,11 @@ export function RaidPlanGroupsGrid({
         ))}
       </div>
 
-      {/* MRT Export Button */}
-      {editable && onExportMRT && (
-        <div className="flex items-center justify-end gap-2">
-          <label className="text-xs text-muted-foreground">My server:</label>
-          <select
-            value={homeServer ?? ""}
-            onChange={(e) => onHomeServerChange?.(e.target.value)}
-            className="h-7 rounded-md border bg-background px-2 text-xs"
-          >
-            <option value="">All servers</option>
-            {WOW_SERVERS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={onExportMRT}
-            className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
-          >
-            {mrtCopied ? "Copied!" : "Copy MRT Export"}
-          </button>
-        </div>
-      )}
-
       {/* Bench Section */}
       <BenchSection
         characters={bench}
         editable={editable}
+        showEditControls={showEditControls}
         editingCharacterId={editingCharacterId}
         editingBench={editingBench}
         onEditClick={handleEditClick}
@@ -427,6 +399,7 @@ interface GroupColumnProps {
     position: number,
   ) => RaidPlanCharacter | null;
   editable?: boolean;
+  showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingSlot?: { group: number; position: number } | null;
   onEditClick?: (characterId: string) => void;
@@ -438,6 +411,7 @@ function GroupColumn({
   groupIndex,
   getCharacterAtSlot,
   editable,
+  showEditControls = true,
   editingCharacterId,
   editingSlot,
   onEditClick,
@@ -460,6 +434,7 @@ function GroupColumn({
               position={position}
               character={getCharacterAtSlot(groupIndex, position)}
               editable={editable}
+              showEditControls={showEditControls}
               isEditing={
                 editingCharacterId ===
                 getCharacterAtSlot(groupIndex, position)?.id
@@ -480,6 +455,7 @@ interface GroupSlotProps {
   position: number;
   character: RaidPlanCharacter | null;
   editable?: boolean;
+  showEditControls?: boolean;
   isEditing?: boolean;
   isSlotEditing?: boolean;
   onEditClick?: (characterId: string) => void;
@@ -491,6 +467,7 @@ function GroupSlot({
   position,
   character,
   editable,
+  showEditControls = true,
   isEditing,
   isSlotEditing,
   onEditClick,
@@ -511,24 +488,29 @@ function GroupSlot({
         <DraggableCharacterCard
           character={character}
           editable={editable}
+          showEditControls={showEditControls}
           isEditing={isEditing}
           onEditClick={onEditClick}
         />
       ) : (
         <button
           type="button"
-          onClick={() => editable && onSlotEditClick?.(groupIndex, position)}
-          disabled={!editable}
+          onClick={() =>
+            editable &&
+            showEditControls &&
+            onSlotEditClick?.(groupIndex, position)
+          }
+          disabled={!editable || !showEditControls}
           className={cn(
             "group flex h-[28px] w-full items-center justify-center rounded border border-dashed text-xs transition-colors",
-            editable
+            editable && showEditControls
               ? "border-muted-foreground/30 text-muted-foreground/40 hover:border-primary/50 hover:bg-primary/5 hover:text-muted-foreground"
               : "border-muted-foreground/20 text-muted-foreground/40",
             isSlotEditing &&
               "border-primary bg-primary/10 ring-1 ring-primary/50",
           )}
         >
-          {editable && (
+          {editable && showEditControls && (
             <span className="opacity-0 group-hover:opacity-100">+ Add</span>
           )}
         </button>
@@ -540,6 +522,7 @@ function GroupSlot({
 interface BenchSectionProps {
   characters: RaidPlanCharacter[];
   editable?: boolean;
+  showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingBench?: boolean;
   onEditClick?: (characterId: string) => void;
@@ -550,6 +533,7 @@ interface BenchSectionProps {
 function BenchSection({
   characters,
   editable,
+  showEditControls = true,
   editingCharacterId,
   editingBench,
   onEditClick,
@@ -583,11 +567,12 @@ function BenchSection({
             character={char}
             compact
             editable={editable}
+            showEditControls={showEditControls}
             isEditing={editingCharacterId === char.id}
             onEditClick={onEditClick}
           />
         ))}
-        {editable && onAddClick && (
+        {editable && showEditControls && onAddClick && (
           <button
             type="button"
             onClick={onAddClick}
@@ -730,6 +715,7 @@ interface DraggableCharacterCardProps {
   character: RaidPlanCharacter;
   compact?: boolean;
   editable?: boolean;
+  showEditControls?: boolean;
   isEditing?: boolean;
   onEditClick?: (characterId: string) => void;
 }
@@ -738,6 +724,7 @@ function DraggableCharacterCard({
   character,
   compact,
   editable,
+  showEditControls = true,
   isEditing,
   onEditClick,
 }: DraggableCharacterCardProps) {
@@ -751,6 +738,7 @@ function DraggableCharacterCard({
         character={character}
         compact={compact}
         editable={editable}
+        showEditControls={showEditControls}
         isEditing={isEditing}
         onEditClick={onEditClick}
         isDragging={isDragging}
@@ -764,6 +752,7 @@ interface CharacterCardProps {
   character: RaidPlanCharacter;
   compact?: boolean;
   editable?: boolean;
+  showEditControls?: boolean;
   isEditing?: boolean;
   onEditClick?: (characterId: string) => void;
   isDragging?: boolean;
@@ -775,6 +764,7 @@ function CharacterCard({
   character,
   compact,
   editable,
+  showEditControls = true,
   isEditing,
   onEditClick,
   isDragging,
@@ -816,7 +806,7 @@ function CharacterCard({
         )}
         <span className="truncate font-medium">{character.characterName}</span>
       </span>
-      {editable && onEditClick && (
+      {editable && onEditClick && showEditControls && (
         <button
           type="button"
           className="absolute right-1 rounded bg-card/80 p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
