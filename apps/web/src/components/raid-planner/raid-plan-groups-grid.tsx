@@ -76,6 +76,10 @@ interface RaidPlanGroupsGridProps {
   dimmed?: boolean;
   editable?: boolean;
   showEditControls?: boolean;
+  /** When true, characters are draggable but group drops are ignored. Use with external DndContext. */
+  dragOnly?: boolean;
+  /** Skip internal DndContext - parent will provide one */
+  skipDndContext?: boolean;
   onCharacterUpdate?: (
     planCharacterId: string,
     character: RaidParticipant,
@@ -92,6 +96,8 @@ export function RaidPlanGroupsGrid({
   dimmed = false,
   editable = false,
   showEditControls = true,
+  dragOnly = false,
+  skipDndContext = false,
   onCharacterUpdate,
   onCharacterMove,
   onCharacterSwap,
@@ -339,6 +345,7 @@ export function RaidPlanGroupsGrid({
             groupIndex={groupIndex}
             getCharacterAtSlot={getCharacterAtSlot}
             editable={editable}
+            dragOnly={dragOnly}
             showEditControls={showEditControls}
             editingCharacterId={editingCharacterId}
             editingSlot={editingSlot}
@@ -352,12 +359,13 @@ export function RaidPlanGroupsGrid({
       <BenchSection
         characters={bench}
         editable={editable}
+        dragOnly={dragOnly}
         showEditControls={showEditControls}
         editingCharacterId={editingCharacterId}
         editingBench={editingBench}
         onEditClick={handleEditClick}
         onAddClick={handleBenchAddClick}
-        showAlways={editable}
+        showAlways={editable || dragOnly}
       />
 
       {/* Empty state */}
@@ -369,8 +377,17 @@ export function RaidPlanGroupsGrid({
     </div>
   );
 
-  // Wrap with DndContext only if editable and has handlers
-  if (!editable || (!onCharacterMove && !onCharacterSwap)) {
+  // Determine if we need drag functionality
+  const needsDrag = editable || dragOnly;
+  const hasDropHandlers = onCharacterMove || onCharacterSwap;
+
+  // If skipDndContext is true, parent provides DndContext
+  if (skipDndContext) {
+    return content;
+  }
+
+  // Wrap with DndContext only if dragging needed and has handlers (or dragOnly for external drops)
+  if (!needsDrag || (!hasDropHandlers && !dragOnly)) {
     return content;
   }
 
@@ -399,6 +416,7 @@ interface GroupColumnProps {
     position: number,
   ) => RaidPlanCharacter | null;
   editable?: boolean;
+  dragOnly?: boolean;
   showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingSlot?: { group: number; position: number } | null;
@@ -411,6 +429,7 @@ function GroupColumn({
   groupIndex,
   getCharacterAtSlot,
   editable,
+  dragOnly,
   showEditControls = true,
   editingCharacterId,
   editingSlot,
@@ -434,6 +453,7 @@ function GroupColumn({
               position={position}
               character={getCharacterAtSlot(groupIndex, position)}
               editable={editable}
+              dragOnly={dragOnly}
               showEditControls={showEditControls}
               isEditing={
                 editingCharacterId ===
@@ -455,6 +475,7 @@ interface GroupSlotProps {
   position: number;
   character: RaidPlanCharacter | null;
   editable?: boolean;
+  dragOnly?: boolean;
   showEditControls?: boolean;
   isEditing?: boolean;
   isSlotEditing?: boolean;
@@ -467,6 +488,7 @@ function GroupSlot({
   position,
   character,
   editable,
+  dragOnly,
   showEditControls = true,
   isEditing,
   isSlotEditing,
@@ -488,6 +510,7 @@ function GroupSlot({
         <DraggableCharacterCard
           character={character}
           editable={editable}
+          dragOnly={dragOnly}
           showEditControls={showEditControls}
           isEditing={isEditing}
           onEditClick={onEditClick}
@@ -522,6 +545,7 @@ function GroupSlot({
 interface BenchSectionProps {
   characters: RaidPlanCharacter[];
   editable?: boolean;
+  dragOnly?: boolean;
   showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingBench?: boolean;
@@ -533,6 +557,7 @@ interface BenchSectionProps {
 function BenchSection({
   characters,
   editable,
+  dragOnly,
   showEditControls = true,
   editingCharacterId,
   editingBench,
@@ -567,6 +592,7 @@ function BenchSection({
             character={char}
             compact
             editable={editable}
+            dragOnly={dragOnly}
             showEditControls={showEditControls}
             isEditing={editingCharacterId === char.id}
             onEditClick={onEditClick}
@@ -715,6 +741,7 @@ interface DraggableCharacterCardProps {
   character: RaidPlanCharacter;
   compact?: boolean;
   editable?: boolean;
+  dragOnly?: boolean;
   showEditControls?: boolean;
   isEditing?: boolean;
   onEditClick?: (characterId: string) => void;
@@ -724,6 +751,7 @@ function DraggableCharacterCard({
   character,
   compact,
   editable,
+  dragOnly,
   showEditControls = true,
   isEditing,
   onEditClick,
@@ -731,6 +759,9 @@ function DraggableCharacterCard({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: character.id,
   });
+
+  // Enable drag when editable OR dragOnly
+  const canDrag = editable || dragOnly;
 
   return (
     <div ref={setNodeRef} {...attributes}>
@@ -742,7 +773,7 @@ function DraggableCharacterCard({
         isEditing={isEditing}
         onEditClick={onEditClick}
         isDragging={isDragging}
-        dragHandleProps={listeners}
+        dragHandleProps={canDrag ? listeners : undefined}
       />
     </div>
   );
@@ -772,7 +803,8 @@ function CharacterCard({
   dragHandleProps,
 }: CharacterCardProps) {
   const hasClassIcon = !!character.class;
-  const isDraggable = editable && dragHandleProps;
+  // dragHandleProps is only passed when dragging is allowed (editable or dragOnly)
+  const isDraggable = !!dragHandleProps;
   const classColor =
     character.characterId && character.class
       ? CLASS_COLORS[character.class]

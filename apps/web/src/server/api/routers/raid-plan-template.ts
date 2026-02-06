@@ -19,6 +19,8 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         defaultGroupCount: raidPlanTemplates.defaultGroupCount,
         isActive: raidPlanTemplates.isActive,
         sortOrder: raidPlanTemplates.sortOrder,
+        defaultAATemplate: raidPlanTemplates.defaultAATemplate,
+        includeDefaultAAByDefault: raidPlanTemplates.includeDefaultAAByDefault,
       })
       .from(raidPlanTemplates)
       .orderBy(raidPlanTemplates.sortOrder);
@@ -36,6 +38,8 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterKey: raidPlanTemplateEncounters.encounterKey,
         encounterName: raidPlanTemplateEncounters.encounterName,
         sortOrder: raidPlanTemplateEncounters.sortOrder,
+        aaTemplate: raidPlanTemplateEncounters.aaTemplate,
+        includeAAByDefault: raidPlanTemplateEncounters.includeAAByDefault,
       })
       .from(raidPlanTemplateEncounters)
       .where(inArray(raidPlanTemplateEncounters.templateId, templateIds))
@@ -104,6 +108,8 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         isActive: z.boolean().optional(),
         sortOrder: z.number().int().optional(),
         defaultGroupCount: z.number().int().min(1).max(8).optional(),
+        defaultAATemplate: z.string().max(10000).nullable().optional(),
+        includeDefaultAAByDefault: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -111,12 +117,18 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         isActive: boolean;
         sortOrder: number;
         defaultGroupCount: number;
+        defaultAATemplate: string | null;
+        includeDefaultAAByDefault: boolean;
       }> = {};
 
       if (input.isActive !== undefined) updates.isActive = input.isActive;
       if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
       if (input.defaultGroupCount !== undefined)
         updates.defaultGroupCount = input.defaultGroupCount;
+      if (input.defaultAATemplate !== undefined)
+        updates.defaultAATemplate = input.defaultAATemplate;
+      if (input.includeDefaultAAByDefault !== undefined)
+        updates.includeDefaultAAByDefault = input.includeDefaultAAByDefault;
 
       if (Object.keys(updates).length === 0) {
         return { success: true };
@@ -195,6 +207,8 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterId: z.string().uuid(),
         encounterName: z.string().min(1).max(256).optional(),
         sortOrder: z.number().int().optional(),
+        aaTemplate: z.string().max(10000).nullable().optional(),
+        includeAAByDefault: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -202,6 +216,8 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterName: string;
         encounterKey: string;
         sortOrder: number;
+        aaTemplate: string | null;
+        includeAAByDefault: boolean;
       }> = {};
 
       if (input.encounterName !== undefined) {
@@ -214,6 +230,14 @@ export const raidPlanTemplateRouter = createTRPCRouter({
 
       if (input.sortOrder !== undefined) {
         updates.sortOrder = input.sortOrder;
+      }
+
+      if (input.aaTemplate !== undefined) {
+        updates.aaTemplate = input.aaTemplate;
+      }
+
+      if (input.includeAAByDefault !== undefined) {
+        updates.includeAAByDefault = input.includeAAByDefault;
       }
 
       if (Object.keys(updates).length === 0) {

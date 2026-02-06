@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { Loader2, X } from "lucide-react";
+import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
@@ -22,12 +32,15 @@ import {
   RaidPlanGroupsGrid,
   WOW_SERVERS,
   type RaidPlanCharacter,
-  type CharacterMoveEvent,
-  type CharacterSwapEvent,
   type SlotFillEvent,
   type CharacterDeleteEvent,
 } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
+import {
+  AATemplateRenderer,
+  type AASlotAssignment,
+} from "./aa-template-renderer";
+import { AATemplateEditor } from "./aa-template-editor";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { cn } from "~/lib/utils";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -81,6 +94,15 @@ export function RaidPlanDetail({
   );
   const [copied, setCopied] = useState(false);
   const [homeServer, setHomeServer] = useState("");
+  // Character replacement confirmation state
+  const [pendingCharacterUpdate, setPendingCharacterUpdate] = useState<{
+    planCharacterId: string;
+    newCharacter: RaidParticipant;
+    existingAssignments: { encounterName: string; slotName: string }[];
+  } | null>(null);
+  // Drag state for shared DndContext
+  const [activeCharacter, setActiveCharacter] =
+    useState<RaidPlanCharacter | null>(null);
   const { toast } = useToast();
   const { updateBreadcrumbSegment } = useBreadcrumb();
   const { data: session } = useSession();
@@ -161,7 +183,274 @@ export function RaidPlanDetail({
   const swapEncounterCharsMutation =
     api.raidPlan.swapEncounterCharacters.useMutation();
 
+  // AA Template mutations
+  const updatePlanMutation = api.raidPlan.update.useMutation({
+    onSuccess: () => void refetch(),
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  const assignAASlotMutation = api.raidPlan.assignCharacterToAASlot.useMutation(
+    {
+      onSuccess: () => void refetch(),
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    },
+  );
+  const removeAASlotMutation =
+    api.raidPlan.removeCharacterFromAASlot.useMutation({
+      onSuccess: () => void refetch(),
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+  const reorderAASlotMutation =
+    api.raidPlan.reorderAASlotCharacters.useMutation({
+      onSuccess: () => void refetch(),
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+  const clearAAAssignmentsMutation =
+    api.raidPlan.clearAAAssignmentsForCharacter.useMutation({
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+
+  // Shared DndContext sensors and handlers
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const charId = event.active.id as string;
+      const char = plan?.characters.find((c) => c.id === charId) as
+        | RaidPlanCharacter
+        | undefined;
+      setActiveCharacter(char ?? null);
+    },
+    [plan?.characters],
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setActiveCharacter(null);
+
+      const { active, over } = event;
+      if (!over || !plan) return;
+
+      const activeId = active.id as string;
+      const overId = over.id as string;
+
+      // Check if this is an AA slot drop
+      if (overId.startsWith("aa-slot:")) {
+        const parts = overId.split(":");
+        const contextId = parts[1]; // encounterId or raidPlanId
+        const slotName = parts.slice(2).join(":"); // Handle slot names with colons
+
+        // Determine if this is for an encounter or the default view
+        const isDefaultView = contextId === plan.id;
+
+        assignAASlotMutation.mutate({
+          encounterId: isDefaultView ? undefined : contextId,
+          raidPlanId: isDefaultView ? contextId : undefined,
+          planCharacterId: activeId,
+          slotName,
+        });
+        return;
+      }
+
+      // Check if we're on the default tab (allow group drops)
+      // or on an encounter tab with useDefaultGroups=false
+      const isDefaultTab = activeTab === "default";
+      const currentEncounter = plan.encounters.find((e) => e.id === activeTab);
+      const allowGroupDrops =
+        isDefaultTab ||
+        (currentEncounter && !currentEncounter.useDefaultGroups);
+
+      if (!allowGroupDrops) {
+        // Don't process group drops when using default groups
+        return;
+      }
+
+      const activeChar = plan.characters.find((c) => c.id === activeId);
+      if (!activeChar) return;
+
+      // Helper to get character at a slot
+      const getCharacterAtSlot = (
+        group: number,
+        position: number,
+      ): RaidPlanCharacter | undefined => {
+        if (isDefaultTab) {
+          return plan.characters.find(
+            (c) => c.defaultGroup === group && c.defaultPosition === position,
+          ) as RaidPlanCharacter | undefined;
+        } else {
+          // For encounter tabs, use encounter assignments
+          const chars = buildEncounterCharacters(
+            plan.characters as RaidPlanCharacter[],
+            plan.encounterAssignments,
+            activeTab,
+          );
+          return chars.find(
+            (c) => c.defaultGroup === group && c.defaultPosition === position,
+          );
+        }
+      };
+
+      // Handle bench drop
+      if (overId === "bench-droppable") {
+        if (isDefaultTab) {
+          moveCharacterMutation.mutate({
+            planCharacterId: activeId,
+            targetGroup: null,
+            targetPosition: null,
+          });
+        } else {
+          moveEncounterCharMutation.mutate({
+            encounterId: activeTab,
+            planCharacterId: activeId,
+            targetGroup: null,
+            targetPosition: null,
+          });
+        }
+        return;
+      }
+
+      // Handle group slot drop
+      if (overId.startsWith("slot-")) {
+        const parts = overId.split("-");
+        const targetGroup = parseInt(parts[1]!, 10);
+        const targetPosition = parseInt(parts[2]!, 10);
+
+        const targetChar = getCharacterAtSlot(targetGroup, targetPosition);
+
+        if (targetChar) {
+          // Swap with occupant
+          if (isDefaultTab) {
+            swapCharactersMutation.mutate({
+              planCharacterIdA: activeId,
+              planCharacterIdB: targetChar.id,
+            });
+          } else {
+            swapEncounterCharsMutation.mutate({
+              encounterId: activeTab,
+              planCharacterIdA: activeId,
+              planCharacterIdB: targetChar.id,
+            });
+          }
+        } else {
+          // Move to empty slot
+          if (isDefaultTab) {
+            moveCharacterMutation.mutate({
+              planCharacterId: activeId,
+              targetGroup,
+              targetPosition,
+            });
+          } else {
+            moveEncounterCharMutation.mutate({
+              encounterId: activeTab,
+              planCharacterId: activeId,
+              targetGroup,
+              targetPosition,
+            });
+          }
+        }
+        return;
+      }
+
+      // Dropped on a bench character - swap
+      const targetChar = plan.characters.find((c) => c.id === overId);
+      if (targetChar) {
+        if (isDefaultTab) {
+          swapCharactersMutation.mutate({
+            planCharacterIdA: activeId,
+            planCharacterIdB: overId,
+          });
+        } else {
+          swapEncounterCharsMutation.mutate({
+            encounterId: activeTab,
+            planCharacterIdA: activeId,
+            planCharacterIdB: overId,
+          });
+        }
+      }
+    },
+    [
+      plan,
+      activeTab,
+      assignAASlotMutation,
+      moveCharacterMutation,
+      swapCharactersMutation,
+      moveEncounterCharMutation,
+      swapEncounterCharsMutation,
+    ],
+  );
+
   const handleCharacterUpdate = useCallback(
+    (planCharacterId: string, character: RaidParticipant) => {
+      // Check if the character has any AA slot assignments
+      const aaAssignments = plan?.aaSlotAssignments.filter(
+        (a) => a.planCharacterId === planCharacterId,
+      );
+
+      if (aaAssignments && aaAssignments.length > 0) {
+        // Build the list of assignments for the dialog
+        const encounterMap = new Map(
+          plan?.encounters.map((e) => [e.id, e.encounterName]) ?? [],
+        );
+        const assignmentDetails = aaAssignments.map((a) => ({
+          encounterName: a.encounterId
+            ? (encounterMap.get(a.encounterId) ?? "Unknown")
+            : "Default/Trash",
+          slotName: a.slotName,
+        }));
+
+        // Show confirmation dialog
+        setPendingCharacterUpdate({
+          planCharacterId,
+          newCharacter: character,
+          existingAssignments: assignmentDetails,
+        });
+        return;
+      }
+
+      // No AA assignments - proceed directly
+      doCharacterUpdate(planCharacterId, character);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plan?.aaSlotAssignments, plan?.encounters],
+  );
+
+  // Helper function to perform the actual update (called directly or after confirmation)
+  const doCharacterUpdate = useCallback(
     (planCharacterId: string, character: RaidParticipant) => {
       // Convert 0 to null for placeholder names (no linked character)
       const characterId = character.characterId || null;
@@ -216,121 +505,30 @@ export function RaidPlanDetail({
     [planId, updateCharacterMutation, utils, toast],
   );
 
-  const handleCharacterMove = useCallback(
-    (event: CharacterMoveEvent) => {
-      // Optimistically update the cache immediately
-      const previousData = utils.raidPlan.getById.getData({ planId });
+  const handleCharacterReplaceConfirm = useCallback(
+    (clearAssignments: boolean) => {
+      if (!pendingCharacterUpdate) return;
 
-      utils.raidPlan.getById.setData({ planId }, (old) => {
-        if (!old) return old;
+      const { planCharacterId, newCharacter } = pendingCharacterUpdate;
 
-        return {
-          ...old,
-          characters: old.characters.map((char) =>
-            char.id === event.planCharacterId
-              ? {
-                  ...char,
-                  defaultGroup: event.targetGroup,
-                  defaultPosition: event.targetPosition,
-                }
-              : char,
-          ),
-        };
-      });
-
-      // Then perform the mutation
-      moveCharacterMutation.mutate(
-        {
-          planCharacterId: event.planCharacterId,
-          targetGroup: event.targetGroup,
-          targetPosition: event.targetPosition,
-        },
-        {
-          onError: (error) => {
-            // Rollback on error
-            if (previousData) {
-              utils.raidPlan.getById.setData({ planId }, previousData);
-            }
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive",
-            });
+      if (clearAssignments) {
+        // Clear AA assignments first, then update
+        clearAAAssignmentsMutation.mutate(
+          { planCharacterId },
+          {
+            onSuccess: () => {
+              doCharacterUpdate(planCharacterId, newCharacter);
+              setPendingCharacterUpdate(null);
+            },
           },
-          onSettled: () => {
-            // Refetch to ensure consistency
-            void utils.raidPlan.getById.invalidate({ planId });
-          },
-        },
-      );
-    },
-    [planId, moveCharacterMutation, utils, toast],
-  );
-
-  const handleCharacterSwap = useCallback(
-    (event: CharacterSwapEvent) => {
-      // Optimistically update the cache immediately
-      const previousData = utils.raidPlan.getById.getData({ planId });
-
-      utils.raidPlan.getById.setData({ planId }, (old) => {
-        if (!old) return old;
-
-        const charAIndex = old.characters.findIndex(
-          (c) => c.id === event.planCharacterIdA,
         );
-        const charBIndex = old.characters.findIndex(
-          (c) => c.id === event.planCharacterIdB,
-        );
-        if (charAIndex === -1 || charBIndex === -1) return old;
-
-        const charA = old.characters[charAIndex]!;
-        const charB = old.characters[charBIndex]!;
-
-        const updatedCharacters = [...old.characters];
-        // Swap their positions
-        updatedCharacters[charAIndex] = {
-          ...charA,
-          defaultGroup: charB.defaultGroup,
-          defaultPosition: charB.defaultPosition,
-        };
-        updatedCharacters[charBIndex] = {
-          ...charB,
-          defaultGroup: charA.defaultGroup,
-          defaultPosition: charA.defaultPosition,
-        };
-
-        return {
-          ...old,
-          characters: updatedCharacters,
-        };
-      });
-
-      // Then perform the mutation
-      swapCharactersMutation.mutate(
-        {
-          planCharacterIdA: event.planCharacterIdA,
-          planCharacterIdB: event.planCharacterIdB,
-        },
-        {
-          onError: (error) => {
-            // Rollback on error
-            if (previousData) {
-              utils.raidPlan.getById.setData({ planId }, previousData);
-            }
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive",
-            });
-          },
-          onSettled: () => {
-            // Refetch to ensure consistency
-            void utils.raidPlan.getById.invalidate({ planId });
-          },
-        },
-      );
+      } else {
+        // Transfer assignments (just update the character)
+        doCharacterUpdate(planCharacterId, newCharacter);
+        setPendingCharacterUpdate(null);
+      }
     },
-    [planId, swapCharactersMutation, utils, toast],
+    [pendingCharacterUpdate, clearAAAssignmentsMutation, doCharacterUpdate],
   );
 
   const handleSlotFill = useCallback(
@@ -479,115 +677,71 @@ export function RaidPlanDetail({
     exportMRT(plan.characters as RaidPlanCharacter[]);
   }, [plan, exportMRT]);
 
-  const handleEncounterCharacterMove = useCallback(
-    (encounterId: string, event: CharacterMoveEvent) => {
-      const previousData = utils.raidPlan.getById.getData({ planId });
-
-      utils.raidPlan.getById.setData({ planId }, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          encounterAssignments: old.encounterAssignments.map((a) =>
-            a.encounterId === encounterId &&
-            a.planCharacterId === event.planCharacterId
-              ? {
-                  ...a,
-                  groupNumber: event.targetGroup,
-                  position: event.targetPosition,
-                }
-              : a,
-          ),
-        };
+  // AA Template handlers
+  const handleAAAssign = useCallback(
+    (
+      planCharacterId: string,
+      slotName: string,
+      context: { encounterId?: string; raidPlanId?: string },
+    ) => {
+      assignAASlotMutation.mutate({
+        encounterId: context.encounterId,
+        raidPlanId: context.raidPlanId,
+        planCharacterId,
+        slotName,
       });
-
-      moveEncounterCharMutation.mutate(
-        {
-          encounterId,
-          planCharacterId: event.planCharacterId,
-          targetGroup: event.targetGroup,
-          targetPosition: event.targetPosition,
-        },
-        {
-          onError: (error) => {
-            if (previousData) {
-              utils.raidPlan.getById.setData({ planId }, previousData);
-            }
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive",
-            });
-          },
-          onSettled: () => {
-            void utils.raidPlan.getById.invalidate({ planId });
-          },
-        },
-      );
     },
-    [planId, moveEncounterCharMutation, utils, toast],
+    [assignAASlotMutation],
   );
 
-  const handleEncounterCharacterSwap = useCallback(
-    (encounterId: string, event: CharacterSwapEvent) => {
-      const previousData = utils.raidPlan.getById.getData({ planId });
-
-      utils.raidPlan.getById.setData({ planId }, (old) => {
-        if (!old) return old;
-
-        const assignments = [...old.encounterAssignments];
-        const idxA = assignments.findIndex(
-          (a) =>
-            a.encounterId === encounterId &&
-            a.planCharacterId === event.planCharacterIdA,
-        );
-        const idxB = assignments.findIndex(
-          (a) =>
-            a.encounterId === encounterId &&
-            a.planCharacterId === event.planCharacterIdB,
-        );
-        if (idxA === -1 || idxB === -1) return old;
-
-        const aAssign = assignments[idxA]!;
-        const bAssign = assignments[idxB]!;
-
-        assignments[idxA] = {
-          ...aAssign,
-          groupNumber: bAssign.groupNumber,
-          position: bAssign.position,
-        };
-        assignments[idxB] = {
-          ...bAssign,
-          groupNumber: aAssign.groupNumber,
-          position: aAssign.position,
-        };
-
-        return { ...old, encounterAssignments: assignments };
+  const handleAARemove = useCallback(
+    (
+      planCharacterId: string,
+      context: { encounterId?: string; raidPlanId?: string },
+    ) => {
+      removeAASlotMutation.mutate({
+        encounterId: context.encounterId,
+        raidPlanId: context.raidPlanId,
+        planCharacterId,
       });
-
-      swapEncounterCharsMutation.mutate(
-        {
-          encounterId,
-          planCharacterIdA: event.planCharacterIdA,
-          planCharacterIdB: event.planCharacterIdB,
-        },
-        {
-          onError: (error) => {
-            if (previousData) {
-              utils.raidPlan.getById.setData({ planId }, previousData);
-            }
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive",
-            });
-          },
-          onSettled: () => {
-            void utils.raidPlan.getById.invalidate({ planId });
-          },
-        },
-      );
     },
-    [planId, swapEncounterCharsMutation, utils, toast],
+    [removeAASlotMutation],
+  );
+
+  const handleAAReorder = useCallback(
+    (
+      slotName: string,
+      planCharacterIds: string[],
+      context: { encounterId?: string; raidPlanId?: string },
+    ) => {
+      reorderAASlotMutation.mutate({
+        encounterId: context.encounterId,
+        raidPlanId: context.raidPlanId,
+        slotName,
+        planCharacterIds,
+      });
+    },
+    [reorderAASlotMutation],
+  );
+
+  const handleDefaultAATemplateSave = useCallback(
+    (template: string) => {
+      updatePlanMutation.mutate({
+        planId,
+        defaultAATemplate: template,
+      });
+    },
+    [planId, updatePlanMutation],
+  );
+
+  const handleEncounterAATemplateSave = useCallback(
+    (encounterId: string, template: string) => {
+      updateEncounterMutation.mutate({
+        encounterId,
+        aaTemplate: template,
+      });
+    },
+    [updateEncounterMutation],
   );
 
   if (isLoading) {
@@ -661,114 +815,244 @@ export function RaidPlanDetail({
           <AddEncounterDialog planId={planId} onEncounterCreated={refetch} />
         </div>
 
-        {/* Two-column layout for tab content */}
-        <div className="mt-4 grid gap-6 lg:grid-cols-2">
-          {/* Left column: Group planning */}
-          <div>
-            {/* Default Tab */}
-            <TabsContent value="default" className="mt-0 space-y-3">
-              <div className="flex h-7 items-center">
-                <MRTControls
-                  onExportMRT={handleExportMRT}
-                  mrtCopied={copied}
-                  homeServer={homeServer}
-                  onHomeServerChange={setHomeServer}
+        {/* Two-column layout for tab content - wrapped in shared DndContext */}
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            {/* Left column: Group planning */}
+            <div>
+              {/* Default Tab */}
+              <TabsContent value="default" className="mt-0 space-y-3">
+                <div className="flex h-7 items-center">
+                  <MRTControls
+                    onExportMRT={handleExportMRT}
+                    mrtCopied={copied}
+                    homeServer={homeServer}
+                    onHomeServerChange={setHomeServer}
+                  />
+                </div>
+                <RaidPlanGroupsGrid
+                  characters={plan.characters as RaidPlanCharacter[]}
+                  groupCount={groupCount}
+                  editable
+                  skipDndContext
+                  onCharacterUpdate={handleCharacterUpdate}
+                  onSlotFill={handleSlotFill}
+                  onCharacterDelete={handleCharacterDelete}
                 />
-              </div>
-              <RaidPlanGroupsGrid
-                characters={plan.characters as RaidPlanCharacter[]}
-                groupCount={groupCount}
-                editable
-                onCharacterUpdate={handleCharacterUpdate}
-                onCharacterMove={handleCharacterMove}
-                onCharacterSwap={handleCharacterSwap}
-                onSlotFill={handleSlotFill}
-                onCharacterDelete={handleCharacterDelete}
-              />
-            </TabsContent>
+              </TabsContent>
 
-            {/* Encounter Tabs */}
-            {plan.encounters.map((encounter) => (
-              <TabsContent
-                key={encounter.id}
-                value={encounter.id}
-                className="mt-0 space-y-3"
-              >
+              {/* Encounter Tabs */}
+              {plan.encounters.map((encounter) => (
+                <TabsContent
+                  key={encounter.id}
+                  value={encounter.id}
+                  className="mt-0 space-y-3"
+                >
+                  <div className="flex h-7 items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id={`use-default-${encounter.id}`}
+                        checked={encounter.useDefaultGroups}
+                        onCheckedChange={(checked) => {
+                          updateEncounterMutation.mutate({
+                            encounterId: encounter.id,
+                            useDefaultGroups: checked === true,
+                          });
+                        }}
+                        disabled={updateEncounterMutation.isPending}
+                      />
+                      <label
+                        htmlFor={`use-default-${encounter.id}`}
+                        className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Use Default Groups
+                      </label>
+                      {updateEncounterMutation.isPending && (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <MRTControls
+                      onExportMRT={() =>
+                        exportMRT(
+                          buildEncounterCharacters(
+                            plan.characters as RaidPlanCharacter[],
+                            plan.encounterAssignments,
+                            encounter.id,
+                          ),
+                        )
+                      }
+                      mrtCopied={copied}
+                      homeServer={homeServer}
+                      onHomeServerChange={setHomeServer}
+                      disabled={encounter.useDefaultGroups}
+                    />
+                  </div>
+
+                  {encounter.useDefaultGroups ? (
+                    <RaidPlanGroupsGrid
+                      characters={plan.characters as RaidPlanCharacter[]}
+                      groupCount={groupCount}
+                      dimmed
+                      dragOnly
+                      skipDndContext
+                    />
+                  ) : (
+                    <RaidPlanGroupsGrid
+                      characters={buildEncounterCharacters(
+                        plan.characters as RaidPlanCharacter[],
+                        plan.encounterAssignments,
+                        encounter.id,
+                      )}
+                      groupCount={groupCount}
+                      editable
+                      showEditControls={false}
+                      skipDndContext
+                    />
+                  )}
+                </TabsContent>
+              ))}
+            </div>
+
+            {/* Right column: AA Template */}
+            <div>
+              {/* Default Tab AA */}
+              <TabsContent value="default" className="mt-0 space-y-3">
                 <div className="flex h-7 items-center gap-2">
-                  <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="include-aa-default"
+                    checked={plan.useDefaultAA}
+                    onCheckedChange={(checked) => {
+                      updatePlanMutation.mutate({
+                        planId,
+                        useDefaultAA: checked === true,
+                      });
+                    }}
+                    disabled={updatePlanMutation.isPending}
+                  />
+                  <label
+                    htmlFor="include-aa-default"
+                    className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include AngryEra
+                  </label>
+                  {updatePlanMutation.isPending && (
+                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                {plan.useDefaultAA ? (
+                  <AAPanel
+                    template={plan.defaultAATemplate}
+                    onSaveTemplate={handleDefaultAATemplateSave}
+                    characters={plan.characters as RaidPlanCharacter[]}
+                    slotAssignments={plan.aaSlotAssignments.filter(
+                      (a) => a.raidPlanId === planId,
+                    )}
+                    onAssign={(charId, slotName) =>
+                      handleAAAssign(charId, slotName, { raidPlanId: planId })
+                    }
+                    onRemove={(charId) =>
+                      handleAARemove(charId, { raidPlanId: planId })
+                    }
+                    onReorder={(slotName, ids) =>
+                      handleAAReorder(slotName, ids, { raidPlanId: planId })
+                    }
+                    contextId={planId}
+                    isSaving={updatePlanMutation.isPending}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-dashed p-6">
+                    <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+                      Check &quot;Include AngryEra&quot; to enable AA
+                      assignments
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Encounter Tab AA */}
+              {plan.encounters.map((encounter) => (
+                <TabsContent
+                  key={encounter.id}
+                  value={encounter.id}
+                  className="mt-0 space-y-3"
+                >
+                  <div className="flex h-7 items-center gap-2">
                     <Checkbox
-                      id={`use-default-${encounter.id}`}
-                      checked={encounter.useDefaultGroups}
+                      id={`include-aa-${encounter.id}`}
+                      checked={encounter.useCustomAA}
                       onCheckedChange={(checked) => {
                         updateEncounterMutation.mutate({
                           encounterId: encounter.id,
-                          useDefaultGroups: checked === true,
+                          useCustomAA: checked === true,
                         });
                       }}
                       disabled={updateEncounterMutation.isPending}
                     />
                     <label
-                      htmlFor={`use-default-${encounter.id}`}
+                      htmlFor={`include-aa-${encounter.id}`}
                       className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      Use Default Groups
+                      Include AngryEra
                     </label>
                     {updateEncounterMutation.isPending && (
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                     )}
                   </div>
-                  <MRTControls
-                    onExportMRT={() =>
-                      exportMRT(
-                        buildEncounterCharacters(
-                          plan.characters as RaidPlanCharacter[],
-                          plan.encounterAssignments,
-                          encounter.id,
-                        ),
-                      )
-                    }
-                    mrtCopied={copied}
-                    homeServer={homeServer}
-                    onHomeServerChange={setHomeServer}
-                    disabled={encounter.useDefaultGroups}
-                  />
-                </div>
-
-                {encounter.useDefaultGroups ? (
-                  <RaidPlanGroupsGrid
-                    characters={plan.characters as RaidPlanCharacter[]}
-                    groupCount={groupCount}
-                    dimmed
-                  />
-                ) : (
-                  <RaidPlanGroupsGrid
-                    characters={buildEncounterCharacters(
-                      plan.characters as RaidPlanCharacter[],
-                      plan.encounterAssignments,
-                      encounter.id,
-                    )}
-                    groupCount={groupCount}
-                    editable
-                    showEditControls={false}
-                    onCharacterMove={(event) =>
-                      handleEncounterCharacterMove(encounter.id, event)
-                    }
-                    onCharacterSwap={(event) =>
-                      handleEncounterCharacterSwap(encounter.id, event)
-                    }
-                  />
-                )}
-              </TabsContent>
-            ))}
-          </div>
-
-          {/* Right column: Future content (per-encounter) */}
-          <div className="rounded-lg border border-dashed p-6">
-            <div className="flex h-full min-h-[300px] items-center justify-center text-muted-foreground">
-              {/* Placeholder for future content */}
+                  {encounter.useCustomAA ? (
+                    <AAPanel
+                      template={encounter.aaTemplate}
+                      onSaveTemplate={(template) =>
+                        handleEncounterAATemplateSave(encounter.id, template)
+                      }
+                      characters={plan.characters as RaidPlanCharacter[]}
+                      slotAssignments={plan.aaSlotAssignments.filter(
+                        (a) => a.encounterId === encounter.id,
+                      )}
+                      onAssign={(charId, slotName) =>
+                        handleAAAssign(charId, slotName, {
+                          encounterId: encounter.id,
+                        })
+                      }
+                      onRemove={(charId) =>
+                        handleAARemove(charId, { encounterId: encounter.id })
+                      }
+                      onReorder={(slotName, ids) =>
+                        handleAAReorder(slotName, ids, {
+                          encounterId: encounter.id,
+                        })
+                      }
+                      contextId={encounter.id}
+                      isSaving={updateEncounterMutation.isPending}
+                    />
+                  ) : (
+                    <div className="rounded-lg border border-dashed p-6">
+                      <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+                        Check &quot;Include AngryEra&quot; to enable AA
+                        assignments
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              ))}
             </div>
           </div>
-        </div>
+
+          {/* Drag overlay for shared DndContext */}
+          <DragOverlay dropAnimation={null}>
+            {activeCharacter && (
+              <div className="flex items-center gap-1 rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
+                {activeCharacter.class && (
+                  <ClassIcon characterClass={activeCharacter.class} px={14} />
+                )}
+                {activeCharacter.characterName}
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       </Tabs>
 
       {/* Delete Encounter Confirmation */}
@@ -807,6 +1091,61 @@ export function RaidPlanDetail({
                 </>
               ) : (
                 "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Character Replacement Confirmation */}
+      <AlertDialog
+        open={!!pendingCharacterUpdate}
+        onOpenChange={(open) => !open && setPendingCharacterUpdate(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace Character</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This character has AA assignments in the following encounters:
+                </p>
+                <ul className="list-inside list-disc text-sm">
+                  {pendingCharacterUpdate?.existingAssignments.map((a, i) => (
+                    <li key={i}>
+                      {a.encounterName} ({a.slotName})
+                    </li>
+                  ))}
+                </ul>
+                <p>What would you like to do?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel
+              disabled={clearAAAssignmentsMutation.isPending}
+              onClick={() => setPendingCharacterUpdate(null)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleCharacterReplaceConfirm(false)}
+              disabled={clearAAAssignmentsMutation.isPending}
+            >
+              Transfer to {pendingCharacterUpdate?.newCharacter.name}
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleCharacterReplaceConfirm(true)}
+              disabled={clearAAAssignmentsMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearAAAssignmentsMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Clearing...
+                </>
+              ) : (
+                "Clear Assignments"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -858,6 +1197,70 @@ function MRTControls({
       >
         {mrtCopied ? "Copied!" : "Copy MRT Export"}
       </button>
+    </div>
+  );
+}
+
+interface AAPanelProps {
+  template: string | null;
+  onSaveTemplate: (template: string) => void;
+  characters: RaidPlanCharacter[];
+  slotAssignments: AASlotAssignment[];
+  onAssign: (planCharacterId: string, slotName: string) => void;
+  onRemove: (planCharacterId: string) => void;
+  onReorder: (slotName: string, planCharacterIds: string[]) => void;
+  contextId: string;
+  isSaving?: boolean;
+}
+
+function AAPanel({
+  template,
+  onSaveTemplate,
+  characters,
+  slotAssignments,
+  onAssign,
+  onRemove,
+  onReorder,
+  contextId,
+  isSaving,
+}: AAPanelProps) {
+  // If no template yet, show editor to create one
+  if (!template) {
+    return (
+      <div className="space-y-4 rounded-lg border p-4">
+        <div className="text-sm text-muted-foreground">
+          Create an AA template with <code>{"{assign:SlotName}"}</code>{" "}
+          placeholders, then drag characters from the groups to assign them.
+        </div>
+        <AATemplateEditor
+          template=""
+          onSave={onSaveTemplate}
+          isSaving={isSaving}
+        />
+      </div>
+    );
+  }
+
+  // Show full AA interface
+  return (
+    <div className="space-y-4 rounded-lg border p-4">
+      <AATemplateRenderer
+        template={template}
+        encounterId={contextId.includes("-") ? contextId : undefined}
+        raidPlanId={!contextId.includes("-") ? contextId : undefined}
+        characters={characters}
+        slotAssignments={slotAssignments}
+        onAssign={onAssign}
+        onRemove={onRemove}
+        onReorder={onReorder}
+        skipDndContext
+      />
+
+      <AATemplateEditor
+        template={template}
+        onSave={onSaveTemplate}
+        isSaving={isSaving}
+      />
     </div>
   );
 }

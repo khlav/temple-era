@@ -6,6 +6,7 @@ import {
   varchar,
   boolean,
   uuid,
+  text,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { IdPkAsUUID, DefaultTimestamps, CreatedBy } from "~/server/db/helpers";
@@ -30,6 +31,10 @@ export const raidPlanTemplates = tableCreator(
     defaultGroupCount: integer("default_group_count").notNull().default(8),
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
+    defaultAATemplate: text("default_aa_template"), // AA template for Default/Trash
+    includeDefaultAAByDefault: boolean("include_default_aa_by_default")
+      .notNull()
+      .default(false),
     ...CreatedBy,
     ...DefaultTimestamps,
   },
@@ -59,6 +64,10 @@ export const raidPlanTemplateEncounters = tableCreator(
     encounterKey: varchar("encounter_key", { length: 64 }).notNull(),
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
+    aaTemplate: text("aa_template"), // AngryAssignments template text
+    includeAAByDefault: boolean("include_aa_by_default")
+      .notNull()
+      .default(false),
     ...DefaultTimestamps,
   },
   (table) => ({
@@ -98,6 +107,8 @@ export const raidPlans = tableCreator(
     }),
     zoneId: varchar("zone_id", { length: 64 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
+    defaultAATemplate: text("default_aa_template"), // AA template for Default/Trash view
+    useDefaultAA: boolean("use_default_aa").notNull().default(false),
     ...CreatedBy,
     ...DefaultTimestamps,
   },
@@ -116,6 +127,7 @@ export const raidPlansRelations = relations(raidPlans, ({ one, many }) => ({
   }),
   characters: many(raidPlanCharacters),
   encounters: many(raidPlanEncounters),
+  defaultAASlots: many(raidPlanEncounterAASlots),
 }));
 
 /**
@@ -160,6 +172,7 @@ export const raidPlanCharactersRelations = relations(
       references: [characters.characterId],
     }),
     encounterAssignments: many(raidPlanEncounterAssignments),
+    aaSlotAssignments: many(raidPlanEncounterAASlots),
   }),
 );
 
@@ -178,6 +191,8 @@ export const raidPlanEncounters = tableCreator(
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
     useDefaultGroups: boolean("use_default_groups").notNull().default(true),
+    aaTemplate: text("aa_template"), // AngryAssignments template (copied from template, editable)
+    useCustomAA: boolean("use_custom_aa").notNull().default(false), // Whether to show AA UI
     ...DefaultTimestamps,
   },
   (table) => ({
@@ -195,6 +210,7 @@ export const raidPlanEncountersRelations = relations(
       references: [raidPlans.id],
     }),
     assignments: many(raidPlanEncounterAssignments),
+    aaSlots: many(raidPlanEncounterAASlots),
   }),
 );
 
@@ -236,6 +252,66 @@ export const raidPlanEncounterAssignmentsRelations = relations(
     }),
     planCharacter: one(raidPlanCharacters, {
       fields: [raidPlanEncounterAssignments.planCharacterId],
+      references: [raidPlanCharacters.id],
+    }),
+  }),
+);
+
+/**
+ * AngryAssignments slot assignments for encounters and default view.
+ * Maps characters to named slots within an AA template.
+ * Each character can only be assigned to one slot per context (encounter or default).
+ *
+ * Usage:
+ * - For encounter-specific AA: encounterId is set, raidPlanId is null
+ * - For default/trash AA: encounterId is null, raidPlanId is set
+ */
+export const raidPlanEncounterAASlots = tableCreator(
+  "raid_plan_encounter_aa_slot",
+  {
+    ...IdPkAsUUID,
+    encounterId: uuid("encounter_id").references(() => raidPlanEncounters.id, {
+      onDelete: "cascade",
+    }),
+    raidPlanId: uuid("raid_plan_id").references(() => raidPlans.id, {
+      onDelete: "cascade",
+    }),
+    planCharacterId: uuid("plan_character_id")
+      .notNull()
+      .references(() => raidPlanCharacters.id, { onDelete: "cascade" }),
+    slotName: varchar("slot_name", { length: 128 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...DefaultTimestamps,
+  },
+  (table) => ({
+    encounterIdIdx: index("aa_slot__encounter_id_idx").on(table.encounterId),
+    raidPlanIdIdx: index("aa_slot__raid_plan_id_idx").on(table.raidPlanId),
+    // Unique constraint: character can only be in one slot per encounter
+    uniqueCharPerEncounter: uniqueIndex("aa_slot__unique_char_encounter").on(
+      table.encounterId,
+      table.planCharacterId,
+    ),
+    // Unique constraint: character can only be in one slot per default view
+    uniqueCharPerPlan: uniqueIndex("aa_slot__unique_char_plan").on(
+      table.raidPlanId,
+      table.planCharacterId,
+    ),
+  }),
+);
+
+export const raidPlanEncounterAASlotsRelations = relations(
+  raidPlanEncounterAASlots,
+  ({ one }) => ({
+    encounter: one(raidPlanEncounters, {
+      fields: [raidPlanEncounterAASlots.encounterId],
+      references: [raidPlanEncounters.id],
+    }),
+    raidPlan: one(raidPlans, {
+      fields: [raidPlanEncounterAASlots.raidPlanId],
+      references: [raidPlans.id],
+    }),
+    planCharacter: one(raidPlanCharacters, {
+      fields: [raidPlanEncounterAASlots.planCharacterId],
       references: [raidPlanCharacters.id],
     }),
   }),
