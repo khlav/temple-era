@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Maintenance Rule**: When making changes that affect architecture, project structure, commands, database schema, API endpoints, or common patterns, update this file to keep it synchronized with the codebase.
+
 ## Project Overview
 
 Temple Raids is a comprehensive raid management and attendance tracking system for Temple, a Horde guild on the Ashkandi server in World of Warcraft Classic. Built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM, PostgreSQL), it provides a modern web interface for managing guild raids, tracking attendance over rolling 6-week periods, and coordinating crafting resources.
@@ -237,6 +239,10 @@ The `user-facing` label controls Discord notifications for merged PRs.
 - User-focused - Prioritize what users will see/experience over technical implementation details
 
 ### Environment Setup
+
+**Prerequisites:**
+- Node.js 22.x (required: `>=22.0.0 <23.0.0`)
+- pnpm 9.x (see `packageManager` in package.json)
 
 Required environment variables:
 
