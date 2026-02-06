@@ -8,6 +8,47 @@ import {
 
 export const raidPlanTemplateRouter = createTRPCRouter({
   /**
+   * Get the default AA template for a specific zone.
+   * Used by the raid planner to reset templates to defaults.
+   */
+  getByZoneId: raidManagerProcedure
+    .input(z.object({ zoneId: z.string().min(1).max(64) }))
+    .query(async ({ ctx, input }) => {
+      const template = await ctx.db
+        .select({
+          id: raidPlanTemplates.id,
+          zoneId: raidPlanTemplates.zoneId,
+          zoneName: raidPlanTemplates.zoneName,
+          defaultAATemplate: raidPlanTemplates.defaultAATemplate,
+        })
+        .from(raidPlanTemplates)
+        .where(eq(raidPlanTemplates.zoneId, input.zoneId))
+        .limit(1);
+
+      if (template.length === 0) {
+        return null;
+      }
+
+      // Get encounters for this template
+      const encounters = await ctx.db
+        .select({
+          id: raidPlanTemplateEncounters.id,
+          encounterKey: raidPlanTemplateEncounters.encounterKey,
+          encounterName: raidPlanTemplateEncounters.encounterName,
+          sortOrder: raidPlanTemplateEncounters.sortOrder,
+          aaTemplate: raidPlanTemplateEncounters.aaTemplate,
+        })
+        .from(raidPlanTemplateEncounters)
+        .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
+        .orderBy(raidPlanTemplateEncounters.sortOrder);
+
+      return {
+        ...template[0]!,
+        encounters,
+      };
+    }),
+
+  /**
    * Fetch all templates with their encounters, ordered by sortOrder.
    */
   getAll: raidManagerProcedure.query(async ({ ctx }) => {
@@ -19,6 +60,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         defaultGroupCount: raidPlanTemplates.defaultGroupCount,
         isActive: raidPlanTemplates.isActive,
         sortOrder: raidPlanTemplates.sortOrder,
+        defaultAATemplate: raidPlanTemplates.defaultAATemplate,
       })
       .from(raidPlanTemplates)
       .orderBy(raidPlanTemplates.sortOrder);
@@ -36,6 +78,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterKey: raidPlanTemplateEncounters.encounterKey,
         encounterName: raidPlanTemplateEncounters.encounterName,
         sortOrder: raidPlanTemplateEncounters.sortOrder,
+        aaTemplate: raidPlanTemplateEncounters.aaTemplate,
       })
       .from(raidPlanTemplateEncounters)
       .where(inArray(raidPlanTemplateEncounters.templateId, templateIds))
@@ -104,6 +147,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         isActive: z.boolean().optional(),
         sortOrder: z.number().int().optional(),
         defaultGroupCount: z.number().int().min(1).max(8).optional(),
+        defaultAATemplate: z.string().max(10000).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -111,12 +155,15 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         isActive: boolean;
         sortOrder: number;
         defaultGroupCount: number;
+        defaultAATemplate: string | null;
       }> = {};
 
       if (input.isActive !== undefined) updates.isActive = input.isActive;
       if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
       if (input.defaultGroupCount !== undefined)
         updates.defaultGroupCount = input.defaultGroupCount;
+      if (input.defaultAATemplate !== undefined)
+        updates.defaultAATemplate = input.defaultAATemplate;
 
       if (Object.keys(updates).length === 0) {
         return { success: true };
@@ -195,6 +242,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterId: z.string().uuid(),
         encounterName: z.string().min(1).max(256).optional(),
         sortOrder: z.number().int().optional(),
+        aaTemplate: z.string().max(10000).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -202,6 +250,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         encounterName: string;
         encounterKey: string;
         sortOrder: number;
+        aaTemplate: string | null;
       }> = {};
 
       if (input.encounterName !== undefined) {
@@ -214,6 +263,10 @@ export const raidPlanTemplateRouter = createTRPCRouter({
 
       if (input.sortOrder !== undefined) {
         updates.sortOrder = input.sortOrder;
+      }
+
+      if (input.aaTemplate !== undefined) {
+        updates.aaTemplate = input.aaTemplate;
       }
 
       if (Object.keys(updates).length === 0) {

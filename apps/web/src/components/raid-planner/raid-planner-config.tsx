@@ -26,6 +26,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
+import { Textarea } from "~/components/ui/textarea";
 import {
   Plus,
   Trash2,
@@ -44,6 +45,7 @@ interface TemplateEncounter {
   encounterKey: string;
   encounterName: string;
   sortOrder: number;
+  aaTemplate: string | null;
 }
 
 interface Template {
@@ -53,6 +55,7 @@ interface Template {
   defaultGroupCount: number;
   isActive: boolean;
   sortOrder: number;
+  defaultAATemplate: string | null;
   encounters: TemplateEncounter[];
 }
 
@@ -103,6 +106,11 @@ export function RaidPlannerConfig() {
     const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(
       null,
     );
+    // AA editing state - "default" for Default/Trash, or encounter ID
+    const [selectedAAContext, setSelectedAAContext] = useState<
+      "default" | string | null
+    >(null);
+    const [localAATemplate, setLocalAATemplate] = useState("");
 
     const is20Man = TWENTY_MAN_INSTANCES.includes(zone.instance);
     const defaultGroupCount = is20Man ? 4 : 8;
@@ -139,6 +147,9 @@ export function RaidPlannerConfig() {
                   }),
                   ...(variables.defaultGroupCount !== undefined && {
                     defaultGroupCount: variables.defaultGroupCount,
+                  }),
+                  ...(variables.defaultAATemplate !== undefined && {
+                    defaultAATemplate: variables.defaultAATemplate,
                   }),
                 }
               : t,
@@ -188,6 +199,8 @@ export function RaidPlannerConfig() {
                   encounterKey,
                   encounterName: variables.encounterName,
                   sortOrder: maxSort + 1,
+                  aaTemplate: null,
+                  includeAAByDefault: false,
                 },
               ],
             };
@@ -232,6 +245,9 @@ export function RaidPlannerConfig() {
                 }),
                 ...(variables.sortOrder !== undefined && {
                   sortOrder: variables.sortOrder,
+                }),
+                ...(variables.aaTemplate !== undefined && {
+                  aaTemplate: variables.aaTemplate,
                 }),
               };
             }),
@@ -405,6 +421,50 @@ export function RaidPlannerConfig() {
       setDeleteEncounterId(null);
     };
 
+    const handleSelectAAContext = (context: "default" | string) => {
+      if (context === "default") {
+        setSelectedAAContext("default");
+        setLocalAATemplate(zone.template?.defaultAATemplate ?? "");
+      } else {
+        const encounter = zone.template?.encounters.find(
+          (e) => e.id === context,
+        );
+        setSelectedAAContext(context);
+        setLocalAATemplate(encounter?.aaTemplate ?? "");
+      }
+    };
+
+    const handleSaveAATemplate = () => {
+      if (!zone.template || selectedAAContext === null) return;
+
+      if (selectedAAContext === "default") {
+        updateTemplate.mutate(
+          {
+            templateId: zone.template.id,
+            defaultAATemplate: localAATemplate || null,
+          },
+          {
+            onSuccess: () => setSelectedAAContext(null),
+          },
+        );
+      } else {
+        updateEncounter.mutate(
+          {
+            encounterId: selectedAAContext,
+            aaTemplate: localAATemplate || null,
+          },
+          {
+            onSuccess: () => setSelectedAAContext(null),
+          },
+        );
+      }
+    };
+
+    const handleCancelAAEdit = () => {
+      setSelectedAAContext(null);
+      setLocalAATemplate("");
+    };
+
     const sortedEncounters = zone.template
       ? [...zone.template.encounters].sort((a, b) => a.sortOrder - b.sortOrder)
       : [];
@@ -451,22 +511,143 @@ export function RaidPlannerConfig() {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-2 gap-6">
-              {/* Left column: encounters */}
-              <div className="space-y-4">
-                {/* Encounter list */}
-                <div className="space-y-1">
-                  {/* Default/Trash — always present */}
-                  <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-muted-foreground">
-                    <span className="flex-1 text-sm">Default/Trash</span>
-                    <span className="text-xs">Included by default</span>
-                  </div>
+            <div className="space-y-4">
+              {/* Syntax help */}
+              <p className="text-xs text-muted-foreground">
+                Use{" "}
+                <code className="rounded bg-muted px-1">
+                  {"{assign:SlotName}"}
+                </code>{" "}
+                to create assignment slots in AA templates.
+              </p>
 
-                  {sortedEncounters.map((encounter, idx) => (
-                    <div
-                      key={encounter.id}
-                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+              {/* Unified encounter list */}
+              <div className="max-w-xl space-y-2">
+                {/* Default/Trash row */}
+                <div
+                  className={`rounded-md border transition-colors ${
+                    selectedAAContext === "default"
+                      ? "border-primary bg-primary/5"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    {/* Placeholder for reorder buttons (not shown for default) */}
+                    <div className="w-14" />
+                    <span className="flex-1 text-sm text-muted-foreground">
+                      Default/Trash
+                    </span>
+                    <Button
+                      variant={
+                        zone.template?.defaultAATemplate ? "default" : "warning"
+                      }
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        selectedAAContext === "default"
+                          ? handleCancelAAEdit()
+                          : handleSelectAAContext("default")
+                      }
                     >
+                      {zone.template?.defaultAATemplate ? "Edit AA" : "Add AA"}
+                    </Button>
+                    {/* Placeholder for delete button (not shown for default) */}
+                    <div className="w-7" />
+                  </div>
+                  {selectedAAContext === "default" && (
+                    <div className="space-y-2 border-t px-3 py-3">
+                      <Textarea
+                        value={localAATemplate}
+                        onChange={(e) => setLocalAATemplate(e.target.value)}
+                        placeholder="Enter AA template text..."
+                        className="min-h-[200px] font-mono text-xs"
+                        autoFocus
+                      />
+                      <div className="flex justify-between">
+                        {zone.template?.defaultAATemplate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (!zone.template) return;
+                              updateTemplate.mutate(
+                                {
+                                  templateId: zone.template.id,
+                                  defaultAATemplate: null,
+                                },
+                                {
+                                  onSuccess: () => {
+                                    setSelectedAAContext(null);
+                                    setLocalAATemplate("");
+                                  },
+                                },
+                              );
+                            }}
+                            disabled={updateTemplate.isPending}
+                          >
+                            Clear template
+                          </Button>
+                        )}
+                        <div className="ml-auto flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelAAEdit}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveAATemplate}
+                            disabled={updateTemplate.isPending}
+                          >
+                            <Check className="mr-1 h-3.5 w-3.5" />
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Encounter rows */}
+                {sortedEncounters.map((encounter, idx) => (
+                  <div
+                    key={encounter.id}
+                    className={`rounded-md border transition-colors ${
+                      selectedAAContext === encounter.id
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      {/* Reorder buttons */}
+                      <div className="flex">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={idx === 0 || reorderEncounters.isPending}
+                          onClick={() => handleMoveEncounter(encounter, "up")}
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={
+                            idx === sortedEncounters.length - 1 ||
+                            reorderEncounters.isPending
+                          }
+                          onClick={() => handleMoveEncounter(encounter, "down")}
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Encounter name (editable) */}
                       {editingId === encounter.id ? (
                         <>
                           <Input
@@ -517,27 +698,18 @@ export function RaidPlannerConfig() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={idx === 0 || reorderEncounters.isPending}
-                            onClick={() => handleMoveEncounter(encounter, "up")}
-                          >
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            disabled={
-                              idx === sortedEncounters.length - 1 ||
-                              reorderEncounters.isPending
+                            variant={
+                              encounter.aaTemplate ? "default" : "warning"
                             }
+                            size="sm"
+                            className="h-7 text-xs"
                             onClick={() =>
-                              handleMoveEncounter(encounter, "down")
+                              selectedAAContext === encounter.id
+                                ? handleCancelAAEdit()
+                                : handleSelectAAContext(encounter.id)
                             }
                           >
-                            <ChevronDown className="h-3.5 w-3.5" />
+                            {encounter.aaTemplate ? "Edit AA" : "Add AA"}
                           </Button>
                           <Button
                             variant="ghost"
@@ -550,38 +722,91 @@ export function RaidPlannerConfig() {
                         </>
                       )}
                     </div>
-                  ))}
-                </div>
 
-                {/* Add encounter form */}
-                <form
-                  onSubmit={handleAddEncounter}
-                  className="flex items-center gap-2"
-                >
-                  <Input
-                    placeholder="Encounter name"
-                    value={newEncounterName}
-                    onChange={(e) => setNewEncounterName(e.target.value)}
-                    className="h-8 flex-1"
-                  />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    size="sm"
-                    disabled={
-                      !newEncounterName.trim() ||
-                      addEncounter.isPending ||
-                      upsertTemplate.isPending
-                    }
-                  >
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Add
-                  </Button>
-                </form>
+                    {/* Expanded AA editor */}
+                    {selectedAAContext === encounter.id && (
+                      <div className="space-y-2 border-t px-3 py-3">
+                        <Textarea
+                          value={localAATemplate}
+                          onChange={(e) => setLocalAATemplate(e.target.value)}
+                          placeholder="Enter AA template text..."
+                          className="min-h-[200px] font-mono text-xs"
+                          autoFocus
+                        />
+                        <div className="flex justify-between">
+                          {encounter.aaTemplate && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => {
+                                updateEncounter.mutate(
+                                  {
+                                    encounterId: encounter.id,
+                                    aaTemplate: null,
+                                  },
+                                  {
+                                    onSuccess: () => {
+                                      setSelectedAAContext(null);
+                                      setLocalAATemplate("");
+                                    },
+                                  },
+                                );
+                              }}
+                              disabled={updateEncounter.isPending}
+                            >
+                              Clear template
+                            </Button>
+                          )}
+                          <div className="ml-auto flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCancelAAEdit}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSaveAATemplate}
+                              disabled={updateEncounter.isPending}
+                            >
+                              <Check className="mr-1 h-3.5 w-3.5" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              {/* Right column: reserved for future use */}
-              <div />
+              {/* Add encounter form */}
+              <form
+                onSubmit={handleAddEncounter}
+                className="flex items-center gap-2 pt-2"
+              >
+                <Input
+                  placeholder="Encounter name"
+                  value={newEncounterName}
+                  onChange={(e) => setNewEncounterName(e.target.value)}
+                  className="h-8 flex-1"
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="sm"
+                  disabled={
+                    !newEncounterName.trim() ||
+                    addEncounter.isPending ||
+                    upsertTemplate.isPending
+                  }
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </form>
             </div>
           </AccordionContent>
         </AccordionItem>
