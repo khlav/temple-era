@@ -6,7 +6,8 @@ import { env } from "~/env";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance - Home",
-  description: "Track and manage raid attendance for the Temple guild",
+  description:
+    "Attendence tracking and raid management for Temple, a horde guild on the World of Warcraft Classic Era cluster.",
   verification: {
     google: env.GOOGLE_SITE_VERIFICATION,
   },

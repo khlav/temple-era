@@ -208,41 +208,50 @@ export const raidHelperRouter = createTRPCRouter({
   /**
    * Fetch scheduled events from the Discord server
    */
-  getScheduledEvents: raidManagerProcedure.query(async () => {
-    const response = await fetch(
-      `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/events`,
-      {
-        headers: {
-          Authorization: env.RAID_HELPER_API_KEY,
+  getScheduledEvents: raidManagerProcedure
+    .input(
+      z.object({
+        allowableHoursPastStart: z.number().min(0).default(0),
+      }),
+    )
+    .query(async ({ input }) => {
+      const response = await fetch(
+        `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/events`,
+        {
+          headers: {
+            Authorization: env.RAID_HELPER_API_KEY,
+          },
         },
-      },
-    );
+      );
 
-    if (!response.ok) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: `Failed to fetch scheduled events: ${response.statusText}`,
-      });
-    }
+      if (!response.ok) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to fetch scheduled events: ${response.statusText}`,
+        });
+      }
 
-    const data = (await response.json()) as PostedEventsResponse;
+      const data = (await response.json()) as PostedEventsResponse;
 
-    const now = Math.floor(Date.now() / 1000);
+      const secondsPerHour = 3600;
+      const minStartTime =
+        Math.floor(Date.now() / 1000) -
+        secondsPerHour * input.allowableHoursPastStart;
 
-    // Filter to upcoming events and sort by startTime ascending (nearest first)
-    return data.postedEvents
-      .filter((e) => e.startTime >= now)
-      .sort((a, b) => a.startTime - b.startTime)
-      .map((e) => ({
-        id: e.id,
-        title: e.title,
-        displayTitle: resolveEventTitle(e.title, e.startTime),
-        channelName: e.channelName,
-        startTime: e.startTime,
-        leaderName: e.leaderName,
-        signUpCount: e.signUpCount ?? 0,
-      }));
-  }),
+      // Filter to events newer than 1 hour ago and sort by startTime ascending
+      return data.postedEvents
+        .filter((e) => e.startTime >= minStartTime)
+        .sort((a, b) => a.startTime - b.startTime)
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          displayTitle: resolveEventTitle(e.title, e.startTime),
+          channelName: e.channelName,
+          startTime: e.startTime,
+          leaderName: e.leaderName,
+          signUpCount: e.signUpCount ?? 0,
+        }));
+    }),
 
   /**
    * Fetch event details including all signups and group assignments
