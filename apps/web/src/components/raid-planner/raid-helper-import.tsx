@@ -332,7 +332,7 @@ function EventRow({
           ) : (
             <Users className="mr-1 h-4 w-4" />
           )}
-          Find Players
+          Find Gamers
         </Button>
         {hasPlan ? (
           <Button variant="default" size="sm" className="w-24" asChild>
