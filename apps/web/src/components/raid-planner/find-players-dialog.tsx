@@ -298,7 +298,7 @@ export function FindPlayersDialog({
         <DialogHeader className="flex flex-row items-center justify-between gap-4">
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            {eventTitle} - Find Players
+            {eventTitle} - Find Gamers
           </DialogTitle>
         </DialogHeader>
 
