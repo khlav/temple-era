@@ -74,7 +74,7 @@ export function AASlotDropzone({
       )}
     >
       {/* Slot label with capacity */}
-      <span className="text-[10px] font-medium text-muted-foreground">
+      <span className="text-xs font-medium text-muted-foreground">
         {slotName}
         {maxCharacters && (
           <span className="ml-0.5 opacity-70">
@@ -92,7 +92,7 @@ export function AASlotDropzone({
               key={char.planCharacterId}
               className={cn(
                 "group relative inline-flex items-center gap-0.5 rounded px-1 py-0.5",
-                "text-xs font-medium",
+                "text-sm font-medium",
                 !noColor && char.characterClass
                   ? (CLASS_TEXT_COLORS[char.characterClass] ??
                       "text-foreground")
@@ -100,7 +100,7 @@ export function AASlotDropzone({
               )}
             >
               {!noColor && char.characterClass && (
-                <ClassIcon characterClass={char.characterClass} px={12} />
+                <ClassIcon characterClass={char.characterClass} px={14} />
               )}
               <span>{char.characterName}</span>
               {index < sortedCharacters.length - 1 && (
@@ -119,7 +119,7 @@ export function AASlotDropzone({
           ))}
         </span>
       ) : (
-        <span className="text-[10px] italic text-muted-foreground/60">
+        <span className="text-xs italic text-muted-foreground/60">
           Drop here
         </span>
       )}
@@ -161,59 +161,46 @@ export function AASlotInline({
     (a, b) => a.sortOrder - b.sortOrder,
   );
 
-  if (sortedCharacters.length === 0) {
-    return (
-      <span
-        ref={setNodeRef}
-        className={cn(
-          "inline-block rounded border border-dashed px-1 py-0.5",
-          "text-[10px] text-muted-foreground/60",
-          isOver && "border-primary bg-primary/10",
-          !isOver && "border-muted-foreground/40",
-        )}
-      >
-        [{slotName}]
-      </span>
-    );
-  }
-
   return (
     <span
       ref={setNodeRef}
       className={cn(
-        "inline-flex items-center gap-0.5",
-        isOver && !isFull && "rounded bg-primary/10",
+        "inline-flex items-center gap-0.5 rounded border border-dashed px-1 py-0.5",
+        isOver && !isFull && "border-primary bg-primary/10",
+        isFull && "border-muted-foreground/30",
+        !isOver && !isFull && "border-muted-foreground/40",
       )}
     >
-      {sortedCharacters.map((char, index) => (
-        <span
-          key={char.planCharacterId}
-          className={cn(
-            "group relative inline-flex items-center gap-0.5",
-            "text-xs font-medium",
-            !noColor && char.characterClass
-              ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
-              : "text-foreground",
-          )}
-        >
-          {!noColor && char.characterClass && (
-            <ClassIcon characterClass={char.characterClass} px={12} />
-          )}
-          <span>{char.characterName}</span>
-          {index < sortedCharacters.length - 1 && (
-            <span className="text-muted-foreground"> </span>
-          )}
-          {onRemove && !disabled && (
-            <button
-              type="button"
-              onClick={() => onRemove(char.planCharacterId)}
-              className="absolute -right-1 -top-1 hidden rounded-full bg-destructive p-0.5 text-destructive-foreground group-hover:block"
-            >
-              <X className="h-2.5 w-2.5" />
-            </button>
-          )}
-        </span>
-      ))}
+      {sortedCharacters.length === 0 ? (
+        <span className="text-xs text-muted-foreground/60">[{slotName}]</span>
+      ) : (
+        sortedCharacters.map((char, index) => (
+          <span
+            key={char.planCharacterId}
+            className={cn(
+              "group relative inline-flex items-center gap-0.5",
+              "text-sm font-medium",
+              !noColor && char.characterClass
+                ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
+                : "text-foreground",
+            )}
+          >
+            <span>{char.characterName}</span>
+            {index < sortedCharacters.length - 1 && (
+              <span className="text-muted-foreground"> </span>
+            )}
+            {onRemove && !disabled && (
+              <button
+                type="button"
+                onClick={() => onRemove(char.planCharacterId)}
+                className="absolute -right-1 -top-1 hidden rounded-full bg-destructive p-0.5 text-destructive-foreground group-hover:block"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            )}
+          </span>
+        ))
+      )}
     </span>
   );
 }

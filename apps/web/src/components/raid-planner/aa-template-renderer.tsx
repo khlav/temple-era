@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -10,14 +10,15 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Copy, Check } from "lucide-react";
-import { Button } from "~/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
+import { AAIcon } from "~/components/ui/aa-icons";
 import {
   parseAATemplate,
   renderAATemplate,
   type AACharacterAssignment,
 } from "~/lib/aa-template";
+import { parseAAFormatting } from "~/lib/aa-formatting";
 import { AASlotInline } from "./aa-slot-dropzone";
 import type { RaidPlanCharacter } from "./raid-plan-groups-grid";
 
@@ -38,7 +39,7 @@ interface AATemplateRendererProps {
   characters: RaidPlanCharacter[];
   slotAssignments: AASlotAssignment[];
   onAssign?: (planCharacterId: string, slotName: string) => void;
-  onRemove?: (planCharacterId: string) => void;
+  onRemove?: (planCharacterId: string, slotName: string) => void;
   /** Future: reorder within slots */
   onReorder?: (slotName: string, planCharacterIds: string[]) => void;
   disabled?: boolean;
@@ -58,7 +59,6 @@ export function AATemplateRenderer({
   disabled,
   skipDndContext,
 }: AATemplateRendererProps) {
-  const [copied, setCopied] = useState(false);
   const [activeCharacter, setActiveCharacter] =
     useState<RaidPlanCharacter | null>(null);
 
@@ -111,6 +111,32 @@ export function AATemplateRenderer({
     return map;
   }, [slotAssignments, characters]);
 
+  // Find characters assigned to multiple slots
+  const multiSlotCharacters = useMemo(() => {
+    const charSlotCounts = new Map<string, string[]>();
+
+    for (const assignment of slotAssignments) {
+      const existing = charSlotCounts.get(assignment.planCharacterId) ?? [];
+      existing.push(assignment.slotName);
+      charSlotCounts.set(assignment.planCharacterId, existing);
+    }
+
+    const multiAssigned: { name: string; slots: string[] }[] = [];
+    for (const [charId, slotNames] of charSlotCounts) {
+      if (slotNames.length > 1) {
+        const char = characters.find((c) => c.id === charId);
+        if (char) {
+          multiAssigned.push({
+            name: char.characterName,
+            slots: slotNames,
+          });
+        }
+      }
+    }
+
+    return multiAssigned;
+  }, [slotAssignments, characters]);
+
   // Build character lookup for drag
   const characterLookup = useMemo(() => {
     const map = new Map<string, RaidPlanCharacter>();
@@ -119,23 +145,6 @@ export function AATemplateRenderer({
     }
     return map;
   }, [characters]);
-
-  // Handle copy to clipboard
-  const handleCopy = useCallback(async () => {
-    // Build the assignment map for rendering
-    const assignmentMap = new Map<string, AACharacterAssignment[]>();
-    for (const [slotName, chars] of slotCharacterMap) {
-      assignmentMap.set(
-        slotName,
-        chars.map((c) => ({ name: c.name, class: c.class })),
-      );
-    }
-
-    const output = renderAATemplate(template, assignmentMap);
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [template, slotCharacterMap]);
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
@@ -162,60 +171,78 @@ export function AATemplateRenderer({
     }
   };
 
-  // Render template with interactive slots
+  // Render template with interactive slots and full AA formatting
   const renderedContent = useMemo(() => {
-    if (slots.length === 0) {
-      // No slots found - just show the raw template
+    // Parse the full AA formatting
+    const segments = parseAAFormatting(template, slots);
+
+    if (segments.length === 0) {
       return <pre className="whitespace-pre-wrap text-sm">{template}</pre>;
     }
 
-    // Build the rendered output with inline slot components
+    const contextId = encounterId ?? raidPlanId ?? "unknown";
+
+    // Render each segment
     const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
 
-    // Sort slots by startIndex
-    const sortedSlots = [...slots].sort((a, b) => a.startIndex - b.startIndex);
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i]!;
+      const key = `seg-${i}`;
 
-    for (const slot of sortedSlots) {
-      // Add text before this slot
-      if (slot.startIndex > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>
-            {template.slice(lastIndex, slot.startIndex)}
-          </span>,
-        );
+      switch (segment.type) {
+        case "text":
+          parts.push(<span key={key}>{segment.content}</span>);
+          break;
+
+        case "colored-text":
+          parts.push(
+            <span key={key} style={{ color: segment.color }}>
+              {segment.content}
+            </span>,
+          );
+          break;
+
+        case "icon":
+          if (segment.iconType && segment.iconName) {
+            parts.push(
+              <AAIcon
+                key={key}
+                type={segment.iconType}
+                name={segment.iconName}
+                size={18}
+              />,
+            );
+          }
+          break;
+
+        case "slot":
+          if (segment.slotDef) {
+            const slot = segment.slotDef;
+            const slotChars = slotCharacterMap.get(slot.name) ?? [];
+            parts.push(
+              <AASlotInline
+                key={key}
+                slotName={slot.name}
+                encounterId={contextId}
+                characters={slotChars.map((c) => ({
+                  planCharacterId: c.planCharacterId,
+                  characterName: c.name,
+                  characterClass: c.class,
+                  sortOrder: c.sortOrder,
+                }))}
+                maxCharacters={slot.maxCharacters}
+                noColor={slot.noColor}
+                onRemove={
+                  disabled || !onRemove
+                    ? undefined
+                    : (charId) => onRemove(charId, slot.name)
+                }
+                disabled={disabled}
+              />,
+            );
+          }
+          break;
       }
-
-      // Add the slot component
-      const slotChars = slotCharacterMap.get(slot.name) ?? [];
-      const contextId = encounterId ?? raidPlanId ?? "unknown";
-
-      parts.push(
-        <AASlotInline
-          key={`slot-${slot.startIndex}`}
-          slotName={slot.name}
-          encounterId={contextId}
-          characters={slotChars.map((c) => ({
-            planCharacterId: c.planCharacterId,
-            characterName: c.name,
-            characterClass: c.class,
-            sortOrder: c.sortOrder,
-          }))}
-          maxCharacters={slot.maxCharacters}
-          noColor={slot.noColor}
-          onRemove={disabled ? undefined : onRemove}
-          disabled={disabled}
-        />,
-      );
-
-      lastIndex = slot.endIndex;
-    }
-
-    // Add any remaining text
-    if (lastIndex < template.length) {
-      parts.push(
-        <span key={`text-${lastIndex}`}>{template.slice(lastIndex)}</span>,
-      );
     }
 
     return (
@@ -247,33 +274,31 @@ export function AATemplateRenderer({
       {/* Template preview */}
       <div className="rounded-lg border bg-card p-3">{renderedContent}</div>
 
-      {/* Copy button */}
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopy}
-          disabled={disabled}
-        >
-          {copied ? (
-            <>
-              <Check className="mr-1 h-4 w-4" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy className="mr-1 h-4 w-4" />
-              Copy for WoW
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Multi-slot warning */}
+      {multiSlotCharacters.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-2 text-sm text-yellow-600 dark:text-yellow-500">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <div className="font-medium">
+              Character{multiSlotCharacters.length > 1 ? "s" : ""} assigned to
+              multiple slots:
+            </div>
+            <ul className="mt-1 list-inside list-disc text-xs">
+              {multiSlotCharacters.map((c) => (
+                <li key={c.name}>
+                  {c.name}: {c.slots.join(", ")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Slot summary */}
       {slots.length > 0 && (
         <div className="text-xs text-muted-foreground">
-          {slots.length} slot{slots.length !== 1 ? "s" : ""} defined:{" "}
-          {slots.map((s) => s.name).join(", ")}
+          {slotCharacterMap.size} of {slots.length} assignment
+          {slots.length !== 1 ? "s" : ""} filled
         </div>
       )}
     </div>

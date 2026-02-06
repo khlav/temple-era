@@ -572,8 +572,6 @@ export const raidPlanRouter = createTRPCRouter({
         .select({
           id: raidPlanTemplates.id,
           defaultAATemplate: raidPlanTemplates.defaultAATemplate,
-          includeDefaultAAByDefault:
-            raidPlanTemplates.includeDefaultAAByDefault,
         })
         .from(raidPlanTemplates)
         .where(
@@ -586,15 +584,13 @@ export const raidPlanRouter = createTRPCRouter({
 
       if (template.length > 0) {
         // Update the plan with default AA template from zone template
-        if (
-          template[0]!.defaultAATemplate ||
-          template[0]!.includeDefaultAAByDefault
-        ) {
+        // If template exists, automatically enable it
+        if (template[0]!.defaultAATemplate) {
           await ctx.db
             .update(raidPlans)
             .set({
               defaultAATemplate: template[0]!.defaultAATemplate,
-              useDefaultAA: template[0]!.includeDefaultAAByDefault,
+              useDefaultAA: true,
             })
             .where(eq(raidPlans.id, planId));
         }
@@ -605,7 +601,6 @@ export const raidPlanRouter = createTRPCRouter({
             encounterName: raidPlanTemplateEncounters.encounterName,
             sortOrder: raidPlanTemplateEncounters.sortOrder,
             aaTemplate: raidPlanTemplateEncounters.aaTemplate,
-            includeAAByDefault: raidPlanTemplateEncounters.includeAAByDefault,
           })
           .from(raidPlanTemplateEncounters)
           .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
@@ -620,7 +615,7 @@ export const raidPlanRouter = createTRPCRouter({
               sortOrder: enc.sortOrder,
               useDefaultGroups: true,
               aaTemplate: enc.aaTemplate,
-              useCustomAA: enc.includeAAByDefault,
+              useCustomAA: !!enc.aaTemplate, // Enable AA if template exists
             })),
           );
         }
@@ -971,7 +966,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Assign a character to an AA slot.
    * For encounter-specific: provide encounterId
    * For default/trash view: provide raidPlanId
-   * If the character is already in a different slot for this context, they are moved.
+   * Characters can be assigned to multiple slots in the same context.
    */
   assignCharacterToAASlot: raidManagerProcedure
     .input(
@@ -989,31 +984,28 @@ export const raidPlanRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const isEncounter = !!input.encounterId;
 
-      // Remove any existing assignment for this character in this context
-      if (isEncounter) {
-        await ctx.db
-          .delete(raidPlanEncounterAASlots)
-          .where(
-            and(
-              eq(raidPlanEncounterAASlots.encounterId, input.encounterId!),
-              eq(
-                raidPlanEncounterAASlots.planCharacterId,
-                input.planCharacterId,
-              ),
-            ),
+      // Check if character is already in this specific slot
+      const existingCheck = isEncounter
+        ? and(
+            eq(raidPlanEncounterAASlots.encounterId, input.encounterId!),
+            eq(raidPlanEncounterAASlots.planCharacterId, input.planCharacterId),
+            eq(raidPlanEncounterAASlots.slotName, input.slotName),
+          )
+        : and(
+            eq(raidPlanEncounterAASlots.raidPlanId, input.raidPlanId!),
+            eq(raidPlanEncounterAASlots.planCharacterId, input.planCharacterId),
+            eq(raidPlanEncounterAASlots.slotName, input.slotName),
           );
-      } else {
-        await ctx.db
-          .delete(raidPlanEncounterAASlots)
-          .where(
-            and(
-              eq(raidPlanEncounterAASlots.raidPlanId, input.raidPlanId!),
-              eq(
-                raidPlanEncounterAASlots.planCharacterId,
-                input.planCharacterId,
-              ),
-            ),
-          );
+
+      const existing = await ctx.db
+        .select({ id: raidPlanEncounterAASlots.id })
+        .from(raidPlanEncounterAASlots)
+        .where(existingCheck)
+        .limit(1);
+
+      // If already assigned to this slot, return existing ID (no-op)
+      if (existing.length > 0) {
+        return { id: existing[0]!.id };
       }
 
       // Get max sort order for this slot
@@ -1050,9 +1042,10 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   /**
-   * Remove a character from their AA slot.
+   * Remove a character from a specific AA slot.
    * For encounter-specific: provide encounterId
    * For default/trash view: provide raidPlanId
+   * If slotName is not provided, removes from all slots in the context.
    */
   removeCharacterFromAASlot: raidManagerProcedure
     .input(
@@ -1061,23 +1054,33 @@ export const raidPlanRouter = createTRPCRouter({
           encounterId: z.string().uuid().optional(),
           raidPlanId: z.string().uuid().optional(),
           planCharacterId: z.string().uuid(),
+          slotName: z.string().min(1).max(128).optional(),
         })
         .refine((data) => data.encounterId || data.raidPlanId, {
           message: "Either encounterId or raidPlanId must be provided",
         }),
     )
     .mutation(async ({ ctx, input }) => {
-      const whereClause = input.encounterId
-        ? and(
-            eq(raidPlanEncounterAASlots.encounterId, input.encounterId),
-            eq(raidPlanEncounterAASlots.planCharacterId, input.planCharacterId),
-          )
-        : and(
-            eq(raidPlanEncounterAASlots.raidPlanId, input.raidPlanId!),
-            eq(raidPlanEncounterAASlots.planCharacterId, input.planCharacterId),
-          );
+      const conditions = [
+        eq(raidPlanEncounterAASlots.planCharacterId, input.planCharacterId),
+      ];
 
-      await ctx.db.delete(raidPlanEncounterAASlots).where(whereClause);
+      if (input.encounterId) {
+        conditions.push(
+          eq(raidPlanEncounterAASlots.encounterId, input.encounterId),
+        );
+      } else {
+        conditions.push(
+          eq(raidPlanEncounterAASlots.raidPlanId, input.raidPlanId!),
+        );
+      }
+
+      // If slotName provided, only remove from that specific slot
+      if (input.slotName) {
+        conditions.push(eq(raidPlanEncounterAASlots.slotName, input.slotName));
+      }
+
+      await ctx.db.delete(raidPlanEncounterAASlots).where(and(...conditions));
 
       return { success: true };
     }),

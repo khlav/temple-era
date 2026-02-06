@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Save, AlertTriangle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Save,
+  AlertTriangle,
+  RotateCcw,
+  Loader2,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import {
@@ -9,6 +16,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { parseAATemplate, getSlotDefinitions } from "~/lib/aa-template";
 import { cn } from "~/lib/utils";
 
@@ -17,6 +34,9 @@ interface AATemplateEditorProps {
   onSave: (template: string) => void;
   isSaving?: boolean;
   disabled?: boolean;
+  defaultTemplate?: string | null;
+  onResetToDefault?: () => void;
+  isResetting?: boolean;
 }
 
 export function AATemplateEditor({
@@ -24,10 +44,14 @@ export function AATemplateEditor({
   onSave,
   isSaving,
   disabled,
+  defaultTemplate,
+  onResetToDefault,
+  isResetting,
 }: AATemplateEditorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState(template);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Parse the edited template for validation
   const { errors } = useMemo(
@@ -153,32 +177,91 @@ export function AATemplateEditor({
         </details>
 
         {/* Action buttons */}
-        <div className="flex items-center justify-end gap-2">
-          {hasChanges && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              disabled={isSaving}
-            >
-              Reset
-            </Button>
-          )}
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges || errors.length > 0 || disabled || isSaving}
-          >
-            {isSaving ? (
-              "Saving..."
-            ) : (
-              <>
-                <Save className="mr-1 h-4 w-4" />
-                Save Template
-              </>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            {defaultTemplate && onResetToDefault && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowResetConfirm(true)}
+                disabled={isResetting || isSaving || disabled}
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <RotateCcw className="mr-1 h-4 w-4" />
+                Reset to Default
+              </Button>
             )}
-          </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={isSaving}
+              >
+                Reset
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={
+                !hasChanges || errors.length > 0 || disabled || isSaving
+              }
+            >
+              {isSaving ? (
+                "Saving..."
+              ) : (
+                <>
+                  <Save className="mr-1 h-4 w-4" />
+                  Save AA Template
+                </>
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Reset to Default Confirmation Dialog */}
+        <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset AA Template</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will replace the current AA template with the default
+                template for this zone. Any customizations to the template text
+                will be lost.
+                {template !== defaultTemplate && (
+                  <span className="mt-2 block font-medium text-amber-600">
+                    Note: Your current template has been customized.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isResetting}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onResetToDefault?.();
+                  setShowResetConfirm(false);
+                }}
+                disabled={isResetting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isResetting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  "Reset Template"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CollapsibleContent>
     </Collapsible>
   );

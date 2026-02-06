@@ -32,9 +32,6 @@ export const raidPlanTemplates = tableCreator(
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     defaultAATemplate: text("default_aa_template"), // AA template for Default/Trash
-    includeDefaultAAByDefault: boolean("include_default_aa_by_default")
-      .notNull()
-      .default(false),
     ...CreatedBy,
     ...DefaultTimestamps,
   },
@@ -65,9 +62,6 @@ export const raidPlanTemplateEncounters = tableCreator(
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
     aaTemplate: text("aa_template"), // AngryAssignments template text
-    includeAAByDefault: boolean("include_aa_by_default")
-      .notNull()
-      .default(false),
     ...DefaultTimestamps,
   },
   (table) => ({
@@ -286,14 +280,7 @@ export const raidPlanEncounterAASlots = tableCreator(
   (table) => ({
     encounterIdIdx: index("aa_slot__encounter_id_idx").on(table.encounterId),
     raidPlanIdIdx: index("aa_slot__raid_plan_id_idx").on(table.raidPlanId),
-    // Unique constraint: character can only be in one slot per encounter
-    uniqueCharPerEncounter: uniqueIndex("aa_slot__unique_char_encounter").on(
-      table.encounterId,
-      table.planCharacterId,
-    ),
-    // Unique constraint: character can only be in one slot per default view
-    uniqueCharPerPlan: uniqueIndex("aa_slot__unique_char_plan").on(
-      table.raidPlanId,
+    planCharacterIdIdx: index("aa_slot__plan_character_id_idx").on(
       table.planCharacterId,
     ),
   }),

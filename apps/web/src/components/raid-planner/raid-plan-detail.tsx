@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, RotateCcw } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import { Skeleton } from "~/components/ui/skeleton";
+import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { RaidPlanHeader } from "./raid-plan-header";
@@ -40,6 +41,10 @@ import {
   AATemplateRenderer,
   type AASlotAssignment,
 } from "./aa-template-renderer";
+import {
+  renderAATemplate,
+  type AACharacterAssignment,
+} from "~/lib/aa-template";
 import { AATemplateEditor } from "./aa-template-editor";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { cn } from "~/lib/utils";
@@ -93,6 +98,7 @@ export function RaidPlanDetail({
     null,
   );
   const [copied, setCopied] = useState(false);
+  const [aaCopied, setAACopied] = useState(false);
   const [homeServer, setHomeServer] = useState("");
   // Character replacement confirmation state
   const [pendingCharacterUpdate, setPendingCharacterUpdate] = useState<{
@@ -126,6 +132,12 @@ export function RaidPlanDetail({
       setHomeServer(userCharacter.server);
     }
   }, [userCharacter?.server, homeServer]);
+
+  // Fetch the zone template for "Reset to Default" functionality
+  const { data: zoneTemplate } = api.raidPlanTemplate.getByZoneId.useQuery(
+    { zoneId: plan?.zoneId ?? "" },
+    { enabled: !!plan?.zoneId },
+  );
 
   // Update breadcrumb to show plan name instead of UUID
   useEffect(() => {
@@ -196,25 +208,117 @@ export function RaidPlanDetail({
   });
   const assignAASlotMutation = api.raidPlan.assignCharacterToAASlot.useMutation(
     {
-      onSuccess: () => void refetch(),
-      onError: (error) => {
+      onMutate: async (newAssignment) => {
+        // Cancel outgoing refetches
+        await utils.raidPlan.getById.cancel({ planId });
+
+        // Snapshot previous value
+        const previousData = utils.raidPlan.getById.getData({ planId });
+
+        // Optimistically update cache - allow multiple slot assignments
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+
+          // Check if character is already in this specific slot (no-op if so)
+          const alreadyExists = old.aaSlotAssignments.some((a) => {
+            const contextMatches = newAssignment.encounterId
+              ? a.encounterId === newAssignment.encounterId
+              : a.raidPlanId === newAssignment.raidPlanId;
+            return (
+              contextMatches &&
+              a.planCharacterId === newAssignment.planCharacterId &&
+              a.slotName === newAssignment.slotName
+            );
+          });
+
+          if (alreadyExists) {
+            return old;
+          }
+
+          // Add new assignment with temporary ID
+          const maxSort = old.aaSlotAssignments
+            .filter((a) => a.slotName === newAssignment.slotName)
+            .reduce((max, a) => Math.max(max, a.sortOrder), -1);
+
+          return {
+            ...old,
+            aaSlotAssignments: [
+              ...old.aaSlotAssignments,
+              {
+                id: `temp-${Date.now()}`,
+                encounterId: newAssignment.encounterId ?? null,
+                raidPlanId: newAssignment.raidPlanId ?? null,
+                planCharacterId: newAssignment.planCharacterId,
+                slotName: newAssignment.slotName,
+                sortOrder: maxSort + 1,
+              },
+            ],
+          };
+        });
+
+        return { previousData };
+      },
+      onError: (error, _variables, context) => {
+        // Rollback on error
+        if (context?.previousData) {
+          utils.raidPlan.getById.setData({ planId }, context.previousData);
+        }
         toast({
           title: "Error",
           description: error.message,
           variant: "destructive",
         });
       },
+      onSettled: () => {
+        // Always refetch after mutation settles
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     },
   );
   const removeAASlotMutation =
     api.raidPlan.removeCharacterFromAASlot.useMutation({
-      onSuccess: () => void refetch(),
-      onError: (error) => {
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const previousData = utils.raidPlan.getById.getData({ planId });
+
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            aaSlotAssignments: old.aaSlotAssignments.filter((a) => {
+              // Match context (encounter or raidPlan)
+              const contextMatches = input.encounterId
+                ? a.encounterId === input.encounterId
+                : a.raidPlanId === input.raidPlanId;
+
+              if (!contextMatches) return true;
+              if (a.planCharacterId !== input.planCharacterId) return true;
+
+              // If slotName provided, only remove from that slot
+              if (input.slotName) {
+                return a.slotName !== input.slotName;
+              }
+
+              // No slotName = remove all assignments for this character
+              return false;
+            }),
+          };
+        });
+
+        return { previousData };
+      },
+      onError: (error, _variables, context) => {
+        if (context?.previousData) {
+          utils.raidPlan.getById.setData({ planId }, context.previousData);
+        }
         toast({
           title: "Error",
           description: error.message,
           variant: "destructive",
         });
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
       },
     });
   const reorderAASlotMutation =
@@ -677,6 +781,36 @@ export function RaidPlanDetail({
     exportMRT(plan.characters as RaidPlanCharacter[]);
   }, [plan, exportMRT]);
 
+  const handleCopyAA = useCallback(
+    (
+      template: string | null,
+      slotAssignments: AASlotAssignment[],
+      characters: RaidPlanCharacter[],
+    ) => {
+      if (!template) return;
+
+      // Build the assignment map for rendering
+      const assignmentMap = new Map<string, AACharacterAssignment[]>();
+      for (const assignment of slotAssignments) {
+        const char = characters.find(
+          (c) => c.id === assignment.planCharacterId,
+        );
+        if (!char) continue;
+
+        const existing = assignmentMap.get(assignment.slotName) ?? [];
+        existing.push({ name: char.characterName, class: char.class });
+        assignmentMap.set(assignment.slotName, existing);
+      }
+
+      const output = renderAATemplate(template, assignmentMap);
+      void navigator.clipboard.writeText(output).then(() => {
+        setAACopied(true);
+        setTimeout(() => setAACopied(false), 2000);
+      });
+    },
+    [],
+  );
+
   // AA Template handlers
   const handleAAAssign = useCallback(
     (
@@ -697,12 +831,14 @@ export function RaidPlanDetail({
   const handleAARemove = useCallback(
     (
       planCharacterId: string,
+      slotName: string,
       context: { encounterId?: string; raidPlanId?: string },
     ) => {
       removeAASlotMutation.mutate({
         encounterId: context.encounterId,
         raidPlanId: context.raidPlanId,
         planCharacterId,
+        slotName,
       });
     },
     [removeAASlotMutation],
@@ -855,21 +991,21 @@ export function RaidPlanDetail({
                   <div className="flex h-7 items-center gap-2">
                     <div className="flex items-center gap-2">
                       <Checkbox
-                        id={`use-default-${encounter.id}`}
-                        checked={encounter.useDefaultGroups}
+                        id={`use-custom-${encounter.id}`}
+                        checked={!encounter.useDefaultGroups}
                         onCheckedChange={(checked) => {
                           updateEncounterMutation.mutate({
                             encounterId: encounter.id,
-                            useDefaultGroups: checked === true,
+                            useDefaultGroups: checked !== true,
                           });
                         }}
                         disabled={updateEncounterMutation.isPending}
                       />
                       <label
-                        htmlFor={`use-default-${encounter.id}`}
+                        htmlFor={`use-custom-${encounter.id}`}
                         className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        Use Default Groups
+                        Use Custom Groups
                       </label>
                       {updateEncounterMutation.isPending && (
                         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -918,7 +1054,7 @@ export function RaidPlanDetail({
             </div>
 
             {/* Right column: AA Template */}
-            <div>
+            <div className="border-l pl-6">
               {/* Default Tab AA */}
               <TabsContent value="default" className="mt-0 space-y-3">
                 <div className="flex h-7 items-center gap-2">
@@ -942,27 +1078,58 @@ export function RaidPlanDetail({
                   {updatePlanMutation.isPending && (
                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                   )}
+                  {plan.useDefaultAA && plan.defaultAATemplate && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyAA(
+                          plan.defaultAATemplate,
+                          plan.aaSlotAssignments.filter(
+                            (a) => a.raidPlanId === planId,
+                          ),
+                          plan.characters as RaidPlanCharacter[],
+                        )
+                      }
+                      className="ml-auto h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                    >
+                      {aaCopied ? "Copied!" : "Copy AA Text"}
+                    </button>
+                  )}
                 </div>
                 {plan.useDefaultAA ? (
-                  <AAPanel
-                    template={plan.defaultAATemplate}
-                    onSaveTemplate={handleDefaultAATemplateSave}
-                    characters={plan.characters as RaidPlanCharacter[]}
-                    slotAssignments={plan.aaSlotAssignments.filter(
-                      (a) => a.raidPlanId === planId,
-                    )}
-                    onAssign={(charId, slotName) =>
-                      handleAAAssign(charId, slotName, { raidPlanId: planId })
-                    }
-                    onRemove={(charId) =>
-                      handleAARemove(charId, { raidPlanId: planId })
-                    }
-                    onReorder={(slotName, ids) =>
-                      handleAAReorder(slotName, ids, { raidPlanId: planId })
-                    }
-                    contextId={planId}
-                    isSaving={updatePlanMutation.isPending}
-                  />
+                  <>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      AA Preview
+                    </h3>
+                    <AAPanel
+                      template={plan.defaultAATemplate}
+                      onSaveTemplate={handleDefaultAATemplateSave}
+                      characters={plan.characters as RaidPlanCharacter[]}
+                      slotAssignments={plan.aaSlotAssignments.filter(
+                        (a) => a.raidPlanId === planId,
+                      )}
+                      onAssign={(charId, slotName) =>
+                        handleAAAssign(charId, slotName, { raidPlanId: planId })
+                      }
+                      onRemove={(charId, slotName) =>
+                        handleAARemove(charId, slotName, { raidPlanId: planId })
+                      }
+                      onReorder={(slotName, ids) =>
+                        handleAAReorder(slotName, ids, { raidPlanId: planId })
+                      }
+                      contextId={planId}
+                      isSaving={updatePlanMutation.isPending}
+                      defaultTemplate={zoneTemplate?.defaultAATemplate}
+                      onResetToDefault={() => {
+                        if (zoneTemplate?.defaultAATemplate) {
+                          handleDefaultAATemplateSave(
+                            zoneTemplate.defaultAATemplate,
+                          );
+                        }
+                      }}
+                      isResetting={updatePlanMutation.isPending}
+                    />
+                  </>
                 ) : (
                   <div className="rounded-lg border border-dashed p-6">
                     <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
@@ -1001,33 +1168,75 @@ export function RaidPlanDetail({
                     {updateEncounterMutation.isPending && (
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                     )}
+                    {encounter.useCustomAA && encounter.aaTemplate && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyAA(
+                            encounter.aaTemplate,
+                            plan.aaSlotAssignments.filter(
+                              (a) => a.encounterId === encounter.id,
+                            ),
+                            plan.characters as RaidPlanCharacter[],
+                          )
+                        }
+                        className="ml-auto h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                      >
+                        {aaCopied ? "Copied!" : "Copy AA Text"}
+                      </button>
+                    )}
                   </div>
                   {encounter.useCustomAA ? (
-                    <AAPanel
-                      template={encounter.aaTemplate}
-                      onSaveTemplate={(template) =>
-                        handleEncounterAATemplateSave(encounter.id, template)
-                      }
-                      characters={plan.characters as RaidPlanCharacter[]}
-                      slotAssignments={plan.aaSlotAssignments.filter(
-                        (a) => a.encounterId === encounter.id,
-                      )}
-                      onAssign={(charId, slotName) =>
-                        handleAAAssign(charId, slotName, {
-                          encounterId: encounter.id,
-                        })
-                      }
-                      onRemove={(charId) =>
-                        handleAARemove(charId, { encounterId: encounter.id })
-                      }
-                      onReorder={(slotName, ids) =>
-                        handleAAReorder(slotName, ids, {
-                          encounterId: encounter.id,
-                        })
-                      }
-                      contextId={encounter.id}
-                      isSaving={updateEncounterMutation.isPending}
-                    />
+                    <>
+                      <h3 className="text-sm font-medium text-muted-foreground">
+                        AA Preview
+                      </h3>
+                      <AAPanel
+                        template={encounter.aaTemplate}
+                        onSaveTemplate={(template) =>
+                          handleEncounterAATemplateSave(encounter.id, template)
+                        }
+                        characters={plan.characters as RaidPlanCharacter[]}
+                        slotAssignments={plan.aaSlotAssignments.filter(
+                          (a) => a.encounterId === encounter.id,
+                        )}
+                        onAssign={(charId, slotName) =>
+                          handleAAAssign(charId, slotName, {
+                            encounterId: encounter.id,
+                          })
+                        }
+                        onRemove={(charId, slotName) =>
+                          handleAARemove(charId, slotName, {
+                            encounterId: encounter.id,
+                          })
+                        }
+                        onReorder={(slotName, ids) =>
+                          handleAAReorder(slotName, ids, {
+                            encounterId: encounter.id,
+                          })
+                        }
+                        contextId={encounter.id}
+                        isSaving={updateEncounterMutation.isPending}
+                        defaultTemplate={
+                          zoneTemplate?.encounters.find(
+                            (e) => e.encounterKey === encounter.encounterKey,
+                          )?.aaTemplate
+                        }
+                        onResetToDefault={() => {
+                          const templateEncounter =
+                            zoneTemplate?.encounters.find(
+                              (e) => e.encounterKey === encounter.encounterKey,
+                            );
+                          if (templateEncounter?.aaTemplate) {
+                            handleEncounterAATemplateSave(
+                              encounter.id,
+                              templateEncounter.aaTemplate,
+                            );
+                          }
+                        }}
+                        isResetting={updateEncounterMutation.isPending}
+                      />
+                    </>
                   ) : (
                     <div className="rounded-lg border border-dashed p-6">
                       <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
@@ -1207,10 +1416,13 @@ interface AAPanelProps {
   characters: RaidPlanCharacter[];
   slotAssignments: AASlotAssignment[];
   onAssign: (planCharacterId: string, slotName: string) => void;
-  onRemove: (planCharacterId: string) => void;
+  onRemove: (planCharacterId: string, slotName: string) => void;
   onReorder: (slotName: string, planCharacterIds: string[]) => void;
   contextId: string;
   isSaving?: boolean;
+  defaultTemplate?: string | null;
+  onResetToDefault?: () => void;
+  isResetting?: boolean;
 }
 
 function AAPanel({
@@ -1223,7 +1435,13 @@ function AAPanel({
   onReorder,
   contextId,
   isSaving,
+  defaultTemplate,
+  onResetToDefault,
+  isResetting,
 }: AAPanelProps) {
+  // Check if current template differs from default
+  const hasDefaultTemplate = !!defaultTemplate;
+
   // If no template yet, show editor to create one
   if (!template) {
     return (
@@ -1232,6 +1450,27 @@ function AAPanel({
           Create an AA template with <code>{"{assign:SlotName}"}</code>{" "}
           placeholders, then drag characters from the groups to assign them.
         </div>
+        {hasDefaultTemplate && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onResetToDefault?.()}
+            disabled={isResetting}
+            className="w-full"
+          >
+            {isResetting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Load Default Template
+              </>
+            )}
+          </Button>
+        )}
         <AATemplateEditor
           template=""
           onSave={onSaveTemplate}
@@ -1243,7 +1482,7 @@ function AAPanel({
 
   // Show full AA interface
   return (
-    <div className="space-y-4 rounded-lg border p-4">
+    <div className="space-y-4">
       <AATemplateRenderer
         template={template}
         encounterId={contextId.includes("-") ? contextId : undefined}
@@ -1260,6 +1499,9 @@ function AAPanel({
         template={template}
         onSave={onSaveTemplate}
         isSaving={isSaving}
+        defaultTemplate={defaultTemplate}
+        onResetToDefault={onResetToDefault}
+        isResetting={isResetting}
       />
     </div>
   );
