@@ -39,7 +39,9 @@ export function RaidPlannerImport() {
     data: events,
     isLoading,
     error,
-  } = api.raidHelper.getScheduledEvents.useQuery();
+  } = api.raidHelper.getScheduledEvents.useQuery({
+    allowableHoursPastStart: 1,
+  });
 
   // Fetch existing plans for all events
   const eventIds = events?.map((e) => e.id) ?? [];

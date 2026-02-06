@@ -639,7 +639,10 @@ export function RaidPlanDetail({
               <TabsTrigger
                 key={encounter.id}
                 value={encounter.id}
-                className="group relative pr-6"
+                className={cn(
+                  "group relative pr-6",
+                  encounter.useDefaultGroups ? "italic opacity-50" : "",
+                )}
               >
                 {encounter.encounterName}
                 <button
