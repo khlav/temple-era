@@ -1,10 +1,19 @@
 import { z } from "zod";
-import { sql, eq, or, inArray } from "drizzle-orm";
+import { sql, eq, or, inArray, and, notInArray, isNotNull } from "drizzle-orm";
 import { formatInTimeZone } from "date-fns-tz";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
-import { characters } from "~/server/db/schema";
+import {
+  characters,
+  users,
+  accounts,
+  primaryRaidAttendeeAndBenchMap,
+  trackedRaidsL6LockoutWk,
+  primaryRaidAttendanceL6LockoutWk,
+} from "~/server/db/schema";
+import { getTalentRoleBySpecId } from "~/lib/class-specs";
+import { getZoneForInstance } from "~/lib/raid-zones";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.dev/api";
 
@@ -669,5 +678,161 @@ export const raidHelperRouter = createTRPCRouter({
       }
 
       return [...results, ...skippedResults];
+    }),
+
+  /**
+   * Find potential players based on attendance history
+   * Excludes players already signed up (by primary character ID)
+   */
+  findPotentialPlayers: raidManagerProcedure
+    .input(
+      z.object({
+        registeredPrimaryCharacterIds: z.array(z.number()),
+        filterZone: z.string().nullable(),
+        filterDayOfWeek: z.number().min(0).max(6).nullable(),
+        roleFilter: z.enum(["all", "tank", "healer", "melee", "ranged"]),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const {
+        registeredPrimaryCharacterIds,
+        filterZone,
+        filterDayOfWeek,
+        roleFilter,
+      } = input;
+
+      // Convert instance ID to zone name (e.g., "naxxramas" -> "Naxxramas")
+      const zoneName = filterZone ? getZoneForInstance(filterZone) : null;
+
+      // Build filter conditions for raids
+      const raidFilters = [];
+      if (zoneName !== null) {
+        raidFilters.push(sql`${trackedRaidsL6LockoutWk.zone} = ${zoneName}`);
+      }
+      if (filterDayOfWeek !== null) {
+        raidFilters.push(
+          sql`EXTRACT(DOW FROM ${trackedRaidsL6LockoutWk.date}::date) = ${filterDayOfWeek}`,
+        );
+      }
+
+      // Find primary character IDs who attended raids matching filters
+      // and are not in the registered list
+      const attendedQuery = ctx.db
+        .selectDistinct({
+          primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+        })
+        .from(primaryRaidAttendeeAndBenchMap)
+        .innerJoin(
+          trackedRaidsL6LockoutWk,
+          eq(
+            primaryRaidAttendeeAndBenchMap.raidId,
+            trackedRaidsL6LockoutWk.raidId,
+          ),
+        )
+        .where(
+          and(
+            isNotNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
+            registeredPrimaryCharacterIds.length > 0
+              ? notInArray(
+                  primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+                  registeredPrimaryCharacterIds,
+                )
+              : sql`true`,
+            ...raidFilters,
+          ),
+        );
+
+      const attendedResults = await attendedQuery;
+      const potentialPrimaryIds = attendedResults
+        .map((r) => r.primaryCharacterId)
+        .filter((id): id is number => id !== null);
+
+      if (potentialPrimaryIds.length === 0) {
+        return { potentialPlayers: [] };
+      }
+
+      // Get character details for these primary character IDs
+      // Join with attendance view for attendance %
+      // Join with users/accounts to get Discord ID
+      const potentialPlayers = await ctx.db
+        .select({
+          primaryCharacterId: characters.characterId,
+          characterName: characters.name,
+          characterClass: characters.class,
+          specId: sql<number | null>`null`.as("spec_id"), // Characters don't store specId
+          attendancePct: primaryRaidAttendanceL6LockoutWk.weightedAttendancePct,
+          discordUserId: accounts.providerAccountId,
+        })
+        .from(characters)
+        .leftJoin(
+          primaryRaidAttendanceL6LockoutWk,
+          eq(
+            characters.characterId,
+            primaryRaidAttendanceL6LockoutWk.characterId,
+          ),
+        )
+        .leftJoin(users, eq(characters.characterId, users.characterId))
+        .leftJoin(
+          accounts,
+          and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")),
+        )
+        .where(
+          and(
+            inArray(characters.characterId, potentialPrimaryIds),
+            eq(characters.isIgnored, false),
+          ),
+        );
+
+      // Map results and filter by role if needed
+      const mappedPlayers = potentialPlayers.map((p) => {
+        // Infer talentRole from class
+        // Since characters don't store specId, we infer role from class
+        const classToDefaultRole: Record<
+          string,
+          "Tank" | "Healer" | "Melee" | "Ranged"
+        > = {
+          Warrior: "Melee",
+          Rogue: "Melee",
+          Hunter: "Ranged",
+          Mage: "Ranged",
+          Warlock: "Ranged",
+          Priest: "Healer",
+          Paladin: "Healer",
+          Druid: "Healer",
+          Shaman: "Healer",
+          Deathknight: "Melee",
+          Monk: "Melee",
+        };
+
+        // Get role from specId if available, otherwise use class default
+        const talentRole = p.specId
+          ? (getTalentRoleBySpecId(p.specId) ??
+            classToDefaultRole[p.characterClass] ??
+            "Melee")
+          : (classToDefaultRole[p.characterClass] ?? "Melee");
+
+        return {
+          primaryCharacterId: p.primaryCharacterId,
+          characterName: p.characterName,
+          characterClass: p.characterClass,
+          specId: p.specId,
+          talentRole,
+          attendancePct: p.attendancePct ?? 0,
+          discordUserId: p.discordUserId,
+        };
+      });
+
+      // Filter by role if specified
+      const filteredPlayers =
+        roleFilter === "all"
+          ? mappedPlayers
+          : mappedPlayers.filter(
+              (p) => p.talentRole.toLowerCase() === roleFilter,
+            );
+
+      // Sort by attendance % descending
+      filteredPlayers.sort((a, b) => b.attendancePct - a.attendancePct);
+
+      return { potentialPlayers: filteredPlayers };
     }),
 });

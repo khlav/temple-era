@@ -304,3 +304,12 @@ export function getSpecsByClass(className: keyof ClassSpecs): ClassSpec[] {
 export function getSpecNameById(id: number): string | undefined {
   return getSpecById(id)?.name;
 }
+
+/**
+ * Get talent role by spec ID
+ */
+export function getTalentRoleBySpecId(
+  specId: number,
+): "Tank" | "Healer" | "Melee" | "Ranged" | undefined {
+  return getSpecById(specId)?.talentRole;
+}
