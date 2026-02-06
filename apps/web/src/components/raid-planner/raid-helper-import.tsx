@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   MinusCircle,
   History,
+  Users,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
@@ -29,11 +30,44 @@ import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { WOW_SERVERS } from "./raid-plan-groups-grid";
+import { FindPlayersDialog } from "./find-players-dialog";
+import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
+
+// Detect zone from event title
+function detectZoneFromTitle(title: string): string | null {
+  const zonePatterns: Array<{ pattern: RegExp; zoneId: string }> = [
+    { pattern: /\bbwl\b|blackwing/i, zoneId: "bwl" },
+    { pattern: /\bmc\b|molten\s*core/i, zoneId: "mc" },
+    { pattern: /\bnaxx?\b|naxxramas/i, zoneId: "naxxramas" },
+    { pattern: /\bony\b|onyxia/i, zoneId: "onyxia" },
+    { pattern: /\baq20\b|ruins/i, zoneId: "aq20" },
+    { pattern: /\baq40\b|temple\s*of\s*ahn/i, zoneId: "aq40" },
+    { pattern: /\bzg\b|zul.?gurub/i, zoneId: "zg" },
+  ];
+
+  for (const { pattern, zoneId } of zonePatterns) {
+    if (pattern.test(title)) {
+      return zoneId;
+    }
+  }
+  return null;
+}
+
+// State for Find Players dialog
+interface FindPlayersState {
+  eventId: string;
+  eventTitle: string;
+  eventStartTime: number;
+  detectedZone: string | null;
+  matchResults: SignupMatchResult[];
+}
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [findPlayersState, setFindPlayersState] =
+    useState<FindPlayersState | null>(null);
 
   const {
     data: events,
@@ -57,6 +91,25 @@ export function RaidPlannerImport() {
       currentEventIds: eventIds,
       limit: 20,
     });
+
+  const handleFindPlayers = useCallback(
+    (
+      eventId: string,
+      eventTitle: string,
+      eventStartTime: number,
+      matchResults: SignupMatchResult[],
+    ) => {
+      const detectedZone = detectZoneFromTitle(eventTitle);
+      setFindPlayersState({
+        eventId,
+        eventTitle,
+        eventStartTime,
+        detectedZone,
+        matchResults,
+      });
+    },
+    [],
+  );
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -93,6 +146,7 @@ export function RaidPlannerImport() {
                     selectedEventId === event.id ? null : event.id,
                   )
                 }
+                onFindPlayers={handleFindPlayers}
               />
             ))}
           </div>
@@ -120,6 +174,19 @@ export function RaidPlannerImport() {
         open={!!selectedEventId}
         onOpenChange={(open) => !open && setSelectedEventId(null)}
       />
+
+      {/* Find Players Dialog */}
+      {findPlayersState && (
+        <FindPlayersDialog
+          open={!!findPlayersState}
+          onOpenChange={(open) => !open && setFindPlayersState(null)}
+          eventId={findPlayersState.eventId}
+          eventTitle={findPlayersState.eventTitle}
+          eventStartTime={findPlayersState.eventStartTime}
+          detectedZone={findPlayersState.detectedZone}
+          currentSignups={findPlayersState.matchResults}
+        />
+      )}
 
       {/* Past Plans Section */}
       {(pastPlans && pastPlans.length > 0) || isLoadingPastPlans ? (
@@ -160,6 +227,12 @@ interface EventRowProps {
   isSelected: boolean;
   existingPlanId?: string;
   onSelect: () => void;
+  onFindPlayers: (
+    eventId: string,
+    eventTitle: string,
+    eventStartTime: number,
+    matchResults: SignupMatchResult[],
+  ) => void;
 }
 
 function EventRow({
@@ -167,25 +240,68 @@ function EventRow({
   isSelected,
   existingPlanId,
   onSelect,
+  onFindPlayers,
 }: EventRowProps) {
-  const formattedDate = new Date(event.startTime * 1000).toLocaleDateString(
-    "en-US",
-    {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    },
-  );
+  const [isLoadingFindPlayers, setIsLoadingFindPlayers] = useState(false);
+  const utils = api.useUtils();
 
-  const formattedTime = new Date(event.startTime * 1000).toLocaleTimeString(
-    "en-US",
-    {
-      hour: "numeric",
-      minute: "2-digit",
-    },
-  );
+  // const formattedDate = new Date(event.startTime * 1000).toLocaleDateString(
+  //   "en-US",
+  //   {
+  //     weekday: "short",
+  //     month: "short",
+  //     day: "numeric",
+  //   },
+  // );
+
+  // const formattedTime = new Date(event.startTime * 1000).toLocaleTimeString(
+  //   "en-US",
+  //   {
+  //     hour: "numeric",
+  //     minute: "2-digit",
+  //   },
+  // );
 
   const hasPlan = !!existingPlanId;
+
+  const handleFindPlayers = async () => {
+    setIsLoadingFindPlayers(true);
+    try {
+      // Fetch event details
+      const eventDetails = await utils.raidHelper.getEventDetails.fetch({
+        eventId: event.id,
+      });
+
+      // Prepare signups for matching
+      const allSignups = [
+        ...eventDetails.signups.assigned,
+        ...eventDetails.signups.unassigned,
+      ];
+      const signupsForMatching = allSignups.map((s) => ({
+        userId: s.userId,
+        discordName: s.name,
+        className: s.className,
+        specName: s.specName,
+        partyId: s.partyId,
+        slotId: s.slotId,
+      }));
+
+      // Match signups to characters
+      const matchResults =
+        await utils.raidHelper.matchSignupsToCharacters.fetch({
+          signups: signupsForMatching,
+        });
+
+      onFindPlayers(
+        event.id,
+        eventDetails.event.displayTitle || eventDetails.event.title,
+        event.startTime,
+        matchResults,
+      );
+    } finally {
+      setIsLoadingFindPlayers(false);
+    }
+  };
 
   return (
     <div
@@ -198,15 +314,26 @@ function EventRow({
       <div className="flex flex-col gap-1">
         <div className="font-medium">{event.displayTitle ?? event.title}</div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{formattedDate}</span>
-          <span>{formattedTime}</span>
           <span>{event.leaderName}</span>
           {event.signUpCount != null && event.signUpCount > 0 && (
             <span>{event.signUpCount} signups</span>
           )}
         </div>
       </div>
-      <div>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFindPlayers}
+          disabled={isLoadingFindPlayers}
+        >
+          {isLoadingFindPlayers ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <Users className="mr-1 h-4 w-4" />
+          )}
+          Find Players
+        </Button>
         {hasPlan ? (
           <Button variant="default" size="sm" asChild>
             <a href={`/raid-manager/raid-planner/${existingPlanId}`}>
