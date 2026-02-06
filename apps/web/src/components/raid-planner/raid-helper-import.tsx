@@ -112,9 +112,9 @@ export function RaidPlannerImport() {
   );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 lg:grid-cols-3">
       {/* Left: Scheduled Raids */}
-      <div>
+      <div className="col-span-2">
         <h3 className="mb-3 flex items-center gap-2 font-semibold">
           <Calendar className="h-5 w-5" />
           Scheduled Raids
@@ -335,13 +335,18 @@ function EventRow({
           Find Players
         </Button>
         {hasPlan ? (
-          <Button variant="default" size="sm" asChild>
+          <Button variant="default" size="sm" className="w-24" asChild>
             <a href={`/raid-manager/raid-planner/${existingPlanId}`}>
               View Plan
             </a>
           </Button>
         ) : (
-          <Button variant="warning" size="sm" onClick={onSelect}>
+          <Button
+            variant="warning"
+            size="sm"
+            className="w-24"
+            onClick={onSelect}
+          >
             Create Plan
           </Button>
         )}

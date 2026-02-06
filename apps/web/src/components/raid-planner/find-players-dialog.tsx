@@ -214,10 +214,17 @@ export function FindPlayersDialog({
       { enabled: open },
     );
 
-  const potentialPlayers = useMemo(
-    () => potentialPlayersData?.potentialPlayers ?? [],
-    [potentialPlayersData?.potentialPlayers],
-  );
+  const potentialPlayers = useMemo(() => {
+    const players = potentialPlayersData?.potentialPlayers ?? [];
+
+    const deduped = new Map<number | string, (typeof players)[number]>();
+
+    for (const p of players) {
+      deduped.set(p.primaryCharacterId, p);
+    }
+
+    return Array.from(deduped.values());
+  }, [potentialPlayersData?.potentialPlayers]);
 
   // Handle player selection
   const togglePlayerSelection = useCallback((playerId: number) => {
@@ -313,10 +320,6 @@ export function FindPlayersDialog({
                   {roleDistribution.Tank.length}
                 </span>
                 <span className="flex items-center gap-1">
-                  <RoleIcon role="Healer" size={14} />
-                  {roleDistribution.Healer.length}
-                </span>
-                <span className="flex items-center gap-1">
                   <RoleIcon role="Melee" size={14} />
                   {roleDistribution.Melee.length}
                 </span>
@@ -324,11 +327,15 @@ export function FindPlayersDialog({
                   <RoleIcon role="Ranged" size={14} />
                   {roleDistribution.Ranged.length}
                 </span>
+                <span className="flex items-center gap-1">
+                  <RoleIcon role="Healer" size={14} />
+                  {roleDistribution.Healer.length}
+                </span>
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">
               <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/20 p-3 text-sm sm:grid-cols-4">
-                {(["Tank", "Healer", "Melee", "Ranged"] as TalentRole[]).map(
+                {(["Tank", "Melee", "Ranged", "Healer"] as TalentRole[]).map(
                   (role) => (
                     <div key={role}>
                       <div className="mb-1 flex items-center gap-1.5 font-medium text-muted-foreground">
@@ -430,7 +437,7 @@ export function FindPlayersDialog({
                 size="sm"
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" />
-                Copy Pings
+                Copy Discord Ping
               </Button>
             </div>
 
