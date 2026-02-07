@@ -1297,9 +1297,6 @@ export function RaidPlanDetail({
                   </div>
                   {encounter.useCustomAA ? (
                     <>
-                      <h3 className="text-sm font-medium text-muted-foreground">
-                        AA Preview
-                      </h3>
                       <AAPanel
                         template={encounter.aaTemplate}
                         onSaveTemplate={(template) =>
