@@ -194,23 +194,22 @@ export function RaidPlanDetail({
     api.raidPlan.moveEncounterCharacter.useMutation();
   const swapEncounterCharsMutation =
     api.raidPlan.swapEncounterCharacters.useMutation();
-  const refreshCharactersMutation =
-    api.raidPlan.refreshCharacters.useMutation({
-      onSuccess: (data) => {
-        toast({
-          title: "Roster refreshed",
-          description: `+${data.added} added, ${data.updated} updated, -${data.removed} removed`,
-        });
-        void refetch();
-      },
-      onError: (error) => {
-        toast({
-          title: "Refresh failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+  const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
+    onSuccess: (data) => {
+      toast({
+        title: "Roster refreshed",
+        description: `+${data.added} added, ${data.updated} updated, -${data.removed} removed`,
+      });
+      void refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Refresh failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
@@ -860,13 +859,21 @@ export function RaidPlanDetail({
       toast({
         title: "Refresh failed",
         description:
-          err instanceof Error ? err.message : "Failed to fetch from Raidhelper",
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch from Raidhelper",
         variant: "destructive",
       });
     } finally {
       setIsRefreshing(false);
     }
-  }, [plan?.raidHelperEventId, plan?.id, utils, refreshCharactersMutation, toast]);
+  }, [
+    plan?.raidHelperEventId,
+    plan?.id,
+    utils,
+    refreshCharactersMutation,
+    toast,
+  ]);
 
   const handleCopyAA = useCallback(
     (
@@ -1054,8 +1061,10 @@ export function RaidPlanDetail({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs border-destructive"
-                      disabled={isRefreshing || refreshCharactersMutation.isPending}
+                      className="h-7 border-destructive text-xs"
+                      disabled={
+                        isRefreshing || refreshCharactersMutation.isPending
+                      }
                       onClick={() => setShowRefreshDialog(true)}
                     >
                       {isRefreshing || refreshCharactersMutation.isPending ? (
@@ -1063,7 +1072,7 @@ export function RaidPlanDetail({
                       ) : (
                         <RefreshCw className="mr-1 h-3 w-3" />
                       )}
-                      Refresh from Raidhelper
+                      Reimport
                     </Button>
                   )}
                   <MRTControls
@@ -1201,9 +1210,6 @@ export function RaidPlanDetail({
                 </div>
                 {plan.useDefaultAA ? (
                   <>
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      AA Preview
-                    </h3>
                     <AAPanel
                       template={plan.defaultAATemplate}
                       onSaveTemplate={handleDefaultAATemplateSave}
@@ -1471,17 +1477,17 @@ export function RaidPlanDetail({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Refresh from Raidhelper</AlertDialogTitle>
+            <AlertDialogTitle>Reimport from Raidhelper</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
                   This will re-fetch the current roster from Raidhelper and
                   update the plan&apos;s character list.
                 </p>
-                <p className="font-medium text-destructive">
-                  All custom encounter groups will be deleted and reset to
-                  default. Please review your AA assignments after refreshing.
-                </p>
+                <ul className="list-disc pl-6 font-medium text-destructive">
+                  <li>Custom encounter groups will be deleted.</li>
+                  <li>AA assignments may change or disappear.</li>
+                </ul>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
