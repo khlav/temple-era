@@ -76,6 +76,14 @@ export const AA_CLASS_ICONS = [
   "deathknight",
 ] as const;
 
+// All known color/class names sorted by length descending for prefix matching.
+// This ensures e.g. "deathknight" matches before "death" and "warrior" matches
+// before consuming trailing text like "|cwarriorReck|r" → color "warrior", text "Reck".
+const KNOWN_COLOR_NAMES = [
+  ...Object.keys(AA_CLASS_COLORS),
+  ...Object.keys(AA_COLORS),
+].sort((a, b) => b.length - a.length);
+
 export type AAIconType = "marker" | "role" | "class" | "ability" | "spell";
 
 export interface AASegment {
@@ -232,18 +240,23 @@ export function parseAAFormatting(
         }
       }
 
-      // Otherwise, read until non-alphanumeric
-      while (j < template.length && /[a-zA-Z]/.test(template[j]!)) {
-        j++;
+      // Try to match a known color/class name as a prefix (longest first)
+      const remaining = template.slice(j).toLowerCase();
+      let matched = false;
+
+      for (const name of KNOWN_COLOR_NAMES) {
+        if (remaining.startsWith(name)) {
+          const color = getColorFromCode(name);
+          if (color) {
+            currentColor = color;
+            i = j + name.length;
+            matched = true;
+            break;
+          }
+        }
       }
 
-      const colorName = template.slice(i + 2, j);
-      const color = getColorFromCode(colorName);
-
-      if (color) {
-        currentColor = color;
-        i = j;
-      } else {
+      if (!matched) {
         // Unknown color code, treat as text
         textBuffer += template[i];
         i++;

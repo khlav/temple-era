@@ -276,8 +276,8 @@ export function AATemplateRenderer({
 
       {/* Multi-slot warning */}
       {multiSlotCharacters.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-2 text-sm text-yellow-600 dark:text-yellow-500">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-2 text-sm text-muted-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
           <div>
             <div className="font-medium">
               Character{multiSlotCharacters.length > 1 ? "s" : ""} assigned to
