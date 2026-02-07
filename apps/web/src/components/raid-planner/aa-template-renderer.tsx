@@ -272,12 +272,23 @@ export function AATemplateRenderer({
       )}
 
       {/* Template preview */}
-      <div className="rounded-lg border bg-card p-3">{renderedContent}</div>
+      <div className="relative rounded-lg border bg-card p-3">
+        {renderedContent}
+
+        {/* Slot summary */}
+        {slots.length > 0 && slotCharacterMap.size != slots.length && (
+          <div className="absolute right-2 top-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3 w-3" />
+            {slots.length - slotCharacterMap.size} empty assignment
+            {slots.length - slotCharacterMap.size !== 1 ? "s" : ""}
+          </div>
+        )}
+      </div>
 
       {/* Multi-slot warning */}
       {multiSlotCharacters.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-2 text-sm text-yellow-600 dark:text-yellow-500">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-2 text-sm text-muted-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
           <div>
             <div className="font-medium">
               Character{multiSlotCharacters.length > 1 ? "s" : ""} assigned to
@@ -291,14 +302,6 @@ export function AATemplateRenderer({
               ))}
             </ul>
           </div>
-        </div>
-      )}
-
-      {/* Slot summary */}
-      {slots.length > 0 && (
-        <div className="text-xs text-muted-foreground">
-          {slotCharacterMap.size} of {slots.length} assignment
-          {slots.length !== 1 ? "s" : ""} filled
         </div>
       )}
     </div>

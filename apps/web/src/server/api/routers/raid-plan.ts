@@ -22,6 +22,7 @@ import {
   raids,
 } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
+import { getSlotNames } from "~/lib/aa-template";
 
 export const raidPlanRouter = createTRPCRouter({
   /**
@@ -389,6 +390,26 @@ export const raidPlanRouter = createTRPCRouter({
         });
       }
 
+      // Clean up orphaned AA slot assignments when encounter template changes
+      if (input.aaTemplate !== undefined) {
+        const slotNames = input.aaTemplate
+          ? getSlotNames(input.aaTemplate)
+          : [];
+
+        const conditions = [
+          eq(raidPlanEncounterAASlots.encounterId, input.encounterId),
+        ];
+        if (slotNames.length > 0) {
+          conditions.push(
+            notInArray(raidPlanEncounterAASlots.slotName, slotNames),
+          );
+        }
+
+        await ctx.db
+          .delete(raidPlanEncounterAASlots)
+          .where(and(...conditions));
+      }
+
       // Seed encounter assignments from defaults when toggling custom groups on
       if (input.useDefaultGroups === false) {
         const existing = await ctx.db
@@ -502,6 +523,26 @@ export const raidPlanRouter = createTRPCRouter({
           code: "NOT_FOUND",
           message: "Raid plan not found",
         });
+      }
+
+      // Clean up orphaned AA slot assignments when default template changes
+      if (input.defaultAATemplate !== undefined) {
+        const slotNames = input.defaultAATemplate
+          ? getSlotNames(input.defaultAATemplate)
+          : [];
+
+        const conditions = [
+          eq(raidPlanEncounterAASlots.raidPlanId, input.planId),
+        ];
+        if (slotNames.length > 0) {
+          conditions.push(
+            notInArray(raidPlanEncounterAASlots.slotName, slotNames),
+          );
+        }
+
+        await ctx.db
+          .delete(raidPlanEncounterAASlots)
+          .where(and(...conditions));
       }
 
       return { success: true };
@@ -1153,6 +1194,173 @@ export const raidPlanRouter = createTRPCRouter({
         );
 
       return { success: true };
+    }),
+
+  /**
+   * Refresh a raid plan's characters from updated Raidhelper data.
+   * Reconciles existing characters with new list, preserving assignments
+   * for characters that remain (by keeping the same raidPlanCharacters.id UUID).
+   */
+  refreshCharacters: raidManagerProcedure
+    .input(
+      z.object({
+        planId: z.string().uuid(),
+        characters: z.array(
+          z.object({
+            characterId: z.number().nullable(),
+            characterName: z.string(),
+            defaultGroup: z.number().nullable(),
+            defaultPosition: z.number().nullable(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify the plan exists
+      const plan = await ctx.db
+        .select({ id: raidPlans.id })
+        .from(raidPlans)
+        .where(eq(raidPlans.id, input.planId))
+        .limit(1);
+
+      if (plan.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Raid plan not found",
+        });
+      }
+
+      // Fetch existing plan characters
+      const existing = await ctx.db
+        .select({
+          id: raidPlanCharacters.id,
+          characterId: raidPlanCharacters.characterId,
+          characterName: raidPlanCharacters.characterName,
+        })
+        .from(raidPlanCharacters)
+        .where(eq(raidPlanCharacters.raidPlanId, input.planId));
+
+      const matchedExistingIds = new Set<string>();
+      const matchedNewIndices = new Set<number>();
+
+      // Maps: newIndex -> existingRecord for matched pairs
+      const matches = new Map<
+        number,
+        { id: string; characterId: number | null; characterName: string }
+      >();
+
+      // Pass 1: Match by characterId (non-null only)
+      for (let i = 0; i < input.characters.length; i++) {
+        const newChar = input.characters[i]!;
+        if (newChar.characterId === null) continue;
+
+        const match = existing.find(
+          (e) =>
+            !matchedExistingIds.has(e.id) &&
+            e.characterId === newChar.characterId,
+        );
+        if (match) {
+          matchedExistingIds.add(match.id);
+          matchedNewIndices.add(i);
+          matches.set(i, match);
+        }
+      }
+
+      // Pass 2: Match by characterName (case-insensitive) for remaining
+      for (let i = 0; i < input.characters.length; i++) {
+        if (matchedNewIndices.has(i)) continue;
+        const newChar = input.characters[i]!;
+
+        const match = existing.find(
+          (e) =>
+            !matchedExistingIds.has(e.id) &&
+            e.characterName.toLowerCase() === newChar.characterName.toLowerCase(),
+        );
+        if (match) {
+          matchedExistingIds.add(match.id);
+          matchedNewIndices.add(i);
+          matches.set(i, match);
+        }
+      }
+
+      let added = 0;
+      let updated = 0;
+      let removed = 0;
+
+      // Update matched records (preserves UUID → preserves all assignments)
+      for (const [newIndex, existingRecord] of matches) {
+        const newChar = input.characters[newIndex]!;
+        await ctx.db
+          .update(raidPlanCharacters)
+          .set({
+            characterId: newChar.characterId,
+            characterName: newChar.characterName,
+            defaultGroup: newChar.defaultGroup,
+            defaultPosition: newChar.defaultPosition,
+          })
+          .where(eq(raidPlanCharacters.id, existingRecord.id));
+        updated++;
+      }
+
+      // Insert new characters that had no match
+      const toInsert = input.characters.filter(
+        (_, i) => !matchedNewIndices.has(i),
+      );
+      if (toInsert.length > 0) {
+        await ctx.db.insert(raidPlanCharacters).values(
+          toInsert.map((char) => ({
+            raidPlanId: input.planId,
+            characterId: char.characterId,
+            characterName: char.characterName,
+            defaultGroup: char.defaultGroup,
+            defaultPosition: char.defaultPosition,
+          })),
+        );
+        added = toInsert.length;
+      }
+
+      // Delete existing records that had no match (cascades clean up assignments)
+      const toDelete = existing
+        .filter((e) => !matchedExistingIds.has(e.id))
+        .map((e) => e.id);
+      if (toDelete.length > 0) {
+        await ctx.db
+          .delete(raidPlanCharacters)
+          .where(inArray(raidPlanCharacters.id, toDelete));
+        removed = toDelete.length;
+      }
+
+      // Reset all encounters back to "use default groups" and delete custom assignments
+      const customEncounters = await ctx.db
+        .select({ id: raidPlanEncounters.id })
+        .from(raidPlanEncounters)
+        .where(
+          and(
+            eq(raidPlanEncounters.raidPlanId, input.planId),
+            eq(raidPlanEncounters.useDefaultGroups, false),
+          ),
+        );
+
+      if (customEncounters.length > 0) {
+        const customEncounterIds = customEncounters.map((e) => e.id);
+
+        // Delete custom encounter assignments
+        await ctx.db
+          .delete(raidPlanEncounterAssignments)
+          .where(
+            inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds),
+          );
+
+        // Reset encounters to use default groups
+        await ctx.db
+          .update(raidPlanEncounters)
+          .set({ useDefaultGroups: true })
+          .where(
+            inArray(raidPlanEncounters.id, customEncounterIds),
+          );
+      }
+
+      return { added, updated, removed };
     }),
 
   /**

@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Loader2, X, RotateCcw } from "lucide-react";
+import { Loader2, X, RotateCcw, RefreshCw } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -194,6 +194,24 @@ export function RaidPlanDetail({
     api.raidPlan.moveEncounterCharacter.useMutation();
   const swapEncounterCharsMutation =
     api.raidPlan.swapEncounterCharacters.useMutation();
+  const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
+    onSuccess: (data) => {
+      toast({
+        title: "Roster refreshed",
+        description: `+${data.added} added, ${data.updated} updated, -${data.removed} removed`,
+      });
+      void refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Refresh failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
   // AA Template mutations
   const updatePlanMutation = api.raidPlan.update.useMutation({
@@ -781,6 +799,82 @@ export function RaidPlanDetail({
     exportMRT(plan.characters as RaidPlanCharacter[]);
   }, [plan, exportMRT]);
 
+  const handleRefreshFromRaidhelper = useCallback(async () => {
+    if (!plan?.raidHelperEventId) return;
+    setIsRefreshing(true);
+    try {
+      // 1. Fetch current event details from Raidhelper
+      const eventDetails = await utils.raidHelper.getEventDetails.fetch({
+        eventId: plan.raidHelperEventId,
+      });
+
+      // 2. Build signups for matching (same transform as raid-helper-import)
+      const allSignups = [
+        ...eventDetails.signups.assigned,
+        ...eventDetails.signups.unassigned,
+      ];
+      const signupsForMatching = allSignups.map((s) => ({
+        userId: s.userId,
+        discordName: s.name,
+        className: s.className,
+        specName: s.specName,
+        partyId: s.partyId,
+        slotId: s.slotId,
+      }));
+
+      // 3. Match signups to database characters
+      const matchResults =
+        await utils.raidHelper.matchSignupsToCharacters.fetch({
+          signups: signupsForMatching,
+        });
+
+      // 4. Transform match results to characters array (same as handleCreatePlan)
+      const characters = matchResults
+        .filter((r) => {
+          const lowerClass = r.className.toLowerCase();
+          return lowerClass !== "absent" && lowerClass !== "absence";
+        })
+        .map((r) => {
+          const defaultGroup =
+            r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
+          const defaultPosition =
+            defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
+          const characterName =
+            r.status === "matched" && r.matchedCharacter
+              ? r.matchedCharacter.characterName
+              : r.discordName;
+          const characterId =
+            r.status === "matched" && r.matchedCharacter
+              ? r.matchedCharacter.characterId
+              : null;
+          return { characterId, characterName, defaultGroup, defaultPosition };
+        });
+
+      // 5. Call the refresh mutation
+      refreshCharactersMutation.mutate({
+        planId: plan.id,
+        characters,
+      });
+    } catch (err) {
+      toast({
+        title: "Refresh failed",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch from Raidhelper",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [
+    plan?.raidHelperEventId,
+    plan?.id,
+    utils,
+    refreshCharactersMutation,
+    toast,
+  ]);
+
   const handleCopyAA = useCallback(
     (
       template: string | null,
@@ -963,6 +1057,24 @@ export function RaidPlanDetail({
               {/* Default Tab */}
               <TabsContent value="default" className="mt-0 space-y-3">
                 <div className="flex h-7 items-center">
+                  {plan.raidHelperEventId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 border-destructive text-xs"
+                      disabled={
+                        isRefreshing || refreshCharactersMutation.isPending
+                      }
+                      onClick={() => setShowRefreshDialog(true)}
+                    >
+                      {isRefreshing || refreshCharactersMutation.isPending ? (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-1 h-3 w-3" />
+                      )}
+                      Reimport
+                    </Button>
+                  )}
                   <MRTControls
                     onExportMRT={handleExportMRT}
                     mrtCopied={copied}
@@ -1098,9 +1210,6 @@ export function RaidPlanDetail({
                 </div>
                 {plan.useDefaultAA ? (
                   <>
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      AA Preview
-                    </h3>
                     <AAPanel
                       template={plan.defaultAATemplate}
                       onSaveTemplate={handleDefaultAATemplateSave}
@@ -1355,6 +1464,53 @@ export function RaidPlanDetail({
                 </>
               ) : (
                 "Clear Assignments"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Refresh from Raidhelper Confirmation */}
+      <AlertDialog
+        open={showRefreshDialog}
+        onOpenChange={(open) => !open && setShowRefreshDialog(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reimport from Raidhelper</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will re-fetch the current roster from Raidhelper and
+                  update the plan&apos;s character list.
+                </p>
+                <ul className="list-disc pl-6 font-medium text-destructive">
+                  <li>Custom encounter groups will be deleted.</li>
+                  <li>AA assignments may change or disappear.</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isRefreshing || refreshCharactersMutation.isPending}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowRefreshDialog(false);
+                void handleRefreshFromRaidhelper();
+              }}
+              disabled={isRefreshing || refreshCharactersMutation.isPending}
+            >
+              {isRefreshing || refreshCharactersMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                "Refresh"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
