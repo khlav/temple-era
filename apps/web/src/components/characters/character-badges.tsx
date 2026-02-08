@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { api } from "~/trpc/react";
 import {
   BADGE_DEFINITIONS,
@@ -50,11 +51,14 @@ function BadgeItem({
   const Icon = badge.icon;
   const colorClasses = RARITY_COLORS[badge.rarity];
 
+  const [open, setOpen] = useState(false);
+
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           <div
+            onClick={() => setOpen((prev) => !prev)}
             className={cn(
               "group flex cursor-default flex-row items-center gap-2 rounded-lg border px-2 py-1.5 transition-all hover:scale-105",
               earned
