@@ -29,7 +29,7 @@ import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
-import { WOW_SERVERS } from "./raid-plan-groups-grid";
+import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./raid-plan-groups-grid";
 import { FindPlayersDialog } from "./find-players-dialog";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 
@@ -567,10 +567,16 @@ function CharacterMatchingDialog({
             : null;
 
         // For unmatched characters, pass their RaidHelper class as writeInClass
+        // Only allow valid WoW classes and recognized RaidHelper statuses (Bench, Tentative, Late)
+        const normalizedClass = r.className
+          ? r.className.charAt(0).toUpperCase() +
+            r.className.slice(1).toLowerCase()
+          : null;
         const writeInClass =
-          !characterId && r.className
-            ? r.className.charAt(0).toUpperCase() +
-              r.className.slice(1).toLowerCase()
+          !characterId &&
+          normalizedClass &&
+          VALID_WRITE_IN_CLASSES.has(normalizedClass)
+            ? normalizedClass
             : null;
 
         return {

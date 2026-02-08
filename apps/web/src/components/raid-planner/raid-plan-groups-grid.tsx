@@ -12,7 +12,7 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { ChevronDown, Pencil } from "lucide-react";
+import { Armchair, ChevronDown, CircleHelp, Clock, Pencil } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterSelector } from "~/components/characters/character-selector";
 import {
@@ -47,6 +47,24 @@ const WOW_CLASSES = [
   "Warlock",
   "Warrior",
 ] as const;
+
+const WOW_CLASSES_SET = new Set<string>(WOW_CLASSES);
+
+// RaidHelper signup statuses that get special icons (non-WoW classes)
+const RAIDHELPER_STATUS_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  Bench: Armchair,
+  Tentative: CircleHelp,
+  Late: Clock,
+};
+
+// All valid writeInClass values (WoW classes + RaidHelper statuses)
+export const VALID_WRITE_IN_CLASSES = new Set<string>([
+  ...WOW_CLASSES,
+  ...Object.keys(RAIDHELPER_STATUS_ICONS),
+]);
 
 export const WOW_SERVERS = [
   "Ashkandi",
@@ -867,7 +885,10 @@ function CharacterCard({
   isDragOverlay,
   dragHandleProps,
 }: CharacterCardProps) {
-  const hasClassIcon = !!character.class;
+  const isWowClass = !!character.class && WOW_CLASSES_SET.has(character.class);
+  const StatusIcon = character.class
+    ? RAIDHELPER_STATUS_ICONS[character.class]
+    : undefined;
   // dragHandleProps is only passed when dragging is allowed (editable or dragOnly)
   const isDraggable = !!dragHandleProps;
   const isLinkedCharacter = !!character.characterId;
@@ -912,8 +933,10 @@ function CharacterCard({
         )}
         {...(isDraggable ? dragHandleProps : {})}
       >
-        {hasClassIcon ? (
+        {isWowClass ? (
           <ClassIcon characterClass={character.class!} px={14} />
+        ) : StatusIcon ? (
+          <StatusIcon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" />
         ) : (
           <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center text-[10px] font-bold text-muted-foreground/50">
             ?

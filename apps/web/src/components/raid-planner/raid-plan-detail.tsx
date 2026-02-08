@@ -32,6 +32,7 @@ import { RaidPlanHeader } from "./raid-plan-header";
 import {
   RaidPlanGroupsGrid,
   WOW_SERVERS,
+  VALID_WRITE_IN_CLASSES,
   type RaidPlanCharacter,
   type SlotFillEvent,
   type CharacterDeleteEvent,
@@ -991,10 +992,15 @@ export function RaidPlanDetail({
             r.status === "matched" && r.matchedCharacter
               ? r.matchedCharacter.characterId
               : null;
+          const normalizedClass = r.className
+            ? r.className.charAt(0).toUpperCase() +
+              r.className.slice(1).toLowerCase()
+            : null;
           const writeInClass =
-            !characterId && r.className
-              ? r.className.charAt(0).toUpperCase() +
-                r.className.slice(1).toLowerCase()
+            !characterId &&
+            normalizedClass &&
+            VALID_WRITE_IN_CLASSES.has(normalizedClass)
+              ? normalizedClass
               : null;
           return {
             characterId,
