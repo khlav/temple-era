@@ -566,11 +566,19 @@ function CharacterMatchingDialog({
             ? r.matchedCharacter.characterId
             : null;
 
+        // For unmatched characters, pass their RaidHelper class as writeInClass
+        const writeInClass =
+          !characterId && r.className
+            ? r.className.charAt(0).toUpperCase() +
+              r.className.slice(1).toLowerCase()
+            : null;
+
         return {
           characterId,
           characterName,
           defaultGroup,
           defaultPosition,
+          writeInClass,
         };
       });
 

@@ -562,6 +562,7 @@ export const raidPlanRouter = createTRPCRouter({
             characterName: z.string(),
             defaultGroup: z.number().nullable(), // 0-indexed group (0-7)
             defaultPosition: z.number().nullable(), // 0-indexed position (0-4)
+            writeInClass: z.string().max(32).nullable().optional(),
           }),
         ),
       }),
@@ -601,6 +602,7 @@ export const raidPlanRouter = createTRPCRouter({
             raidPlanId: planId,
             characterId: char.characterId,
             characterName: char.characterName,
+            writeInClass: char.characterId ? null : (char.writeInClass ?? null),
             defaultGroup: char.defaultGroup,
             defaultPosition: char.defaultPosition,
           })),
@@ -1214,6 +1216,7 @@ export const raidPlanRouter = createTRPCRouter({
             characterName: z.string(),
             defaultGroup: z.number().nullable(),
             defaultPosition: z.number().nullable(),
+            writeInClass: z.string().max(32).nullable().optional(),
           }),
         ),
       }),
@@ -1301,6 +1304,9 @@ export const raidPlanRouter = createTRPCRouter({
             characterName: newChar.characterName,
             defaultGroup: newChar.defaultGroup,
             defaultPosition: newChar.defaultPosition,
+            writeInClass: newChar.characterId
+              ? null
+              : (newChar.writeInClass ?? null),
           })
           .where(eq(raidPlanCharacters.id, existingRecord.id));
         updated++;
@@ -1318,6 +1324,7 @@ export const raidPlanRouter = createTRPCRouter({
             characterName: char.characterName,
             defaultGroup: char.defaultGroup,
             defaultPosition: char.defaultPosition,
+            writeInClass: char.characterId ? null : (char.writeInClass ?? null),
           })),
         );
         added = toInsert.length;

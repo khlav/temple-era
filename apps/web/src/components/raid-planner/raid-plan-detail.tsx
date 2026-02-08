@@ -991,7 +991,18 @@ export function RaidPlanDetail({
             r.status === "matched" && r.matchedCharacter
               ? r.matchedCharacter.characterId
               : null;
-          return { characterId, characterName, defaultGroup, defaultPosition };
+          const writeInClass =
+            !characterId && r.className
+              ? r.className.charAt(0).toUpperCase() +
+                r.className.slice(1).toLowerCase()
+              : null;
+          return {
+            characterId,
+            characterName,
+            defaultGroup,
+            defaultPosition,
+            writeInClass,
+          };
         });
 
       // 5. Call the refresh mutation
