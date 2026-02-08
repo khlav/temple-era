@@ -186,14 +186,156 @@ export function RaidPlanDetail({
 
   const utils = api.useUtils();
   const updateCharacterMutation = api.raidPlan.updateCharacter.useMutation();
-  const moveCharacterMutation = api.raidPlan.moveCharacter.useMutation();
-  const swapCharactersMutation = api.raidPlan.swapCharacters.useMutation();
+
+  const moveCharacterMutation = api.raidPlan.moveCharacter.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          characters: old.characters.map((c) =>
+            c.id === input.planCharacterId
+              ? {
+                  ...c,
+                  defaultGroup: input.targetGroup,
+                  defaultPosition: input.targetPosition,
+                }
+              : c,
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+  });
+
+  const swapCharactersMutation = api.raidPlan.swapCharacters.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        const charA = old.characters.find(
+          (c) => c.id === input.planCharacterIdA,
+        );
+        const charB = old.characters.find(
+          (c) => c.id === input.planCharacterIdB,
+        );
+        if (!charA || !charB) return old;
+        return {
+          ...old,
+          characters: old.characters.map((c) => {
+            if (c.id === input.planCharacterIdA)
+              return {
+                ...c,
+                defaultGroup: charB.defaultGroup,
+                defaultPosition: charB.defaultPosition,
+              };
+            if (c.id === input.planCharacterIdB)
+              return {
+                ...c,
+                defaultGroup: charA.defaultGroup,
+                defaultPosition: charA.defaultPosition,
+              };
+            return c;
+          }),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+  });
+
   const addCharacterMutation = api.raidPlan.addCharacter.useMutation();
   const deleteCharacterMutation = api.raidPlan.deleteCharacter.useMutation();
+
   const moveEncounterCharMutation =
-    api.raidPlan.moveEncounterCharacter.useMutation();
+    api.raidPlan.moveEncounterCharacter.useMutation({
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            encounterAssignments: old.encounterAssignments.map((a) =>
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterId
+                ? {
+                    ...a,
+                    groupNumber: input.targetGroup,
+                    position: input.targetPosition,
+                  }
+                : a,
+            ),
+          };
+        });
+        return { prev };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+      },
+      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    });
+
   const swapEncounterCharsMutation =
-    api.raidPlan.swapEncounterCharacters.useMutation();
+    api.raidPlan.swapEncounterCharacters.useMutation({
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          const assignA = old.encounterAssignments.find(
+            (a) =>
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterIdA,
+          );
+          const assignB = old.encounterAssignments.find(
+            (a) =>
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterIdB,
+          );
+          if (!assignA || !assignB) return old;
+          return {
+            ...old,
+            encounterAssignments: old.encounterAssignments.map((a) => {
+              if (
+                a.encounterId === input.encounterId &&
+                a.planCharacterId === input.planCharacterIdA
+              )
+                return {
+                  ...a,
+                  groupNumber: assignB.groupNumber,
+                  position: assignB.position,
+                };
+              if (
+                a.encounterId === input.encounterId &&
+                a.planCharacterId === input.planCharacterIdB
+              )
+                return {
+                  ...a,
+                  groupNumber: assignA.groupNumber,
+                  position: assignA.position,
+                };
+              return a;
+            }),
+          };
+        });
+        return { prev };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+      },
+      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    });
   const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
     onSuccess: (data) => {
       toast({
