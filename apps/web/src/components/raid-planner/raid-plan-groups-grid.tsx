@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,9 +12,15 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { GripVertical, Pencil } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterSelector } from "~/components/characters/character-selector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { cn } from "~/lib/utils";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 
@@ -29,6 +35,18 @@ const CLASS_COLORS: Record<string, string> = {
   Warlock: "rgba(135, 136, 238, 0.28)",
   Warrior: "rgba(198, 155, 109, 0.28)",
 };
+
+const WOW_CLASSES = [
+  "Druid",
+  "Hunter",
+  "Mage",
+  "Paladin",
+  "Priest",
+  "Rogue",
+  "Shaman",
+  "Warlock",
+  "Warrior",
+] as const;
 
 export const WOW_SERVERS = [
   "Ashkandi",
@@ -64,6 +82,7 @@ export interface SlotFillEvent {
   targetPosition: number;
   characterId: number | null;
   characterName: string;
+  writeInClass?: string | null;
 }
 
 export interface CharacterDeleteEvent {
@@ -177,6 +196,9 @@ export function RaidPlanGroupsGrid({
   };
 
   const handleSelect = (selected: RaidParticipant) => {
+    const isWriteIn = !selected.characterId;
+    const writeInClass = isWriteIn && selected.class ? selected.class : null;
+
     if (editingCharacterId && onCharacterUpdate) {
       // Replacing an existing character
       onCharacterUpdate(editingCharacterId, selected);
@@ -187,6 +209,7 @@ export function RaidPlanGroupsGrid({
         targetPosition: editingSlot.position,
         characterId: selected.characterId || null,
         characterName: selected.name,
+        writeInClass,
       });
     } else if (editingBench && onSlotFill) {
       // Adding to bench - create a new character with null group/position
@@ -195,6 +218,7 @@ export function RaidPlanGroupsGrid({
         targetPosition: -1,
         characterId: selected.characterId || null,
         characterName: selected.name,
+        writeInClass,
       });
     }
     setEditingCharacterId(null);
@@ -640,14 +664,27 @@ function EditingBar({
   onCancel,
 }: EditingBarProps) {
   const [placeholderName, setPlaceholderName] = useState("");
+  const [writeInClass, setWriteInClass] = useState<string>("Paladin");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-populate name and class from existing character when editing
+  useEffect(() => {
+    if (editingCharacter) {
+      setPlaceholderName(editingCharacter.characterName);
+      if (editingCharacter.class) {
+        setWriteInClass(editingCharacter.class);
+      }
+    } else {
+      setPlaceholderName("");
+    }
+  }, [editingCharacter]);
 
   const handlePlaceholderSubmit = () => {
     if (placeholderName.trim()) {
       onSelect({
         characterId: 0, // Will be treated as null
         name: placeholderName.trim(),
-        class: "",
+        class: writeInClass,
         classDetail: "",
         server: "",
       });
@@ -696,41 +733,66 @@ function EditingBar({
           Cancel
         </button>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <CharacterSelector
           onSelectAction={onSelect}
           characterSet="all"
-          buttonContent={<span>Select character</span>}
+          buttonContent="Select from DB"
         />
-        <span className="text-xs text-muted-foreground">or</span>
+        <span className="shrink-0 text-nowrap text-xs text-muted-foreground">
+          or write-in:
+        </span>
         <input
           ref={inputRef}
           type="text"
           value={placeholderName}
           onChange={(e) => setPlaceholderName(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type name..."
-          className="h-7 w-32 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+          placeholder="Type placeholder name..."
+          className="h-7 min-w-0 grow rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
         />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex h-7 shrink-0 items-center gap-0.5 rounded-md border bg-background px-1.5"
+            >
+              <ClassIcon characterClass={writeInClass} px={16} />
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[140px]">
+            {WOW_CLASSES.map((cls) => (
+              <DropdownMenuItem
+                key={cls}
+                onClick={() => setWriteInClass(cls)}
+                className={cn(
+                  "gap-2 text-xs",
+                  writeInClass === cls && "bg-accent",
+                )}
+              >
+                <ClassIcon characterClass={cls} px={14} />
+                {cls}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <button
           type="button"
           onClick={handlePlaceholderSubmit}
           disabled={!placeholderName.trim()}
-          className="h-7 rounded-md bg-primary px-2 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="h-7 shrink-0 rounded-md bg-primary px-2 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           Set
         </button>
         {editingCharacter && onClear && (
-          <>
-            <span className="text-xs text-muted-foreground">or</span>
-            <button
-              type="button"
-              onClick={onClear}
-              className="h-7 rounded-md border border-destructive/50 px-2 text-xs text-destructive hover:bg-destructive/10"
-            >
-              Clear
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={onClear}
+            className="h-7 shrink-0 rounded-md border border-destructive/50 px-2 text-xs text-destructive hover:bg-destructive/10"
+          >
+            Clear
+          </button>
         )}
       </div>
     </div>
@@ -805,21 +867,39 @@ function CharacterCard({
   const hasClassIcon = !!character.class;
   // dragHandleProps is only passed when dragging is allowed (editable or dragOnly)
   const isDraggable = !!dragHandleProps;
+  const isLinkedCharacter = !!character.characterId;
   const classColor =
-    character.characterId && character.class
+    isLinkedCharacter && character.class
       ? CLASS_COLORS[character.class]
       : undefined;
+  // Write-in gradient: muted bg on left, fading to class color at midpoint, solid class color on right 1/8
+  const writeInClassColor =
+    !isLinkedCharacter && character.class
+      ? CLASS_COLORS[character.class]
+      : undefined;
+  const mutedBg = compact
+    ? "hsl(var(--muted) / 0.5)"
+    : "hsl(var(--muted) / 0.3)";
 
   return (
     <div
       className={cn(
         "group relative flex items-center gap-1.5 rounded px-1.5 py-1 text-xs",
-        !classColor && (compact ? "bg-muted/50" : "bg-muted/30"),
+        !classColor &&
+          !writeInClassColor &&
+          (compact ? "bg-muted/50" : "bg-muted/30"),
         isEditing && "ring-2 ring-primary",
         isDragging && "opacity-50",
         isDragOverlay && "shadow-lg ring-2 ring-primary/50",
       )}
-      style={classColor ? { backgroundColor: classColor } : undefined}
+      style={{
+        ...(classColor ? { backgroundColor: classColor } : {}),
+        ...(writeInClassColor
+          ? {
+              background: `linear-gradient(45deg, ${mutedBg} 70%, ${writeInClassColor} 95%)`,
+            }
+          : {}),
+      }}
     >
       {/* Draggable area: icon (or grip) + name */}
       <span
@@ -832,11 +912,16 @@ function CharacterCard({
         {hasClassIcon ? (
           <ClassIcon characterClass={character.class!} px={14} />
         ) : (
-          isDraggable && (
-            <GripVertical className="h-3 w-3 flex-shrink-0 text-muted-foreground/50" />
-          )
+          <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center text-[10px] font-bold text-muted-foreground/50">
+            ?
+          </span>
         )}
-        <span className="truncate font-medium">{character.characterName}</span>
+        <span className="truncate font-medium">
+          {character.characterName}
+          {!isLinkedCharacter && (
+            <span className="text-muted-foreground/80">*</span>
+          )}
+        </span>
       </span>
       {editable && onEditClick && showEditControls && (
         <button
