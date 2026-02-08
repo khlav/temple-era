@@ -667,7 +667,9 @@ function EditingBar({
   const [writeInClass, setWriteInClass] = useState<string>("Paladin");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-populate name and class from existing character when editing
+  // Auto-populate name and class when editing bar opens for a character.
+  // Key on editingCharacter?.id (stable string) to avoid re-firing on every parent re-render.
+  const editingCharId = editingCharacter?.id ?? null;
   useEffect(() => {
     if (editingCharacter) {
       setPlaceholderName(editingCharacter.characterName);
@@ -677,7 +679,8 @@ function EditingBar({
     } else {
       setPlaceholderName("");
     }
-  }, [editingCharacter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingCharId]);
 
   const handlePlaceholderSubmit = () => {
     if (placeholderName.trim()) {
