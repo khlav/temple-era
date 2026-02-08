@@ -8,6 +8,7 @@ import {
   and,
   or,
   desc,
+  sql,
 } from "drizzle-orm";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import {
@@ -127,8 +128,10 @@ export const raidPlanRouter = createTRPCRouter({
           characterName: raidPlanCharacters.characterName,
           defaultGroup: raidPlanCharacters.defaultGroup,
           defaultPosition: raidPlanCharacters.defaultPosition,
-          // Joined from characters table
-          class: characters.class,
+          // COALESCE: use joined character class, fall back to write-in class
+          class: sql<
+            string | null
+          >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
           server: characters.server,
         })
         .from(raidPlanCharacters)
@@ -405,9 +408,7 @@ export const raidPlanRouter = createTRPCRouter({
           );
         }
 
-        await ctx.db
-          .delete(raidPlanEncounterAASlots)
-          .where(and(...conditions));
+        await ctx.db.delete(raidPlanEncounterAASlots).where(and(...conditions));
       }
 
       // Seed encounter assignments from defaults when toggling custom groups on
@@ -540,9 +541,7 @@ export const raidPlanRouter = createTRPCRouter({
           );
         }
 
-        await ctx.db
-          .delete(raidPlanEncounterAASlots)
-          .where(and(...conditions));
+        await ctx.db.delete(raidPlanEncounterAASlots).where(and(...conditions));
       }
 
       return { success: true };
@@ -711,6 +710,7 @@ export const raidPlanRouter = createTRPCRouter({
         planCharacterId: z.string().uuid(),
         characterId: z.number().nullable(),
         characterName: z.string().min(1).max(128),
+        writeInClass: z.string().max(32).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -719,6 +719,7 @@ export const raidPlanRouter = createTRPCRouter({
         .set({
           characterId: input.characterId,
           characterName: input.characterName,
+          writeInClass: input.characterId ? null : (input.writeInClass ?? null),
         })
         .where(eq(raidPlanCharacters.id, input.planCharacterId))
         .returning({ id: raidPlanCharacters.id });
@@ -777,6 +778,7 @@ export const raidPlanRouter = createTRPCRouter({
         characterName: z.string().min(1).max(128),
         targetGroup: z.number().min(-1).max(7),
         targetPosition: z.number().min(-1).max(4),
+        writeInClass: z.string().max(32).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -804,6 +806,7 @@ export const raidPlanRouter = createTRPCRouter({
           raidPlanId: input.planId,
           characterId: input.characterId,
           characterName: input.characterName,
+          writeInClass: input.characterId ? null : (input.writeInClass ?? null),
           defaultGroup: isBench ? null : input.targetGroup,
           defaultPosition: isBench ? null : input.targetPosition,
         })
@@ -1274,7 +1277,8 @@ export const raidPlanRouter = createTRPCRouter({
         const match = existing.find(
           (e) =>
             !matchedExistingIds.has(e.id) &&
-            e.characterName.toLowerCase() === newChar.characterName.toLowerCase(),
+            e.characterName.toLowerCase() ===
+              newChar.characterName.toLowerCase(),
         );
         if (match) {
           matchedExistingIds.add(match.id);
@@ -1348,16 +1352,17 @@ export const raidPlanRouter = createTRPCRouter({
         await ctx.db
           .delete(raidPlanEncounterAssignments)
           .where(
-            inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds),
+            inArray(
+              raidPlanEncounterAssignments.encounterId,
+              customEncounterIds,
+            ),
           );
 
         // Reset encounters to use default groups
         await ctx.db
           .update(raidPlanEncounters)
           .set({ useDefaultGroups: true })
-          .where(
-            inArray(raidPlanEncounters.id, customEncounterIds),
-          );
+          .where(inArray(raidPlanEncounters.id, customEncounterIds));
       }
 
       return { added, updated, removed };

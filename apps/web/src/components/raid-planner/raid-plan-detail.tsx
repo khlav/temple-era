@@ -604,6 +604,7 @@ export function RaidPlanDetail({
           planCharacterId,
           characterId,
           characterName: character.name,
+          writeInClass: characterId ? null : character.class || null,
         },
         {
           onError: (error) => {
@@ -672,7 +673,7 @@ export function RaidPlanDetail({
               characterName: event.characterName,
               defaultGroup: event.targetGroup,
               defaultPosition: event.targetPosition,
-              class: null,
+              class: event.writeInClass ?? null,
               server: null,
             },
           ],
@@ -687,6 +688,7 @@ export function RaidPlanDetail({
           characterName: event.characterName,
           targetGroup: event.targetGroup,
           targetPosition: event.targetPosition,
+          writeInClass: event.writeInClass ?? null,
         },
         {
           onError: (error) => {
@@ -774,8 +776,8 @@ export function RaidPlanDetail({
             name += `-${char.server}`;
           }
         } else {
-          // Placeholder/unknown: --Name-- format
-          name = `--${char.characterName}--`;
+          // Placeholder/unknown: Name? format
+          name = `${char.characterName}?`;
         }
 
         raidData[position] = name;

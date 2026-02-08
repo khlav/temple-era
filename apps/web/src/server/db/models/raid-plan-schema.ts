@@ -140,6 +140,7 @@ export const raidPlanCharacters = tableCreator(
       { onDelete: "set null" },
     ),
     characterName: varchar("character_name", { length: 128 }).notNull(),
+    writeInClass: varchar("write_in_class", { length: 32 }), // Class for write-in characters (no characterId)
     defaultGroup: integer("default_group"), // 0-7 for 40-man, 0-3 for 20-man. NULL = bench
     defaultPosition: integer("default_position"), // 0-4. NULL when benched
     ...DefaultTimestamps,
