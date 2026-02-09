@@ -21,6 +21,14 @@ export interface AASlotDefinition {
   rawMatch: string;
 }
 
+export interface AARefDefinition {
+  name: string;
+  noColor?: boolean;
+  startIndex: number;
+  endIndex: number;
+  rawMatch: string;
+}
+
 export interface AACharacterAssignment {
   name: string;
   class: string | null;
@@ -28,6 +36,7 @@ export interface AACharacterAssignment {
 
 export interface ParseResult {
   slots: AASlotDefinition[];
+  refs: AARefDefinition[];
   errors: string[];
 }
 
@@ -50,12 +59,16 @@ const CLASS_COLOR_CODES: Record<string, string> = {
 // Captures: slotName, optional number, optional "nocolor"
 const ASSIGN_SLOT_REGEX = /\{assign:([^\s:}]+)(?::(\d+))?(?::(nocolor))?\}/gi;
 
+// Regex to match {ref:SlotName} with optional nocolor modifier
+const REF_SLOT_REGEX = /\{ref:([^\s:}]+)(?::(nocolor))?\}/gi;
+
 /**
  * Parse an AA template to extract slot definitions.
  * Returns slots and any validation errors (e.g., duplicate slot names).
  */
 export function parseAATemplate(template: string): ParseResult {
   const slots: AASlotDefinition[] = [];
+  const refs: AARefDefinition[] = [];
   const slotNames = new Set<string>();
   const errors: string[] = [];
 
@@ -91,7 +104,33 @@ export function parseAATemplate(template: string): ParseResult {
     slots.push(slot);
   }
 
-  return { slots, errors };
+  // Parse ref tags
+  REF_SLOT_REGEX.lastIndex = 0;
+
+  while ((match = REF_SLOT_REGEX.exec(template)) !== null) {
+    const [rawMatch, refName, noColorFlag] = match;
+    const normalizedName = refName!.trim();
+
+    const ref: AARefDefinition = {
+      name: normalizedName,
+      startIndex: match.index,
+      endIndex: match.index + rawMatch!.length,
+      rawMatch: rawMatch!,
+    };
+
+    if (noColorFlag) {
+      ref.noColor = true;
+    }
+
+    // Validate: ref must reference an existing slot name
+    if (!slotNames.has(normalizedName.toLowerCase())) {
+      errors.push(`Ref "${normalizedName}" does not match any slot`);
+    }
+
+    refs.push(ref);
+  }
+
+  return { slots, refs, errors };
 }
 
 /**
@@ -145,17 +184,47 @@ export function renderAATemplate(
   template: string,
   slotAssignments: Map<string, AACharacterAssignment[]>,
 ): string {
-  const { slots } = parseAATemplate(template);
+  const { slots, refs } = parseAATemplate(template);
 
-  // Sort slots by startIndex descending so we can replace from end to start
-  // without affecting earlier indices
-  const sortedSlots = [...slots].sort((a, b) => b.startIndex - a.startIndex);
+  // Build a lookup of slot noColor by name (case-insensitive)
+  const slotNoColorMap = new Map<string, boolean>();
+  for (const slot of slots) {
+    slotNoColorMap.set(slot.name.toLowerCase(), !!slot.noColor);
+  }
+
+  // Collect all replaceable positions (slots + refs), sort descending by startIndex
+  const replacements: {
+    startIndex: number;
+    endIndex: number;
+    name: string;
+    noColor?: boolean;
+    maxCharacters?: number;
+  }[] = [
+    ...slots.map((s) => ({
+      startIndex: s.startIndex,
+      endIndex: s.endIndex,
+      name: s.name,
+      noColor: s.noColor,
+      maxCharacters: s.maxCharacters,
+    })),
+    ...refs.map((r) => ({
+      startIndex: r.startIndex,
+      endIndex: r.endIndex,
+      name: r.name,
+      // Ref uses its own noColor if set, otherwise inherits from the referenced slot
+      noColor:
+        r.noColor !== undefined
+          ? r.noColor
+          : slotNoColorMap.get(r.name.toLowerCase()),
+      maxCharacters: undefined,
+    })),
+  ].sort((a, b) => b.startIndex - a.startIndex);
 
   let result = template;
 
-  for (const slot of sortedSlots) {
-    const assignments = slotAssignments.get(slot.name) ?? [];
-    const useColor = !slot.noColor;
+  for (const item of replacements) {
+    const assignments = slotAssignments.get(item.name) ?? [];
+    const useColor = !item.noColor;
 
     // Format character names
     const names = assignments.map((char) =>
@@ -163,18 +232,18 @@ export function renderAATemplate(
     );
 
     // Truncate to max characters if specified
-    const limitedNames = slot.maxCharacters
-      ? names.slice(0, slot.maxCharacters)
+    const limitedNames = item.maxCharacters
+      ? names.slice(0, item.maxCharacters)
       : names;
 
     // Join with space (common AA convention)
     const replacement = limitedNames.join(" ");
 
-    // Replace the slot placeholder with the names
+    // Replace the placeholder with the names
     result =
-      result.slice(0, slot.startIndex) +
+      result.slice(0, item.startIndex) +
       replacement +
-      result.slice(slot.endIndex);
+      result.slice(item.endIndex);
   }
 
   return result;

@@ -53,3 +53,6 @@ wow_addons_for_reference
 # BFG Repo-Cleaner files (contain sensitive data)
 bfg-replacements.txt
 ..bfg-report/
+
+# claude local settings
+.claude/settings*

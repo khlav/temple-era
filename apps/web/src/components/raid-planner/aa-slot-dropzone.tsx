@@ -204,3 +204,50 @@ export function AASlotInline({
     </span>
   );
 }
+
+/**
+ * Read-only inline ref that mirrors a slot's characters without being a drop target
+ */
+interface AARefInlineProps {
+  slotName: string;
+  characters: AASlotCharacter[];
+  noColor?: boolean;
+}
+
+export function AARefInline({
+  slotName,
+  characters,
+  noColor,
+}: AARefInlineProps) {
+  const sortedCharacters = [...characters].sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  );
+
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded border border-dotted border-muted-foreground/30 px-1 py-0.5">
+      {sortedCharacters.length === 0 ? (
+        <span className="text-xs text-muted-foreground/60">
+          (ref:{slotName})
+        </span>
+      ) : (
+        sortedCharacters.map((char, index) => (
+          <span
+            key={char.planCharacterId}
+            className={cn(
+              "inline-flex items-center gap-0.5",
+              "text-sm font-medium",
+              !noColor && char.characterClass
+                ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
+                : "text-foreground",
+            )}
+          >
+            <span>{char.characterName}</span>
+            {index < sortedCharacters.length - 1 && (
+              <span className="text-muted-foreground"> </span>
+            )}
+          </span>
+        ))
+      )}
+    </span>
+  );
+}

@@ -6,8 +6,9 @@
 
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { HelpCircle, Loader2 } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { ClassIcon } from "./class-icon";
 import { useSpellIcon, getSpellIconUrl } from "~/hooks/use-spell-icon";
 import type { AAIconType } from "~/lib/aa-formatting";
@@ -32,48 +33,53 @@ function SpellIconInternal({
   className?: string;
 }) {
   const { icon, loading, error } = useSpellIcon(spellId);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgErrored, setImgErrored] = useState(false);
 
   const baseClassName =
     className ?? "inline-block rounded-sm align-text-bottom";
 
-  if (loading) {
-    return (
-      <span
-        className={`${baseClassName} flex items-center justify-center bg-muted`}
-        style={{ width: size, height: size }}
-      >
-        <Loader2
-          className="animate-spin text-muted-foreground"
-          style={{ width: size * 0.7, height: size * 0.7 }}
-        />
-      </span>
-    );
-  }
+  // Phase 1: hook is fetching icon name from Wowhead
+  // Phase 2: icon name resolved but CDN image not yet loaded
+  // Show HelpCircle as stable placeholder for both phases
+  const showPlaceholder = loading || (!imgLoaded && !imgErrored);
+  const showError = error || !icon || imgErrored;
 
-  if (error || !icon) {
+  if (!loading && showError) {
     return (
-      <span
-        className={`${baseClassName} flex items-center justify-center bg-muted`}
+      <HelpCircle
+        className={`${baseClassName} text-muted-foreground`}
         style={{ width: size, height: size }}
-        title={`Unknown spell: ${spellId}`}
-      >
-        <HelpCircle
-          className="text-muted-foreground"
-          style={{ width: size * 0.7, height: size * 0.7 }}
-        />
-      </span>
+        aria-label={`Unknown spell: ${spellId}`}
+      />
     );
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={getSpellIconUrl(icon)}
-      alt={`Spell ${spellId}`}
-      width={size}
-      height={size}
-      className={baseClassName}
-    />
+    <span
+      className={`${baseClassName} relative`}
+      style={{ width: size, height: size, display: "inline-block" }}
+    >
+      {showPlaceholder && (
+        <HelpCircle
+          className="absolute inset-0 text-muted-foreground"
+          style={{ width: size, height: size }}
+        />
+      )}
+      {icon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={getSpellIconUrl(icon)}
+          alt={`Spell ${spellId}`}
+          width={size}
+          height={size}
+          className={imgLoaded ? "rounded-sm" : "opacity-0"}
+          style={{ width: size, height: size }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgErrored(true)}
+        />
+      )}
+    </span>
   );
 }
 
@@ -119,12 +125,48 @@ export function AAIcon({ name, type, size = 14, className }: AAIconProps) {
   }
 
   return (
+    <AAImageIcon src={iconPath} alt={name} size={size} className={className} />
+  );
+}
+
+/**
+ * Image icon with fixed dimensions to prevent layout shift.
+ * Shows HelpCircle only on load error.
+ */
+function AAImageIcon({
+  src,
+  alt,
+  size = 14,
+  className,
+}: {
+  src: string;
+  alt: string;
+  size?: number;
+  className?: string;
+}) {
+  const [errored, setErrored] = useState(false);
+
+  const baseClassName = className ?? "inline-block align-text-bottom";
+
+  if (errored) {
+    return (
+      <HelpCircle
+        className={`${baseClassName} text-muted-foreground`}
+        style={{ width: size, height: size }}
+        aria-label={alt}
+      />
+    );
+  }
+
+  return (
     <Image
-      src={iconPath}
-      alt={name}
+      src={src}
+      alt={alt}
       width={size}
       height={size}
-      className={className ?? "inline-block align-text-bottom"}
+      className={baseClassName}
+      style={{ width: size, height: size }}
+      onError={() => setErrored(true)}
     />
   );
 }

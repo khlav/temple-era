@@ -35,7 +35,7 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { AATemplateConfigDialog } from "./aa-template-config-dialog";
+import { AATemplateEditorDialog } from "./aa-template-editor-dialog";
 
 const TWENTY_MAN_INSTANCES = ["aq20", "zg", "onyxia"];
 
@@ -528,7 +528,11 @@ export function RaidPlannerConfig() {
                 <code className="rounded bg-muted px-1">
                   {"{assign:SlotName}"}
                 </code>{" "}
-                to create assignment slots in AA templates.
+                to create assignment slots in AA templates. Use{" "}
+                <code className="rounded bg-muted px-1">
+                  {"{ref:SlotName}"}
+                </code>{" "}
+                to mirror a slot (read-only).
               </p>
 
               {/* Unified encounter list */}
@@ -731,7 +735,7 @@ export function RaidPlannerConfig() {
         </AlertDialog>
 
         {/* AA template config dialog */}
-        <AATemplateConfigDialog
+        <AATemplateEditorDialog
           open={!!aaDialogContext}
           onOpenChange={(open) => {
             if (!open) setAADialogContext(null);

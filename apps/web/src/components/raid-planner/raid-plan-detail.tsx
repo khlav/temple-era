@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Loader2, X, RotateCcw, RefreshCw } from "lucide-react";
+import { Loader2, X, RotateCcw, RefreshCw, Pencil } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -38,7 +38,7 @@ import {
   type CharacterDeleteEvent,
 } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
-import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
+import { CUSTOM_ZONE_ID, RAID_ZONE_CONFIG } from "~/lib/raid-zones";
 import {
   AATemplateRenderer,
   type AASlotAssignment,
@@ -47,7 +47,7 @@ import {
   renderAATemplate,
   type AACharacterAssignment,
 } from "~/lib/aa-template";
-import { AATemplateEditor } from "./aa-template-editor";
+import { AATemplateEditorDialog } from "./aa-template-editor-dialog";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { cn } from "~/lib/utils";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -1181,6 +1181,9 @@ export function RaidPlanDetail({
   // Determine group count based on zone (20-man raids use 4 groups, custom defaults to 8)
   const is20Man = ["aq20", "zg", "onyxia"].includes(plan.zoneId.toLowerCase());
   const groupCount = is20Man ? 4 : 8;
+  const zoneName =
+    RAID_ZONE_CONFIG.find((z) => z.instance === plan.zoneId)?.name ??
+    plan.zoneId;
 
   return (
     <div className="space-y-6">
@@ -1406,36 +1409,36 @@ export function RaidPlanDetail({
                   )}
                 </div>
                 {plan.useDefaultAA ? (
-                  <>
-                    <AAPanel
-                      template={plan.defaultAATemplate}
-                      onSaveTemplate={handleDefaultAATemplateSave}
-                      characters={plan.characters as RaidPlanCharacter[]}
-                      slotAssignments={plan.aaSlotAssignments.filter(
-                        (a) => a.raidPlanId === planId,
-                      )}
-                      onAssign={(charId, slotName) =>
-                        handleAAAssign(charId, slotName, { raidPlanId: planId })
+                  <AAPanel
+                    template={plan.defaultAATemplate}
+                    onSaveTemplate={handleDefaultAATemplateSave}
+                    characters={plan.characters as RaidPlanCharacter[]}
+                    slotAssignments={plan.aaSlotAssignments.filter(
+                      (a) => a.raidPlanId === planId,
+                    )}
+                    onAssign={(charId, slotName) =>
+                      handleAAAssign(charId, slotName, { raidPlanId: planId })
+                    }
+                    onRemove={(charId, slotName) =>
+                      handleAARemove(charId, slotName, { raidPlanId: planId })
+                    }
+                    onReorder={(slotName, ids) =>
+                      handleAAReorder(slotName, ids, { raidPlanId: planId })
+                    }
+                    contextId={planId}
+                    contextLabel="Default/Trash"
+                    zoneName={zoneName}
+                    isSaving={updatePlanMutation.isPending}
+                    defaultTemplate={zoneTemplate?.defaultAATemplate}
+                    onResetToDefault={() => {
+                      if (zoneTemplate?.defaultAATemplate) {
+                        handleDefaultAATemplateSave(
+                          zoneTemplate.defaultAATemplate,
+                        );
                       }
-                      onRemove={(charId, slotName) =>
-                        handleAARemove(charId, slotName, { raidPlanId: planId })
-                      }
-                      onReorder={(slotName, ids) =>
-                        handleAAReorder(slotName, ids, { raidPlanId: planId })
-                      }
-                      contextId={planId}
-                      isSaving={updatePlanMutation.isPending}
-                      defaultTemplate={zoneTemplate?.defaultAATemplate}
-                      onResetToDefault={() => {
-                        if (zoneTemplate?.defaultAATemplate) {
-                          handleDefaultAATemplateSave(
-                            zoneTemplate.defaultAATemplate,
-                          );
-                        }
-                      }}
-                      isResetting={updatePlanMutation.isPending}
-                    />
-                  </>
+                    }}
+                    isResetting={updatePlanMutation.isPending}
+                  />
                 ) : (
                   <div className="rounded-lg border border-dashed p-6">
                     <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
@@ -1493,53 +1496,52 @@ export function RaidPlanDetail({
                     )}
                   </div>
                   {encounter.useCustomAA ? (
-                    <>
-                      <AAPanel
-                        template={encounter.aaTemplate}
-                        onSaveTemplate={(template) =>
-                          handleEncounterAATemplateSave(encounter.id, template)
+                    <AAPanel
+                      template={encounter.aaTemplate}
+                      onSaveTemplate={(template) =>
+                        handleEncounterAATemplateSave(encounter.id, template)
+                      }
+                      characters={plan.characters as RaidPlanCharacter[]}
+                      slotAssignments={plan.aaSlotAssignments.filter(
+                        (a) => a.encounterId === encounter.id,
+                      )}
+                      onAssign={(charId, slotName) =>
+                        handleAAAssign(charId, slotName, {
+                          encounterId: encounter.id,
+                        })
+                      }
+                      onRemove={(charId, slotName) =>
+                        handleAARemove(charId, slotName, {
+                          encounterId: encounter.id,
+                        })
+                      }
+                      onReorder={(slotName, ids) =>
+                        handleAAReorder(slotName, ids, {
+                          encounterId: encounter.id,
+                        })
+                      }
+                      contextId={encounter.id}
+                      contextLabel={encounter.encounterName}
+                      zoneName={zoneName}
+                      isSaving={updateEncounterMutation.isPending}
+                      defaultTemplate={
+                        zoneTemplate?.encounters.find(
+                          (e) => e.encounterKey === encounter.encounterKey,
+                        )?.aaTemplate
+                      }
+                      onResetToDefault={() => {
+                        const templateEncounter = zoneTemplate?.encounters.find(
+                          (e) => e.encounterKey === encounter.encounterKey,
+                        );
+                        if (templateEncounter?.aaTemplate) {
+                          handleEncounterAATemplateSave(
+                            encounter.id,
+                            templateEncounter.aaTemplate,
+                          );
                         }
-                        characters={plan.characters as RaidPlanCharacter[]}
-                        slotAssignments={plan.aaSlotAssignments.filter(
-                          (a) => a.encounterId === encounter.id,
-                        )}
-                        onAssign={(charId, slotName) =>
-                          handleAAAssign(charId, slotName, {
-                            encounterId: encounter.id,
-                          })
-                        }
-                        onRemove={(charId, slotName) =>
-                          handleAARemove(charId, slotName, {
-                            encounterId: encounter.id,
-                          })
-                        }
-                        onReorder={(slotName, ids) =>
-                          handleAAReorder(slotName, ids, {
-                            encounterId: encounter.id,
-                          })
-                        }
-                        contextId={encounter.id}
-                        isSaving={updateEncounterMutation.isPending}
-                        defaultTemplate={
-                          zoneTemplate?.encounters.find(
-                            (e) => e.encounterKey === encounter.encounterKey,
-                          )?.aaTemplate
-                        }
-                        onResetToDefault={() => {
-                          const templateEncounter =
-                            zoneTemplate?.encounters.find(
-                              (e) => e.encounterKey === encounter.encounterKey,
-                            );
-                          if (templateEncounter?.aaTemplate) {
-                            handleEncounterAATemplateSave(
-                              encounter.id,
-                              templateEncounter.aaTemplate,
-                            );
-                          }
-                        }}
-                        isResetting={updateEncounterMutation.isPending}
-                      />
-                    </>
+                      }}
+                      isResetting={updateEncounterMutation.isPending}
+                    />
                   ) : (
                     <div className="rounded-lg border border-dashed p-6">
                       <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
@@ -1777,6 +1779,8 @@ interface AAPanelProps {
   onRemove: (planCharacterId: string, slotName: string) => void;
   onReorder: (slotName: string, planCharacterIds: string[]) => void;
   contextId: string;
+  contextLabel: string;
+  zoneName: string;
   isSaving?: boolean;
   defaultTemplate?: string | null;
   onResetToDefault?: () => void;
@@ -1792,53 +1796,76 @@ function AAPanel({
   onRemove,
   onReorder,
   contextId,
+  contextLabel,
+  zoneName,
   isSaving,
   defaultTemplate,
   onResetToDefault,
   isResetting,
 }: AAPanelProps) {
-  // Check if current template differs from default
+  const [editorOpen, setEditorOpen] = useState(false);
   const hasDefaultTemplate = !!defaultTemplate;
 
-  // If no template yet, show editor to create one
+  // If no template yet, show create options
   if (!template) {
     return (
       <div className="space-y-4 rounded-lg border p-4">
         <div className="text-sm text-muted-foreground">
           Create an AA template with <code>{"{assign:SlotName}"}</code>{" "}
-          placeholders, then drag characters from the groups to assign them.
+          placeholders, then drag characters from the groups to assign them. Use{" "}
+          <code>{"{ref:SlotName}"}</code> to mirror a slot in multiple places.
         </div>
-        {hasDefaultTemplate && (
+        <div className="flex flex-col gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onResetToDefault?.()}
-            disabled={isResetting}
+            onClick={() => setEditorOpen(true)}
             className="w-full"
           >
-            {isResetting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Load Default Template
-              </>
-            )}
+            <Pencil className="mr-2 h-4 w-4" />
+            Create Template
           </Button>
-        )}
-        <AATemplateEditor
-          template=""
-          onSave={onSaveTemplate}
-          isSaving={isSaving}
+          {hasDefaultTemplate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onResetToDefault?.()}
+              disabled={isResetting}
+              className="w-full"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Load Default Template
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+        <AATemplateEditorDialog
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          contextLabel={contextLabel}
+          zoneName={zoneName}
+          initialTemplate=""
+          hasExistingTemplate={false}
+          onSave={(t) => {
+            onSaveTemplate(t);
+            setEditorOpen(false);
+          }}
+          onClear={() => {}}
+          isSaving={isSaving ?? false}
         />
       </div>
     );
   }
 
-  // Show full AA interface
+  // Show full AA interface with renderer + edit button
   return (
     <div className="space-y-4">
       <AATemplateRenderer
@@ -1853,12 +1880,40 @@ function AAPanel({
         skipDndContext
       />
 
-      <AATemplateEditor
-        template={template}
-        onSave={onSaveTemplate}
-        isSaving={isSaving}
-        defaultTemplate={defaultTemplate}
-        onResetToDefault={onResetToDefault}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start gap-2 text-muted-foreground"
+        onClick={() => setEditorOpen(true)}
+      >
+        <Pencil className="h-4 w-4" />
+        Edit Template
+      </Button>
+
+      <AATemplateEditorDialog
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        contextLabel={contextLabel}
+        zoneName={zoneName}
+        initialTemplate={template}
+        hasExistingTemplate={true}
+        onSave={(t) => {
+          onSaveTemplate(t);
+          setEditorOpen(false);
+        }}
+        onClear={() => {
+          onSaveTemplate("");
+          setEditorOpen(false);
+        }}
+        isSaving={isSaving ?? false}
+        onResetToDefault={
+          hasDefaultTemplate
+            ? () => {
+                onResetToDefault?.();
+                setEditorOpen(false);
+              }
+            : undefined
+        }
         isResetting={isResetting}
       />
     </div>

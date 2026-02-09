@@ -19,7 +19,7 @@ import {
   type AACharacterAssignment,
 } from "~/lib/aa-template";
 import { parseAAFormatting } from "~/lib/aa-formatting";
-import { AASlotInline } from "./aa-slot-dropzone";
+import { AASlotInline, AARefInline } from "./aa-slot-dropzone";
 import type { RaidPlanCharacter } from "./raid-plan-groups-grid";
 
 export interface AASlotAssignment {
@@ -70,8 +70,8 @@ export function AATemplateRenderer({
     }),
   );
 
-  // Parse template to get slot definitions
-  const { slots, errors } = useMemo(
+  // Parse template to get slot definitions and ref definitions
+  const { slots, refs, errors } = useMemo(
     () => parseAATemplate(template),
     [template],
   );
@@ -174,7 +174,7 @@ export function AATemplateRenderer({
   // Render template with interactive slots and full AA formatting
   const renderedContent = useMemo(() => {
     // Parse the full AA formatting
-    const segments = parseAAFormatting(template, slots);
+    const segments = parseAAFormatting(template, slots, refs);
 
     if (segments.length === 0) {
       return <pre className="whitespace-pre-wrap text-sm">{template}</pre>;
@@ -242,6 +242,48 @@ export function AATemplateRenderer({
             );
           }
           break;
+
+        case "ref":
+          if (segment.refDef) {
+            const refDef = segment.refDef;
+            const matchedSlot = slots.find(
+              (s) => s.name.toLowerCase() === refDef.name.toLowerCase(),
+            );
+
+            if (!matchedSlot) {
+              // Unmatched ref: render with yellow warning
+              parts.push(
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-0.5 text-yellow-500"
+                >
+                  <AlertTriangle className="inline h-3 w-3" />
+                  <code className="text-xs">{`{ref:${refDef.name}}`}</code>
+                </span>,
+              );
+            } else {
+              const refChars = slotCharacterMap.get(refDef.name) ?? [];
+              // Determine noColor: use ref's own noColor if set, else inherit from the referenced slot
+              const refNoColor =
+                refDef.noColor !== undefined
+                  ? refDef.noColor
+                  : matchedSlot.noColor;
+              parts.push(
+                <AARefInline
+                  key={key}
+                  slotName={refDef.name}
+                  characters={refChars.map((c) => ({
+                    planCharacterId: c.planCharacterId,
+                    characterName: c.name,
+                    characterClass: c.class,
+                    sortOrder: c.sortOrder,
+                  }))}
+                  noColor={refNoColor}
+                />,
+              );
+            }
+          }
+          break;
       }
     }
 
@@ -253,6 +295,7 @@ export function AATemplateRenderer({
   }, [
     template,
     slots,
+    refs,
     slotCharacterMap,
     encounterId,
     raidPlanId,

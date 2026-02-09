@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Check } from "lucide-react";
+import { Check, RotateCcw, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ import { parseAATemplate } from "~/lib/aa-template";
 import { AATemplateInlineEditor } from "./aa-template-editor";
 import { AATemplateRenderer } from "./aa-template-renderer";
 
-interface AATemplateConfigDialogProps {
+interface AATemplateEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contextLabel: string;
@@ -35,9 +35,11 @@ interface AATemplateConfigDialogProps {
   onSave: (template: string) => void;
   onClear: () => void;
   isSaving: boolean;
+  onResetToDefault?: () => void;
+  isResetting?: boolean;
 }
 
-export function AATemplateConfigDialog({
+export function AATemplateEditorDialog({
   open,
   onOpenChange,
   contextLabel,
@@ -47,9 +49,12 @@ export function AATemplateConfigDialog({
   onSave,
   onClear,
   isSaving,
-}: AATemplateConfigDialogProps) {
+  onResetToDefault,
+  isResetting,
+}: AATemplateEditorDialogProps) {
   const [localTemplate, setLocalTemplate] = useState(initialTemplate);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Re-initialize when dialog opens with new context
   useEffect(() => {
@@ -75,7 +80,9 @@ export function AATemplateConfigDialog({
           <DialogDescription>
             Use{" "}
             <code className="rounded bg-muted px-1">{"{assign:SlotName}"}</code>{" "}
-            to create assignment slots.
+            to create assignment slots. Use{" "}
+            <code className="rounded bg-muted px-1">{"{ref:SlotName}"}</code> to
+            mirror a slot&apos;s assignments (read-only).
           </DialogDescription>
         </DialogHeader>
 
@@ -100,7 +107,7 @@ export function AATemplateConfigDialog({
         </div>
 
         <DialogFooter className="sm:justify-between">
-          <div>
+          <div className="flex gap-2">
             {hasExistingTemplate && (
               <Button
                 variant="ghost"
@@ -110,6 +117,17 @@ export function AATemplateConfigDialog({
                 disabled={isSaving}
               >
                 Clear template
+              </Button>
+            )}
+            {onResetToDefault && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowResetConfirm(true)}
+                disabled={isSaving || isResetting}
+              >
+                <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                Reset to Default
               </Button>
             )}
           </div>
@@ -152,6 +170,39 @@ export function AATemplateConfigDialog({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to Default</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace the current AA template with the default
+              template for this zone. Any customizations to the template text
+              will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowResetConfirm(false);
+                onResetToDefault?.();
+              }}
+              disabled={isResetting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                "Reset Template"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

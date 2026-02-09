@@ -6,7 +6,7 @@
  * roles ({tank}, {healer}, {dps}), classes ({warrior}, {mage}), and abilities ({bl}, {hs}).
  */
 
-import type { AASlotDefinition } from "./aa-template";
+import type { AASlotDefinition, AARefDefinition } from "./aa-template";
 
 // Named colors (from AngryEra/Core.lua ColorTable)
 export const AA_COLORS: Record<string, string> = {
@@ -87,12 +87,13 @@ const KNOWN_COLOR_NAMES = [
 export type AAIconType = "marker" | "role" | "class" | "ability" | "spell";
 
 export interface AASegment {
-  type: "text" | "colored-text" | "icon" | "slot";
+  type: "text" | "colored-text" | "icon" | "slot" | "ref";
   content: string;
   color?: string;
   iconType?: AAIconType;
   iconName?: string;
   slotDef?: AASlotDefinition;
+  refDef?: AARefDefinition;
 }
 
 /**
@@ -171,6 +172,7 @@ function getIconInfo(tag: string): { type: AAIconType; name: string } | null {
 export function parseAAFormatting(
   template: string,
   slots: AASlotDefinition[],
+  refs: AARefDefinition[] = [],
 ): AASegment[] {
   const segments: AASegment[] = [];
 
@@ -178,6 +180,12 @@ export function parseAAFormatting(
   const slotsByStart = new Map<number, AASlotDefinition>();
   for (const slot of slots) {
     slotsByStart.set(slot.startIndex, slot);
+  }
+
+  // Create a map of ref positions for quick lookup
+  const refsByStart = new Map<number, AARefDefinition>();
+  for (const ref of refs) {
+    refsByStart.set(ref.startIndex, ref);
   }
 
   // Regex patterns
@@ -215,6 +223,19 @@ export function parseAAFormatting(
         slotDef: slot,
       });
       i = slot.endIndex;
+      continue;
+    }
+
+    // Check if we're at a ref position
+    const ref = refsByStart.get(i);
+    if (ref) {
+      flushText();
+      segments.push({
+        type: "ref",
+        content: ref.rawMatch,
+        refDef: ref,
+      });
+      i = ref.endIndex;
       continue;
     }
 
@@ -287,8 +308,11 @@ export function parseAAFormatting(
       if (closeIndex !== -1) {
         const tagContent = template.slice(i + 1, closeIndex);
 
-        // Skip assign slots (handled above)
-        if (tagContent.toLowerCase().startsWith("assign:")) {
+        // Skip assign slots and ref tags (handled above)
+        if (
+          tagContent.toLowerCase().startsWith("assign:") ||
+          tagContent.toLowerCase().startsWith("ref:")
+        ) {
           textBuffer += template[i];
           i++;
           continue;
