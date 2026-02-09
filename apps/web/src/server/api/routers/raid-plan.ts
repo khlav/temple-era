@@ -1004,6 +1004,67 @@ export const raidPlanRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  /**
+   * Reset encounter assignments to match the default group configuration.
+   * This deletes all custom encounter assignments and recreates them from the default positions.
+   */
+  resetEncounterToDefault: raidManagerProcedure
+    .input(
+      z.object({
+        encounterId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get the encounter to find the plan ID
+      const encounter = await ctx.db
+        .select({
+          raidPlanId: raidPlanEncounters.raidPlanId,
+        })
+        .from(raidPlanEncounters)
+        .where(eq(raidPlanEncounters.id, input.encounterId))
+        .limit(1);
+
+      if (encounter.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Encounter not found",
+        });
+      }
+
+      const planId = encounter[0]!.raidPlanId;
+
+      // Get all characters in the plan with their default positions
+      const planCharacters = await ctx.db
+        .select({
+          id: raidPlanCharacters.id,
+          defaultGroup: raidPlanCharacters.defaultGroup,
+          defaultPosition: raidPlanCharacters.defaultPosition,
+        })
+        .from(raidPlanCharacters)
+        .where(eq(raidPlanCharacters.raidPlanId, planId));
+
+      // Delete all existing encounter assignments
+      await ctx.db
+        .delete(raidPlanEncounterAssignments)
+        .where(eq(raidPlanEncounterAssignments.encounterId, input.encounterId));
+
+      // Create new assignments matching default positions
+      const newAssignments = planCharacters.map((char) => ({
+        encounterId: input.encounterId,
+        planCharacterId: char.id,
+        groupNumber: char.defaultGroup,
+        position: char.defaultPosition,
+      }));
+
+      if (newAssignments.length > 0) {
+        await ctx.db
+          .insert(raidPlanEncounterAssignments)
+          .values(newAssignments);
+      }
+
+      return { success: true, count: newAssignments.length };
+    }),
+
   // ==========================================================================
   // AngryAssignments (AA) Template Procedures
   // ==========================================================================

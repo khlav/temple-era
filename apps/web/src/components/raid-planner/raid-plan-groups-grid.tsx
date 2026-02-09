@@ -12,7 +12,14 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { Armchair, ChevronDown, CircleHelp, Clock, Pencil } from "lucide-react";
+import {
+  Armchair,
+  ChevronDown,
+  CircleHelp,
+  Clock,
+  Lock,
+  Pencil,
+} from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterSelector } from "~/components/characters/character-selector";
 import {
@@ -111,6 +118,8 @@ interface RaidPlanGroupsGridProps {
   characters: RaidPlanCharacter[];
   groupCount?: number;
   dimmed?: boolean;
+  /** When true, shows lock icons and fades group containers but keeps character bars bright */
+  locked?: boolean;
   editable?: boolean;
   showEditControls?: boolean;
   /** When true, characters are draggable but group drops are ignored. Use with external DndContext. */
@@ -131,6 +140,7 @@ export function RaidPlanGroupsGrid({
   characters,
   groupCount = 8,
   dimmed = false,
+  locked = false,
   editable = false,
   showEditControls = true,
   dragOnly = false,
@@ -388,6 +398,7 @@ export function RaidPlanGroupsGrid({
             getCharacterAtSlot={getCharacterAtSlot}
             editable={editable}
             dragOnly={dragOnly}
+            locked={locked}
             showEditControls={showEditControls}
             editingCharacterId={editingCharacterId}
             editingSlot={editingSlot}
@@ -402,6 +413,7 @@ export function RaidPlanGroupsGrid({
         characters={bench}
         editable={editable}
         dragOnly={dragOnly}
+        locked={locked}
         showEditControls={showEditControls}
         editingCharacterId={editingCharacterId}
         editingBench={editingBench}
@@ -459,6 +471,7 @@ interface GroupColumnProps {
   ) => RaidPlanCharacter | null;
   editable?: boolean;
   dragOnly?: boolean;
+  locked?: boolean;
   showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingSlot?: { group: number; position: number } | null;
@@ -472,6 +485,7 @@ function GroupColumn({
   getCharacterAtSlot,
   editable,
   dragOnly,
+  locked = false,
   showEditControls = true,
   editingCharacterId,
   editingSlot,
@@ -479,8 +493,14 @@ function GroupColumn({
   onSlotEditClick,
 }: GroupColumnProps) {
   return (
-    <div className="rounded-lg border bg-card p-2">
-      <div className="mb-2 text-center text-xs font-semibold text-muted-foreground">
+    <div
+      className={cn(
+        "rounded-lg border bg-card p-2",
+        locked && "border-muted-foreground/20",
+      )}
+    >
+      <div className="mb-2 flex items-center justify-center gap-1 text-center text-xs font-semibold text-muted-foreground">
+        {locked && <Lock className="h-3 w-3" />}
         Group {groupNumber}
       </div>
       <div className="flex flex-col gap-1">
@@ -496,6 +516,7 @@ function GroupColumn({
               character={getCharacterAtSlot(groupIndex, position)}
               editable={editable}
               dragOnly={dragOnly}
+              locked={locked}
               showEditControls={showEditControls}
               isEditing={
                 editingCharacterId ===
@@ -518,6 +539,7 @@ interface GroupSlotProps {
   character: RaidPlanCharacter | null;
   editable?: boolean;
   dragOnly?: boolean;
+  locked?: boolean;
   showEditControls?: boolean;
   isEditing?: boolean;
   isSlotEditing?: boolean;
@@ -531,6 +553,7 @@ function GroupSlot({
   character,
   editable,
   dragOnly,
+  locked = false,
   showEditControls = true,
   isEditing,
   isSlotEditing,
@@ -545,7 +568,7 @@ function GroupSlot({
       ref={setNodeRef}
       className={cn(
         "min-h-[28px] rounded transition-colors",
-        isOver && "bg-primary/10 ring-1 ring-primary/50",
+        isOver && !locked && "bg-primary/10 ring-1 ring-primary/50",
       )}
     >
       {character ? (
@@ -588,6 +611,7 @@ interface BenchSectionProps {
   characters: RaidPlanCharacter[];
   editable?: boolean;
   dragOnly?: boolean;
+  locked?: boolean;
   showEditControls?: boolean;
   editingCharacterId?: string | null;
   editingBench?: boolean;
@@ -600,6 +624,7 @@ function BenchSection({
   characters,
   editable,
   dragOnly,
+  locked = false,
   showEditControls = true,
   editingCharacterId,
   editingBench,
@@ -624,7 +649,7 @@ function BenchSection({
         ref={setNodeRef}
         className={cn(
           "flex min-h-[40px] flex-wrap gap-2 rounded-lg border border-dashed p-2 transition-colors",
-          isOver && "border-primary bg-primary/5",
+          isOver && !locked && "border-primary bg-primary/5",
           characters.length === 0 && !isOver && "border-muted-foreground/30",
         )}
       >

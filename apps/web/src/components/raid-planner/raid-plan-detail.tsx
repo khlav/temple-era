@@ -185,6 +185,24 @@ export function RaidPlanDetail({
     },
   });
 
+  const resetEncounterMutation =
+    api.raidPlan.resetEncounterToDefault.useMutation({
+      onSuccess: (data) => {
+        toast({
+          title: "Reset to default",
+          description: `Encounter groups reset to match default (${data.count} assignments)`,
+        });
+        void refetch();
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+
   const utils = api.useUtils();
   const updateCharacterMutation = api.raidPlan.updateCharacter.useMutation();
 
@@ -1262,7 +1280,7 @@ export function RaidPlanDetail({
                   className="mt-0 space-y-3"
                 >
                   <div className="flex h-7 items-center gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Checkbox
                         id={`use-custom-${encounter.id}`}
                         checked={!encounter.useDefaultGroups}
@@ -1280,7 +1298,24 @@ export function RaidPlanDetail({
                       >
                         Use Custom Groups
                       </label>
-                      {updateEncounterMutation.isPending && (
+                      {!encounter.useDefaultGroups && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetEncounterMutation.mutate({
+                              encounterId: encounter.id,
+                            });
+                          }}
+                          disabled={resetEncounterMutation.isPending}
+                          className="ml-1 flex h-5 items-center gap-0.5 rounded border border-muted-foreground/30 px-1.5 text-[10px] text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50 disabled:opacity-50"
+                          title="Reset to default groups"
+                        >
+                          <RotateCcw className="h-2.5 w-2.5" />
+                          Reset
+                        </button>
+                      )}
+                      {(updateEncounterMutation.isPending ||
+                        resetEncounterMutation.isPending) && (
                         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                       )}
                     </div>
@@ -1305,7 +1340,7 @@ export function RaidPlanDetail({
                     <RaidPlanGroupsGrid
                       characters={plan.characters as RaidPlanCharacter[]}
                       groupCount={groupCount}
-                      dimmed
+                      locked
                       dragOnly
                       skipDndContext
                     />
@@ -1692,18 +1727,23 @@ function MRTControls({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "ml-auto flex items-center gap-2",
-        disabled && "opacity-50",
-      )}
-    >
-      <label className="text-xs text-muted-foreground">My server:</label>
+    <div className="ml-auto flex items-center gap-2">
+      <label
+        className={cn(
+          "text-xs text-muted-foreground",
+          disabled && "opacity-40",
+        )}
+      >
+        My server:
+      </label>
       <select
         value={homeServer}
         onChange={(e) => onHomeServerChange(e.target.value)}
         disabled={disabled}
-        className="h-7 rounded-md border bg-background px-2 text-xs"
+        className={cn(
+          "h-7 rounded-md border bg-background px-2 text-xs",
+          disabled && "opacity-40",
+        )}
       >
         <option value="">All servers</option>
         {WOW_SERVERS.map((s) => (
@@ -1716,7 +1756,10 @@ function MRTControls({
         type="button"
         onClick={onExportMRT}
         disabled={disabled}
-        className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none"
+        className={cn(
+          "h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none",
+          disabled && "opacity-40",
+        )}
       >
         {mrtCopied ? "Copied!" : "Copy MRT Export"}
       </button>
