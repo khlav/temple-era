@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import {
   raidPlans,
   raidPlanCharacters,
@@ -609,20 +610,23 @@ export const raidPlanRouter = createTRPCRouter({
         );
       }
 
-      // Copy template encounters if an active template exists for this zone
-      const template = await ctx.db
-        .select({
-          id: raidPlanTemplates.id,
-          defaultAATemplate: raidPlanTemplates.defaultAATemplate,
-        })
-        .from(raidPlanTemplates)
-        .where(
-          and(
-            eq(raidPlanTemplates.zoneId, input.zoneId),
-            eq(raidPlanTemplates.isActive, true),
-          ),
-        )
-        .limit(1);
+      // Copy template encounters if an active template exists for this zone (skip for custom zones)
+      const template =
+        input.zoneId === CUSTOM_ZONE_ID
+          ? []
+          : await ctx.db
+              .select({
+                id: raidPlanTemplates.id,
+                defaultAATemplate: raidPlanTemplates.defaultAATemplate,
+              })
+              .from(raidPlanTemplates)
+              .where(
+                and(
+                  eq(raidPlanTemplates.zoneId, input.zoneId),
+                  eq(raidPlanTemplates.isActive, true),
+                ),
+              )
+              .limit(1);
 
       if (template.length > 0) {
         // Update the plan with default AA template from zone template

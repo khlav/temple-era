@@ -761,9 +761,17 @@ function EditingBar({
             <>
               <span className="text-muted-foreground">Replacing </span>
               <span className="inline-flex items-center gap-1 font-medium">
-                {editingCharacter.class && (
-                  <ClassIcon characterClass={editingCharacter.class} px={14} />
-                )}
+                {editingCharacter.class &&
+                  WOW_CLASSES.includes(
+                    editingCharacter.class as (typeof WOW_CLASSES)[number],
+                  ) && (
+                    <ClassIcon
+                      characterClass={
+                        editingCharacter.class as (typeof WOW_CLASSES)[number]
+                      }
+                      px={14}
+                    />
+                  )}
                 {editingCharacter.characterName}
               </span>
             </>
@@ -803,7 +811,13 @@ function EditingBar({
               type="button"
               className="flex h-7 shrink-0 items-center gap-0.5 rounded-md border bg-background px-1.5"
             >
-              <ClassIcon characterClass={writeInClass} px={16} />
+              {WOW_CLASSES.includes(
+                writeInClass as (typeof WOW_CLASSES)[number],
+              ) ? (
+                <ClassIcon characterClass={writeInClass} px={16} />
+              ) : (
+                <CircleHelp className="h-4 w-4 text-muted-foreground" />
+              )}
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>

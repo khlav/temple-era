@@ -19,7 +19,11 @@ import {
 } from "~/components/ui/alert-dialog";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
-import { INSTANCE_TO_ZONE } from "~/lib/raid-zones";
+import {
+  INSTANCE_TO_ZONE,
+  CUSTOM_ZONE_ID,
+  CUSTOM_ZONE_DISPLAY_NAME,
+} from "~/lib/raid-zones";
 
 interface RaidPlanHeaderProps {
   planId: string;
@@ -114,7 +118,10 @@ export function RaidPlanHeader({
   };
 
   // Get display name for zone
-  const zoneName = INSTANCE_TO_ZONE[zoneId] ?? zoneId;
+  const zoneName =
+    zoneId === CUSTOM_ZONE_ID
+      ? CUSTOM_ZONE_DISPLAY_NAME
+      : (INSTANCE_TO_ZONE[zoneId] ?? zoneId);
 
   return (
     <div className="space-y-2">

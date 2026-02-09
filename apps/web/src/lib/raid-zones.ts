@@ -20,6 +20,12 @@ export const RAID_ZONE_CONFIG = [
 ] as const;
 
 /**
+ * Sentinel value for zone-less / custom plans (no database migration needed)
+ */
+export const CUSTOM_ZONE_ID = "custom";
+export const CUSTOM_ZONE_DISPLAY_NAME = "Custom / No Zone";
+
+/**
  * Array of raid zone names (derived from RAID_ZONE_CONFIG)
  */
 export const RAID_ZONES = RAID_ZONE_CONFIG.map(

@@ -38,6 +38,7 @@ import {
   type CharacterDeleteEvent,
 } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
+import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import {
   AATemplateRenderer,
   type AASlotAssignment,
@@ -134,10 +135,10 @@ export function RaidPlanDetail({
     }
   }, [userCharacter?.server, homeServer]);
 
-  // Fetch the zone template for "Reset to Default" functionality
+  // Fetch the zone template for "Reset to Default" functionality (skip for custom zones)
   const { data: zoneTemplate } = api.raidPlanTemplate.getByZoneId.useQuery(
     { zoneId: plan?.zoneId ?? "" },
-    { enabled: !!plan?.zoneId },
+    { enabled: !!plan?.zoneId && plan.zoneId !== CUSTOM_ZONE_ID },
   );
 
   // Update breadcrumb to show plan name instead of UUID
@@ -1177,7 +1178,7 @@ export function RaidPlanDetail({
     (e) => e.id === deleteEncounterId,
   );
 
-  // Determine group count based on zone (20-man raids use 4 groups)
+  // Determine group count based on zone (20-man raids use 4 groups, custom defaults to 8)
   const is20Man = ["aq20", "zg", "onyxia"].includes(plan.zoneId.toLowerCase());
   const groupCount = is20Man ? 4 : 8;
 

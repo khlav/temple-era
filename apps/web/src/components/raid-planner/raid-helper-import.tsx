@@ -32,6 +32,22 @@ import { useSession } from "next-auth/react";
 import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./raid-plan-groups-grid";
 import { FindPlayersDialog } from "./find-players-dialog";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Badge } from "~/components/ui/badge";
+import {
+  RAID_ZONE_CONFIG,
+  CUSTOM_ZONE_ID,
+  CUSTOM_ZONE_DISPLAY_NAME,
+} from "~/lib/raid-zones";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -380,6 +396,7 @@ function PastPlanRow({ plan }: PastPlanRowProps) {
     naxxramas: "Naxxramas",
     onyxia: "Onyxia",
     zg: "Zul'Gurub",
+    [CUSTOM_ZONE_ID]: CUSTOM_ZONE_DISPLAY_NAME,
   };
 
   const zoneName = zoneNames[plan.zoneId.toLowerCase()] ?? plan.zoneId;
@@ -420,6 +437,7 @@ function CharacterMatchingDialog({
   const { toast } = useToast();
   const { data: session } = useSession();
   const [homeServer, setHomeServer] = useState("");
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   // Default home server to user's primary character server
   const characterId = session?.user?.characterId;
@@ -493,30 +511,28 @@ function CharacterMatchingDialog({
   }, [matchResults]);
 
   // Detect zone from event title
-  const detectedZone = useMemo(() => {
+  const autoDetectedZone = useMemo(() => {
     const rawTitle =
       eventDetails?.event.displayTitle || eventDetails?.event.title;
     if (!rawTitle) return null;
-    const title = rawTitle.toLowerCase();
-
-    // Check for zone abbreviations and names
-    const zonePatterns: Array<{ pattern: RegExp; zoneId: string }> = [
-      { pattern: /\bbwl\b|blackwing/i, zoneId: "bwl" },
-      { pattern: /\bmc\b|molten\s*core/i, zoneId: "mc" },
-      { pattern: /\bnaxx?\b|naxxramas/i, zoneId: "naxxramas" },
-      { pattern: /\bony\b|onyxia/i, zoneId: "onyxia" },
-      { pattern: /\baq20\b|ruins/i, zoneId: "aq20" },
-      { pattern: /\baq40\b|temple\s*of\s*ahn/i, zoneId: "aq40" },
-      { pattern: /\bzg\b|zul.?gurub/i, zoneId: "zg" },
-    ];
-
-    for (const { pattern, zoneId } of zonePatterns) {
-      if (pattern.test(title)) {
-        return zoneId;
-      }
-    }
-    return null;
+    return detectZoneFromTitle(rawTitle);
   }, [eventDetails?.event.displayTitle, eventDetails?.event.title]);
+
+  const effectiveZone = selectedZone ?? autoDetectedZone;
+
+  // Initialize selectedZone from auto-detection when match results load
+  useEffect(() => {
+    if (matchResults && autoDetectedZone && !selectedZone) {
+      setSelectedZone(autoDetectedZone);
+    }
+  }, [matchResults, autoDetectedZone, selectedZone]);
+
+  // Reset selectedZone when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedZone(null);
+    }
+  }, [open]);
 
   const [copied, setCopied] = useState(false);
 
@@ -539,7 +555,7 @@ function CharacterMatchingDialog({
   });
 
   const handleCreatePlan = useCallback(() => {
-    if (!eventId || !eventDetails || !matchResults || !detectedZone) return;
+    if (!eventId || !eventDetails || !matchResults || !effectiveZone) return;
 
     // Build characters array from match results (excluding absent signups)
     const characters = matchResults
@@ -591,10 +607,10 @@ function CharacterMatchingDialog({
     createPlanMutation.mutate({
       raidHelperEventId: eventId,
       name: eventDetails.event.displayTitle || eventDetails.event.title,
-      zoneId: detectedZone,
+      zoneId: effectiveZone,
       characters,
     });
-  }, [eventId, eventDetails, matchResults, detectedZone, createPlanMutation]);
+  }, [eventId, eventDetails, matchResults, effectiveZone, createPlanMutation]);
 
   const handleCopyMRT = useCallback(() => {
     if (!matchResults) return;
@@ -852,42 +868,119 @@ function CharacterMatchingDialog({
         )}
 
         {matchStats && (
-          <DialogFooter>
-            <label className="text-sm text-muted-foreground">My server:</label>
-            <select
-              value={homeServer}
-              onChange={(e) => setHomeServer(e.target.value)}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="">All servers</option>
-              {WOW_SERVERS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <Button onClick={handleCopyMRT} variant="outline">
-              <Copy className="mr-2 h-4 w-4" />
-              {copied ? "Copied!" : "Copy MRT Export"}
-            </Button>
-            <Button
-              onClick={handleCreatePlan}
-              disabled={!detectedZone || createPlanMutation.isPending}
-              title={
-                !detectedZone
-                  ? "Could not detect zone from event title"
-                  : undefined
-              }
-            >
-              {createPlanMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Plan"
-              )}
-            </Button>
+          <DialogFooter className="sm:justify-between">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* Zone selector */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  Zone Template:
+                  {autoDetectedZone && effectiveZone === autoDetectedZone && (
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5 py-0 text-[10px]"
+                    >
+                      Auto
+                    </Badge>
+                  )}
+                </label>
+                <Select
+                  value={effectiveZone ?? undefined}
+                  onValueChange={setSelectedZone}
+                >
+                  <SelectTrigger className="h-9 w-[180px]">
+                    <SelectValue placeholder="Select zone..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      value={CUSTOM_ZONE_ID}
+                      className="italic text-muted-foreground"
+                    >
+                      {CUSTOM_ZONE_DISPLAY_NAME}
+                    </SelectItem>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel className="text-muted-foreground">
+                        20-Man Raids
+                      </SelectLabel>
+                      {(["aq20", "zg", "onyxia"] as const).map((instance) => {
+                        const config = RAID_ZONE_CONFIG.find(
+                          (z) => z.instance === instance,
+                        );
+                        return config ? (
+                          <SelectItem key={instance} value={instance}>
+                            {config.name}
+                          </SelectItem>
+                        ) : null;
+                      })}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-muted-foreground">
+                        40-Man Raids
+                      </SelectLabel>
+                      {(["mc", "bwl", "aq40", "naxxramas"] as const).map(
+                        (instance) => {
+                          const config = RAID_ZONE_CONFIG.find(
+                            (z) => z.instance === instance,
+                          );
+                          return config ? (
+                            <SelectItem key={instance} value={instance}>
+                              {config.name}
+                            </SelectItem>
+                          ) : null;
+                        },
+                      )}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Server selector */}
+              <div className="flex items-center gap-2">
+                <label
+                  className="text-sm text-muted-foreground"
+                  htmlFor="home-server-select"
+                >
+                  My server:
+                </label>
+                <select
+                  id="home-server-select"
+                  value={homeServer}
+                  onChange={(e) => setHomeServer(e.target.value)}
+                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                >
+                  <option value="">All servers</option>
+                  {WOW_SERVERS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button onClick={handleCopyMRT} variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                {copied ? "Copied!" : "Copy MRT Export"}
+              </Button>
+              <Button
+                onClick={handleCreatePlan}
+                disabled={!effectiveZone || createPlanMutation.isPending}
+                title={
+                  !effectiveZone
+                    ? "Please select a zone to create the plan"
+                    : undefined
+                }
+              >
+                {createPlanMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Plan"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         )}
       </DialogContent>
