@@ -48,7 +48,7 @@ const CLASS_COLOR_CODES: Record<string, string> = {
 
 // Regex to match {assign:SlotName} with optional modifiers
 // Captures: slotName, optional number, optional "nocolor"
-const ASSIGN_SLOT_REGEX = /\{assign:([^:}]+)(?::(\d+))?(?::(nocolor))?\}/gi;
+const ASSIGN_SLOT_REGEX = /\{assign:([^\s:}]+)(?::(\d+))?(?::(nocolor))?\}/gi;
 
 /**
  * Parse an AA template to extract slot definitions.

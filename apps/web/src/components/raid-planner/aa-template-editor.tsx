@@ -281,35 +281,15 @@ export function AATemplateInlineEditor({
   onChange,
   disabled,
 }: AATemplateInlineEditorProps) {
-  const { errors } = useMemo(() => parseAATemplate(template), [template]);
-  const slotDefinitions = useMemo(
-    () => getSlotDefinitions(template),
-    [template],
-  );
-
   return (
-    <div className="space-y-2">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Textarea
         value={template}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter AA template with {assign:SlotName} placeholders..."
-        className="min-h-[150px] font-mono text-sm"
+        className="min-h-0 flex-1 resize-none font-mono text-sm"
         disabled={disabled}
       />
-
-      {errors.length > 0 && (
-        <div className="text-xs text-destructive">
-          {errors.map((error, i) => (
-            <div key={i}>{error}</div>
-          ))}
-        </div>
-      )}
-
-      {slotDefinitions.length > 0 && (
-        <div className="text-xs text-muted-foreground">
-          Slots: {slotDefinitions.map((s) => s.name).join(", ")}
-        </div>
-      )}
     </div>
   );
 }

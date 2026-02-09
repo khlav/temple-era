@@ -26,7 +26,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
-import { Textarea } from "~/components/ui/textarea";
 import {
   Plus,
   Trash2,
@@ -36,6 +35,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { AATemplateConfigDialog } from "./aa-template-config-dialog";
 
 const TWENTY_MAN_INSTANCES = ["aq20", "zg", "onyxia"];
 
@@ -106,11 +106,13 @@ export function RaidPlannerConfig() {
     const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(
       null,
     );
-    // AA editing state - "default" for Default/Trash, or encounter ID
-    const [selectedAAContext, setSelectedAAContext] = useState<
-      "default" | string | null
-    >(null);
-    const [localAATemplate, setLocalAATemplate] = useState("");
+    // AA dialog state
+    const [aaDialogContext, setAADialogContext] = useState<{
+      type: "default" | "encounter";
+      encounterId?: string;
+      label: string;
+      currentTemplate: string;
+    } | null>(null);
 
     const is20Man = TWENTY_MAN_INSTANCES.includes(zone.instance);
     const defaultGroupCount = is20Man ? 4 : 8;
@@ -421,48 +423,56 @@ export function RaidPlannerConfig() {
       setDeleteEncounterId(null);
     };
 
-    const handleSelectAAContext = (context: "default" | string) => {
-      if (context === "default") {
-        setSelectedAAContext("default");
-        setLocalAATemplate(zone.template?.defaultAATemplate ?? "");
-      } else {
-        const encounter = zone.template?.encounters.find(
-          (e) => e.id === context,
-        );
-        setSelectedAAContext(context);
-        setLocalAATemplate(encounter?.aaTemplate ?? "");
-      }
-    };
+    const handleAADialogSave = (template: string) => {
+      if (!zone.template || !aaDialogContext) return;
 
-    const handleSaveAATemplate = () => {
-      if (!zone.template || selectedAAContext === null) return;
-
-      if (selectedAAContext === "default") {
+      if (aaDialogContext.type === "default") {
         updateTemplate.mutate(
           {
             templateId: zone.template.id,
-            defaultAATemplate: localAATemplate || null,
+            defaultAATemplate: template || null,
           },
           {
-            onSuccess: () => setSelectedAAContext(null),
+            onSuccess: () => setAADialogContext(null),
           },
         );
-      } else {
+      } else if (aaDialogContext.encounterId) {
         updateEncounter.mutate(
           {
-            encounterId: selectedAAContext,
-            aaTemplate: localAATemplate || null,
+            encounterId: aaDialogContext.encounterId,
+            aaTemplate: template || null,
           },
           {
-            onSuccess: () => setSelectedAAContext(null),
+            onSuccess: () => setAADialogContext(null),
           },
         );
       }
     };
 
-    const handleCancelAAEdit = () => {
-      setSelectedAAContext(null);
-      setLocalAATemplate("");
+    const handleAADialogClear = () => {
+      if (!zone.template || !aaDialogContext) return;
+
+      if (aaDialogContext.type === "default") {
+        updateTemplate.mutate(
+          {
+            templateId: zone.template.id,
+            defaultAATemplate: null,
+          },
+          {
+            onSuccess: () => setAADialogContext(null),
+          },
+        );
+      } else if (aaDialogContext.encounterId) {
+        updateEncounter.mutate(
+          {
+            encounterId: aaDialogContext.encounterId,
+            aaTemplate: null,
+          },
+          {
+            onSuccess: () => setAADialogContext(null),
+          },
+        );
+      }
     };
 
     const sortedEncounters = zone.template
@@ -524,13 +534,7 @@ export function RaidPlannerConfig() {
               {/* Unified encounter list */}
               <div className="max-w-xl space-y-2">
                 {/* Default/Trash row */}
-                <div
-                  className={`rounded-md border transition-colors ${
-                    selectedAAContext === "default"
-                      ? "border-primary bg-primary/5"
-                      : ""
-                  }`}
-                >
+                <div className="rounded-md border">
                   <div className="flex items-center gap-2 px-3 py-2">
                     {/* Placeholder for reorder buttons (not shown for default) */}
                     <div className="w-14" />
@@ -544,9 +548,12 @@ export function RaidPlannerConfig() {
                       size="sm"
                       className="h-7 text-xs"
                       onClick={() =>
-                        selectedAAContext === "default"
-                          ? handleCancelAAEdit()
-                          : handleSelectAAContext("default")
+                        setAADialogContext({
+                          type: "default",
+                          label: "Default/Trash",
+                          currentTemplate:
+                            zone.template?.defaultAATemplate ?? "",
+                        })
                       }
                     >
                       {zone.template?.defaultAATemplate ? "Edit AA" : "Add AA"}
@@ -554,73 +561,11 @@ export function RaidPlannerConfig() {
                     {/* Placeholder for delete button (not shown for default) */}
                     <div className="w-7" />
                   </div>
-                  {selectedAAContext === "default" && (
-                    <div className="space-y-2 border-t px-3 py-3">
-                      <Textarea
-                        value={localAATemplate}
-                        onChange={(e) => setLocalAATemplate(e.target.value)}
-                        placeholder="Enter AA template text..."
-                        className="min-h-[200px] font-mono text-xs"
-                        autoFocus
-                      />
-                      <div className="flex justify-between">
-                        {zone.template?.defaultAATemplate && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (!zone.template) return;
-                              updateTemplate.mutate(
-                                {
-                                  templateId: zone.template.id,
-                                  defaultAATemplate: null,
-                                },
-                                {
-                                  onSuccess: () => {
-                                    setSelectedAAContext(null);
-                                    setLocalAATemplate("");
-                                  },
-                                },
-                              );
-                            }}
-                            disabled={updateTemplate.isPending}
-                          >
-                            Clear template
-                          </Button>
-                        )}
-                        <div className="ml-auto flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCancelAAEdit}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleSaveAATemplate}
-                            disabled={updateTemplate.isPending}
-                          >
-                            <Check className="mr-1 h-3.5 w-3.5" />
-                            Save
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Encounter rows */}
                 {sortedEncounters.map((encounter, idx) => (
-                  <div
-                    key={encounter.id}
-                    className={`rounded-md border transition-colors ${
-                      selectedAAContext === encounter.id
-                        ? "border-primary bg-primary/5"
-                        : ""
-                    }`}
-                  >
+                  <div key={encounter.id} className="rounded-md border">
                     <div className="flex items-center gap-2 px-3 py-2">
                       {/* Reorder buttons */}
                       <div className="flex">
@@ -704,9 +649,12 @@ export function RaidPlannerConfig() {
                             size="sm"
                             className="h-7 text-xs"
                             onClick={() =>
-                              selectedAAContext === encounter.id
-                                ? handleCancelAAEdit()
-                                : handleSelectAAContext(encounter.id)
+                              setAADialogContext({
+                                type: "encounter",
+                                encounterId: encounter.id,
+                                label: encounter.encounterName,
+                                currentTemplate: encounter.aaTemplate ?? "",
+                              })
                             }
                           >
                             {encounter.aaTemplate ? "Edit AA" : "Add AA"}
@@ -722,62 +670,6 @@ export function RaidPlannerConfig() {
                         </>
                       )}
                     </div>
-
-                    {/* Expanded AA editor */}
-                    {selectedAAContext === encounter.id && (
-                      <div className="space-y-2 border-t px-3 py-3">
-                        <Textarea
-                          value={localAATemplate}
-                          onChange={(e) => setLocalAATemplate(e.target.value)}
-                          placeholder="Enter AA template text..."
-                          className="min-h-[200px] font-mono text-xs"
-                          autoFocus
-                        />
-                        <div className="flex justify-between">
-                          {encounter.aaTemplate && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => {
-                                updateEncounter.mutate(
-                                  {
-                                    encounterId: encounter.id,
-                                    aaTemplate: null,
-                                  },
-                                  {
-                                    onSuccess: () => {
-                                      setSelectedAAContext(null);
-                                      setLocalAATemplate("");
-                                    },
-                                  },
-                                );
-                              }}
-                              disabled={updateEncounter.isPending}
-                            >
-                              Clear template
-                            </Button>
-                          )}
-                          <div className="ml-auto flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCancelAAEdit}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleSaveAATemplate}
-                              disabled={updateEncounter.isPending}
-                            >
-                              <Check className="mr-1 h-3.5 w-3.5" />
-                              Save
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -837,6 +729,21 @@ export function RaidPlannerConfig() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* AA template config dialog */}
+        <AATemplateConfigDialog
+          open={!!aaDialogContext}
+          onOpenChange={(open) => {
+            if (!open) setAADialogContext(null);
+          }}
+          contextLabel={aaDialogContext?.label ?? ""}
+          zoneName={zone.name}
+          initialTemplate={aaDialogContext?.currentTemplate ?? ""}
+          hasExistingTemplate={!!aaDialogContext?.currentTemplate}
+          onSave={handleAADialogSave}
+          onClear={handleAADialogClear}
+          isSaving={updateTemplate.isPending || updateEncounter.isPending}
+        />
       </>
     );
   }
