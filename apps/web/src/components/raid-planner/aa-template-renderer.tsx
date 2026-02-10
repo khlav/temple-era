@@ -61,7 +61,7 @@ export function AATemplateRenderer({
     }),
   );
 
-  // Parse template to get slot definitions and ref definitions
+  // Parse template to get slot definitions
   const { slots, refs, errors } = useMemo(
     () => parseAATemplate(template),
     [template],

@@ -72,7 +72,7 @@ export function AATemplateEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-5xl flex-col">
+      <DialogContent className="flex max-h-[80vh] max-w-6xl flex-col">
         <DialogHeader>
           <DialogTitle>
             {zoneName} — {contextLabel} AA Template
@@ -86,7 +86,7 @@ export function AATemplateEditorDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid h-[min(400px,70vh)] grid-cols-2 gap-4">
+        <div className="grid h-[min(500px,70vh)] grid-cols-2 gap-4">
           {/* Left: Editor */}
           <div className="flex min-h-0 flex-col">
             <AATemplateInlineEditor
@@ -96,7 +96,7 @@ export function AATemplateEditorDialog({
           </div>
 
           {/* Right: Live preview */}
-          <div className="min-h-0 overflow-auto">
+          <div className="h-[min(500px,70vh)] overflow-auto">
             <AATemplateRenderer
               template={localTemplate}
               characters={[]}
