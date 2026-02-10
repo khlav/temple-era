@@ -4,26 +4,8 @@ import { useDroppable } from "@dnd-kit/core";
 import { X } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
-
-// WoW class text colors (for AA output preview)
-const CLASS_TEXT_COLORS: Record<string, string> = {
-  Druid: "text-[#FF7C0A]",
-  Hunter: "text-[#ABD473]",
-  Mage: "text-[#69CCF0]",
-  Paladin: "text-[#F58CBA]",
-  Priest: "text-white",
-  Rogue: "text-[#FFF569]",
-  Shaman: "text-[#0070DE]",
-  Warlock: "text-[#9482C9]",
-  Warrior: "text-[#C79C6E]",
-};
-
-export interface AASlotCharacter {
-  planCharacterId: string;
-  characterName: string;
-  characterClass: string | null;
-  sortOrder: number;
-}
+import type { AASlotCharacter } from "./types";
+import { CLASS_TEXT_COLORS } from "./constants";
 
 interface AASlotDropzoneProps {
   slotName: string;

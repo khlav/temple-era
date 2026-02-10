@@ -29,7 +29,11 @@ import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
-import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./raid-plan-groups-grid";
+import {
+  WOW_SERVERS,
+  VALID_WRITE_IN_CLASSES,
+  TWENTY_MAN_INSTANCES,
+} from "./constants";
 import { FindPlayersDialog } from "./find-players-dialog";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 import {
@@ -902,7 +906,7 @@ function CharacterMatchingDialog({
                       <SelectLabel className="text-muted-foreground">
                         20-Man Raids
                       </SelectLabel>
-                      {(["aq20", "zg", "onyxia"] as const).map((instance) => {
+                      {TWENTY_MAN_INSTANCES.map((instance) => {
                         const config = RAID_ZONE_CONFIG.find(
                           (z) => z.instance === instance,
                         );

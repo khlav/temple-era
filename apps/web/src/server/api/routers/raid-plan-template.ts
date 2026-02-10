@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { eq, max, inArray } from "drizzle-orm";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import {
   raidPlanTemplates,
   raidPlanTemplateEncounters,
@@ -210,10 +211,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
 
       const nextSortOrder = (maxSortResult[0]?.maxSort ?? -1) + 1;
 
-      const encounterKey = input.encounterName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      const encounterKey = slugifyEncounterName(input.encounterName);
 
       const newEncounter = await ctx.db
         .insert(raidPlanTemplateEncounters)
@@ -255,10 +253,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
 
       if (input.encounterName !== undefined) {
         updates.encounterName = input.encounterName;
-        updates.encounterKey = input.encounterName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "");
+        updates.encounterKey = slugifyEncounterName(input.encounterName);
       }
 
       if (input.sortOrder !== undefined) {

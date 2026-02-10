@@ -20,16 +20,7 @@ import {
 } from "~/lib/aa-template";
 import { parseAAFormatting } from "~/lib/aa-formatting";
 import { AASlotInline, AARefInline } from "./aa-slot-dropzone";
-import type { RaidPlanCharacter } from "./raid-plan-groups-grid";
-
-export interface AASlotAssignment {
-  id: string;
-  encounterId: string | null;
-  raidPlanId: string | null;
-  planCharacterId: string;
-  slotName: string;
-  sortOrder: number;
-}
+import type { RaidPlanCharacter, AASlotAssignment } from "./types";
 
 interface AATemplateRendererProps {
   template: string;

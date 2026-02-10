@@ -36,8 +36,7 @@ import {
   X,
 } from "lucide-react";
 import { AATemplateEditorDialog } from "./aa-template-editor-dialog";
-
-const TWENTY_MAN_INSTANCES = ["aq20", "zg", "onyxia"];
+import { getGroupCount } from "./constants";
 
 interface TemplateEncounter {
   id: string;
@@ -114,8 +113,8 @@ export function RaidPlannerConfig() {
       currentTemplate: string;
     } | null>(null);
 
-    const is20Man = TWENTY_MAN_INSTANCES.includes(zone.instance);
-    const defaultGroupCount = is20Man ? 4 : 8;
+    const defaultGroupCount = getGroupCount(zone.instance);
+    const is20Man = defaultGroupCount === 4;
     const encounterCount = zone.template?.encounters.length ?? 0;
 
     const upsertTemplate = api.raidPlanTemplate.upsertTemplate.useMutation({
