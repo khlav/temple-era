@@ -367,6 +367,33 @@ export function useRaidPlanMutations({
       },
     });
 
+  const reorderEncountersMutation = api.raidPlan.reorderEncounters.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        const orderMap = new Map(
+          input.encounters.map((e) => [e.id, e.sortOrder]),
+        );
+        return {
+          ...old,
+          encounters: old.encounters
+            .map((e) => ({
+              ...e,
+              sortOrder: orderMap.get(e.id) ?? e.sortOrder,
+            }))
+            .sort((a, b) => a.sortOrder - b.sortOrder),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+  });
+
   const clearAAAssignmentsMutation =
     api.raidPlan.clearAAAssignmentsForCharacter.useMutation({
       onError: (error) => {
@@ -400,5 +427,6 @@ export function useRaidPlanMutations({
     removeAASlotMutation,
     reorderAASlotMutation,
     clearAAAssignmentsMutation,
+    reorderEncountersMutation,
   };
 }

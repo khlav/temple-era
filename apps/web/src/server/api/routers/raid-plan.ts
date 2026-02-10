@@ -1426,6 +1426,33 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   /**
+   * Bulk reorder encounters. Wrapped in a transaction.
+   */
+  reorderEncounters: raidManagerProcedure
+    .input(
+      z.object({
+        encounters: z.array(
+          z.object({
+            id: z.string().uuid(),
+            sortOrder: z.number().int(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        for (const enc of input.encounters) {
+          await tx
+            .update(raidPlanEncounters)
+            .set({ sortOrder: enc.sortOrder })
+            .where(eq(raidPlanEncounters.id, enc.id));
+        }
+      });
+
+      return { success: true };
+    }),
+
+  /**
    * Get AA slot assignments for a specific plan character.
    * Used to check if a character has assignments before replacing them.
    */

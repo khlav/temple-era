@@ -11,6 +11,7 @@ import { api } from "~/trpc/react";
 import { RaidPlanHeader } from "./raid-plan-header";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
+import { ReorderEncountersDialog } from "./reorder-encounters-dialog";
 import { MRTControls } from "./mrt-controls";
 import { AAPanel } from "./aa-panel";
 import { RaidPlanDetailSkeleton } from "./skeletons";
@@ -60,6 +61,7 @@ export function RaidPlanDetail({
     updatePlanMutation,
     clearAAAssignmentsMutation,
     refreshCharactersMutation,
+    reorderEncountersMutation,
   } = mutations;
 
   // Fetch the zone template for "Reset to Default" functionality (skip for custom zones)
@@ -178,7 +180,20 @@ export function RaidPlanDetail({
               </TabsTrigger>
             ))}
           </TabsList>
-          <AddEncounterDialog planId={planId} onEncounterCreated={refetch} />
+          <div className="flex flex-col gap-1">
+            <AddEncounterDialog planId={planId} onEncounterCreated={refetch} />
+            <ReorderEncountersDialog
+              encounters={plan.encounters.map((e) => ({
+                id: e.id,
+                encounterName: e.encounterName,
+                sortOrder: e.sortOrder,
+              }))}
+              onSave={(encounters) =>
+                reorderEncountersMutation.mutate({ encounters })
+              }
+              isPending={reorderEncountersMutation.isPending}
+            />
+          </div>
         </div>
 
         {/* Two-column layout for tab content - wrapped in shared DndContext */}
