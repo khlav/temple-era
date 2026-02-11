@@ -64,6 +64,26 @@ export function RaidPlanDetail({
     reorderEncountersMutation,
   } = mutations;
 
+  const utils = api.useUtils();
+  const togglePublicMutation = api.raidPlan.togglePublic.useMutation({
+    onMutate: async ({ isPublic }) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      if (prev) {
+        utils.raidPlan.getById.setData({ planId }, { ...prev, isPublic });
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        utils.raidPlan.getById.setData({ planId }, context.prev);
+      }
+    },
+    onSettled: () => {
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
+
   // Fetch the zone template for "Reset to Default" functionality (skip for custom zones)
   const { data: zoneTemplate } = api.raidPlanTemplate.getByZoneId.useQuery(
     { zoneId: plan?.zoneId ?? "" },
@@ -150,6 +170,10 @@ export function RaidPlanDetail({
         event={plan.event}
         createdAt={plan.createdAt}
         onNameUpdate={refetch}
+        isPublic={plan.isPublic}
+        onTogglePublic={(isPublic) =>
+          togglePublicMutation.mutate({ planId, isPublic })
+        }
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

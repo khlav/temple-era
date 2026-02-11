@@ -36,6 +36,8 @@ interface RaidPlanGroupsGridProps {
   dragOnly?: boolean;
   /** Skip internal DndContext - parent will provide one */
   skipDndContext?: boolean;
+  /** Hide bench section (for read-only views) */
+  hideBench?: boolean;
   onCharacterUpdate?: (
     planCharacterId: string,
     character: RaidParticipant,
@@ -55,6 +57,7 @@ export function RaidPlanGroupsGrid({
   showEditControls = true,
   dragOnly = false,
   skipDndContext = false,
+  hideBench = false,
   onCharacterUpdate,
   onCharacterMove,
   onCharacterSwap,
@@ -319,18 +322,20 @@ export function RaidPlanGroupsGrid({
       </div>
 
       {/* Bench Section */}
-      <BenchSection
-        characters={bench}
-        editable={editable}
-        dragOnly={dragOnly}
-        locked={locked}
-        showEditControls={showEditControls}
-        editingCharacterId={editingCharacterId}
-        editingBench={editingBench}
-        onEditClick={handleEditClick}
-        onAddClick={handleBenchAddClick}
-        showAlways={editable || dragOnly}
-      />
+      {!hideBench && (
+        <BenchSection
+          characters={bench}
+          editable={editable}
+          dragOnly={dragOnly}
+          locked={locked}
+          showEditControls={showEditControls}
+          editingCharacterId={editingCharacterId}
+          editingBench={editingBench}
+          onEditClick={handleEditClick}
+          onAddClick={handleBenchAddClick}
+          showAlways={editable || dragOnly}
+        />
+      )}
 
       {/* Empty state */}
       {characters.length === 0 && (

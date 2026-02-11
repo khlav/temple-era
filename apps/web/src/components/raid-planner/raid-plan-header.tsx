@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Trash2, ExternalLink, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Switch } from "~/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,8 @@ interface RaidPlanHeaderProps {
   event: { raidId: number; name: string; date: string } | null;
   createdAt: Date;
   onNameUpdate?: () => void;
+  isPublic?: boolean;
+  onTogglePublic?: (isPublic: boolean) => void;
 }
 
 export function RaidPlanHeader({
@@ -43,6 +46,8 @@ export function RaidPlanHeader({
   event,
   createdAt,
   onNameUpdate,
+  isPublic,
+  onTogglePublic,
 }: RaidPlanHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -176,6 +181,7 @@ export function RaidPlanHeader({
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
+            <span className="text-base text-muted-foreground">{zoneName}</span>
           </div>
         )}
 
@@ -220,10 +226,8 @@ export function RaidPlanHeader({
 
       {/* Metadata row */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-        <span>Zone: {zoneName}</span>
         {event && (
           <>
-            <span>|</span>
             <a
               href={`/raids/${event.raidId}`}
               className="hover:text-foreground hover:underline"
@@ -232,7 +236,39 @@ export function RaidPlanHeader({
             </a>
           </>
         )}
-        <span>|</span>
+        {onTogglePublic && (
+          <>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="public-toggle"
+                className={"text-sm font-medium text-muted-foreground"+ (isPublic ? " text-primary" : "")}
+              >
+                {isPublic ? "Shared with Raiders" : "Share with Raiders"}
+              </label>
+              <Switch
+                id="public-toggle"
+                checked={isPublic ?? false}
+                onCheckedChange={onTogglePublic}
+              />
+              {isPublic && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 gap-1 text-xs"
+                  onClick={() => {
+                    const url = `${window.location.origin}/raid-plans/${planId}`;
+                    window.open(url, "_blank");
+                  }}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open in New Tab
+                </Button>
+              )}
+            </div>
+            <span>|</span>
+          </>
+        )}
+        {event && !onTogglePublic && <span>|</span>}
         <span>Created: {format(createdAt, "MMM d, yyyy")}</span>
         <span>|</span>
         <a

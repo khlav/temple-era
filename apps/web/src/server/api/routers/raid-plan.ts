@@ -10,7 +10,12 @@ import {
   desc,
   sql,
 } from "drizzle-orm";
-import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+  raidManagerProcedure,
+} from "~/server/api/trpc";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import {
   raidPlans,
@@ -110,6 +115,7 @@ export const raidPlanRouter = createTRPCRouter({
           createdAt: raidPlans.createdAt,
           defaultAATemplate: raidPlans.defaultAATemplate,
           useDefaultAA: raidPlans.useDefaultAA,
+          isPublic: raidPlans.isPublic,
         })
         .from(raidPlans)
         .where(eq(raidPlans.id, input.planId))
@@ -233,6 +239,197 @@ export const raidPlanRouter = createTRPCRouter({
         encounterAssignments,
         aaSlotAssignments,
       };
+    }),
+
+  /**
+   * Toggle the public visibility of a raid plan
+   */
+  togglePublic: raidManagerProcedure
+    .input(
+      z.object({
+        planId: z.string().uuid(),
+        isPublic: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db
+        .update(raidPlans)
+        .set({ isPublic: input.isPublic })
+        .where(eq(raidPlans.id, input.planId))
+        .returning({ id: raidPlans.id, isPublic: raidPlans.isPublic });
+
+      if (result.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Raid plan not found",
+        });
+      }
+
+      return { isPublic: result[0]!.isPublic };
+    }),
+
+  /**
+   * Fetch a public raid plan by ID (requires authentication but not raid manager role)
+   */
+  getPublicById: publicProcedure
+    .input(z.object({ planId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const plan = await ctx.db
+        .select({
+          id: raidPlans.id,
+          name: raidPlans.name,
+          zoneId: raidPlans.zoneId,
+          raidHelperEventId: raidPlans.raidHelperEventId,
+          eventId: raidPlans.eventId,
+          createdAt: raidPlans.createdAt,
+          defaultAATemplate: raidPlans.defaultAATemplate,
+          useDefaultAA: raidPlans.useDefaultAA,
+          isPublic: raidPlans.isPublic,
+        })
+        .from(raidPlans)
+        .where(
+          and(eq(raidPlans.id, input.planId), eq(raidPlans.isPublic, true)),
+        )
+        .limit(1);
+
+      if (plan.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Raid plan not found",
+        });
+      }
+
+      const [planCharacters, encounters] = await Promise.all([
+        ctx.db
+          .select({
+            id: raidPlanCharacters.id,
+            characterId: raidPlanCharacters.characterId,
+            characterName: raidPlanCharacters.characterName,
+            defaultGroup: raidPlanCharacters.defaultGroup,
+            defaultPosition: raidPlanCharacters.defaultPosition,
+            class: sql<
+              string | null
+            >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
+            server: characters.server,
+          })
+          .from(raidPlanCharacters)
+          .leftJoin(
+            characters,
+            eq(raidPlanCharacters.characterId, characters.characterId),
+          )
+          .where(eq(raidPlanCharacters.raidPlanId, input.planId)),
+        ctx.db
+          .select({
+            id: raidPlanEncounters.id,
+            encounterKey: raidPlanEncounters.encounterKey,
+            encounterName: raidPlanEncounters.encounterName,
+            sortOrder: raidPlanEncounters.sortOrder,
+            useDefaultGroups: raidPlanEncounters.useDefaultGroups,
+            aaTemplate: raidPlanEncounters.aaTemplate,
+            useCustomAA: raidPlanEncounters.useCustomAA,
+          })
+          .from(raidPlanEncounters)
+          .where(eq(raidPlanEncounters.raidPlanId, input.planId))
+          .orderBy(raidPlanEncounters.sortOrder),
+      ]);
+
+      let event: { raidId: number; name: string; date: string } | null = null;
+      if (plan[0]!.eventId) {
+        const eventResult = await ctx.db
+          .select({
+            raidId: raids.raidId,
+            name: raids.name,
+            date: raids.date,
+          })
+          .from(raids)
+          .where(eq(raids.raidId, plan[0]!.eventId))
+          .limit(1);
+        event = eventResult[0] ?? null;
+      }
+
+      const customEncounterIds = encounters
+        .filter((e) => !e.useDefaultGroups)
+        .map((e) => e.id);
+
+      let encounterAssignments: {
+        encounterId: string;
+        planCharacterId: string;
+        groupNumber: number | null;
+        position: number | null;
+      }[] = [];
+
+      if (customEncounterIds.length > 0) {
+        encounterAssignments = await ctx.db
+          .select({
+            encounterId: raidPlanEncounterAssignments.encounterId,
+            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
+            groupNumber: raidPlanEncounterAssignments.groupNumber,
+            position: raidPlanEncounterAssignments.position,
+          })
+          .from(raidPlanEncounterAssignments)
+          .where(
+            inArray(
+              raidPlanEncounterAssignments.encounterId,
+              customEncounterIds,
+            ),
+          );
+      }
+
+      const encounterIds = encounters.map((e) => e.id);
+      const aaSlotConditions = [
+        eq(raidPlanEncounterAASlots.raidPlanId, input.planId),
+      ];
+      if (encounterIds.length > 0) {
+        aaSlotConditions.push(
+          inArray(raidPlanEncounterAASlots.encounterId, encounterIds),
+        );
+      }
+
+      const aaSlotAssignments = await ctx.db
+        .select({
+          id: raidPlanEncounterAASlots.id,
+          encounterId: raidPlanEncounterAASlots.encounterId,
+          raidPlanId: raidPlanEncounterAASlots.raidPlanId,
+          planCharacterId: raidPlanEncounterAASlots.planCharacterId,
+          slotName: raidPlanEncounterAASlots.slotName,
+          sortOrder: raidPlanEncounterAASlots.sortOrder,
+        })
+        .from(raidPlanEncounterAASlots)
+        .where(or(...aaSlotConditions));
+
+      return {
+        ...plan[0]!,
+        event,
+        characters: planCharacters,
+        encounters,
+        encounterAssignments,
+        aaSlotAssignments,
+      };
+    }),
+
+  /**
+   * Get all public raid plans in reverse chronological order
+   */
+  getPublicPlans: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(50).default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const plans = await ctx.db
+        .select({
+          id: raidPlans.id,
+          name: raidPlans.name,
+          zoneId: raidPlans.zoneId,
+          createdAt: raidPlans.createdAt,
+        })
+        .from(raidPlans)
+        .where(eq(raidPlans.isPublic, true))
+        .orderBy(desc(raidPlans.createdAt))
+        .limit(input.limit);
+
+      return plans;
     }),
 
   /**

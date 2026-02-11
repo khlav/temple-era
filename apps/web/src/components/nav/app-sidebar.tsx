@@ -27,12 +27,14 @@ import {
   ScanLine,
   ClipboardList,
   LayoutGrid,
+  DraftingCompass
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
   { title: "Raids", url: "/raids", icon: MapIcon },
+  { title: "Raid Plans", url: "/raid-plans", icon: DraftingCompass },
   { title: "Raiding characters", url: "/characters", icon: UserGroupIcon },
   { title: "Rare recipes & crafters", url: "/rare-recipes", icon: Wand },
 ];

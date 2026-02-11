@@ -103,6 +103,7 @@ export const raidPlans = tableCreator(
     name: varchar("name", { length: 256 }).notNull(),
     defaultAATemplate: text("default_aa_template"), // AA template for Default/Trash view
     useDefaultAA: boolean("use_default_aa").notNull().default(false),
+    isPublic: boolean("is_public").notNull().default(false),
     ...CreatedBy,
     ...DefaultTimestamps,
   },

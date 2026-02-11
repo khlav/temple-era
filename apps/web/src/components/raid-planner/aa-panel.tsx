@@ -9,12 +9,12 @@ import type { RaidPlanCharacter, AASlotAssignment } from "./types";
 
 interface AAPanelProps {
   template: string | null;
-  onSaveTemplate: (template: string) => void;
+  onSaveTemplate?: (template: string) => void;
   characters: RaidPlanCharacter[];
   slotAssignments: AASlotAssignment[];
-  onAssign: (planCharacterId: string, slotName: string) => void;
-  onRemove: (planCharacterId: string, slotName: string) => void;
-  onReorder: (slotName: string, planCharacterIds: string[]) => void;
+  onAssign?: (planCharacterId: string, slotName: string) => void;
+  onRemove?: (planCharacterId: string, slotName: string) => void;
+  onReorder?: (slotName: string, planCharacterIds: string[]) => void;
   contextId: string;
   contextLabel: string;
   zoneName: string;
@@ -22,6 +22,7 @@ interface AAPanelProps {
   defaultTemplate?: string | null;
   onResetToDefault?: () => void;
   isResetting?: boolean;
+  readOnly?: boolean;
 }
 
 export function AAPanel({
@@ -39,12 +40,22 @@ export function AAPanel({
   defaultTemplate,
   onResetToDefault,
   isResetting,
+  readOnly,
 }: AAPanelProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const hasDefaultTemplate = !!defaultTemplate;
 
-  // If no template yet, show create options
+  // If no template yet, show create options (unless readOnly)
   if (!template) {
+    if (readOnly) {
+      return (
+        <div className="rounded-lg border border-dashed p-6">
+          <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+            No AA template configured
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="space-y-4 rounded-lg border p-4">
         <div className="text-sm text-muted-foreground">
@@ -92,7 +103,7 @@ export function AAPanel({
           initialTemplate=""
           hasExistingTemplate={false}
           onSave={(t) => {
-            onSaveTemplate(t);
+            onSaveTemplate?.(t);
             setEditorOpen(false);
           }}
           onClear={() => {}}
@@ -111,48 +122,53 @@ export function AAPanel({
         raidPlanId={!contextId.includes("-") ? contextId : undefined}
         characters={characters}
         slotAssignments={slotAssignments}
-        onAssign={onAssign}
-        onRemove={onRemove}
-        onReorder={onReorder}
+        onAssign={readOnly ? undefined : onAssign}
+        onRemove={readOnly ? undefined : onRemove}
+        onReorder={readOnly ? undefined : onReorder}
+        disabled={readOnly}
         skipDndContext
       />
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full justify-start gap-2 text-muted-foreground"
-        onClick={() => setEditorOpen(true)}
-      >
-        <Pencil className="h-4 w-4" />
-        Edit Template
-      </Button>
+      {!readOnly && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-muted-foreground"
+            onClick={() => setEditorOpen(true)}
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Template
+          </Button>
 
-      <AATemplateEditorDialog
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        contextLabel={contextLabel}
-        zoneName={zoneName}
-        initialTemplate={template}
-        hasExistingTemplate={true}
-        onSave={(t) => {
-          onSaveTemplate(t);
-          setEditorOpen(false);
-        }}
-        onClear={() => {
-          onSaveTemplate("");
-          setEditorOpen(false);
-        }}
-        isSaving={isSaving ?? false}
-        onResetToDefault={
-          hasDefaultTemplate
-            ? () => {
-                onResetToDefault?.();
-                setEditorOpen(false);
-              }
-            : undefined
-        }
-        isResetting={isResetting}
-      />
+          <AATemplateEditorDialog
+            open={editorOpen}
+            onOpenChange={setEditorOpen}
+            contextLabel={contextLabel}
+            zoneName={zoneName}
+            initialTemplate={template}
+            hasExistingTemplate={true}
+            onSave={(t) => {
+              onSaveTemplate?.(t);
+              setEditorOpen(false);
+            }}
+            onClear={() => {
+              onSaveTemplate?.("");
+              setEditorOpen(false);
+            }}
+            isSaving={isSaving ?? false}
+            onResetToDefault={
+              hasDefaultTemplate
+                ? () => {
+                    onResetToDefault?.();
+                    setEditorOpen(false);
+                  }
+                : undefined
+            }
+            isResetting={isResetting}
+          />
+        </>
+      )}
     </div>
   );
 }
