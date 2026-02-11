@@ -23,6 +23,7 @@ interface AAPanelProps {
   onResetToDefault?: () => void;
   isResetting?: boolean;
   readOnly?: boolean;
+  userCharacterIds?: number[];
 }
 
 export function AAPanel({
@@ -41,6 +42,7 @@ export function AAPanel({
   onResetToDefault,
   isResetting,
   readOnly,
+  userCharacterIds = [],
 }: AAPanelProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const hasDefaultTemplate = !!defaultTemplate;
@@ -127,6 +129,7 @@ export function AAPanel({
         onReorder={readOnly ? undefined : onReorder}
         disabled={readOnly}
         skipDndContext
+        userCharacterIds={userCharacterIds}
       />
 
       {!readOnly && (

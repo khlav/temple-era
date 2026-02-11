@@ -18,19 +18,66 @@ export const profile = createTRPCRouter({
             name: true,
             characterId: true,
             class: true,
+            primaryCharacterId: true,
+          },
+          with: {
+            primaryCharacter: {
+              columns: {
+                characterId: true,
+              },
+              with: {
+                secondaryCharacters: {
+                  columns: {
+                    characterId: true,
+                  },
+                },
+              },
+            },
+            secondaryCharacters: {
+              columns: {
+                characterId: true,
+              },
+            },
           },
         },
       },
       where: eq(users.id, ctx.session.user.id),
     });
-    return (
-      user ?? {
+
+    if (!user) {
+      return {
         name: "",
         characterId: -1,
         image: "",
         character: { name: "", characterId: -1, class: "" },
+        userCharacterIds: [],
+      };
+    }
+
+    // Calculate all character IDs belonging to this user
+    const userCharacterIds = new Set<number>();
+
+    if (user.character) {
+      userCharacterIds.add(user.character.characterId);
+
+      // If linked to a primary, add the primary and all its secondaries (siblings)
+      if (user.character.primaryCharacter) {
+        userCharacterIds.add(user.character.primaryCharacter.characterId);
+        user.character.primaryCharacter.secondaryCharacters.forEach((char) =>
+          userCharacterIds.add(char.characterId),
+        );
       }
-    );
+
+      // If this IS a primary, add all its secondaries (children)
+      user.character.secondaryCharacters.forEach((char) =>
+        userCharacterIds.add(char.characterId),
+      );
+    }
+
+    return {
+      ...user,
+      userCharacterIds: Array.from(userCharacterIds),
+    };
   }),
 
   saveMyProfile: protectedProcedure

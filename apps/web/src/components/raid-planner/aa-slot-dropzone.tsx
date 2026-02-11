@@ -143,14 +143,20 @@ export function AASlotInline({
     (a, b) => a.sortOrder - b.sortOrder,
   );
 
+  const hasHighlight = sortedCharacters.some((c) => c.isHighlighted);
+  const isFilled = sortedCharacters.length > 0;
+  const showBorder = !disabled || !isFilled;
+
   return (
     <span
       ref={setNodeRef}
       className={cn(
-        "inline-flex items-center gap-0.5 rounded border border-dashed px-1 py-0.5",
-        isOver && !isFull && "border-primary bg-primary/10",
-        isFull && "border-muted-foreground/30",
-        !isOver && !isFull && "border-muted-foreground/40",
+        "inline-flex items-center gap-0.5 rounded px-1 py-0.5",
+        showBorder && "border border-dashed",
+        showBorder && isOver && !isFull && "border-primary bg-primary/10",
+        showBorder && isFull && "border-muted-foreground/30",
+        showBorder && !isOver && !isFull && "border-muted-foreground/40",
+        hasHighlight && "ring-2 ring-yellow-400 dark:ring-yellow-500",
       )}
     >
       {sortedCharacters.length === 0 ? (
@@ -221,6 +227,8 @@ export function AARefInline({
               !noColor && char.characterClass
                 ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
                 : "text-foreground",
+              char.isHighlighted &&
+                "rounded ring-1 ring-yellow-400 dark:ring-yellow-500",
             )}
           >
             <span>{char.characterName}</span>

@@ -50,6 +50,7 @@ export interface AASlotCharacter {
   characterName: string;
   characterClass: string | null;
   sortOrder: number;
+  isHighlighted?: boolean;
 }
 
 export interface EncounterAssignment {

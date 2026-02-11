@@ -21,6 +21,7 @@ interface GroupColumnProps {
   editingSlot?: { group: number; position: number } | null;
   onEditClick?: (characterId: string) => void;
   onSlotEditClick?: (group: number, position: number) => void;
+  userCharacterIds?: number[];
 }
 
 export function GroupColumn({
@@ -35,6 +36,7 @@ export function GroupColumn({
   editingSlot,
   onEditClick,
   onSlotEditClick,
+  userCharacterIds = [],
 }: GroupColumnProps) {
   return (
     <div
@@ -52,12 +54,16 @@ export function GroupColumn({
           const isSlotEditing =
             editingSlot?.group === groupIndex &&
             editingSlot?.position === position;
+          const character = getCharacterAtSlot(groupIndex, position);
+          const isHighlighted =
+            !!character?.characterId &&
+            userCharacterIds.includes(character.characterId);
           return (
             <GroupSlot
               key={position}
               groupIndex={groupIndex}
               position={position}
-              character={getCharacterAtSlot(groupIndex, position)}
+              character={character}
               editable={editable}
               dragOnly={dragOnly}
               locked={locked}
@@ -69,6 +75,7 @@ export function GroupColumn({
               isSlotEditing={isSlotEditing}
               onEditClick={onEditClick}
               onSlotEditClick={onSlotEditClick}
+              isHighlighted={isHighlighted}
             />
           );
         })}
@@ -89,6 +96,7 @@ interface GroupSlotProps {
   isSlotEditing?: boolean;
   onEditClick?: (characterId: string) => void;
   onSlotEditClick?: (group: number, position: number) => void;
+  isHighlighted?: boolean;
 }
 
 function GroupSlot({
@@ -103,6 +111,7 @@ function GroupSlot({
   isSlotEditing,
   onEditClick,
   onSlotEditClick,
+  isHighlighted,
 }: GroupSlotProps) {
   const slotId = `slot-${groupIndex}-${position}`;
   const { setNodeRef, isOver } = useDroppable({ id: slotId });
@@ -123,6 +132,7 @@ function GroupSlot({
           showEditControls={showEditControls}
           isEditing={isEditing}
           onEditClick={onEditClick}
+          isHighlighted={isHighlighted}
         />
       ) : (
         <button

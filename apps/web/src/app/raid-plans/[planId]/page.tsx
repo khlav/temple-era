@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import { headers } from "next/headers";
 import { Suspense } from "react";
+import { auth } from "~/server/auth";
 import { RaidPlanPublicView } from "~/components/raid-planner/raid-plan-public-view";
 import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
@@ -58,10 +59,13 @@ async function RaidPlanContent({ planId }: { planId: string }) {
     // Plan may not exist or user may not have access
   }
 
+  const session = await auth();
+
   return (
     <RaidPlanPublicView
       planId={planId}
       initialBreadcrumbData={planName ? { [planId]: planName } : undefined}
+      isLoggedIn={!!session}
     />
   );
 }

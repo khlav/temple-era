@@ -19,6 +19,7 @@ interface DraggableCharacterCardProps {
   showEditControls?: boolean;
   isEditing?: boolean;
   onEditClick?: (characterId: string) => void;
+  isHighlighted?: boolean;
 }
 
 export function DraggableCharacterCard({
@@ -29,6 +30,7 @@ export function DraggableCharacterCard({
   showEditControls = true,
   isEditing,
   onEditClick,
+  isHighlighted,
 }: DraggableCharacterCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: character.id,
@@ -48,6 +50,7 @@ export function DraggableCharacterCard({
         onEditClick={onEditClick}
         isDragging={isDragging}
         dragHandleProps={canDrag ? listeners : undefined}
+        isHighlighted={isHighlighted}
       />
     </div>
   );
@@ -63,6 +66,7 @@ interface CharacterCardProps {
   isDragging?: boolean;
   isDragOverlay?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  isHighlighted?: boolean;
 }
 
 export function CharacterCard({
@@ -75,6 +79,7 @@ export function CharacterCard({
   isDragging,
   isDragOverlay,
   dragHandleProps,
+  isHighlighted,
 }: CharacterCardProps) {
   const isWowClass = !!character.class && WOW_CLASSES_SET.has(character.class);
   const StatusIcon = character.class
@@ -104,6 +109,7 @@ export function CharacterCard({
           !writeInClassColor &&
           (compact ? "bg-muted/50" : "bg-muted/30"),
         isEditing && "ring-2 ring-primary",
+        isHighlighted && "ring-2 ring-yellow-400 dark:ring-yellow-500",
         isDragging && "opacity-50",
         isDragOverlay && "shadow-lg ring-2 ring-primary/50",
       )}

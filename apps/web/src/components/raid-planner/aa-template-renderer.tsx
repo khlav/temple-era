@@ -36,6 +36,7 @@ interface AATemplateRendererProps {
   disabled?: boolean;
   /** Skip internal DndContext - parent will provide one */
   skipDndContext?: boolean;
+  userCharacterIds?: number[];
 }
 
 export function AATemplateRenderer({
@@ -49,6 +50,7 @@ export function AATemplateRenderer({
   onReorder: _onReorder,
   disabled,
   skipDndContext,
+  userCharacterIds = [],
 }: AATemplateRendererProps) {
   const [activeCharacter, setActiveCharacter] =
     useState<RaidPlanCharacter | null>(null);
@@ -76,6 +78,7 @@ export function AATemplateRenderer({
         name: string;
         class: string | null;
         sortOrder: number;
+        isHighlighted?: boolean;
       }[]
     >();
 
@@ -83,12 +86,16 @@ export function AATemplateRenderer({
       const char = characters.find((c) => c.id === assignment.planCharacterId);
       if (!char) continue;
 
+      const isHighlighted =
+        !!char.characterId && userCharacterIds.includes(char.characterId);
+
       const existing = map.get(assignment.slotName) ?? [];
       existing.push({
         planCharacterId: assignment.planCharacterId,
         name: char.characterName,
         class: char.class,
         sortOrder: assignment.sortOrder,
+        isHighlighted,
       });
       map.set(assignment.slotName, existing);
     }
@@ -100,7 +107,7 @@ export function AATemplateRenderer({
     }
 
     return map;
-  }, [slotAssignments, characters]);
+  }, [slotAssignments, characters, userCharacterIds]);
 
   // Find characters assigned to multiple slots
   const multiSlotCharacters = useMemo(() => {
@@ -220,6 +227,7 @@ export function AATemplateRenderer({
                   characterName: c.name,
                   characterClass: c.class,
                   sortOrder: c.sortOrder,
+                  isHighlighted: c.isHighlighted,
                 }))}
                 maxCharacters={slot.maxCharacters}
                 noColor={slot.noColor}
@@ -268,6 +276,7 @@ export function AATemplateRenderer({
                     characterName: c.name,
                     characterClass: c.class,
                     sortOrder: c.sortOrder,
+                    isHighlighted: c.isHighlighted,
                   }))}
                   noColor={refNoColor}
                 />,

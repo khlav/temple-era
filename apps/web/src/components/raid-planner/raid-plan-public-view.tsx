@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
 import { format } from "date-fns";
 import { ExternalLink } from "lucide-react";
@@ -16,25 +17,36 @@ import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { buildEncounterCharacters, type RaidPlanCharacter } from "./types";
 import { getGroupCount } from "./constants";
 
+import { signIn } from "next-auth/react";
+import { Button } from "~/components/ui/button";
+
 interface RaidPlanPublicViewProps {
   planId: string;
   initialBreadcrumbData?: { [key: string]: string };
+  isLoggedIn: boolean;
 }
 
 export function RaidPlanPublicView({
   planId,
   initialBreadcrumbData,
+  isLoggedIn,
 }: RaidPlanPublicViewProps) {
   const [activeTab, setActiveTab] = useState("default");
   const { updateBreadcrumbSegment } = useBreadcrumb();
 
   const {
     data: plan,
-    isLoading,
+    isLoading: isPlanLoading,
     error,
   } = api.raidPlan.getPublicById.useQuery({
     planId,
   });
+
+  const { data: userProfile } = api.profile.getMyProfile.useQuery(undefined, {
+    enabled: isLoggedIn,
+  });
+
+  const userCharacterIds = userProfile?.userCharacterIds ?? [];
 
   // Update breadcrumb to show plan name instead of UUID
   useEffect(() => {
@@ -47,7 +59,7 @@ export function RaidPlanPublicView({
     }
   }, [planId, plan?.name, initialBreadcrumbData, updateBreadcrumbSegment]);
 
-  if (isLoading) {
+  if (isPlanLoading) {
     return <RaidPlanDetailSkeleton />;
   }
 
@@ -79,174 +91,207 @@ export function RaidPlanPublicView({
       : (INSTANCE_TO_ZONE[plan.zoneId] ?? plan.zoneId);
 
   return (
-    <div className="space-y-6">
-      {/* Read-only Header */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Raid Plan: {plan.name}
-          </h1>
+    <div className="relative space-y-6">
+      {!isLoggedIn && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center justify-center text-center">
+            <p className="mb-6 text-muted-foreground">
+              Please login to Discord to view this raid plan.
+            </p>
+            <Button
+              onClick={() =>
+                signIn("discord", { redirectTo: window.location.pathname })
+              }
+              className="mx-auto flex items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2]"
+            >
+              <Image
+                src="/img/discord-mark-white.svg"
+                alt="Discord"
+                height={24}
+                width={24}
+              />
+              Sign in with Discord
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={cn(!isLoggedIn && "pointer-events-none select-none blur-sm")}
+      >
+        {/* Read-only Header */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Raid Plan: {plan.name}
+            </h1>
+          </div>
+
+          {/* Metadata row */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>Zone: {zoneDisplayName}</span>
+            {plan.event && (
+              <>
+                <span>|</span>
+                <a
+                  href={`/raids/${plan.event.raidId}`}
+                  className="hover:text-foreground hover:underline"
+                >
+                  Event: {plan.event.name} ({plan.event.date})
+                </a>
+              </>
+            )}
+            <span>|</span>
+            <span>Created: {format(plan.createdAt, "MMM d, yyyy")}</span>
+            <span>|</span>
+            <a
+              href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+            >
+              Raid-Helper
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         </div>
 
-        {/* Metadata row */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span>Zone: {zoneDisplayName}</span>
-          {plan.event && (
-            <>
-              <span>|</span>
-              <a
-                href={`/raids/${plan.event.raidId}`}
-                className="hover:text-foreground hover:underline"
-              >
-                Event: {plan.event.name} ({plan.event.date})
-              </a>
-            </>
-          )}
-          <span>|</span>
-          <span>Created: {format(plan.createdAt, "MMM d, yyyy")}</span>
-          <span>|</span>
-          <a
-            href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-          >
-            Raid-Helper
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {/* Tabs (no add/reorder buttons) */}
-        <div className="flex items-center gap-2">
-          <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="default">Default/Trash</TabsTrigger>
-            {plan.encounters.map((encounter) => (
-              <TabsTrigger
-                key={encounter.id}
-                value={encounter.id}
-                className={cn(
-                  encounter.useDefaultGroups ? "italic opacity-50" : "",
-                )}
-              >
-                {encounter.encounterName}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        {/* Two-column layout for tab content - wrapped in bare DndContext */}
-        <DndContext>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
-            {/* Left column: Group planning (read-only) */}
-            <div>
-              {/* Default Tab */}
-              <TabsContent value="default" className="mt-0 space-y-3">
-                <div className="flex h-7 items-center" />
-                <RaidPlanGroupsGrid
-                  characters={plan.characters as RaidPlanCharacter[]}
-                  groupCount={groupCount}
-                  editable={false}
-                  showEditControls={false}
-                  hideBench
-                  skipDndContext
-                />
-              </TabsContent>
-
-              {/* Encounter Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* Tabs (no add/reorder buttons) */}
+          <div className="flex items-center gap-2">
+            <TabsList className="h-auto flex-wrap">
+              <TabsTrigger value="default">Default/Trash</TabsTrigger>
               {plan.encounters.map((encounter) => (
-                <TabsContent
+                <TabsTrigger
                   key={encounter.id}
                   value={encounter.id}
-                  className="mt-0 space-y-3"
-                >
-                  <div className="flex h-7 items-center" />
-                  {encounter.useDefaultGroups ? (
-                    <RaidPlanGroupsGrid
-                      characters={plan.characters as RaidPlanCharacter[]}
-                      groupCount={groupCount}
-                      locked
-                      hideBench
-                      skipDndContext
-                    />
-                  ) : (
-                    <RaidPlanGroupsGrid
-                      characters={buildEncounterCharacters(
-                        plan.characters as RaidPlanCharacter[],
-                        plan.encounterAssignments,
-                        encounter.id,
-                      )}
-                      groupCount={groupCount}
-                      editable={false}
-                      showEditControls={false}
-                      hideBench
-                      skipDndContext
-                    />
+                  className={cn(
+                    encounter.useDefaultGroups ? "italic opacity-50" : "",
                   )}
-                </TabsContent>
-              ))}
-            </div>
-
-            {/* Right column: AA Template (read-only) */}
-            <div className="border-l pl-6">
-              {/* Default Tab AA */}
-              <TabsContent value="default" className="mt-0 space-y-3">
-                <div className="flex h-7 items-center" />
-                {plan.useDefaultAA && plan.defaultAATemplate ? (
-                  <AAPanel
-                    template={plan.defaultAATemplate}
-                    characters={plan.characters as RaidPlanCharacter[]}
-                    slotAssignments={plan.aaSlotAssignments.filter(
-                      (a) => a.raidPlanId === planId,
-                    )}
-                    contextId={planId}
-                    contextLabel="Default/Trash"
-                    zoneName={zoneName}
-                    readOnly
-                  />
-                ) : (
-                  <div className="rounded-lg border border-dashed p-6">
-                    <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                      AA not enabled for Default/Trash
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Encounter Tab AA */}
-              {plan.encounters.map((encounter) => (
-                <TabsContent
-                  key={encounter.id}
-                  value={encounter.id}
-                  className="mt-0 space-y-3"
                 >
+                  {encounter.encounterName}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          {/* Two-column layout for tab content - wrapped in bare DndContext */}
+          <DndContext>
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              {/* Left column: Group planning (read-only) */}
+              <div>
+                {/* Default Tab */}
+                <TabsContent value="default" className="mt-0 space-y-3">
                   <div className="flex h-7 items-center" />
-                  {encounter.useCustomAA && encounter.aaTemplate ? (
+                  <RaidPlanGroupsGrid
+                    characters={plan.characters as RaidPlanCharacter[]}
+                    groupCount={groupCount}
+                    editable={false}
+                    showEditControls={false}
+                    hideBench
+                    skipDndContext
+                    userCharacterIds={userCharacterIds}
+                  />
+                </TabsContent>
+
+                {/* Encounter Tabs */}
+                {plan.encounters.map((encounter) => (
+                  <TabsContent
+                    key={encounter.id}
+                    value={encounter.id}
+                    className="mt-0 space-y-3"
+                  >
+                    <div className="flex h-7 items-center" />
+                    {encounter.useDefaultGroups ? (
+                      <RaidPlanGroupsGrid
+                        characters={plan.characters as RaidPlanCharacter[]}
+                        groupCount={groupCount}
+                        locked
+                        hideBench
+                        skipDndContext
+                        userCharacterIds={userCharacterIds}
+                      />
+                    ) : (
+                      <RaidPlanGroupsGrid
+                        characters={buildEncounterCharacters(
+                          plan.characters as RaidPlanCharacter[],
+                          plan.encounterAssignments,
+                          encounter.id,
+                        )}
+                        groupCount={groupCount}
+                        editable={false}
+                        showEditControls={false}
+                        hideBench
+                        skipDndContext
+                        userCharacterIds={userCharacterIds}
+                      />
+                    )}
+                  </TabsContent>
+                ))}
+              </div>
+
+              {/* Right column: AA Template (read-only) */}
+              <div className="border-l pl-6">
+                {/* Default Tab AA */}
+                <TabsContent value="default" className="mt-0 space-y-3">
+                  <div className="flex h-7 items-center" />
+                  {plan.useDefaultAA && plan.defaultAATemplate ? (
                     <AAPanel
-                      template={encounter.aaTemplate}
+                      template={plan.defaultAATemplate}
                       characters={plan.characters as RaidPlanCharacter[]}
                       slotAssignments={plan.aaSlotAssignments.filter(
-                        (a) => a.encounterId === encounter.id,
+                        (a) => a.raidPlanId === planId,
                       )}
-                      contextId={encounter.id}
-                      contextLabel={encounter.encounterName}
+                      contextId={planId}
+                      contextLabel="Default/Trash"
                       zoneName={zoneName}
                       readOnly
+                      userCharacterIds={userCharacterIds}
                     />
                   ) : (
                     <div className="rounded-lg border border-dashed p-6">
                       <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                        AA not enabled for this encounter
+                        AA not enabled for Default/Trash
                       </div>
                     </div>
                   )}
                 </TabsContent>
-              ))}
+
+                {/* Encounter Tab AA */}
+                {plan.encounters.map((encounter) => (
+                  <TabsContent
+                    key={encounter.id}
+                    value={encounter.id}
+                    className="mt-0 space-y-3"
+                  >
+                    <div className="flex h-7 items-center" />
+                    {encounter.useCustomAA && encounter.aaTemplate ? (
+                      <AAPanel
+                        template={encounter.aaTemplate}
+                        characters={plan.characters as RaidPlanCharacter[]}
+                        slotAssignments={plan.aaSlotAssignments.filter(
+                          (a) => a.encounterId === encounter.id,
+                        )}
+                        contextId={encounter.id}
+                        contextLabel={encounter.encounterName}
+                        zoneName={zoneName}
+                        readOnly
+                        userCharacterIds={userCharacterIds}
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-dashed p-6">
+                        <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+                          AA not enabled for this encounter
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+              </div>
             </div>
-          </div>
-        </DndContext>
-      </Tabs>
+          </DndContext>
+        </Tabs>
+      </div>
     </div>
   );
 }

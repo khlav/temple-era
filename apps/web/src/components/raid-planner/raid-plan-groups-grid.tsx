@@ -46,6 +46,7 @@ interface RaidPlanGroupsGridProps {
   onCharacterSwap?: (event: CharacterSwapEvent) => void;
   onSlotFill?: (event: SlotFillEvent) => void;
   onCharacterDelete?: (event: CharacterDeleteEvent) => void;
+  userCharacterIds?: number[];
 }
 
 export function RaidPlanGroupsGrid({
@@ -63,6 +64,7 @@ export function RaidPlanGroupsGrid({
   onCharacterSwap,
   onSlotFill,
   onCharacterDelete,
+  userCharacterIds = [],
 }: RaidPlanGroupsGridProps) {
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
@@ -317,6 +319,7 @@ export function RaidPlanGroupsGrid({
             editingSlot={editingSlot}
             onEditClick={handleEditClick}
             onSlotEditClick={handleSlotEditClick}
+            userCharacterIds={userCharacterIds}
           />
         ))}
       </div>
