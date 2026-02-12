@@ -12,7 +12,6 @@ import {
 } from "drizzle-orm";
 import {
   createTRPCRouter,
-  protectedProcedure,
   publicProcedure,
   raidManagerProcedure,
 } from "~/server/api/trpc";
@@ -660,6 +659,7 @@ export const raidPlanRouter = createTRPCRouter({
         name: z.string().min(1).max(256).optional(),
         defaultAATemplate: z.string().max(10000).nullable().optional(),
         useDefaultAA: z.boolean().optional(),
+        zoneId: z.string().min(1).max(64).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -667,6 +667,7 @@ export const raidPlanRouter = createTRPCRouter({
         name: string;
         defaultAATemplate: string | null;
         useDefaultAA: boolean;
+        zoneId: string;
       }> = {};
 
       if (input.name !== undefined) {
@@ -679,6 +680,10 @@ export const raidPlanRouter = createTRPCRouter({
 
       if (input.useDefaultAA !== undefined) {
         updates.useDefaultAA = input.useDefaultAA;
+      }
+
+      if (input.zoneId !== undefined) {
+        updates.zoneId = input.zoneId;
       }
 
       if (Object.keys(updates).length === 0) {

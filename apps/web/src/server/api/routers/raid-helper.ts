@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { sql, eq, or, inArray, and, notInArray, isNotNull } from "drizzle-orm";
+import {
+  sql,
+  eq,
+  or,
+  inArray,
+  and,
+  notInArray,
+  isNotNull,
+  desc,
+} from "drizzle-orm";
 import { formatInTimeZone } from "date-fns-tz";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
@@ -10,9 +19,7 @@ import {
   accounts,
   primaryRaidAttendeeAndBenchMap,
   trackedRaidsL6LockoutWk,
-  primaryRaidAttendanceL6LockoutWk,
 } from "~/server/db/schema";
-import { getTalentRoleBySpecId } from "~/lib/class-specs";
 import { getZoneForInstance } from "~/lib/raid-zones";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.dev/api";
@@ -702,73 +709,82 @@ export const raidHelperRouter = createTRPCRouter({
       } = input;
 
       // Convert instance ID to zone name (e.g., "naxxramas" -> "Naxxramas")
-      const zoneName = filterZone ? getZoneForInstance(filterZone) : null;
+      const zoneName = filterZone
+        ? (getZoneForInstance(filterZone) ?? null)
+        : null;
 
-      // Build filter conditions for raids
-      const raidFilters = [];
+      // 1. Fetch the last 6 lockout weeks (The Timeline)
+      // We want distinct weeks, sorted descending, limit 6
+      const last6Weeks = await ctx.db
+        .selectDistinct({
+          lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
+        })
+        .from(trackedRaidsL6LockoutWk)
+        .orderBy(desc(trackedRaidsL6LockoutWk.lockoutWeek))
+        .limit(6);
+
+      // Current week is index 0, previous week is index 1, etc.
+      // We want to return [Week0, Week1, Week2, Week3, Week4, Week5]
+      const timelineWeeks = last6Weeks.map((w) => w.lockoutWeek);
+
+      // 2. Identify Matching Raids in this timeline
+      // Find raidIds that match the user's filters AND fall within the timeline
+      const timelineFilters = [];
+      if (timelineWeeks.length > 0) {
+        timelineFilters.push(
+          inArray(trackedRaidsL6LockoutWk.lockoutWeek, timelineWeeks),
+        );
+      } else {
+        // No raid history, return empty
+        return { potentialPlayers: [] };
+      }
+
       if (zoneName !== null) {
-        raidFilters.push(sql`${trackedRaidsL6LockoutWk.zone} = ${zoneName}`);
+        timelineFilters.push(eq(trackedRaidsL6LockoutWk.zone, zoneName));
       }
       if (filterDayOfWeek !== null) {
-        raidFilters.push(
+        timelineFilters.push(
           sql`EXTRACT(DOW FROM ${trackedRaidsL6LockoutWk.date}::date) = ${filterDayOfWeek}`,
         );
       }
 
-      // Find primary character IDs who attended raids matching filters
-      // and are not in the registered list
-      const attendedQuery = ctx.db
-        .selectDistinct({
-          primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+      const matchingRaids = await ctx.db
+        .select({
+          raidId: trackedRaidsL6LockoutWk.raidId,
+          lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
         })
-        .from(primaryRaidAttendeeAndBenchMap)
-        .innerJoin(
-          trackedRaidsL6LockoutWk,
-          eq(
-            primaryRaidAttendeeAndBenchMap.raidId,
-            trackedRaidsL6LockoutWk.raidId,
-          ),
-        )
-        .where(
-          and(
-            isNotNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
-            registeredPrimaryCharacterIds.length > 0
-              ? notInArray(
-                  primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-                  registeredPrimaryCharacterIds,
-                )
-              : sql`true`,
-            ...raidFilters,
-          ),
-        );
+        .from(trackedRaidsL6LockoutWk)
+        .where(and(...timelineFilters));
 
-      const attendedResults = await attendedQuery;
-      const potentialPrimaryIds = attendedResults
-        .map((r) => r.primaryCharacterId)
-        .filter((id): id is number => id !== null);
+      const matchingRaidIds = matchingRaids.map((r) => r.raidId);
+      const raidIdToWeek = new Map(
+        matchingRaids.map((r) => [r.raidId, r.lockoutWeek]),
+      );
 
-      if (potentialPrimaryIds.length === 0) {
+      if (matchingRaidIds.length === 0) {
         return { potentialPlayers: [] };
       }
 
-      // Get character details for these primary character IDs
-      // Join with attendance view for attendance %
-      // Join with users/accounts to get Discord ID
-      const potentialPlayers = await ctx.db
+      // 3. Fetch Players & Aggregated Attendance
+      // Find primary characters who attended ANY of the matching raids
+      // Exclude already registered players
+      const attendanceQuery = await ctx.db
         .select({
-          primaryCharacterId: characters.characterId,
+          primaryCharacterId: characters.primaryCharacterId,
+          characterId: characters.characterId, // Used as fallback if primary is null
           characterName: characters.name,
           characterClass: characters.class,
-          specId: sql<number | null>`null`.as("spec_id"), // Characters don't store specId
-          attendancePct: primaryRaidAttendanceL6LockoutWk.weightedAttendancePct,
           discordUserId: accounts.providerAccountId,
+          attendedRaidIds: sql<
+            number[]
+          >`array_agg(distinct ${primaryRaidAttendeeAndBenchMap.raidId})`,
         })
-        .from(characters)
-        .leftJoin(
-          primaryRaidAttendanceL6LockoutWk,
+        .from(primaryRaidAttendeeAndBenchMap)
+        .innerJoin(
+          characters,
           eq(
+            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
             characters.characterId,
-            primaryRaidAttendanceL6LockoutWk.characterId,
           ),
         )
         .leftJoin(users, eq(characters.characterId, users.characterId))
@@ -778,15 +794,44 @@ export const raidHelperRouter = createTRPCRouter({
         )
         .where(
           and(
-            inArray(characters.characterId, potentialPrimaryIds),
+            inArray(primaryRaidAttendeeAndBenchMap.raidId, matchingRaidIds),
+            isNotNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
             eq(characters.isIgnored, false),
+            registeredPrimaryCharacterIds.length > 0
+              ? notInArray(
+                  primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+                  registeredPrimaryCharacterIds,
+                )
+              : sql`true`,
           ),
+        )
+        .groupBy(
+          characters.primaryCharacterId,
+          characters.characterId,
+          characters.name,
+          characters.class,
+          accounts.providerAccountId,
         );
 
-      // Map results and filter by role if needed
-      const mappedPlayers = potentialPlayers.map((p) => {
-        // Infer talentRole from class
-        // Since characters don't store specId, we infer role from class
+      // 4. Post-Process: Map attendance to matching weeks
+      const potentialPlayers = attendanceQuery.map((p) => {
+        // Determine which weeks they attended based on the raids they went to
+        const attendedWeeksSet = new Set<string>();
+        for (const raidId of p.attendedRaidIds) {
+          const week = raidIdToWeek.get(raidId);
+          if (week) attendedWeeksSet.add(week);
+        }
+
+        // Create boolean array for the last 6 tracked weeks matched by filter
+        // timelineWeeks is [Newest, ..., Oldest]
+        const recentAttendance = timelineWeeks.map((week) =>
+          attendedWeeksSet.has(week),
+        );
+
+        // Count for sorting
+        const attendanceCount = recentAttendance.filter(Boolean).length;
+
+        // Infer talentRole
         const classToDefaultRole: Record<
           string,
           "Tank" | "Healer" | "Melee" | "Ranged"
@@ -804,35 +849,33 @@ export const raidHelperRouter = createTRPCRouter({
           Monk: "Melee",
         };
 
-        // Get role from specId if available, otherwise use class default
-        const talentRole = p.specId
-          ? (getTalentRoleBySpecId(p.specId) ??
-            classToDefaultRole[p.characterClass] ??
-            "Melee")
-          : (classToDefaultRole[p.characterClass] ?? "Melee");
+        const talentRole =
+          classToDefaultRole[p.characterClass] ?? ("Melee" as const);
 
         return {
-          primaryCharacterId: p.primaryCharacterId,
+          primaryCharacterId: p.primaryCharacterId ?? p.characterId,
           characterName: p.characterName,
           characterClass: p.characterClass,
-          specId: p.specId,
           talentRole,
-          attendancePct: p.attendancePct ?? 0,
+          recentAttendance: recentAttendance,
+          attendanceCount, // Helper for sorting
           discordUserId: p.discordUserId,
         };
       });
 
-      // Filter by role if specified
+      // Filter by Role if needed
       const filteredPlayers =
         roleFilter === "all"
-          ? mappedPlayers
-          : mappedPlayers.filter(
+          ? potentialPlayers
+          : potentialPlayers.filter(
               (p) => p.talentRole.toLowerCase() === roleFilter,
             );
 
-      // Sort by attendance % descending
-      filteredPlayers.sort((a, b) => b.attendancePct - a.attendancePct);
-
-      return { potentialPlayers: filteredPlayers };
+      // Sort by attendance count descending
+      return {
+        potentialPlayers: filteredPlayers.sort(
+          (a, b) => b.attendanceCount - a.attendanceCount,
+        ),
+      };
     }),
 });

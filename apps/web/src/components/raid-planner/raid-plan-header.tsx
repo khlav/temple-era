@@ -25,6 +25,7 @@ import {
   CUSTOM_ZONE_ID,
   CUSTOM_ZONE_DISPLAY_NAME,
 } from "~/lib/raid-zones";
+import { ZoneSelect } from "./zone-select";
 
 interface RaidPlanHeaderProps {
   planId: string;
@@ -36,6 +37,7 @@ interface RaidPlanHeaderProps {
   onNameUpdate?: () => void;
   isPublic?: boolean;
   onTogglePublic?: (isPublic: boolean) => void;
+  onZoneUpdate?: () => void;
 }
 
 export function RaidPlanHeader({
@@ -48,21 +50,24 @@ export function RaidPlanHeader({
   onNameUpdate,
   isPublic,
   onTogglePublic,
+  onZoneUpdate,
 }: RaidPlanHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const utils = api.useUtils();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(name);
+  const [editedZoneId, setEditedZoneId] = useState(zoneId);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing starts
   useEffect(() => {
-    if (isEditingName && inputRef.current) {
+    if (isEditing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isEditingName]);
+  }, [isEditing]);
 
   const deleteMutation = api.raidPlan.delete.useMutation({
     onSuccess: () => {
@@ -82,16 +87,43 @@ export function RaidPlanHeader({
   });
 
   const updateMutation = api.raidPlan.update.useMutation({
-    onSuccess: () => {
-      setIsEditingName(false);
+    onMutate: async (newPlan) => {
+      // Cancel outgoing refetches
+      await utils.raidPlan.getById.cancel({ planId });
+
+      // Snapshot previous value
+      const previousPlan = utils.raidPlan.getById.getData({ planId });
+
+      // Optimistically update
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          name: newPlan.name ?? old.name,
+          zoneId: newPlan.zoneId ?? old.zoneId,
+        };
+      });
+
+      // Close edit mode immediately for optimistic feel
+      setIsEditing(false);
       onNameUpdate?.();
+      onZoneUpdate?.();
+
+      return { previousPlan };
     },
-    onError: (error) => {
+    onError: (error, _newPlan, context) => {
+      // Rollback
+      if (context?.previousPlan) {
+        utils.raidPlan.getById.setData({ planId }, context.previousPlan);
+      }
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      void utils.raidPlan.getById.invalidate({ planId });
     },
   });
 
@@ -99,26 +131,43 @@ export function RaidPlanHeader({
     deleteMutation.mutate({ planId });
   };
 
-  const handleSaveName = () => {
+  const handleSave = () => {
     const trimmed = editedName.trim();
-    if (!trimmed || trimmed === name) {
-      setIsEditingName(false);
-      setEditedName(name);
+    if (!trimmed) {
       return;
     }
-    updateMutation.mutate({ planId, name: trimmed });
+
+    const updates: { planId: string; name?: string; zoneId?: string } = {
+      planId,
+    };
+
+    if (trimmed !== name) {
+      updates.name = trimmed;
+    }
+
+    if (editedZoneId !== zoneId) {
+      updates.zoneId = editedZoneId;
+    }
+
+    if (Object.keys(updates).length === 1) {
+      setIsEditing(false);
+      return;
+    }
+
+    updateMutation.mutate(updates);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditingName(false);
+  const handleCancel = () => {
+    setIsEditing(false);
     setEditedName(name);
+    setEditedZoneId(zoneId);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleSaveName();
+      handleSave();
     } else if (e.key === "Escape") {
-      handleCancelEdit();
+      handleCancel();
     }
   };
 
@@ -132,7 +181,7 @@ export function RaidPlanHeader({
     <div className="space-y-2">
       {/* Title row with delete button */}
       <div className="flex items-center justify-between gap-4">
-        {isEditingName ? (
+        {isEditing ? (
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold tracking-tight">
               Raid Plan:
@@ -145,11 +194,16 @@ export function RaidPlanHeader({
               className="h-9 w-64 text-xl font-bold"
               disabled={updateMutation.isPending}
             />
+            <ZoneSelect
+              value={editedZoneId}
+              onValueChange={setEditedZoneId}
+              className="h-9 w-[180px]"
+            />
             <Button
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              onClick={handleSaveName}
+              onClick={handleSave}
               disabled={updateMutation.isPending}
             >
               {updateMutation.isPending ? (
@@ -162,7 +216,7 @@ export function RaidPlanHeader({
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              onClick={handleCancelEdit}
+              onClick={handleCancel}
               disabled={updateMutation.isPending}
             >
               <X className="h-4 w-4" />
@@ -173,15 +227,21 @@ export function RaidPlanHeader({
             <h1 className="text-2xl font-bold tracking-tight">
               Raid Plan: {name}
             </h1>
+            <span className="pl-1 text-base text-muted-foreground">
+              {zoneName}
+            </span>
             <Button
               size="icon"
               variant="ghost"
               className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-              onClick={() => setIsEditingName(true)}
+              onClick={() => {
+                setIsEditing(true);
+                setEditedName(name);
+                setEditedZoneId(zoneId);
+              }}
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <span className="text-base text-muted-foreground">{zoneName}</span>
           </div>
         )}
 
@@ -241,7 +301,10 @@ export function RaidPlanHeader({
             <div className="flex items-center gap-2">
               <label
                 htmlFor="public-toggle"
-                className={"text-sm font-medium text-muted-foreground"+ (isPublic ? " text-primary" : "")}
+                className={
+                  "text-sm font-medium text-muted-foreground" +
+                  (isPublic ? " text-primary" : "")
+                }
               >
                 {isPublic ? "Shared with Raiders" : "Share with Raiders"}
               </label>

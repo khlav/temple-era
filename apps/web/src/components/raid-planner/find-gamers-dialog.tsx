@@ -9,6 +9,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Table,
@@ -23,22 +36,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
-import {
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  Loader2,
-  Users,
-  Info,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Loader2, Users } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { useToast } from "~/hooks/use-toast";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 import { getTalentRoleBySpecId, CLASS_SPECS } from "~/lib/class-specs";
 import { ClassIcon } from "~/components/ui/class-icon";
+import { ZoneSelect } from "./zone-select";
+import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 
-interface FindPlayersDialogProps {
+interface FindGamersDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   eventId: string;
@@ -135,7 +143,7 @@ function inferTalentRole(className: string, specName?: string): TalentRole {
   return CLASS_DEFAULT_ROLE[className] ?? "Melee";
 }
 
-export function FindPlayersDialog({
+export function FindGamersDialog({
   open,
   onOpenChange,
   eventId: _eventId,
@@ -143,22 +151,23 @@ export function FindPlayersDialog({
   eventStartTime,
   detectedZone,
   currentSignups,
-}: FindPlayersDialogProps) {
+}: FindGamersDialogProps) {
   const { toast } = useToast();
   const [registeredOpen, setRegisteredOpen] = useState(false);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(
     new Set(),
   );
-  const [filterSameZone, setFilterSameZone] = useState(detectedZone !== null);
-  const [filterSameDay, setFilterSameDay] = useState(true);
+  const [selectedZone, setSelectedZone] = useState<string>(
+    detectedZone ?? CUSTOM_ZONE_ID,
+  );
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string>(
+    new Date(eventStartTime * 1000).getDay().toString(),
+  );
   const [roleFilter, setRoleFilter] = useState<
     "all" | "tank" | "healer" | "melee" | "ranged"
   >("all");
 
-  // Get day of week from event start time
-  const eventDayOfWeek = useMemo(() => {
-    return new Date(eventStartTime * 1000).getDay();
-  }, [eventStartTime]);
+  // ... (omitted helper functions) ...
 
   // Process current signups to get role distribution and primary character IDs
   const { roleDistribution, registeredPrimaryCharacterIds } = useMemo(() => {
@@ -207,8 +216,12 @@ export function FindPlayersDialog({
     api.raidHelper.findPotentialPlayers.useQuery(
       {
         registeredPrimaryCharacterIds,
-        filterZone: filterSameZone ? detectedZone : null,
-        filterDayOfWeek: filterSameDay ? eventDayOfWeek : null,
+        filterZone:
+          selectedZone === CUSTOM_ZONE_ID || !selectedZone
+            ? null
+            : selectedZone,
+        filterDayOfWeek:
+          selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
         roleFilter,
       },
       { enabled: open },
@@ -238,16 +251,6 @@ export function FindPlayersDialog({
       return next;
     });
   }, []);
-
-  // const toggleSelectAll = useCallback(() => {
-  //   if (selectedPlayerIds.size === potentialPlayers.length) {
-  //     setSelectedPlayerIds(new Set());
-  //   } else {
-  //     setSelectedPlayerIds(
-  //       new Set(potentialPlayers.map((p) => p.primaryCharacterId))
-  //     );
-  //   }
-  // }, [potentialPlayers, selectedPlayerIds.size]);
 
   // Generate Discord pings
   const handleCopyPings = useCallback(() => {
@@ -363,61 +366,84 @@ export function FindPlayersDialog({
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/20 p-3">
-            <span className="text-sm font-medium">Filters:</span>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={filterSameZone}
-                onCheckedChange={(checked) =>
-                  setFilterSameZone(checked === true)
-                }
-                disabled={!detectedZone}
+            <div className="flex items-center gap-2 text-sm">
+              <span>Zone:</span>
+              <ZoneSelect
+                value={selectedZone}
+                onValueChange={setSelectedZone}
+                className="w-60"
               />
-              Same zone
-              {detectedZone && (
-                <span className="text-muted-foreground">({detectedZone})</span>
-              )}
-              {!detectedZone && (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <Info className="h-3 w-3" />
-                  No zone detected
-                </span>
-              )}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={filterSameDay}
-                onCheckedChange={(checked) =>
-                  setFilterSameDay(checked === true)
-                }
-              />
-              Same day (
-              {new Date(eventStartTime * 1000).toLocaleDateString("en-US", {
-                weekday: "long",
-              })}
-              )
-            </label>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              <span>Day:</span>
+              <Select
+                value={selectedDayOfWeek}
+                onValueChange={setSelectedDayOfWeek}
+              >
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue placeholder="Any Day" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any" className="py-1 text-xs">
+                    Any Day
+                  </SelectItem>
+                  <SelectItem value="0" className="py-1 text-xs">
+                    Sunday
+                  </SelectItem>
+                  <SelectItem value="1" className="py-1 text-xs">
+                    Monday
+                  </SelectItem>
+                  <SelectItem value="2" className="py-1 text-xs">
+                    Tuesday
+                  </SelectItem>
+                  <SelectItem value="3" className="py-1 text-xs">
+                    Wednesday
+                  </SelectItem>
+                  <SelectItem value="4" className="py-1 text-xs">
+                    Thursday
+                  </SelectItem>
+                  <SelectItem value="5" className="py-1 text-xs">
+                    Friday
+                  </SelectItem>
+                  <SelectItem value="6" className="py-1 text-xs">
+                    Saturday
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-2 text-sm">
               <span>Role:</span>
-              <select
+              <Select
                 value={roleFilter}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setRoleFilter(
-                    e.target.value as
-                      | "all"
-                      | "tank"
-                      | "healer"
-                      | "melee"
-                      | "ranged",
+                    value as "all" | "tank" | "healer" | "melee" | "ranged",
                   )
                 }
-                className="h-8 rounded-md border bg-background px-2 text-sm"
               >
-                <option value="all">All Roles</option>
-                <option value="tank">Tanks</option>
-                <option value="healer">Healers</option>
-                <option value="melee">Melee</option>
-                <option value="ranged">Ranged</option>
-              </select>
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="py-1 text-xs">
+                    All Roles
+                  </SelectItem>
+                  <SelectItem value="tank" className="py-1 text-xs">
+                    Tanks
+                  </SelectItem>
+                  <SelectItem value="healer" className="py-1 text-xs">
+                    Healers
+                  </SelectItem>
+                  <SelectItem value="melee" className="py-1 text-xs">
+                    Melee
+                  </SelectItem>
+                  <SelectItem value="ranged" className="py-1 text-xs">
+                    Ranged
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -449,7 +475,7 @@ export function FindPlayersDialog({
             ) : potentialPlayers.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
                 {registeredPrimaryCharacterIds.length > 0
-                  ? "Everyone's already signed up!"
+                  ? "Matching players already signed up!"
                   : "No potential players found matching filters."}
               </div>
             ) : (
@@ -458,11 +484,44 @@ export function FindPlayersDialog({
                   <TableRow>
                     <TableHead className="w-10"></TableHead>
                     <TableHead>Character</TableHead>
-                    <TableHead className="w-12">Class</TableHead>
-                    <TableHead className="w-12">Role</TableHead>
-                    <TableHead className="w-20 text-right">Attend.</TableHead>
+                    <TableHead className="w-12 text-center">Class</TableHead>
+                    <TableHead className="w-12 text-center">Role</TableHead>
+                    <TableHead className="w-20 text-center">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                          <TooltipTrigger asChild>
+                            <div className="flex cursor-help justify-center">
+                              <span className="text-nowrap border-b border-dotted border-muted-foreground/50 text-muted-foreground hover:text-foreground">
+                                Last 6 Wks
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-secondary text-secondary-foreground">
+                            <p>
+                              Attendance over the last 6 weeks matching
+                              <br />
+                              current Zone + Day filters.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
                     <TableHead className="w-12">
-                      <DiscordIcon size={16} className="mx-auto opacity-60" />
+                      <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                          <TooltipTrigger asChild>
+                            <div className="mx-auto w-fit cursor-help">
+                              <DiscordIcon
+                                size={16}
+                                className="text-muted-foreground opacity-60 transition-opacity hover:text-foreground hover:opacity-100"
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-secondary text-secondary-foreground">
+                            <p>Discord account linked?</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -493,21 +552,34 @@ export function FindPlayersDialog({
                       <TableCell className="font-medium">
                         {player.characterName}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <ClassIcon
                           characterClass={player.characterClass}
                           px={20}
                           className="inline-block"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <RoleIcon
                           role={player.talentRole as TalentRole}
                           size={20}
+                          className="inline-block"
                         />
                       </TableCell>
-                      <TableCell className="text-right">
-                        {Math.round(player.attendancePct * 100)}%
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-0.5">
+                          {player.recentAttendance.map(
+                            (attended: boolean, i: number) => (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "h-2 w-2 rounded-[1px]",
+                                  attended ? "bg-primary" : "bg-muted",
+                                )}
+                              />
+                            ),
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         {player.discordUserId ? (

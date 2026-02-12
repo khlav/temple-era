@@ -29,29 +29,12 @@ import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
-import {
-  WOW_SERVERS,
-  VALID_WRITE_IN_CLASSES,
-  TWENTY_MAN_INSTANCES,
-} from "./constants";
-import { FindPlayersDialog } from "./find-players-dialog";
+import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./constants";
+import { FindGamersDialog } from "./find-gamers-dialog";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { Badge } from "~/components/ui/badge";
-import {
-  RAID_ZONE_CONFIG,
-  CUSTOM_ZONE_ID,
-  CUSTOM_ZONE_DISPLAY_NAME,
-} from "~/lib/raid-zones";
+import { CUSTOM_ZONE_ID, CUSTOM_ZONE_DISPLAY_NAME } from "~/lib/raid-zones";
+import { ZoneSelect } from "./zone-select";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -65,12 +48,18 @@ function detectZoneFromTitle(title: string): string | null {
     { pattern: /\bzg\b|zul.?gurub/i, zoneId: "zg" },
   ];
 
+  let firstMatch: { index: number; zoneId: string } | null = null;
+
   for (const { pattern, zoneId } of zonePatterns) {
-    if (pattern.test(title)) {
-      return zoneId;
+    const match = pattern.exec(title);
+    if (match) {
+      if (!firstMatch || match.index < firstMatch.index) {
+        firstMatch = { index: match.index, zoneId };
+      }
     }
   }
-  return null;
+
+  return firstMatch?.zoneId ?? null;
 }
 
 // State for Find Players dialog
@@ -197,7 +186,7 @@ export function RaidPlannerImport() {
 
       {/* Find Players Dialog */}
       {findPlayersState && (
-        <FindPlayersDialog
+        <FindGamersDialog
           open={!!findPlayersState}
           onOpenChange={(open) => !open && setFindPlayersState(null)}
           eventId={findPlayersState.eventId}
@@ -887,55 +876,10 @@ function CharacterMatchingDialog({
                     </Badge>
                   )}
                 </label>
-                <Select
+                <ZoneSelect
                   value={effectiveZone ?? undefined}
                   onValueChange={setSelectedZone}
-                >
-                  <SelectTrigger className="h-9 w-[180px]">
-                    <SelectValue placeholder="Select zone..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      value={CUSTOM_ZONE_ID}
-                      className="italic text-muted-foreground"
-                    >
-                      {CUSTOM_ZONE_DISPLAY_NAME}
-                    </SelectItem>
-                    <SelectSeparator />
-                    <SelectGroup>
-                      <SelectLabel className="text-muted-foreground">
-                        20-Man Raids
-                      </SelectLabel>
-                      {TWENTY_MAN_INSTANCES.map((instance) => {
-                        const config = RAID_ZONE_CONFIG.find(
-                          (z) => z.instance === instance,
-                        );
-                        return config ? (
-                          <SelectItem key={instance} value={instance}>
-                            {config.name}
-                          </SelectItem>
-                        ) : null;
-                      })}
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel className="text-muted-foreground">
-                        40-Man Raids
-                      </SelectLabel>
-                      {(["mc", "bwl", "aq40", "naxxramas"] as const).map(
-                        (instance) => {
-                          const config = RAID_ZONE_CONFIG.find(
-                            (z) => z.instance === instance,
-                          );
-                          return config ? (
-                            <SelectItem key={instance} value={instance}>
-                              {config.name}
-                            </SelectItem>
-                          ) : null;
-                        },
-                      )}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </div>
 

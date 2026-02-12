@@ -174,6 +174,7 @@ export function RaidPlanDetail({
         onTogglePublic={(isPublic) =>
           togglePublicMutation.mutate({ planId, isPublic })
         }
+        onZoneUpdate={refetch}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
