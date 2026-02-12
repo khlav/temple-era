@@ -784,10 +784,10 @@ export const raidHelperRouter = createTRPCRouter({
           attendedRaidIds: sql<
             number[]
           >`array_agg(distinct ${primaryRaidAttendeeAndBenchMap.raidId})`,
-          // Aggregate all unique class:spec combinations for the family (mains + alts)
+          // Aggregate all unique name:class:spec combinations for the family (mains + alts)
           familyData: sql<
             string[]
-          >`array_agg(distinct ${family.class} || ':' || COALESCE(${family.classDetail}, '')) filter (where ${family.class} is not null)`,
+          >`array_agg(distinct ${family.name} || ':' || ${family.class} || ':' || COALESCE(${family.classDetail}, '')) filter (where ${family.class} is not null)`,
         })
         .from(primaryRaidAttendeeAndBenchMap)
         .innerJoin(
@@ -895,16 +895,48 @@ export const raidHelperRouter = createTRPCRouter({
         // Parse familyData to get classes and roles
         const familyClasses = new Set<string>();
         const familyRoles = new Set<string>();
+        const familyClassNames: Record<string, Set<string>> = {};
 
         // Default if no family data
         if (!p.familyData || p.familyData.length === 0) {
           familyClasses.add(p.characterClass);
           defaultRoles.forEach((r) => familyRoles.add(r));
+
+          let nameSet = familyClassNames[p.characterClass];
+          if (!nameSet) {
+            nameSet = new Set();
+            familyClassNames[p.characterClass] = nameSet;
+          }
+          nameSet.add(p.characterName);
         } else {
           p.familyData.forEach((entry) => {
-            const [cls, spec] = entry.split(":");
+            const parts = entry.split(":");
+            // Handle both new format (name:class:spec) and potential old/fallback format if any
+            // We expect 3 parts now: name, class, spec
+            let name = p.characterName;
+            let cls = "";
+            let spec = "";
+
+            if (parts.length >= 3) {
+              name = parts[0] ?? p.characterName;
+              cls = parts[1] ?? "";
+              spec = parts[2] ?? "";
+            } else if (parts.length === 2) {
+              // Fallback for previous format just in case: class:spec
+              cls = parts[0] ?? "";
+              spec = parts[1] ?? "";
+            }
+
             if (cls) {
               familyClasses.add(cls);
+
+              if (!familyClassNames[cls]) {
+                familyClassNames[cls] = new Set();
+              }
+              const nameSet = familyClassNames[cls];
+              if (nameSet) {
+                nameSet.add(name);
+              }
 
               let role: string | undefined;
 
@@ -959,6 +991,12 @@ export const raidHelperRouter = createTRPCRouter({
           familyClasses: Array.from(familyClasses).sort(),
           familyRoles: Array.from(familyRoles).sort(
             (a, b) => (roleOrder[a] ?? 9) - (roleOrder[b] ?? 9),
+          ),
+          familyClassNames: Object.fromEntries(
+            Object.entries(familyClassNames).map(([k, v]) => [
+              k,
+              Array.from(v).sort(),
+            ]),
           ),
           recentAttendance: recentAttendance,
           attendanceCount, // Helper for sorting

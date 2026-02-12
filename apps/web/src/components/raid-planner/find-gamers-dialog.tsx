@@ -614,14 +614,25 @@ export function FindGamersDialog({
                         <div className="flex flex-nowrap justify-center gap-1">
                           {(
                             player.familyClasses ?? [player.characterClass]
-                          ).map((cls) => (
-                            <ClassIcon
-                              key={cls}
-                              characterClass={cls}
-                              px={20}
-                              className="inline-block"
-                            />
-                          ))}
+                          ).map((cls) => {
+                            const names =
+                              player.familyClassNames?.[cls]?.join(", ") ??
+                              "Unknown";
+                            return (
+                              <TooltipProvider key={cls}>
+                                <Tooltip delayDuration={0}>
+                                  <TooltipTrigger asChild>
+                                    <div className="inline-block cursor-help">
+                                      <ClassIcon characterClass={cls} px={20} />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-secondary text-secondary-foreground">
+                                    <p>{names}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
