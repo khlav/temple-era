@@ -90,6 +90,12 @@ export const CLASS_SPECS: ClassSpecs = {
       role: "Druid",
       talentRole: "Ranged",
     },
+    {
+      id: 14,
+      name: "Guardian",
+      role: "Druid",
+      talentRole: "Tank",
+    },
   ],
   Hunter: [
     {

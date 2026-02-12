@@ -8,9 +8,11 @@ import {
   notInArray,
   isNotNull,
   desc,
+  aliasedTable,
 } from "drizzle-orm";
 import { formatInTimeZone } from "date-fns-tz";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import { CLASS_SPECS } from "~/lib/class-specs";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 import {
@@ -768,6 +770,10 @@ export const raidHelperRouter = createTRPCRouter({
       // 3. Fetch Players & Aggregated Attendance
       // Find primary characters who attended ANY of the matching raids
       // Exclude already registered players
+
+      // Alias characters table for family join
+      const family = aliasedTable(characters, "family");
+
       const attendanceQuery = await ctx.db
         .select({
           primaryCharacterId: characters.primaryCharacterId,
@@ -778,6 +784,10 @@ export const raidHelperRouter = createTRPCRouter({
           attendedRaidIds: sql<
             number[]
           >`array_agg(distinct ${primaryRaidAttendeeAndBenchMap.raidId})`,
+          // Aggregate all unique class:spec combinations for the family (mains + alts)
+          familyData: sql<
+            string[]
+          >`array_agg(distinct ${family.class} || ':' || COALESCE(${family.classDetail}, '')) filter (where ${family.class} is not null)`,
         })
         .from(primaryRaidAttendeeAndBenchMap)
         .innerJoin(
@@ -785,6 +795,14 @@ export const raidHelperRouter = createTRPCRouter({
           eq(
             primaryRaidAttendeeAndBenchMap.primaryCharacterId,
             characters.characterId,
+          ),
+        )
+        // Join family members based on the same primary character ID
+        .leftJoin(
+          family,
+          eq(
+            sql`COALESCE(${family.primaryCharacterId}, ${family.characterId})`,
+            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
           ),
         )
         .leftJoin(users, eq(characters.characterId, users.characterId))
@@ -797,12 +815,17 @@ export const raidHelperRouter = createTRPCRouter({
             inArray(primaryRaidAttendeeAndBenchMap.raidId, matchingRaidIds),
             isNotNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
             eq(characters.isIgnored, false),
+            // Ensure family members are not ignored if they exist
+            or(
+              isNotNull(family.characterId),
+              isNotNull(characters.characterId),
+            ),
             registeredPrimaryCharacterIds.length > 0
               ? notInArray(
                   primaryRaidAttendeeAndBenchMap.primaryCharacterId,
                   registeredPrimaryCharacterIds,
                 )
-              : sql`true`,
+              : undefined,
           ),
         )
         .groupBy(
@@ -814,7 +837,18 @@ export const raidHelperRouter = createTRPCRouter({
         );
 
       // 4. Post-Process: Map attendance to matching weeks
-      const potentialPlayers = attendanceQuery.map((p) => {
+      // Explicit cast to avoid Drizzle type inference issues with complex aggregations
+      const potentialPlayers = (
+        attendanceQuery as Array<{
+          primaryCharacterId: number | null;
+          characterId: number;
+          characterName: string;
+          characterClass: string;
+          discordUserId: string | null;
+          attendedRaidIds: number[];
+          familyData: string[] | null;
+        }>
+      ).map((p) => {
         // Determine which weeks they attended based on the raids they went to
         const attendedWeeksSet = new Set<string>();
         for (const raidId of p.attendedRaidIds) {
@@ -834,29 +868,98 @@ export const raidHelperRouter = createTRPCRouter({
         // Infer talentRole
         const classToDefaultRole: Record<
           string,
-          "Tank" | "Healer" | "Melee" | "Ranged"
+          ("Tank" | "Healer" | "Melee" | "Ranged")[]
         > = {
-          Warrior: "Melee",
-          Rogue: "Melee",
-          Hunter: "Ranged",
-          Mage: "Ranged",
-          Warlock: "Ranged",
-          Priest: "Healer",
-          Paladin: "Healer",
-          Druid: "Healer",
-          Shaman: "Healer",
-          Deathknight: "Melee",
-          Monk: "Melee",
+          // Default Warriors to Tank + Melee to cover both bases for generic imports
+          Warrior: ["Tank", "Melee"],
+          Rogue: ["Melee"],
+          Hunter: ["Ranged"],
+          Mage: ["Ranged"],
+          Warlock: ["Ranged"],
+          Priest: ["Healer"],
+          Paladin: ["Healer"],
+          Druid: ["Healer"],
+          Shaman: ["Healer"],
+          Deathknight: ["Melee"],
+          Monk: ["Melee"],
         };
 
-        const talentRole =
-          classToDefaultRole[p.characterClass] ?? ("Melee" as const);
+        const defaultRoles = classToDefaultRole[p.characterClass] ?? ["Melee"];
+
+        const talentRole = defaultRoles[0] as
+          | "Tank"
+          | "Healer"
+          | "Melee"
+          | "Ranged"; // Primary default for single usage
+
+        // Parse familyData to get classes and roles
+        const familyClasses = new Set<string>();
+        const familyRoles = new Set<string>();
+
+        // Default if no family data
+        if (!p.familyData || p.familyData.length === 0) {
+          familyClasses.add(p.characterClass);
+          defaultRoles.forEach((r) => familyRoles.add(r));
+        } else {
+          p.familyData.forEach((entry) => {
+            const [cls, spec] = entry.split(":");
+            if (cls) {
+              familyClasses.add(cls);
+
+              let role: string | undefined;
+
+              // 1. Try to infer from spec
+              if (spec) {
+                // Clean up spec string if needed (some WCL icons might be weird, but usually "Spec")
+                // Our CLASS_SPECS uses specific names.
+                // We can try to find the spec in CLASS_SPECS[cls]
+                const specs = CLASS_SPECS[cls as keyof typeof CLASS_SPECS];
+                if (specs) {
+                  // Try exact match or loose match
+                  // WCL might return "Warrior-Fury", but here we likely just get "Fury" if classDetail is "Fury"
+                  // Check if spec string is just the spec name
+                  const foundSpec = specs.find(
+                    (s) =>
+                      s.name.toLowerCase() === spec.toLowerCase() ||
+                      spec.toLowerCase().includes(s.name.toLowerCase()),
+                  );
+                  if (foundSpec) {
+                    role = foundSpec.talentRole;
+                  }
+                }
+              }
+
+              // 2. Fallback to class default
+              // 2. Fallback to class default
+              if (!role) {
+                const defaults = classToDefaultRole[
+                  cls as keyof typeof classToDefaultRole
+                ] ?? ["Melee"];
+                defaults.forEach((r) => familyRoles.add(r));
+              } else {
+                familyRoles.add(role);
+              }
+            }
+          });
+        }
+
+        // Sort order: Tank, Melee, Ranged, Healer
+        const roleOrder: Record<string, number> = {
+          Tank: 0,
+          Melee: 1,
+          Ranged: 2,
+          Healer: 3,
+        };
 
         return {
           primaryCharacterId: p.primaryCharacterId ?? p.characterId,
           characterName: p.characterName,
           characterClass: p.characterClass,
           talentRole,
+          familyClasses: Array.from(familyClasses).sort(),
+          familyRoles: Array.from(familyRoles).sort(
+            (a, b) => (roleOrder[a] ?? 9) - (roleOrder[b] ?? 9),
+          ),
           recentAttendance: recentAttendance,
           attendanceCount, // Helper for sorting
           discordUserId: p.discordUserId,
@@ -867,8 +970,8 @@ export const raidHelperRouter = createTRPCRouter({
       const filteredPlayers =
         roleFilter === "all"
           ? potentialPlayers
-          : potentialPlayers.filter(
-              (p) => p.talentRole.toLowerCase() === roleFilter,
+          : potentialPlayers.filter((p) =>
+              p.familyRoles.some((r) => r.toLowerCase() === roleFilter),
             );
 
       // Sort by attendance count descending

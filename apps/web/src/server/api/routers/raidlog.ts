@@ -6,7 +6,7 @@ import {
 } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
-import { aliasedTable, eq, inArray } from "drizzle-orm";
+import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
 import {
   GetWCLGraphQLQuery,
@@ -144,7 +144,12 @@ const mutateInsertRaidLogWithAttendees = async (
         set: {
           name: participant.name,
           class: participant.class,
-          classDetail: participant.classDetail,
+          // Only update classDetail if the new value is specific (not same as class)
+          // or if the existing value is null.
+          classDetail: sql`CASE 
+            WHEN ${participant.classDetail} != ${participant.class} THEN ${participant.classDetail} 
+            ELSE COALESCE(${characters.classDetail}, ${participant.classDetail}) 
+          END`,
           server: participant.server,
         },
       });

@@ -45,6 +45,7 @@ import { getTalentRoleBySpecId, CLASS_SPECS } from "~/lib/class-specs";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { ZoneSelect } from "./zone-select";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
+import { CLASS_TEXT_COLORS, RAIDHELPER_STATUS_ICONS } from "./constants";
 
 interface FindGamersDialogProps {
   open: boolean;
@@ -222,13 +223,19 @@ export function FindGamersDialog({
             : selectedZone,
         filterDayOfWeek:
           selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
-        roleFilter,
+        roleFilter: "all", // Always fetch all, filter on client
       },
       { enabled: open },
     );
 
   const potentialPlayers = useMemo(() => {
-    const players = potentialPlayersData?.potentialPlayers ?? [];
+    let players = potentialPlayersData?.potentialPlayers ?? [];
+
+    if (roleFilter !== "all") {
+      players = players.filter((p) =>
+        p.familyRoles.some((r) => r.toLowerCase() === roleFilter),
+      );
+    }
 
     const deduped = new Map<number | string, (typeof players)[number]>();
 
@@ -237,7 +244,7 @@ export function FindGamersDialog({
     }
 
     return Array.from(deduped.values());
-  }, [potentialPlayersData?.potentialPlayers]);
+  }, [potentialPlayersData?.potentialPlayers, roleFilter]);
 
   // Handle player selection
   const togglePlayerSelection = useCallback((playerId: number) => {
@@ -348,11 +355,40 @@ export function FindGamersDialog({
                         {roleDistribution[role].length})
                       </div>
                       <ul className="space-y-0.5">
-                        {roleDistribution[role].map((player, i) => (
-                          <li key={i} className="truncate">
-                            {player.name}
-                          </li>
-                        ))}
+                        {roleDistribution[role]
+                          .sort((a, b) => {
+                            // Sort by Class then Name
+                            const classCompare = a.class.localeCompare(b.class);
+                            if (classCompare !== 0) return classCompare;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map((player, i) => {
+                            const textColor =
+                              CLASS_TEXT_COLORS[player.class] ??
+                              "text-muted-foreground";
+                            const StatusIcon =
+                              RAIDHELPER_STATUS_ICONS[player.class];
+
+                            return (
+                              <li
+                                key={i}
+                                className={cn(
+                                  "flex items-center gap-1.5 truncate",
+                                  textColor,
+                                )}
+                              >
+                                {StatusIcon ? (
+                                  <StatusIcon className="h-3.5 w-3.5 opacity-70" />
+                                ) : (
+                                  <ClassIcon
+                                    characterClass={player.class}
+                                    px={14}
+                                  />
+                                )}
+                                {player.name}
+                              </li>
+                            );
+                          })}
                         {roleDistribution[role].length === 0 && (
                           <li className="text-muted-foreground/60">None</li>
                         )}
@@ -431,16 +467,28 @@ export function FindGamersDialog({
                     All Roles
                   </SelectItem>
                   <SelectItem value="tank" className="py-1 text-xs">
-                    Tanks
-                  </SelectItem>
-                  <SelectItem value="healer" className="py-1 text-xs">
-                    Healers
+                    <div className="flex items-center gap-2">
+                      <RoleIcon role="Tank" size={14} />
+                      <span>Tanks</span>
+                    </div>
                   </SelectItem>
                   <SelectItem value="melee" className="py-1 text-xs">
-                    Melee
+                    <div className="flex items-center gap-2">
+                      <RoleIcon role="Melee" size={14} />
+                      <span>Melee</span>
+                    </div>
                   </SelectItem>
                   <SelectItem value="ranged" className="py-1 text-xs">
-                    Ranged
+                    <div className="flex items-center gap-2">
+                      <RoleIcon role="Ranged" size={14} />
+                      <span>Ranged</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="healer" className="py-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <RoleIcon role="Healer" size={14} />
+                      <span>Healers</span>
+                    </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -483,14 +531,24 @@ export function FindGamersDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10"></TableHead>
-                    <TableHead>Character</TableHead>
-                    <TableHead className="w-12 text-center">Class</TableHead>
-                    <TableHead className="w-12 text-center">Role</TableHead>
-                    <TableHead className="w-20 text-center">
+                    <TableHead className="w-full">Character</TableHead>
+                    <TableHead
+                      className="w-[140px] min-w-[140px] whitespace-nowrap text-center"
+                      style={{ width: 140 }}
+                    >
+                      Class
+                    </TableHead>
+                    <TableHead
+                      className="w-[110px] min-w-[110px] whitespace-nowrap text-center"
+                      style={{ width: 110 }}
+                    >
+                      Role
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap text-center">
                       <TooltipProvider>
                         <Tooltip delayDuration={300}>
                           <TooltipTrigger asChild>
-                            <div className="flex cursor-help justify-center">
+                            <div className="flex cursor-help justify-end">
                               <span className="text-nowrap border-b border-dotted border-muted-foreground/50 text-muted-foreground hover:text-foreground">
                                 Last 6 Wks
                               </span>
@@ -506,7 +564,7 @@ export function FindGamersDialog({
                         </Tooltip>
                       </TooltipProvider>
                     </TableHead>
-                    <TableHead className="w-12">
+                    <TableHead className="whitespace-nowrap text-center">
                       <TooltipProvider>
                         <Tooltip delayDuration={300}>
                           <TooltipTrigger asChild>
@@ -553,18 +611,32 @@ export function FindGamersDialog({
                         {player.characterName}
                       </TableCell>
                       <TableCell className="text-center">
-                        <ClassIcon
-                          characterClass={player.characterClass}
-                          px={20}
-                          className="inline-block"
-                        />
+                        <div className="flex flex-nowrap justify-center gap-1">
+                          {(
+                            player.familyClasses ?? [player.characterClass]
+                          ).map((cls) => (
+                            <ClassIcon
+                              key={cls}
+                              characterClass={cls}
+                              px={20}
+                              className="inline-block"
+                            />
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <RoleIcon
-                          role={player.talentRole as TalentRole}
-                          size={20}
-                          className="inline-block"
-                        />
+                        <div className="flex flex-nowrap justify-center gap-1">
+                          {(player.familyRoles ?? [player.talentRole]).map(
+                            (role) => (
+                              <RoleIcon
+                                key={role}
+                                role={role as TalentRole}
+                                size={20}
+                                className="inline-block"
+                              />
+                            ),
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
@@ -583,10 +655,9 @@ export function FindGamersDialog({
                       </TableCell>
                       <TableCell className="text-center">
                         {player.discordUserId ? (
-                          <DiscordIcon
-                            size={16}
-                            className="mx-auto text-[#5865F2]"
-                          />
+                          <div className="flex justify-center">
+                            <DiscordIcon size={16} className="text-[#5865F2]" />
+                          </div>
                         ) : (
                           <span className="text-muted-foreground/40">-</span>
                         )}
