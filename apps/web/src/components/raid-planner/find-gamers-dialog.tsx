@@ -171,46 +171,56 @@ export function FindGamersDialog({
   // ... (omitted helper functions) ...
 
   // Process current signups to get role distribution and primary character IDs
-  const { roleDistribution, registeredPrimaryCharacterIds } = useMemo(() => {
-    const roles: Record<TalentRole, Array<{ name: string; class: string }>> = {
-      Tank: [],
-      Healer: [],
-      Melee: [],
-      Ranged: [],
-    };
-    const primaryIds = new Set<number>();
+  const { roleDistribution, registeredPrimaryCharacterIds, statusMap } =
+    useMemo(() => {
+      const roles: Record<
+        TalentRole,
+        Array<{ name: string; class: string }>
+      > = {
+        Tank: [],
+        Healer: [],
+        Melee: [],
+        Ranged: [],
+      };
+      const primaryIds = new Set<number>();
+      // Map DiscordUserID -> Status (e.g. "Bench", "Late")
+      const statusMap = new Map<string, string>();
 
-    for (const signup of currentSignups) {
-      // Skip non-player signups
-      if (signup.status === "skipped") continue;
+      for (const signup of currentSignups) {
+        if (signup.status === "skipped") {
+          // Use userId (Discord ID) for mapping
+          statusMap.set(signup.userId, signup.className);
+          continue;
+        }
 
-      const characterName =
-        signup.status === "matched" && signup.matchedCharacter
-          ? signup.matchedCharacter.characterName
-          : signup.discordName;
+        const characterName =
+          signup.status === "matched" && signup.matchedCharacter
+            ? signup.matchedCharacter.characterName
+            : signup.discordName;
 
-      const characterClass =
-        signup.status === "matched" && signup.matchedCharacter
-          ? signup.matchedCharacter.characterClass
-          : signup.className;
+        const characterClass =
+          signup.status === "matched" && signup.matchedCharacter
+            ? signup.matchedCharacter.characterClass
+            : signup.className;
 
-      const role = inferTalentRole(characterClass, signup.specName);
-      roles[role].push({ name: characterName, class: characterClass });
+        const role = inferTalentRole(characterClass, signup.specName);
+        roles[role].push({ name: characterName, class: characterClass });
 
-      // Track primary character ID for exclusion
-      if (signup.status === "matched" && signup.matchedCharacter) {
-        const primaryId =
-          signup.matchedCharacter.primaryCharacterId ??
-          signup.matchedCharacter.characterId;
-        primaryIds.add(primaryId);
+        // Track primary character ID for exclusion
+        if (signup.status === "matched" && signup.matchedCharacter) {
+          const primaryId =
+            signup.matchedCharacter.primaryCharacterId ??
+            signup.matchedCharacter.characterId;
+          primaryIds.add(primaryId);
+        }
       }
-    }
 
-    return {
-      roleDistribution: roles,
-      registeredPrimaryCharacterIds: Array.from(primaryIds),
-    };
-  }, [currentSignups]);
+      return {
+        roleDistribution: roles,
+        registeredPrimaryCharacterIds: Array.from(primaryIds),
+        statusMap,
+      };
+    }, [currentSignups]);
 
   // Fetch potential players
   const { data: potentialPlayersData, isLoading } =
@@ -243,8 +253,45 @@ export function FindGamersDialog({
       deduped.set(p.primaryCharacterId, p);
     }
 
-    return Array.from(deduped.values());
-  }, [potentialPlayersData?.potentialPlayers, roleFilter]);
+    return Array.from(deduped.values()).sort((a, b) => {
+      // 1. Status Priority
+      const getStatusWeight = (p: (typeof players)[number]) => {
+        const s = p.discordUserId ? statusMap.get(p.discordUserId) : null;
+        if (!s) return 1; // No status
+        if (s === "Bench") return 4;
+        if (s === "Tentative") return 3;
+        if (s === "Late") return 2;
+        if (s === "Absence" || s === "Absent") return 0;
+        return 1;
+      };
+
+      const statusDiff = getStatusWeight(b) - getStatusWeight(a);
+      if (statusDiff !== 0) return statusDiff;
+
+      // 2. Attendance (High -> Low)
+      const attDiff = (b.attendanceCount ?? 0) - (a.attendanceCount ?? 0);
+      if (attDiff !== 0) return attDiff;
+
+      // 3. Role (Tank > Melee > Ranged > Healer)
+      const getRoleWeight = (r: string) => {
+        if (r === "Tank") return 4;
+        if (r === "Melee") return 3;
+        if (r === "Ranged") return 2;
+        if (r === "Healer") return 1;
+        return 0;
+      };
+      const getPlayerRoleWeight = (p: (typeof players)[number]) => {
+        if (!p.familyRoles || p.familyRoles.length === 0) return 0;
+        return Math.max(...p.familyRoles.map(getRoleWeight));
+      };
+
+      const roleDiff = getPlayerRoleWeight(b) - getPlayerRoleWeight(a);
+      if (roleDiff !== 0) return roleDiff;
+
+      // 4. Name (A-Z)
+      return a.characterName.localeCompare(b.characterName);
+    });
+  }, [potentialPlayersData?.potentialPlayers, roleFilter, statusMap]);
 
   // Handle player selection
   const togglePlayerSelection = useCallback((playerId: number) => {
@@ -591,6 +638,13 @@ export function FindGamersDialog({
                         "cursor-pointer",
                         selectedPlayerIds.has(player.primaryCharacterId) &&
                           "bg-primary/10",
+                        player.discordUserId &&
+                          ["absence", "absent"].includes(
+                            (
+                              statusMap.get(player.discordUserId) ?? ""
+                            ).toLowerCase(),
+                          ) &&
+                          "opacity-60 grayscale",
                       )}
                       onClick={() =>
                         togglePlayerSelection(player.primaryCharacterId)
@@ -608,7 +662,39 @@ export function FindGamersDialog({
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        {player.characterName}
+                        <div className="flex items-center gap-2">
+                          {player.characterName}
+                          {(() => {
+                            const status = player.discordUserId
+                              ? statusMap.get(player.discordUserId)
+                              : null;
+                            if (!status) return null;
+
+                            const StatusIcon = RAIDHELPER_STATUS_ICONS[status];
+
+                            return (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={0}>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex cursor-help items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                                      {StatusIcon && (
+                                        <StatusIcon className="h-3 w-3" />
+                                      )}
+                                      <span className="font-semibold">
+                                        {status}
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-secondary text-secondary-foreground">
+                                    <p>
+                                      Signed up as <strong>{status}</strong>
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-nowrap justify-center gap-1">
