@@ -54,5 +54,6 @@ wow_addons_for_reference
 bfg-replacements.txt
 ..bfg-report/
 
-# claude local settings
+# claude/llm local settings and testing
 .claude/settings*
+/scripts/*.ts*
