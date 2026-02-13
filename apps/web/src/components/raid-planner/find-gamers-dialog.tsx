@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
 import {
@@ -168,6 +168,9 @@ export function FindGamersDialog({
     "all" | "tank" | "healer" | "melee" | "ranged"
   >("all");
 
+  // Track if we've checked the initial load results for potential fallback
+  const hasCheckedInitialLoad = useRef(false);
+
   // ... (omitted helper functions) ...
 
   // Process current signups to get role distribution and primary character IDs
@@ -234,20 +237,52 @@ export function FindGamersDialog({
   }, [currentSignups]);
 
   // Fetch potential players
-  const { data: potentialPlayersData, isLoading } =
-    api.raidHelper.findPotentialPlayers.useQuery(
-      {
-        registeredPrimaryCharacterIds,
-        filterZone:
-          selectedZone === CUSTOM_ZONE_ID || !selectedZone
-            ? null
-            : selectedZone,
-        filterDayOfWeek:
-          selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
-        roleFilter: "all", // Always fetch all, filter on client
-      },
-      { enabled: open },
-    );
+  const {
+    data: potentialPlayersData,
+    isLoading,
+    isFetching,
+  } = api.raidHelper.findPotentialPlayers.useQuery(
+    {
+      registeredPrimaryCharacterIds,
+      filterZone:
+        selectedZone === CUSTOM_ZONE_ID || !selectedZone ? null : selectedZone,
+      filterDayOfWeek:
+        selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
+      roleFilter: "all", // Always fetch all, filter on client
+    },
+    { enabled: open },
+  );
+
+  // Reset the initial load check when the dialog closes
+  useEffect(() => {
+    if (!open) {
+      hasCheckedInitialLoad.current = false;
+    }
+  }, [open]);
+
+  // If initial load returns no results for the detected zone, automatically switch to "Any Zone"
+  useEffect(() => {
+    // Wait for both isLoading (initial load) and isFetching (background refetch) to ensure data is fresh
+    if (
+      !isLoading &&
+      !isFetching &&
+      potentialPlayersData &&
+      !hasCheckedInitialLoad.current &&
+      open
+    ) {
+      hasCheckedInitialLoad.current = true;
+      if (
+        potentialPlayersData.potentialPlayers.length === 0 &&
+        selectedZone !== CUSTOM_ZONE_ID
+      ) {
+        setSelectedZone(CUSTOM_ZONE_ID);
+        toast({
+          title: "No players found in zone",
+          description: "Switched to 'Any Zone' to find more gamers.",
+        });
+      }
+    }
+  }, [isLoading, isFetching, potentialPlayersData, selectedZone, open, toast]);
 
   const potentialPlayers = useMemo(() => {
     let players = potentialPlayersData?.potentialPlayers ?? [];
