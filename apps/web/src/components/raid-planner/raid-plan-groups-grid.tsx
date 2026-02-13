@@ -22,7 +22,7 @@ import type {
 import { CharacterCard } from "./character-card";
 import { GroupColumn } from "./group-column";
 import { BenchSection } from "./bench-section";
-import { EditingBar } from "./editing-bar";
+import { EditCharacterDialog } from "./edit-character-dialog";
 
 interface RaidPlanGroupsGridProps {
   characters: RaidPlanCharacter[];
@@ -283,18 +283,16 @@ export function RaidPlanGroupsGrid({
   const content = (
     <div className={cn("space-y-4", dimmed && "opacity-50")}>
       {/* Editing bar */}
-      {(editingCharacter || editingSlot || editingBench) &&
-        editable &&
-        showEditControls && (
-          <EditingBar
-            editingCharacter={editingCharacter ?? null}
-            editingSlot={editingSlot}
-            editingBench={editingBench}
-            onSelect={handleSelect}
-            onClear={handleClear}
-            onCancel={handleCancel}
-          />
-        )}
+      {/* Edit Character Dialog */}
+      <EditCharacterDialog
+        open={!!(editingCharacter || editingSlot || editingBench)}
+        onOpenChange={(open) => !open && handleCancel()}
+        editingCharacter={editingCharacter ?? null}
+        editingSlot={editingSlot}
+        editingBench={editingBench}
+        onSelect={handleSelect}
+        onClear={handleClear}
+      />
 
       {/* Groups Grid */}
       <div
