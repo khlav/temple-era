@@ -305,7 +305,7 @@ export const raidHelperRouter = createTRPCRouter({
         actualEventId !== input.eventId
           ? fetch(`${RAID_HELPER_API_BASE}/v2/events/${actualEventId}`)
           : Promise.resolve(initialResponse),
-        fetch(`${RAID_HELPER_API_BASE}/raidplan/${actualEventId}`),
+        fetch(`${RAID_HELPER_API_BASE}/v3/comps/${actualEventId}`),
       ]);
 
       // For the resolved event, we may need to re-fetch if we reused initialResponse
@@ -425,45 +425,18 @@ export const raidHelperRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { signups } = input;
 
-      // Resolve class names and separate matchable from skipped signups
+      // Resolve class names
       // Clean specName by removing numbers (e.g., "Protection1" -> "Protection")
       const signupsWithResolved = signups.map((s) => ({
         ...s,
         specName: s.specName?.replace(/[0-9]/g, "") ?? "",
         resolvedClass: resolveClassName(s.className, s.specName),
-      }));
-
-      const skippedSignups = signupsWithResolved.filter(
-        (s) => s.resolvedClass === null,
-      );
-      const classSignups = signupsWithResolved.filter(
-        (s) => s.resolvedClass !== null,
-      );
-
-      // Build skipped results
-      const skippedResults: SignupMatchResult[] = skippedSignups.map((s) => ({
-        userId: s.userId,
-        discordName: s.discordName,
-        className: s.className,
-        specName: s.specName ?? "",
-        partyId: s.partyId ?? null,
-        slotId: s.slotId ?? null,
-        status: "skipped",
-      }));
-
-      if (classSignups.length === 0) {
-        return skippedResults;
-      }
-
-      // Extract search terms from discord names
-      const searchTerms = classSignups.map((s) => ({
-        ...s,
         searchTerm: extractSearchTerm(s.discordName),
       }));
 
-      // Get unique search terms for the prefix query
+      // Get unique search terms for the prefix query (include ALL signups)
       const uniqueTerms = [
-        ...new Set(searchTerms.map((s) => normalizeName(s.searchTerm))),
+        ...new Set(signupsWithResolved.map((s) => normalizeName(s.searchTerm))),
       ];
 
       // Build OR conditions for prefix matching
@@ -481,18 +454,22 @@ export const raidHelperRouter = createTRPCRouter({
       };
 
       // Query all potential matches via prefix search
-      const allMatches: CharacterMatch[] = await ctx.db
-        .select({
-          characterId: characters.characterId,
-          name: characters.name,
-          server: characters.server,
-          class: characters.class,
-          primaryCharacterId: characters.primaryCharacterId,
-        })
-        .from(characters)
-        .where(
-          sql`(${or(...prefixConditions)}) AND ${eq(characters.isIgnored, false)}`,
-        );
+      // Note: If uniqueTerms is empty (no signups), we can skip query
+      let allMatches: CharacterMatch[] = [];
+      if (prefixConditions.length > 0) {
+        allMatches = await ctx.db
+          .select({
+            characterId: characters.characterId,
+            name: characters.name,
+            server: characters.server,
+            class: characters.class,
+            primaryCharacterId: characters.primaryCharacterId,
+          })
+          .from(characters)
+          .where(
+            sql`(${or(...prefixConditions)}) AND ${eq(characters.isIgnored, false)}`,
+          );
+      }
 
       // Get primary character info for matches that have a primary
       const primaryIds = Array.from(
@@ -579,23 +556,92 @@ export const raidHelperRouter = createTRPCRouter({
       // Process each signup
       const results: SignupMatchResult[] = [];
 
-      for (const signup of searchTerms) {
+      for (const signup of signupsWithResolved) {
         const normalizedTerm = normalizeName(signup.searchTerm);
         const prefixMatches = matchesByPrefix.get(normalizedTerm) ?? [];
 
+        // Common result props
+        const baseResult = {
+          userId: signup.userId,
+          discordName: signup.discordName,
+          className: signup.className,
+          specName: signup.specName ?? "",
+          partyId: signup.partyId ?? null,
+          slotId: signup.slotId ?? null,
+        };
+
         if (prefixMatches.length === 0) {
-          // No matches found
           results.push({
-            userId: signup.userId,
-            discordName: signup.discordName,
-            className: signup.className,
-            specName: signup.specName ?? "",
-            partyId: signup.partyId ?? null,
-            slotId: signup.slotId ?? null,
-            status: "unmatched",
+            ...baseResult,
+            status: signup.resolvedClass ? "unmatched" : "skipped",
           });
           continue;
         }
+
+        // CASE 1: SKIPPED SIGNUP (No resolved class)
+        // We want to try to find a match anyway, but status remains 'skipped'
+        if (!signup.resolvedClass) {
+          // Candidates: prefer exact matches, fallback to all prefix matches
+          const exactMatches = prefixMatches.filter(
+            (m) => normalizeName(m.name) === normalizedTerm,
+          );
+          const candidates =
+            exactMatches.length > 0 ? exactMatches : prefixMatches;
+
+          // For skipped signups, we want to identify the PRIMARY character
+          // Resolve each candidate to its Primary Character
+          const uniquePrimaryIds = new Set<number>();
+          const primaryCharacterMap = new Map<number, CharacterMatch>();
+
+          for (const cand of candidates) {
+            const pid = cand.primaryCharacterId ?? cand.characterId;
+            uniquePrimaryIds.add(pid);
+            if (!primaryCharacterMap.has(pid)) {
+              // Find the actual primary character object
+              const family = familyMap.get(pid) ?? [];
+              const primary =
+                primaryMap.get(pid) ??
+                family.find(
+                  (m) => m.primaryCharacterId === null || m.characterId === pid,
+                );
+              if (primary) {
+                primaryCharacterMap.set(pid, primary);
+              }
+            }
+          }
+
+          if (uniquePrimaryIds.size === 1) {
+            // Unambiguous match to a single person
+            const primary = primaryCharacterMap.get(
+              uniquePrimaryIds.values().next().value!,
+            );
+            if (primary) {
+              results.push({
+                ...baseResult,
+                status: "skipped",
+                matchedCharacter: {
+                  characterId: primary.characterId,
+                  characterName: primary.name,
+                  characterServer: primary.server,
+                  characterClass: primary.class,
+                  primaryCharacterId: primary.primaryCharacterId,
+                  primaryCharacterName: primary.name, // It is the primary
+                },
+              });
+            } else {
+              // Should not happen if data integrity is good
+              results.push({ ...baseResult, status: "skipped" });
+            }
+          } else {
+            // Ambiguous (matches multiple different people) or no primary found
+            // For now, leave matchedCharacter empty to avoid confusion
+            results.push({ ...baseResult, status: "skipped" });
+          }
+          continue;
+        }
+
+        // CASE 2: STANDARD MATCH (Has resolved class)
+        // Logic remains similar to before: filter families by class
 
         // Get unique families from prefix matches
         const familyIds = new Set<number>();
@@ -650,43 +696,28 @@ export const raidHelperRouter = createTRPCRouter({
           });
 
           results.push({
-            userId: signup.userId,
-            discordName: signup.discordName,
-            className: signup.className,
-            specName: signup.specName ?? "",
-            partyId: signup.partyId ?? null,
-            slotId: signup.slotId ?? null,
+            ...baseResult,
             status: "unmatched",
             candidates: allCandidates,
           });
         } else if (matchingCandidates.length === 1) {
           // Single match found
           results.push({
-            userId: signup.userId,
-            discordName: signup.discordName,
-            className: signup.className,
-            specName: signup.specName ?? "",
-            partyId: signup.partyId ?? null,
-            slotId: signup.slotId ?? null,
+            ...baseResult,
             status: "matched",
             matchedCharacter: matchingCandidates[0],
           });
         } else {
           // Multiple matches - ambiguous
           results.push({
-            userId: signup.userId,
-            discordName: signup.discordName,
-            className: signup.className,
-            specName: signup.specName ?? "",
-            partyId: signup.partyId ?? null,
-            slotId: signup.slotId ?? null,
+            ...baseResult,
             status: "ambiguous",
             candidates: matchingCandidates,
           });
         }
       }
 
-      return [...results, ...skippedResults];
+      return results;
     }),
 
   /**

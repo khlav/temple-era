@@ -171,56 +171,67 @@ export function FindGamersDialog({
   // ... (omitted helper functions) ...
 
   // Process current signups to get role distribution and primary character IDs
-  const { roleDistribution, registeredPrimaryCharacterIds, statusMap } =
-    useMemo(() => {
-      const roles: Record<
-        TalentRole,
-        Array<{ name: string; class: string }>
-      > = {
-        Tank: [],
-        Healer: [],
-        Melee: [],
-        Ranged: [],
-      };
-      const primaryIds = new Set<number>();
-      // Map DiscordUserID -> Status (e.g. "Bench", "Late")
-      const statusMap = new Map<string, string>();
+  const {
+    roleDistribution,
+    registeredPrimaryCharacterIds,
+    statusMap,
+    charIdStatusMap,
+  } = useMemo(() => {
+    const roles: Record<TalentRole, Array<{ name: string; class: string }>> = {
+      Tank: [],
+      Healer: [],
+      Melee: [],
+      Ranged: [],
+    };
+    const primaryIds = new Set<number>();
+    // Map DiscordUserID -> Status (e.g. "Bench", "Late")
+    const statusMap = new Map<string, string>();
+    // Map PrimaryCharacterID -> Status
+    const charIdStatusMap = new Map<number, string>();
 
-      for (const signup of currentSignups) {
-        if (signup.status === "skipped") {
-          // Use userId (Discord ID) for mapping
-          statusMap.set(signup.userId, signup.className);
-          continue;
-        }
+    for (const signup of currentSignups) {
+      if (signup.status === "skipped") {
+        // Use userId (Discord ID) for mapping
+        statusMap.set(signup.userId, signup.className);
 
-        const characterName =
-          signup.status === "matched" && signup.matchedCharacter
-            ? signup.matchedCharacter.characterName
-            : signup.discordName;
-
-        const characterClass =
-          signup.status === "matched" && signup.matchedCharacter
-            ? signup.matchedCharacter.characterClass
-            : signup.className;
-
-        const role = inferTalentRole(characterClass, signup.specName);
-        roles[role].push({ name: characterName, class: characterClass });
-
-        // Track primary character ID for exclusion
-        if (signup.status === "matched" && signup.matchedCharacter) {
-          const primaryId =
+        if (signup.matchedCharacter) {
+          const pid =
             signup.matchedCharacter.primaryCharacterId ??
             signup.matchedCharacter.characterId;
-          primaryIds.add(primaryId);
+          charIdStatusMap.set(pid, signup.className);
         }
+        continue;
       }
 
-      return {
-        roleDistribution: roles,
-        registeredPrimaryCharacterIds: Array.from(primaryIds),
-        statusMap,
-      };
-    }, [currentSignups]);
+      const characterName =
+        signup.status === "matched" && signup.matchedCharacter
+          ? signup.matchedCharacter.characterName
+          : signup.discordName;
+
+      const characterClass =
+        signup.status === "matched" && signup.matchedCharacter
+          ? signup.matchedCharacter.characterClass
+          : signup.className;
+
+      const role = inferTalentRole(characterClass, signup.specName);
+      roles[role].push({ name: characterName, class: characterClass });
+
+      // Track primary character ID for exclusion
+      if (signup.status === "matched" && signup.matchedCharacter) {
+        const primaryId =
+          signup.matchedCharacter.primaryCharacterId ??
+          signup.matchedCharacter.characterId;
+        primaryIds.add(primaryId);
+      }
+    }
+
+    return {
+      roleDistribution: roles,
+      registeredPrimaryCharacterIds: Array.from(primaryIds),
+      statusMap,
+      charIdStatusMap,
+    };
+  }, [currentSignups]);
 
   // Fetch potential players
   const { data: potentialPlayersData, isLoading } =
@@ -256,7 +267,9 @@ export function FindGamersDialog({
     return Array.from(deduped.values()).sort((a, b) => {
       // 1. Status Priority
       const getStatusWeight = (p: (typeof players)[number]) => {
-        const s = p.discordUserId ? statusMap.get(p.discordUserId) : null;
+        const s =
+          charIdStatusMap.get(p.primaryCharacterId) ??
+          (p.discordUserId ? statusMap.get(p.discordUserId) : null);
         if (!s) return 1; // No status
         if (s === "Bench") return 4;
         if (s === "Tentative") return 3;
@@ -291,7 +304,12 @@ export function FindGamersDialog({
       // 4. Name (A-Z)
       return a.characterName.localeCompare(b.characterName);
     });
-  }, [potentialPlayersData?.potentialPlayers, roleFilter, statusMap]);
+  }, [
+    potentialPlayersData?.potentialPlayers,
+    roleFilter,
+    statusMap,
+    charIdStatusMap,
+  ]);
 
   // Handle player selection
   const togglePlayerSelection = useCallback((playerId: number) => {
@@ -569,9 +587,7 @@ export function FindGamersDialog({
               </div>
             ) : potentialPlayers.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                {registeredPrimaryCharacterIds.length > 0
-                  ? "Matching players already signed up!"
-                  : "No potential players found matching filters."}
+                No potential players found matching filters.
               </div>
             ) : (
               <Table>
@@ -638,13 +654,15 @@ export function FindGamersDialog({
                         "cursor-pointer",
                         selectedPlayerIds.has(player.primaryCharacterId) &&
                           "bg-primary/10",
-                        player.discordUserId &&
-                          ["absence", "absent"].includes(
-                            (
-                              statusMap.get(player.discordUserId) ?? ""
-                            ).toLowerCase(),
-                          ) &&
-                          "opacity-60 grayscale",
+                        ["absence", "absent"].includes(
+                          (
+                            charIdStatusMap.get(player.primaryCharacterId) ??
+                            (player.discordUserId
+                              ? statusMap.get(player.discordUserId)
+                              : "") ??
+                            ""
+                          ).toLowerCase(),
+                        ) && "opacity-60 grayscale",
                       )}
                       onClick={() =>
                         togglePlayerSelection(player.primaryCharacterId)
@@ -665,9 +683,12 @@ export function FindGamersDialog({
                         <div className="flex items-center gap-2">
                           {player.characterName}
                           {(() => {
-                            const status = player.discordUserId
-                              ? statusMap.get(player.discordUserId)
-                              : null;
+                            const status =
+                              charIdStatusMap.get(player.primaryCharacterId) ??
+                              (player.discordUserId
+                                ? statusMap.get(player.discordUserId)
+                                : null);
+
                             if (!status) return null;
 
                             const StatusIcon = RAIDHELPER_STATUS_ICONS[status];
