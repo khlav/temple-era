@@ -14,6 +14,7 @@ import { posthogSafe } from "~/utils/posthog";
 export const PostHogIdentify = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const isSignIn = searchParams.get("signin") === "1";
   const { data: session, status } = useSession(); // Get session client-side
   const sessionLoaded = status === "authenticated";
@@ -33,10 +34,18 @@ export const PostHogIdentify = () => {
         isAdmin: session.user.isAdmin,
       });
 
-      router.replace("/", { scroll: false });
+      // Create new URLSearchParams object excluding 'signin'
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.delete("signin");
+
+      const newUrl =
+        pathname +
+        (newSearchParams.toString() ? `?${newSearchParams.toString()}` : "");
+
+      router.replace(newUrl, { scroll: false });
       console.log(`Welcome, ${session.user.name}!`);
     }
-  }, [router, isSignIn, session, sessionLoaded]);
+  }, [router, isSignIn, session, sessionLoaded, pathname, searchParams]);
 
   return null;
 };

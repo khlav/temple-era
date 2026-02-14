@@ -100,7 +100,9 @@ export function RaidPlanPublicView({
             </p>
             <Button
               onClick={() =>
-                signIn("discord", { redirectTo: window.location.pathname })
+                signIn("discord", {
+                  redirectTo: window.location.pathname + "?signin=1",
+                })
               }
               className="mx-auto flex items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2]"
             >

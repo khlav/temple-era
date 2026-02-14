@@ -21,7 +21,7 @@ import { posthogSafe } from "~/utils/posthog";
 export function AppSidebarLogin({ session }: { session: Session | null }) {
   const handleSignIn = () =>
     signIn("discord", {
-      redirectTo: "/?signin=1",
+      redirectTo: window.location.pathname + "?signin=1",
     });
 
   const handleSignOut = () => {
