@@ -7,6 +7,7 @@ import {
   boolean,
   uuid,
   text,
+  timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { IdPkAsUUID, DefaultTimestamps, CreatedBy } from "~/server/db/helpers";
@@ -104,6 +105,7 @@ export const raidPlans = tableCreator(
     defaultAATemplate: text("default_aa_template"), // AA template for Default/Trash view
     useDefaultAA: boolean("use_default_aa").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(false),
+    startAt: timestamp("start_at"),
     ...CreatedBy,
     ...DefaultTimestamps,
   },
