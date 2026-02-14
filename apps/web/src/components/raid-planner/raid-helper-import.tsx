@@ -9,8 +9,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   Calendar,
@@ -22,11 +22,8 @@ import {
   AlertTriangle,
   MinusCircle,
   History,
-  Users,
-  ExternalLink,
 } from "lucide-react";
 import { api } from "~/trpc/react";
-import { cn } from "~/lib/utils";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
@@ -34,8 +31,10 @@ import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./constants";
 import { FindGamersDialog } from "./find-gamers-dialog";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 import { Badge } from "~/components/ui/badge";
-import { CUSTOM_ZONE_ID, CUSTOM_ZONE_DISPLAY_NAME } from "~/lib/raid-zones";
 import { ZoneSelect } from "./zone-select";
+import { ScheduledEventsTable } from "./scheduled-events-table";
+import { PastPlansTable } from "./past-plans-table";
+import { UrlImportForm } from "./url-import-form";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -74,10 +73,9 @@ interface FindPlayersState {
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [url, setUrl] = useState("");
-  const [urlError, setUrlError] = useState<string | null>(null);
   const [findPlayersState, setFindPlayersState] =
     useState<FindPlayersState | null>(null);
+  const [isUrlImportOpen, setIsUrlImportOpen] = useState(false);
 
   const {
     data: events,
@@ -122,13 +120,33 @@ export function RaidPlannerImport() {
   );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Left: Scheduled Raids */}
-      <div className="col-span-2">
-        <h3 className="mb-3 flex items-center gap-2 font-semibold">
-          <Calendar className="h-5 w-5" />
-          Scheduled Raids
-        </h3>
+    <div className="space-y-8">
+      {/* Scheduled Raids Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Calendar className="h-5 w-5" />
+            Scheduled Raids
+          </h3>
+          <Dialog open={isUrlImportOpen} onOpenChange={setIsUrlImportOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Link2 className="mr-2 h-4 w-4" />
+                Import from URL
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Import from Raid-Helper</DialogTitle>
+              </DialogHeader>
+              <UrlImportForm
+                onEventSelect={setSelectedEventId}
+                onSuccess={() => setIsUrlImportOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
@@ -139,43 +157,14 @@ export function RaidPlannerImport() {
           <div className="text-sm text-red-500">
             Failed to load events: {error.message}
           </div>
-        ) : !events || events.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No scheduled events found.
-          </div>
         ) : (
-          <div className="space-y-2">
-            {events.map((event) => (
-              <EventRow
-                key={event.id}
-                event={event}
-                isSelected={selectedEventId === event.id}
-                existingPlanId={existingPlans?.[event.id]}
-                onSelect={() =>
-                  setSelectedEventId(
-                    selectedEventId === event.id ? null : event.id,
-                  )
-                }
-                onFindPlayers={handleFindPlayers}
-              />
-            ))}
-          </div>
+          <ScheduledEventsTable
+            events={events}
+            existingPlans={existingPlans}
+            onFindPlayers={handleFindPlayers}
+            onSelectEvent={setSelectedEventId}
+          />
         )}
-      </div>
-
-      {/* Right: URL Input */}
-      <div>
-        <h3 className="mb-3 flex items-center gap-2 font-semibold">
-          <Link2 className="h-5 w-5" />
-          Import from URL
-        </h3>
-        <UrlImportForm
-          url={url}
-          setUrl={setUrl}
-          error={urlError}
-          setError={setUrlError}
-          onEventSelect={setSelectedEventId}
-        />
       </div>
 
       {/* Character Matching Dialog */}
@@ -199,241 +188,21 @@ export function RaidPlannerImport() {
       )}
 
       {/* Past Plans Section */}
-      {(pastPlans && pastPlans.length > 0) || isLoadingPastPlans ? (
-        <div className="col-span-full border-t pt-6">
-          <h3 className="mb-3 flex items-center gap-2 font-semibold">
-            <History className="h-5 w-5" />
-            Past Plans
-          </h3>
-          {isLoadingPastPlans ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : pastPlans && pastPlans.length > 0 ? (
-            <div className="space-y-2">
-              {pastPlans.map((plan) => (
-                <PastPlanRow key={plan.id} plan={plan} />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-interface EventRowProps {
-  event: {
-    id: string;
-    title: string;
-    displayTitle?: string;
-    channelName: string;
-    startTime: number;
-    leaderName: string;
-    signUpCount?: number;
-  };
-  isSelected: boolean;
-  existingPlanId?: string;
-  onSelect: () => void;
-  onFindPlayers: (
-    eventId: string,
-    eventTitle: string,
-    eventStartTime: number,
-    matchResults: SignupMatchResult[],
-  ) => void;
-}
-
-function EventRow({
-  event,
-  isSelected,
-  existingPlanId,
-  onSelect,
-  onFindPlayers,
-}: EventRowProps) {
-  const [isLoadingFindPlayers, setIsLoadingFindPlayers] = useState(false);
-  const utils = api.useUtils();
-
-  // const formattedDate = new Date(event.startTime * 1000).toLocaleDateString(
-  //   "en-US",
-  //   {
-  //     weekday: "short",
-  //     month: "short",
-  //     day: "numeric",
-  //   },
-  // );
-
-  // const formattedTime = new Date(event.startTime * 1000).toLocaleTimeString(
-  //   "en-US",
-  //   {
-  //     hour: "numeric",
-  //     minute: "2-digit",
-  //   },
-  // );
-
-  const hasPlan = !!existingPlanId;
-
-  const handleFindPlayers = async () => {
-    setIsLoadingFindPlayers(true);
-    try {
-      // Fetch event details
-      const eventDetails = await utils.raidHelper.getEventDetails.fetch({
-        eventId: event.id,
-      });
-
-      // Prepare signups for matching
-      const allSignups = [
-        ...eventDetails.signups.assigned,
-        ...eventDetails.signups.unassigned,
-      ];
-      const signupsForMatching = allSignups.map((s) => ({
-        userId: s.userId,
-        discordName: s.name,
-        className: s.className,
-        specName: s.specName,
-        partyId: s.partyId,
-        slotId: s.slotId,
-      }));
-
-      // Match signups to characters
-      const matchResults =
-        await utils.raidHelper.matchSignupsToCharacters.fetch({
-          signups: signupsForMatching,
-        });
-
-      onFindPlayers(
-        event.id,
-        eventDetails.event.displayTitle || eventDetails.event.title,
-        event.startTime,
-        matchResults,
-      );
-    } finally {
-      setIsLoadingFindPlayers(false);
-    }
-  };
-
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between rounded-lg border p-3",
-        "transition-colors hover:border-primary hover:bg-accent",
-        isSelected && "border-primary bg-accent",
-      )}
-    >
-      <div className="flex flex-col gap-1">
-        <div className="font-medium">{event.displayTitle ?? event.title}</div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{event.leaderName}</span>
-          {event.signUpCount != null && event.signUpCount > 0 && (
-            <span>{event.signUpCount} signups</span>
-          )}
-          <span>|</span>
-          <a
-            href={`https://raid-helper.dev/event/${event.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Raid-Helper
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleFindPlayers}
-          disabled={isLoadingFindPlayers}
-        >
-          {isLoadingFindPlayers ? (
-            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-          ) : (
-            <Users className="mr-1 h-4 w-4" />
-          )}
-          Find Gamers
-        </Button>
-        {hasPlan ? (
-          <Button variant="default" size="sm" className="w-24" asChild>
-            <a href={`/raid-manager/raid-planner/${existingPlanId}`}>
-              View Plan
-            </a>
-          </Button>
+      <div className="space-y-4 pt-4">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <History className="h-5 w-5" />
+          Past Plans
+        </h3>
+        {isLoadingPastPlans ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         ) : (
-          <Button
-            variant="warning"
-            size="sm"
-            className="w-24"
-            onClick={onSelect}
-          >
-            Create Plan
-          </Button>
+          <PastPlansTable plans={pastPlans} />
         )}
       </div>
-    </div>
-  );
-}
-
-interface PastPlanRowProps {
-  plan: {
-    id: string;
-    name: string;
-    zoneId: string;
-    createdAt: Date;
-    startAt: Date | null;
-    raidHelperEventId: string;
-  };
-}
-
-import { formatRaidDate } from "~/utils/date-formatting";
-
-function PastPlanRow({ plan }: PastPlanRowProps) {
-  const formattedDate = formatRaidDate(plan.startAt);
-
-  // Map zone IDs to display names
-  const zoneNames: Record<string, string> = {
-    mc: "Molten Core",
-    bwl: "Blackwing Lair",
-    aq20: "AQ20",
-    aq40: "AQ40",
-    naxxramas: "Naxxramas",
-    onyxia: "Onyxia",
-    zg: "Zul'Gurub",
-    [CUSTOM_ZONE_ID]: CUSTOM_ZONE_DISPLAY_NAME,
-  };
-
-  const zoneName = zoneNames[plan.zoneId.toLowerCase()] ?? plan.zoneId;
-
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between rounded-lg border p-3",
-        "transition-colors hover:border-primary hover:bg-accent",
-      )}
-    >
-      <div className="flex flex-col gap-1">
-        <div className="font-medium">{plan.name}</div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{zoneName}</span>
-          {formattedDate && <span>{formattedDate}</span>}
-          <span>|</span>
-          <a
-            href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Raid-Helper
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      </div>
-      <Button variant="outline" size="sm" asChild>
-        <a href={`/raid-manager/raid-planner/${plan.id}`}>View Plan</a>
-      </Button>
     </div>
   );
 }
@@ -957,93 +726,5 @@ function CharacterMatchingDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface UrlImportFormProps {
-  url: string;
-  setUrl: (url: string) => void;
-  error: string | null;
-  setError: (error: string | null) => void;
-  onEventSelect: (eventId: string) => void;
-}
-
-function UrlImportForm({
-  url,
-  setUrl,
-  error,
-  setError,
-  onEventSelect,
-}: UrlImportFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const utils = api.useUtils();
-
-  const extractEventId = (urlStr: string): string | null => {
-    // Match patterns like:
-    // https://raid-helper.dev/raidplan/1234567890
-    // https://raid-helper.dev/event/1234567890
-    // raid-helper.dev/raidplan/1234567890
-    const match = urlStr.match(/raid-helper\.dev\/(?:raidplan|event)\/(\d+)/);
-    return match?.[1] ?? null;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!url.trim()) {
-      setError("Please enter a Raid-Helper URL");
-      return;
-    }
-
-    const eventId = extractEventId(url);
-    if (!eventId) {
-      setError(
-        "Invalid URL. Expected: raid-helper.dev/raidplan/{id} or raid-helper.dev/event/{id}",
-      );
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Validate the event exists
-      await utils.raidHelper.getEventDetails.fetch({ eventId });
-      // Open the dialog with the validated event
-      onEventSelect(eventId);
-    } catch (err) {
-      setError("Failed to fetch event. Please check the URL and try again.");
-      console.error("Failed to import:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <Input
-            id="raid-helper-url"
-            type="url"
-            placeholder="https://raid-helper.dev/raidplan/..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className={error ? "border-red-500" : ""}
-            autoComplete="off"
-          />
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Import"
-            )}
-          </Button>
-        </div>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <p className="text-xs text-muted-foreground">
-          Paste a raid-helper.dev/raidplan or raid-helper.dev/event URL
-        </p>
-      </div>
-    </form>
   );
 }

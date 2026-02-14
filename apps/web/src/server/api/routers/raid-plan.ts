@@ -424,6 +424,7 @@ export const raidPlanRouter = createTRPCRouter({
           id: raidPlans.id,
           name: raidPlans.name,
           zoneId: raidPlans.zoneId,
+          raidHelperEventId: raidPlans.raidHelperEventId,
           createdAt: raidPlans.createdAt,
           startAt: raidPlans.startAt,
         })

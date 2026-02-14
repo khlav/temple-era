@@ -9,6 +9,41 @@ export const ET_TIMEZONE = "America/New_York";
  * @param date - The date to format
  * @returns The formatted date string
  */
+/**
+ * Formats a date to "Tue, Sep 11" in ET timezone.
+ */
+export function formatRaidDay(
+  date: Date | string | number | null | undefined,
+): string {
+  if (!date) return "";
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) return "";
+  const zonedDate = toZonedTime(dateObj, ET_TIMEZONE);
+  return format(zonedDate, "EEE, MMM d");
+}
+
+/**
+ * Formats a time to "8pm" or "8:30pm" in ET timezone.
+ */
+export function formatRaidTime(
+  date: Date | string | number | null | undefined,
+): string {
+  if (!date) return "";
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) return "";
+  const zonedDate = toZonedTime(dateObj, ET_TIMEZONE);
+
+  const minutes = format(zonedDate, "m");
+  const timeFormat = minutes === "0" ? "ha" : "h:mma";
+  return format(zonedDate, timeFormat).toLowerCase();
+}
+
+/**
+ * Formats a date to "Tue, September 11, 2025 @ 8pm" (or "8:30pm") in ET timezone.
+ *
+ * @param date - The date to format
+ * @returns The formatted date string
+ */
 export function formatRaidDate(
   date: Date | string | number | null | undefined,
 ): string {
@@ -21,11 +56,7 @@ export function formatRaidDate(
 
   // Format the date part: "Tue, September 11, 2025"
   const datePart = format(zonedDate, "EEE, MMMM d, yyyy");
-
-  // Format the time part: "8pm" or "8:30pm"
-  const minutes = format(zonedDate, "m");
-  const timeFormat = minutes === "0" ? "ha" : "h:mma";
-  const timePart = format(zonedDate, timeFormat).toLowerCase();
+  const timePart = formatRaidTime(zonedDate);
 
   return `${datePart} @ ${timePart}`;
 }
