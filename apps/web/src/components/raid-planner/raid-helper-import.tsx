@@ -23,6 +23,7 @@ import {
   MinusCircle,
   History,
   Users,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
@@ -327,6 +328,17 @@ function EventRow({
           {event.signUpCount != null && event.signUpCount > 0 && (
             <span>{event.signUpCount} signups</span>
           )}
+          <span>|</span>
+          <a
+            href={`https://raid-helper.dev/event/${event.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Raid-Helper
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
       </div>
       <div className="flex gap-2">
@@ -371,6 +383,7 @@ interface PastPlanRowProps {
     zoneId: string;
     createdAt: Date;
     startAt: Date | null;
+    raidHelperEventId: string;
   };
 }
 
@@ -405,6 +418,17 @@ function PastPlanRow({ plan }: PastPlanRowProps) {
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{zoneName}</span>
           {formattedDate && <span>{formattedDate}</span>}
+          <span>|</span>
+          <a
+            href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Raid-Helper
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
       </div>
       <Button variant="outline" size="sm" asChild>
