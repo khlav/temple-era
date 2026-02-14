@@ -1,5 +1,5 @@
 ---
 trigger: always_on
-glob:
-description:
 ---
+
+Load context from CLAUDE.md to ensure you work consistently and quickly.
