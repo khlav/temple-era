@@ -30,7 +30,7 @@ export default async function RaidPlannerPage() {
       </div>
       <Separator className="my-2" />
       <p className="mb-6 text-sm text-muted-foreground">
-        Plan your raid composition and assignments before the raid.
+        Plan groups and assignments before the raid.
       </p>
       <RaidPlannerStart />
     </main>
