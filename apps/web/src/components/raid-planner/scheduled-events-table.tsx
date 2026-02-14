@@ -258,10 +258,11 @@ function getRaidTarget(title: string, channelName: string): number {
 
 function getSignupStatusColor(count: number, target: number) {
   const percentage = count / target;
-  if (percentage < 0.67) return { bg: "bg-red-600", text: "text-red-600" };
-  if (percentage < 1.0) return { bg: "bg-yellow-400", text: "text-yellow-400" };
-  if (percentage > 1.15) return { bg: "bg-cyan-400", text: "text-cyan-400" };
-  return { bg: "bg-green-400", text: "text-green-400" };
+  if (percentage < 0.67)
+    return { bg: "bg-destructive", text: "text-destructive" };
+  if (percentage < 1.0) return { bg: "bg-amber-500", text: "text-amber-500" };
+  if (percentage > 1.15) return { bg: "bg-blue-600", text: "text-blue-600" };
+  return { bg: "bg-emerald-500", text: "text-emerald-500" };
 }
 
 function SignupVolumeIndicator({
