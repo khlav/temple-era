@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
-import { format } from "date-fns";
+import { formatRaidDate } from "~/utils/date-formatting";
 import { ExternalLink, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
@@ -115,19 +115,24 @@ export function RaidPlanPublicView({
           {/* Metadata row */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span>Zone: {zoneDisplayName}</span>
-            {plan.event && (
+            {plan.startAt ? (
               <>
                 <span>|</span>
-                <a
-                  href={`/raids/${plan.event.raidId}`}
-                  className="hover:text-foreground hover:underline"
-                >
-                  Event: {plan.event.name} ({plan.event.date})
-                </a>
+                <span>{formatRaidDate(plan.startAt)}</span>
               </>
+            ) : (
+              plan.event && (
+                <>
+                  <span>|</span>
+                  <a
+                    href={`/raids/${plan.event.raidId}`}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    Event: {plan.event.name} ({plan.event.date})
+                  </a>
+                </>
+              )
             )}
-            <span>|</span>
-            <span>Created: {format(plan.createdAt, "MMM d, yyyy")}</span>
             <span>|</span>
             <a
               href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}

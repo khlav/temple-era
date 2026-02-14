@@ -25,6 +25,7 @@ import {
   CUSTOM_ZONE_ID,
   CUSTOM_ZONE_DISPLAY_NAME,
 } from "~/lib/raid-zones";
+import { formatRaidDate } from "~/utils/date-formatting";
 import { ZoneSelect } from "./zone-select";
 
 interface RaidPlanHeaderProps {
@@ -32,6 +33,7 @@ interface RaidPlanHeaderProps {
   name: string;
   zoneId: string;
   raidHelperEventId: string;
+  startAt?: Date | null;
   event: { raidId: number; name: string; date: string } | null;
   createdAt: Date;
   onNameUpdate?: () => void;
@@ -45,6 +47,7 @@ export function RaidPlanHeader({
   name,
   zoneId,
   raidHelperEventId,
+  startAt,
   event,
   createdAt,
   onNameUpdate,
@@ -286,7 +289,13 @@ export function RaidPlanHeader({
 
       {/* Metadata row */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-        {event && (
+        {startAt && (
+          <>
+            <span>{formatRaidDate(startAt)}</span>
+            <span>|</span>
+          </>
+        )}
+        {event && !startAt && (
           <>
             <a
               href={`/raids/${event.raidId}`}
@@ -294,6 +303,7 @@ export function RaidPlanHeader({
             >
               Event: {event.name} ({event.date})
             </a>
+            <span>|</span>
           </>
         )}
         {onTogglePublic && (

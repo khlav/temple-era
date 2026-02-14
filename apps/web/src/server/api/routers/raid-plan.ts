@@ -88,10 +88,11 @@ export const raidPlanRouter = createTRPCRouter({
           zoneId: raidPlans.zoneId,
           raidHelperEventId: raidPlans.raidHelperEventId,
           createdAt: raidPlans.createdAt,
+          startAt: raidPlans.startAt,
         })
         .from(raidPlans)
         .where(whereClause)
-        .orderBy(desc(raidPlans.createdAt))
+        .orderBy(desc(raidPlans.startAt), desc(raidPlans.createdAt))
         .limit(input.limit);
 
       return plans;
@@ -112,6 +113,7 @@ export const raidPlanRouter = createTRPCRouter({
           raidHelperEventId: raidPlans.raidHelperEventId,
           eventId: raidPlans.eventId,
           createdAt: raidPlans.createdAt,
+          startAt: raidPlans.startAt,
           defaultAATemplate: raidPlans.defaultAATemplate,
           useDefaultAA: raidPlans.useDefaultAA,
           isPublic: raidPlans.isPublic,
@@ -281,6 +283,7 @@ export const raidPlanRouter = createTRPCRouter({
           raidHelperEventId: raidPlans.raidHelperEventId,
           eventId: raidPlans.eventId,
           createdAt: raidPlans.createdAt,
+          startAt: raidPlans.startAt,
           defaultAATemplate: raidPlans.defaultAATemplate,
           useDefaultAA: raidPlans.useDefaultAA,
           isPublic: raidPlans.isPublic,
@@ -422,10 +425,11 @@ export const raidPlanRouter = createTRPCRouter({
           name: raidPlans.name,
           zoneId: raidPlans.zoneId,
           createdAt: raidPlans.createdAt,
+          startAt: raidPlans.startAt,
         })
         .from(raidPlans)
         .where(eq(raidPlans.isPublic, true))
-        .orderBy(desc(raidPlans.createdAt))
+        .orderBy(desc(raidPlans.startAt), desc(raidPlans.createdAt))
         .limit(input.limit);
 
       return plans;
@@ -733,6 +737,7 @@ export const raidPlanRouter = createTRPCRouter({
         raidHelperEventId: z.string(),
         name: z.string().min(1).max(256),
         zoneId: z.string().min(1).max(64),
+        startAt: z.date().optional(),
         characters: z.array(
           z.object({
             characterId: z.number().nullable(),
@@ -767,6 +772,7 @@ export const raidPlanRouter = createTRPCRouter({
             raidHelperEventId: input.raidHelperEventId,
             name: input.name,
             zoneId: input.zoneId,
+            startAt: input.startAt,
             createdById: ctx.session.user.id,
           })
           .returning({ id: raidPlans.id });

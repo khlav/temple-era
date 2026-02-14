@@ -370,15 +370,14 @@ interface PastPlanRowProps {
     name: string;
     zoneId: string;
     createdAt: Date;
+    startAt: Date | null;
   };
 }
 
+import { formatRaidDate } from "~/utils/date-formatting";
+
 function PastPlanRow({ plan }: PastPlanRowProps) {
-  const formattedDate = new Date(plan.createdAt).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const formattedDate = formatRaidDate(plan.startAt);
 
   // Map zone IDs to display names
   const zoneNames: Record<string, string> = {
@@ -405,7 +404,7 @@ function PastPlanRow({ plan }: PastPlanRowProps) {
         <div className="font-medium">{plan.name}</div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{zoneName}</span>
-          <span>{formattedDate}</span>
+          {formattedDate && <span>{formattedDate}</span>}
         </div>
       </div>
       <Button variant="outline" size="sm" asChild>
@@ -601,6 +600,7 @@ function CharacterMatchingDialog({
       raidHelperEventId: eventId,
       name: eventDetails.event.displayTitle || eventDetails.event.title,
       zoneId: effectiveZone,
+      startAt: new Date(eventDetails.event.startTime * 1000),
       characters,
     });
   }, [eventId, eventDetails, matchResults, effectiveZone, createPlanMutation]);
