@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
 import { format } from "date-fns";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
@@ -19,6 +19,7 @@ import { getGroupCount } from "./constants";
 
 import { signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
+import { CharacterSelector } from "~/components/characters/character-selector";
 
 interface RaidPlanPublicViewProps {
   planId: string;
@@ -33,6 +34,7 @@ export function RaidPlanPublicView({
 }: RaidPlanPublicViewProps) {
   const [activeTab, setActiveTab] = useState("default");
   const { updateBreadcrumbSegment } = useBreadcrumb();
+  const utils = api.useUtils();
 
   const {
     data: plan,
@@ -44,6 +46,15 @@ export function RaidPlanPublicView({
 
   const { data: userProfile } = api.profile.getMyProfile.useQuery(undefined, {
     enabled: isLoggedIn,
+  });
+
+  const saveProfileMutation = api.profile.saveMyProfile.useMutation({
+    onSuccess: async () => {
+      await utils.profile.getMyProfile.invalidate();
+    },
+    onError: (error) => {
+      console.error(error);
+    },
   });
 
   const userCharacterIds = userProfile?.userCharacterIds ?? [];
@@ -92,37 +103,9 @@ export function RaidPlanPublicView({
 
   return (
     <div className="relative space-y-6">
-      {!isLoggedIn && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
-          <div className="flex flex-col items-center justify-center text-center">
-            <p className="mb-6 text-muted-foreground">
-              Please login to Discord to view this raid plan.
-            </p>
-            <Button
-              onClick={() =>
-                signIn("discord", {
-                  redirectTo: window.location.pathname + "?signin=1",
-                })
-              }
-              className="mx-auto flex items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2]"
-            >
-              <Image
-                src="/img/discord-mark-white.svg"
-                alt="Discord"
-                height={24}
-                width={24}
-              />
-              Sign in with Discord
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div
-        className={cn(!isLoggedIn && "pointer-events-none select-none blur-sm")}
-      >
+      <div>
         {/* Read-only Header */}
-        <div className="space-y-2">
+        <div className="mb-3 space-y-2">
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-2xl font-bold tracking-tight">
               Raid Plan: {plan.name}
@@ -177,6 +160,64 @@ export function RaidPlanPublicView({
             </TabsList>
           </div>
 
+          {/* Banners */}
+          {!isLoggedIn && (
+            <div className="mt-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100">
+              <Info className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() =>
+                    signIn("discord", {
+                      redirectTo: window.location.pathname + "?signin=1",
+                    })
+                  }
+                  size="sm"
+                  className="h-7 gap-2 bg-[#5865F2] px-2 text-xs text-white hover:bg-[#8891f2]"
+                >
+                  <Image
+                    src="/img/discord-mark-white.svg"
+                    alt="Discord"
+                    height={14}
+                    width={14}
+                  />
+                  Sign in with Discord
+                </Button>
+                <span>
+                  and select your primary character to see your assignments.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isLoggedIn && userProfile && !userProfile.characterId && (
+            <div className="mt-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100">
+              <Info className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <div className="flex flex-wrap items-center gap-2">
+                <CharacterSelector
+                  onSelectAction={(char) => {
+                    saveProfileMutation.mutate({
+                      name: userProfile.name ?? "Unknown",
+                      characterId: char.characterId,
+                    });
+                  }}
+                  characterSet="primary"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                  >
+                    Select primary character
+                  </Button>
+                </CharacterSelector>
+                <span>to highlight your assignments.</span>
+                <span className="text-blue-700 dark:text-blue-300">
+                  (Alts will be highlighted, too.)
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Two-column layout for tab content - wrapped in bare DndContext */}
           <DndContext>
             <div className="mt-4 grid gap-6 lg:grid-cols-2">
@@ -184,7 +225,6 @@ export function RaidPlanPublicView({
               <div>
                 {/* Default Tab */}
                 <TabsContent value="default" className="mt-0 space-y-3">
-                  <div className="flex h-7 items-center" />
                   <RaidPlanGroupsGrid
                     characters={plan.characters as RaidPlanCharacter[]}
                     groupCount={groupCount}
@@ -203,7 +243,6 @@ export function RaidPlanPublicView({
                     value={encounter.id}
                     className="mt-0 space-y-3"
                   >
-                    <div className="flex h-7 items-center" />
                     {encounter.useDefaultGroups ? (
                       <RaidPlanGroupsGrid
                         characters={plan.characters as RaidPlanCharacter[]}
@@ -236,7 +275,6 @@ export function RaidPlanPublicView({
               <div className="border-l pl-6">
                 {/* Default Tab AA */}
                 <TabsContent value="default" className="mt-0 space-y-3">
-                  <div className="flex h-7 items-center" />
                   {plan.useDefaultAA && plan.defaultAATemplate ? (
                     <AAPanel
                       template={plan.defaultAATemplate}
@@ -266,7 +304,6 @@ export function RaidPlanPublicView({
                     value={encounter.id}
                     className="mt-0 space-y-3"
                   >
-                    <div className="flex h-7 items-center" />
                     {encounter.useCustomAA && encounter.aaTemplate ? (
                       <AAPanel
                         template={encounter.aaTemplate}

@@ -49,8 +49,78 @@ const ZONE_LABELS = {
   mc: "MC",
 } as const;
 
+export interface HeatmapData {
+  weeks: Array<{
+    weekStart: string;
+    zones: {
+      naxxramas?: {
+        attended: boolean;
+        attendanceWeight: number;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+      aq40?: {
+        attended: boolean;
+        attendanceWeight: number;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+      bwl?: {
+        attended: boolean;
+        attendanceWeight: number;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+      mc?: {
+        attended: boolean;
+        attendanceWeight: number;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+        isGrayed: boolean;
+      };
+      onyxia?: {
+        attended: boolean;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+      aq20?: {
+        attended: boolean;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+      zg?: {
+        attended: boolean;
+        raids: Array<{
+          name: string;
+          status: "attendee" | "bench";
+          characterNames: string[];
+        }>;
+      };
+    };
+    isHistorical: boolean;
+  }>;
+}
+
 interface AttendanceHeatmapGridProps {
-  characterId: number;
+  characterId?: number;
   showCreditsRow?: boolean;
   showSubtitle?: boolean;
   showMaxCreditsHelper?: boolean;
@@ -58,6 +128,7 @@ interface AttendanceHeatmapGridProps {
   showThisWeek?: boolean;
   weeksBack?: number;
   includeCurrentWeek?: boolean;
+  sampleData?: HeatmapData;
 }
 
 export function AttendanceHeatmapGrid({
@@ -69,12 +140,15 @@ export function AttendanceHeatmapGrid({
   showThisWeek = true,
   weeksBack = 6,
   includeCurrentWeek = true,
+  sampleData,
 }: AttendanceHeatmapGridProps) {
-  const { data: heatmapData, isLoading: isLoadingHeatmap } =
+  const { data: queryData, isLoading: isLoadingHeatmap } =
     api.character.getWeeklyPrimaryCharacterAttendance.useQuery(
       characterId ? { characterId, weeksBack, includeCurrentWeek } : undefined,
-      { enabled: !!characterId },
+      { enabled: !!characterId && !sampleData },
     );
+
+  const heatmapData = sampleData ?? queryData;
 
   // Render heatmap grid
   const renderHeatmapCell = (
@@ -263,7 +337,7 @@ export function AttendanceHeatmapGrid({
     );
   };
 
-  if (isLoadingHeatmap) {
+  if (isLoadingHeatmap && !sampleData) {
     return <Skeleton className="h-32 w-full" />;
   }
 

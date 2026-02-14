@@ -130,6 +130,7 @@ export function AAPanel({
         disabled={readOnly}
         skipDndContext
         userCharacterIds={userCharacterIds}
+        hideUnassigned={readOnly}
       />
 
       {!readOnly && (

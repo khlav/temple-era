@@ -37,6 +37,7 @@ interface AATemplateRendererProps {
   /** Skip internal DndContext - parent will provide one */
   skipDndContext?: boolean;
   userCharacterIds?: number[];
+  hideUnassigned?: boolean;
 }
 
 export function AATemplateRenderer({
@@ -51,6 +52,7 @@ export function AATemplateRenderer({
   disabled,
   skipDndContext,
   userCharacterIds = [],
+  hideUnassigned,
 }: AATemplateRendererProps) {
   const [activeCharacter, setActiveCharacter] =
     useState<RaidPlanCharacter | null>(null);
@@ -217,6 +219,12 @@ export function AATemplateRenderer({
           if (segment.slotDef) {
             const slot = segment.slotDef;
             const slotChars = slotCharacterMap.get(slot.name) ?? [];
+
+            // If hiding unassigned slots and this slot is empty, skip rendering it
+            if (hideUnassigned && slotChars.length === 0) {
+              break;
+            }
+
             parts.push(
               <AASlotInline
                 key={key}
@@ -262,6 +270,12 @@ export function AATemplateRenderer({
               );
             } else {
               const refChars = slotCharacterMap.get(refDef.name) ?? [];
+
+              // If hiding unassigned slots and this ref is empty, skip rendering it
+              if (hideUnassigned && refChars.length === 0) {
+                break;
+              }
+
               // Determine noColor: use ref's own noColor if set, else inherit from the referenced slot
               const refNoColor =
                 refDef.noColor !== undefined
@@ -301,6 +315,7 @@ export function AATemplateRenderer({
     raidPlanId,
     onRemove,
     disabled,
+    hideUnassigned,
   ]);
 
   const content = (
