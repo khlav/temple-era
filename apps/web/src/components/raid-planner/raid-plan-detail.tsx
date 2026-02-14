@@ -167,8 +167,8 @@ export function RaidPlanDetail({
         name={plan.name}
         zoneId={plan.zoneId}
         raidHelperEventId={plan.raidHelperEventId}
+        startAt={plan.startAt}
         event={plan.event}
-        createdAt={plan.createdAt}
         onNameUpdate={refetch}
         isPublic={plan.isPublic}
         onTogglePublic={(isPublic) =>
