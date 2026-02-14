@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { Trash2, ExternalLink, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -35,7 +34,6 @@ interface RaidPlanHeaderProps {
   raidHelperEventId: string;
   startAt?: Date | null;
   event: { raidId: number; name: string; date: string } | null;
-  createdAt: Date;
   onNameUpdate?: () => void;
   isPublic?: boolean;
   onTogglePublic?: (isPublic: boolean) => void;
@@ -49,7 +47,6 @@ export function RaidPlanHeader({
   raidHelperEventId,
   startAt,
   event,
-  createdAt,
   onNameUpdate,
   isPublic,
   onTogglePublic,
@@ -289,22 +286,23 @@ export function RaidPlanHeader({
 
       {/* Metadata row */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-        {startAt && (
+        {startAt ? (
           <>
             <span>{formatRaidDate(startAt)}</span>
             <span>|</span>
           </>
-        )}
-        {event && !startAt && (
-          <>
-            <a
-              href={`/raids/${event.raidId}`}
-              className="hover:text-foreground hover:underline"
-            >
-              Event: {event.name} ({event.date})
-            </a>
-            <span>|</span>
-          </>
+        ) : (
+          event && (
+            <>
+              <a
+                href={`/raids/${event.raidId}`}
+                className="hover:text-foreground hover:underline"
+              >
+                Event: {event.name} ({event.date})
+              </a>
+              <span>|</span>
+            </>
+          )
         )}
         {onTogglePublic && (
           <>
@@ -341,9 +339,6 @@ export function RaidPlanHeader({
             <span>|</span>
           </>
         )}
-        {event && !onTogglePublic && <span>|</span>}
-        <span>Created: {format(createdAt, "MMM d, yyyy")}</span>
-        <span>|</span>
         <a
           href={`https://raid-helper.dev/event/${raidHelperEventId}`}
           target="_blank"

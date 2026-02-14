@@ -114,16 +114,14 @@ export function RaidPlanPublicView({
 
           {/* Metadata row */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <span>Zone: {zoneDisplayName}</span>
             {plan.startAt ? (
               <>
-                <span>|</span>
                 <span>{formatRaidDate(plan.startAt)}</span>
+                <span>|</span>
               </>
             ) : (
               plan.event && (
                 <>
-                  <span>|</span>
                   <a
                     href={`/raids/${plan.event.raidId}`}
                     className="hover:text-foreground hover:underline"
@@ -133,6 +131,7 @@ export function RaidPlanPublicView({
                 </>
               )
             )}
+            <span>{zoneDisplayName}</span>
             <span>|</span>
             <a
               href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
