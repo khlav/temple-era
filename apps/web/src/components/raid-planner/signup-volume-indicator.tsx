@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import Image from "next/image";
 import {
   Tooltip,
   TooltipContent,
@@ -66,6 +67,7 @@ export function SignupVolumeIndicator({
     ] as const;
 
     const PEOPLE_PER_PILL = 5;
+    const target = getRaidTarget(title, channelName);
 
     return (
       <TooltipProvider>
@@ -117,14 +119,97 @@ export function SignupVolumeIndicator({
             side="right"
             className="bg-secondary text-secondary-foreground"
           >
-            <div className="space-y-0.5 text-xs">
-              <div className="text-amber-500">
-                {roleCounts.Tank} tank{roleCounts.Tank !== 1 ? "s" : ""}
+            <div className="space-y-1 text-xs">
+              <div className="font-semibold text-foreground">
+                {count} / {target} signups
               </div>
-              <div className="text-red-500">{roleCounts.Melee} melee</div>
-              <div className="text-blue-500">{roleCounts.Ranged} ranged</div>
-              <div className="text-emerald-500">
-                {roleCounts.Healer} healer{roleCounts.Healer !== 1 ? "s" : ""}
+              <div className="h-px bg-border" />
+              <div className="space-y-1">
+                {[
+                  {
+                    role: "Tank",
+                    count: roleCounts.Tank,
+                    color: "bg-amber-500",
+                    textColor: "text-amber-500",
+                    icon: "tank",
+                  },
+                  {
+                    role: "Melee",
+                    count: roleCounts.Melee,
+                    color: "bg-red-500",
+                    textColor: "text-red-500",
+                    icon: "melee",
+                  },
+                  {
+                    role: "Ranged",
+                    count: roleCounts.Ranged,
+                    color: "bg-blue-500",
+                    textColor: "text-blue-500",
+                    icon: "ranged",
+                  },
+                  {
+                    role: "Healer",
+                    count: roleCounts.Healer,
+                    color: "bg-emerald-500",
+                    textColor: "text-emerald-500",
+                    icon: "healer",
+                  },
+                ].map((row) => {
+                  const PEOPLE_PER_PILL = 5;
+                  const pillsNeeded = Math.max(
+                    1,
+                    Math.ceil(row.count / PEOPLE_PER_PILL),
+                  );
+
+                  return (
+                    <div key={row.role} className="flex items-center gap-1">
+                      <span
+                        className={cn(
+                          "w-5 shrink-0 text-right font-mono font-semibold",
+                          row.textColor,
+                        )}
+                      >
+                        {row.count}
+                      </span>
+                      <Image
+                        src={`/img/aa/role_${row.icon}.svg`}
+                        alt={row.role}
+                        width={14}
+                        height={14}
+                        className="shrink-0"
+                      />
+                      <div className="flex gap-px">
+                        {Array.from({ length: pillsNeeded }).map((_, i) => {
+                          const segmentStart = i * PEOPLE_PER_PILL;
+                          const fillAmount = Math.max(
+                            0,
+                            Math.min(
+                              1,
+                              (row.count - segmentStart) / PEOPLE_PER_PILL,
+                            ),
+                          );
+
+                          return (
+                            <div
+                              key={i}
+                              className="h-2 w-6 overflow-hidden rounded bg-muted/30"
+                            >
+                              {fillAmount > 0 && (
+                                <div
+                                  className={cn(
+                                    "h-full transition-all duration-300",
+                                    row.color,
+                                  )}
+                                  style={{ width: `${fillAmount * 100}%` }}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </TooltipContent>
@@ -183,14 +268,97 @@ export function SignupVolumeIndicator({
             side="right"
             className="bg-secondary text-secondary-foreground"
           >
-            <div className="space-y-0.5 text-xs">
-              <div className="text-amber-500">
-                {roleCounts.Tank} tank{roleCounts.Tank !== 1 ? "s" : ""}
+            <div className="space-y-1 text-xs">
+              <div className="font-semibold text-foreground">
+                {count} / {target} signups
               </div>
-              <div className="text-red-500">{roleCounts.Melee} melee</div>
-              <div className="text-blue-500">{roleCounts.Ranged} ranged</div>
-              <div className="text-emerald-500">
-                {roleCounts.Healer} healer{roleCounts.Healer !== 1 ? "s" : ""}
+              <div className="h-px bg-border" />
+              <div className="space-y-1">
+                {[
+                  {
+                    role: "Tank",
+                    count: roleCounts.Tank,
+                    color: "bg-amber-500",
+                    textColor: "text-amber-500",
+                    icon: "tank",
+                  },
+                  {
+                    role: "Melee",
+                    count: roleCounts.Melee,
+                    color: "bg-red-500",
+                    textColor: "text-red-500",
+                    icon: "melee",
+                  },
+                  {
+                    role: "Ranged",
+                    count: roleCounts.Ranged,
+                    color: "bg-blue-500",
+                    textColor: "text-blue-500",
+                    icon: "ranged",
+                  },
+                  {
+                    role: "Healer",
+                    count: roleCounts.Healer,
+                    color: "bg-emerald-500",
+                    textColor: "text-emerald-500",
+                    icon: "healer",
+                  },
+                ].map((row) => {
+                  const PEOPLE_PER_PILL = 5;
+                  const pillsNeeded = Math.max(
+                    1,
+                    Math.ceil(row.count / PEOPLE_PER_PILL),
+                  );
+
+                  return (
+                    <div key={row.role} className="flex items-center gap-1">
+                      <span
+                        className={cn(
+                          "w-5 shrink-0 text-right font-mono font-semibold",
+                          row.textColor,
+                        )}
+                      >
+                        {row.count}
+                      </span>
+                      <Image
+                        src={`/img/aa/role_${row.icon}.svg`}
+                        alt={row.role}
+                        width={14}
+                        height={14}
+                        className="shrink-0"
+                      />
+                      <div className="flex gap-px">
+                        {Array.from({ length: pillsNeeded }).map((_, i) => {
+                          const segmentStart = i * PEOPLE_PER_PILL;
+                          const fillAmount = Math.max(
+                            0,
+                            Math.min(
+                              1,
+                              (row.count - segmentStart) / PEOPLE_PER_PILL,
+                            ),
+                          );
+
+                          return (
+                            <div
+                              key={i}
+                              className="h-2 w-6 overflow-hidden rounded bg-muted/30"
+                            >
+                              {fillAmount > 0 && (
+                                <div
+                                  className={cn(
+                                    "h-full transition-all duration-300",
+                                    row.color,
+                                  )}
+                                  style={{ width: `${fillAmount * 100}%` }}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </TooltipContent>
