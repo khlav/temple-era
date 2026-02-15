@@ -12,6 +12,14 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
+import { Switch } from "~/components/ui/switch";
+import {
+  SignupVolumeIndicator,
+  getSignupStatusColor,
+  getRaidTarget,
+  type IndicatorVariant,
+  type SignupVolumeRoleCounts,
+} from "./signup-volume-indicator";
 
 interface ScheduledEvent {
   id: string;
@@ -21,6 +29,7 @@ interface ScheduledEvent {
   startTime: number;
   leaderName: string;
   signUpCount?: number;
+  roleCounts?: SignupVolumeRoleCounts;
 }
 
 interface ScheduledEventsTableProps {
@@ -41,6 +50,9 @@ export function ScheduledEventsTable({
   onFindPlayers,
   onSelectEvent,
 }: ScheduledEventsTableProps) {
+  const [indicatorStyle, setIndicatorStyle] =
+    useState<IndicatorVariant>("total");
+
   if (!events || events.length === 0) {
     return (
       <div className="rounded-md border py-8 text-center text-muted-foreground">
@@ -64,7 +76,30 @@ export function ScheduledEventsTable({
               Date
             </th>
             <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
-              Signups
+              <div className="flex items-center gap-2">
+                Signups
+                <div className="flex items-center gap-1.5 p-1">
+                  <span
+                    className={`cursor-pointer text-[10px] font-medium transition-colors ${indicatorStyle === "total" ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => setIndicatorStyle("total")}
+                  >
+                    Total
+                  </span>
+                  <Switch
+                    checked={indicatorStyle === "role"}
+                    onCheckedChange={(checked) =>
+                      setIndicatorStyle(checked ? "role" : "total")
+                    }
+                    className="h-3.5 w-6 md:h-4 md:w-7"
+                  />
+                  <span
+                    className={`cursor-pointer text-[10px] font-medium transition-colors ${indicatorStyle === "role" ? "text-primary" : "text-muted-foreground"}`}
+                    onClick={() => setIndicatorStyle("role")}
+                  >
+                    Role
+                  </span>
+                </div>
+              </div>
             </th>
             <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground md:w-[60px]">
               Link
@@ -79,6 +114,7 @@ export function ScheduledEventsTable({
               existingPlanId={existingPlans?.[event.id]}
               onFindPlayers={onFindPlayers}
               onSelect={() => onSelectEvent(event.id)}
+              variant={indicatorStyle}
             />
           ))}
         </tbody>
@@ -92,6 +128,7 @@ function EventRow({
   existingPlanId,
   onFindPlayers,
   onSelect,
+  variant,
 }: {
   event: ScheduledEvent;
   existingPlanId?: string;
@@ -102,6 +139,7 @@ function EventRow({
     matchResults: SignupMatchResult[],
   ) => void;
   onSelect: () => void;
+  variant: IndicatorVariant;
 }) {
   const [isLoadingFindPlayers, setIsLoadingFindPlayers] = useState(false);
   const utils = api.useUtils();
@@ -215,7 +253,13 @@ function EventRow({
           >
             {event.signUpCount ?? 0}
           </span>
-          <SignupVolumeIndicator count={event.signUpCount ?? 0} event={event} />
+          <SignupVolumeIndicator
+            count={event.signUpCount ?? 0}
+            title={event.title}
+            channelName={event.channelName}
+            variant={variant}
+            roleCounts={event.roleCounts}
+          />
         </div>
       </td>
       <td className="p-2 text-center align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
@@ -240,64 +284,5 @@ function EventRow({
         </Tooltip>
       </td>
     </tr>
-  );
-}
-
-const RAID_TARGETS = {
-  DEFAULT: 40,
-  TWENTY_MAN: 20,
-};
-
-function getRaidTarget(title: string, channelName: string): number {
-  const text = (title + " " + channelName).toLowerCase();
-  if (text.includes("aq20") || text.includes("zg") || text.includes("20")) {
-    return RAID_TARGETS.TWENTY_MAN;
-  }
-  return RAID_TARGETS.DEFAULT;
-}
-
-function getSignupStatusColor(count: number, target: number) {
-  const percentage = count / target;
-  if (percentage < 0.67)
-    return { bg: "bg-destructive", text: "text-destructive" };
-  if (percentage < 1.0) return { bg: "bg-amber-500", text: "text-amber-500" };
-  if (percentage > 1.15) return { bg: "bg-blue-600", text: "text-blue-600" };
-  return { bg: "bg-emerald-500", text: "text-emerald-500" };
-}
-
-function SignupVolumeIndicator({
-  count,
-  event,
-}: {
-  count: number;
-  event: ScheduledEvent;
-}) {
-  const target = getRaidTarget(event.title, event.channelName);
-  const colors = getSignupStatusColor(count, target);
-
-  const isTwentyMan = target === RAID_TARGETS.TWENTY_MAN;
-  const containerWidth = isTwentyMan ? 50 : 100;
-
-  // Width logic: 2px per signup, capped at container width
-  const barWidth = Math.min(count * 2, containerWidth);
-  const targetMarkerPos = target * 2; // Position of the vertical line
-
-  return (
-    <div
-      className="relative mt-0.5 h-2 rounded-sm bg-muted/30"
-      style={{ width: `${containerWidth}px` }}
-    >
-      {/* The progress bar */}
-      <div
-        className={`h-full rounded-sm ${colors.bg} transition-all duration-300`}
-        style={{ width: `${barWidth}px` }}
-      />
-
-      {/* Target marker (vertical line) */}
-      <div
-        className="absolute -bottom-1 -top-1 z-10 w-[2px] bg-foreground/30"
-        style={{ left: `${targetMarkerPos}px` }}
-      />
-    </div>
   );
 }

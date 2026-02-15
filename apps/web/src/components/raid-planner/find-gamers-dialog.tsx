@@ -41,7 +41,7 @@ import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { useToast } from "~/hooks/use-toast";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
-import { getTalentRoleBySpecId, CLASS_SPECS } from "~/lib/class-specs";
+import { type TalentRole, inferTalentRole } from "~/lib/class-specs";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { ZoneSelect } from "./zone-select";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
@@ -56,8 +56,6 @@ interface FindGamersDialogProps {
   detectedZone: string | null;
   currentSignups: SignupMatchResult[];
 }
-
-type TalentRole = "Tank" | "Healer" | "Melee" | "Ranged";
 
 // Role icon component using AA role icons
 function RoleIcon({
@@ -100,48 +98,6 @@ function DiscordIcon({
       <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
     </svg>
   );
-}
-
-// Map class to default role (used when we don't have spec info)
-const CLASS_DEFAULT_ROLE: Record<string, TalentRole> = {
-  Warrior: "Melee",
-  Rogue: "Melee",
-  Hunter: "Ranged",
-  Mage: "Ranged",
-  Warlock: "Ranged",
-  Priest: "Healer",
-  Paladin: "Healer",
-  Druid: "Healer",
-  Shaman: "Healer",
-  Deathknight: "Melee",
-  Monk: "Melee",
-};
-
-// Map spec names to spec IDs for role lookup
-function getSpecIdByName(className: string, specName: string): number | null {
-  const normalizedClass =
-    className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
-  const specs = CLASS_SPECS[normalizedClass as keyof typeof CLASS_SPECS];
-  if (!specs) return null;
-
-  const spec = specs.find(
-    (s) => s.name.toLowerCase() === specName.toLowerCase(),
-  );
-  return spec?.id ?? null;
-}
-
-function inferTalentRole(className: string, specName?: string): TalentRole {
-  // Try to get from spec first
-  if (specName) {
-    const specId = getSpecIdByName(className, specName);
-    if (specId) {
-      const role = getTalentRoleBySpecId(specId);
-      if (role) return role;
-    }
-  }
-
-  // Fall back to class default
-  return CLASS_DEFAULT_ROLE[className] ?? "Melee";
 }
 
 export function FindGamersDialog({
@@ -211,13 +167,21 @@ export function FindGamersDialog({
           ? signup.matchedCharacter.characterName
           : signup.discordName;
 
-      const characterClass =
+      // Raid Helper allows signups as either a role (Tank/Healer/Melee/Ranged) or a class (Warrior/Druid/etc)
+      // If className is already a role, use it directly; otherwise infer from class + spec
+      const validRoles: TalentRole[] = ["Tank", "Healer", "Melee", "Ranged"];
+      const role = validRoles.includes(signup.className as TalentRole)
+        ? (signup.className as TalentRole)
+        : inferTalentRole(signup.className, signup.specName);
+
+      // For display, use matched character's class if available, otherwise signup class
+      // This ensures we show the correct class icon (e.g., Warrior/Druid instead of "Tank")
+      const displayClass =
         signup.status === "matched" && signup.matchedCharacter
           ? signup.matchedCharacter.characterClass
           : signup.className;
 
-      const role = inferTalentRole(characterClass, signup.specName);
-      roles[role].push({ name: characterName, class: characterClass });
+      roles[role].push({ name: characterName, class: displayClass });
 
       // Track primary character ID for exclusion
       if (signup.status === "matched" && signup.matchedCharacter) {

@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm";
 import { formatInTimeZone } from "date-fns-tz";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
-import { CLASS_SPECS } from "~/lib/class-specs";
+import { CLASS_SPECS, inferTalentRole } from "~/lib/class-specs";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 import {
@@ -257,18 +257,78 @@ export const raidHelperRouter = createTRPCRouter({
         secondsPerHour * input.allowableHoursPastStart;
 
       // Filter to events newer than 1 hour ago and sort by startTime ascending
-      return data.postedEvents
+      const filteredEvents = data.postedEvents
         .filter((e) => e.startTime >= minStartTime)
-        .sort((a, b) => a.startTime - b.startTime)
-        .map((e) => ({
-          id: e.id,
-          title: e.title,
-          displayTitle: resolveEventTitle(e.title, e.startTime),
-          channelName: e.channelName,
-          startTime: e.startTime,
-          leaderName: e.leaderName,
-          signUpCount: e.signUpCount ?? 0,
-        }));
+        .sort((a, b) => a.startTime - b.startTime);
+
+      // Fetch details for each event to get role counts
+      const eventsWithRoles = await Promise.all(
+        filteredEvents.map(async (e) => {
+          let roleCounts = {
+            Tank: 0,
+            Healer: 0,
+            Melee: 0,
+            Ranged: 0,
+          };
+
+          try {
+            // Fetch event details to get signups
+            const detailResponse = await fetch(
+              `${RAID_HELPER_API_BASE}/v2/events/${e.id}`,
+            );
+
+            if (detailResponse.ok) {
+              const detailData =
+                (await detailResponse.json()) as RaidHelperEventResponse;
+              const signUps = detailData.signUps ?? [];
+
+              // Calculate role counts
+              const counts = {
+                Tank: 0,
+                Healer: 0,
+                Melee: 0,
+                Ranged: 0,
+              };
+
+              for (const signup of signUps) {
+                // Clean specName by removing numbers (e.g., "Protection1" -> "Protection")
+                const specName = signup.specName?.replace(/[0-9]/g, "") ?? "";
+                const resolvedClass = resolveClassName(
+                  signup.className,
+                  specName,
+                );
+
+                if (!resolvedClass) {
+                  continue;
+                }
+
+                // Use strict role inference for consistency with Find Gamers
+                const role = inferTalentRole(resolvedClass, specName);
+                if (counts[role] !== undefined) {
+                  counts[role]++;
+                }
+              }
+              roleCounts = counts;
+            }
+          } catch (err) {
+            console.error(`Failed to fetch details for event ${e.id}`, err);
+            // Default to 0 counts on error
+          }
+
+          return {
+            id: e.id,
+            title: e.title,
+            displayTitle: resolveEventTitle(e.title, e.startTime),
+            channelName: e.channelName,
+            startTime: e.startTime,
+            leaderName: e.leaderName,
+            signUpCount: e.signUpCount ?? 0,
+            roleCounts,
+          };
+        }),
+      );
+
+      return eventsWithRoles;
     }),
 
   /**

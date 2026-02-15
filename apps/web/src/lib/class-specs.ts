@@ -3,11 +3,13 @@
  * Maps class names to their available specializations with IDs
  */
 
+export type TalentRole = "Tank" | "Healer" | "Melee" | "Ranged";
+
 export interface ClassSpec {
   id: number;
   name: string;
   role: string;
-  talentRole: "Tank" | "Healer" | "Melee" | "Ranged";
+  talentRole: TalentRole;
 }
 
 export interface ClassSpecs {
@@ -318,4 +320,46 @@ export function getTalentRoleBySpecId(
   specId: number,
 ): "Tank" | "Healer" | "Melee" | "Ranged" | undefined {
   return getSpecById(specId)?.talentRole;
+}
+// Map class to default role (used when we don't have spec info)
+export const CLASS_DEFAULT_ROLE: Record<string, TalentRole> = {
+  Warrior: "Melee",
+  Rogue: "Melee",
+  Hunter: "Ranged",
+  Mage: "Ranged",
+  Warlock: "Ranged",
+  Priest: "Healer",
+  Paladin: "Healer",
+  Druid: "Healer",
+  Shaman: "Healer",
+  Deathknight: "Melee",
+  Monk: "Melee",
+};
+
+/**
+ * Infer talent role from class and optional spec name
+ */
+export function inferTalentRole(
+  className: string,
+  specName?: string,
+): TalentRole {
+  // Try to get from spec first
+  if (specName) {
+    // Normalize class name for lookup
+    const normalizedClass =
+      className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
+    const specs = CLASS_SPECS[normalizedClass as keyof typeof CLASS_SPECS];
+
+    if (specs) {
+      const spec = specs.find(
+        (s) => s.name.toLowerCase() === specName.toLowerCase(),
+      );
+      if (spec?.talentRole) {
+        return spec.talentRole;
+      }
+    }
+  }
+
+  // Fall back to class default
+  return CLASS_DEFAULT_ROLE[className] ?? "Melee";
 }
