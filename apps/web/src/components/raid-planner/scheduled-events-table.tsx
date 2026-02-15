@@ -12,12 +12,10 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
-import { Switch } from "~/components/ui/switch";
 import {
   SignupVolumeIndicator,
   getSignupStatusColor,
   getRaidTarget,
-  type IndicatorVariant,
   type SignupVolumeRoleCounts,
 } from "./signup-volume-indicator";
 
@@ -50,9 +48,6 @@ export function ScheduledEventsTable({
   onFindPlayers,
   onSelectEvent,
 }: ScheduledEventsTableProps) {
-  const [indicatorStyle, setIndicatorStyle] =
-    useState<IndicatorVariant>("total");
-
   if (!events || events.length === 0) {
     return (
       <div className="rounded-md border py-8 text-center text-muted-foreground">
@@ -76,30 +71,7 @@ export function ScheduledEventsTable({
               Date
             </th>
             <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
-              <div className="flex items-center gap-2">
-                Signups
-                <div className="flex items-center gap-1.5 p-1">
-                  <span
-                    className={`cursor-pointer text-[10px] font-medium transition-colors ${indicatorStyle === "total" ? "text-primary" : "text-muted-foreground"}`}
-                    onClick={() => setIndicatorStyle("total")}
-                  >
-                    Total
-                  </span>
-                  <Switch
-                    checked={indicatorStyle === "role"}
-                    onCheckedChange={(checked) =>
-                      setIndicatorStyle(checked ? "role" : "total")
-                    }
-                    className="h-3.5 w-6 md:h-4 md:w-7"
-                  />
-                  <span
-                    className={`cursor-pointer text-[10px] font-medium transition-colors ${indicatorStyle === "role" ? "text-primary" : "text-muted-foreground"}`}
-                    onClick={() => setIndicatorStyle("role")}
-                  >
-                    Role
-                  </span>
-                </div>
-              </div>
+              Signups
             </th>
             <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground md:w-[60px]">
               Link
@@ -114,7 +86,6 @@ export function ScheduledEventsTable({
               existingPlanId={existingPlans?.[event.id]}
               onFindPlayers={onFindPlayers}
               onSelect={() => onSelectEvent(event.id)}
-              variant={indicatorStyle}
             />
           ))}
         </tbody>
@@ -128,7 +99,6 @@ function EventRow({
   existingPlanId,
   onFindPlayers,
   onSelect,
-  variant,
 }: {
   event: ScheduledEvent;
   existingPlanId?: string;
@@ -139,7 +109,6 @@ function EventRow({
     matchResults: SignupMatchResult[],
   ) => void;
   onSelect: () => void;
-  variant: IndicatorVariant;
 }) {
   const [isLoadingFindPlayers, setIsLoadingFindPlayers] = useState(false);
   const utils = api.useUtils();
@@ -257,7 +226,6 @@ function EventRow({
             count={event.signUpCount ?? 0}
             title={event.title}
             channelName={event.channelName}
-            variant={variant}
             roleCounts={event.roleCounts}
           />
         </div>
