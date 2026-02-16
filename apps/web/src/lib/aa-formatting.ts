@@ -57,7 +57,7 @@ export const AA_RAID_MARKERS = [
 ] as const;
 
 // Raid marker aliases ({rt1} through {rt8})
-const RAID_MARKER_ALIASES: Record<string, string> = {
+export const RAID_MARKER_ALIASES: Record<string, string> = {
   rt1: "star",
   rt2: "circle",
   rt3: "diamond",
@@ -98,7 +98,7 @@ export const AA_CLASS_ICONS = [
 // Comprehensive texture tag lookup
 // Maps lowercase tag content to Wowhead icon texture name.
 // These render as <img> from the Wowhead CDN: wow.zamimg.com/images/wow/icons/medium/{texture}.jpg
-const AA_TEXTURE_TAGS: Record<string, string> = {
+export const AA_TEXTURE_TAGS: Record<string, string> = {
   // --- Warrior ---
   sunder: "ability_warrior_sunder",
   "sunder armor": "ability_warrior_sunder",
@@ -299,7 +299,7 @@ const AA_TEXTURE_TAGS: Record<string, string> = {
 };
 
 // Directional arrow icons (rendered as colored unicode text)
-const AA_ARROW_ICONS: Record<string, string> = {
+export const AA_ARROW_ICONS: Record<string, string> = {
   left: "\u25C4",
   right: "\u25BA",
   up: "\u25B2",
@@ -320,7 +320,8 @@ export type AAIconType =
   | "class"
   | "ability"
   | "spell"
-  | "texture";
+  | "texture"
+  | "color";
 
 export interface AASegment {
   type: "text" | "colored-text" | "icon" | "slot" | "ref";
