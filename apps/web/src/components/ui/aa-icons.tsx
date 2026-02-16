@@ -13,6 +13,48 @@ import { ClassIcon } from "./class-icon";
 import { useSpellIcon, getSpellIconUrl } from "~/hooks/use-spell-icon";
 import type { AAIconType } from "~/lib/aa-formatting";
 
+/**
+ * Texture icon component that renders WoW icons from Wowhead CDN by texture name.
+ * Used for raid utility abilities, boss icons, consumables, etc.
+ */
+function TextureIcon({
+  textureName,
+  size = 14,
+  className,
+}: {
+  textureName: string;
+  size?: number;
+  className?: string;
+}) {
+  const [errored, setErrored] = useState(false);
+
+  const baseClassName =
+    className ?? "inline-block rounded-sm align-text-bottom";
+
+  if (errored) {
+    return (
+      <HelpCircle
+        className={`${baseClassName} text-muted-foreground`}
+        style={{ width: size, height: size }}
+        aria-label={textureName}
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={getSpellIconUrl(textureName)}
+      alt={textureName}
+      width={size}
+      height={size}
+      className={baseClassName}
+      style={{ width: size, height: size }}
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 interface AAIconProps {
   name: string;
   type: AAIconType;
@@ -98,6 +140,11 @@ export function AAIcon({ name, type, size = 14, className }: AAIconProps) {
         className={className ?? "inline-block align-text-bottom"}
       />
     );
+  }
+
+  // Texture icons render from Wowhead CDN by texture name
+  if (type === "texture") {
+    return <TextureIcon textureName={name} size={size} className={className} />;
   }
 
   // Spell icons fetch from Wowhead

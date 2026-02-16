@@ -191,16 +191,23 @@ export function AATemplateRenderer({
 
       switch (segment.type) {
         case "text":
-          parts.push(<span key={key}>{segment.content}</span>);
-          break;
-
-        case "colored-text":
+        case "colored-text": {
+          const style: React.CSSProperties = {};
+          if (segment.color) style.color = segment.color;
+          if (segment.fontStyle) style.fontStyle = segment.fontStyle;
+          if (segment.fontWeight) style.fontWeight = segment.fontWeight;
+          const hasStyle = Object.keys(style).length > 0;
           parts.push(
-            <span key={key} style={{ color: segment.color }}>
-              {segment.content}
-            </span>,
+            hasStyle ? (
+              <span key={key} style={style}>
+                {segment.content}
+              </span>
+            ) : (
+              <span key={key}>{segment.content}</span>
+            ),
           );
           break;
+        }
 
         case "icon":
           if (segment.iconType && segment.iconName) {
