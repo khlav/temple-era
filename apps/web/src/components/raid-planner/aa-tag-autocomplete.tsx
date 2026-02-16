@@ -172,14 +172,22 @@ export function useAATagAutocomplete({
         if (entry) insertTag(entry);
       } else if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation(); // Prevent dialog from closing
         setActive(false);
       }
     },
     [active, filteredTags, selectedIndex, insertTag],
   );
 
+  const handleBlur = useCallback(() => {
+    // Small delay to allow click/onMouseDown events on dropdown to fire first
+    setTimeout(() => {
+      setActive(false);
+    }, 150);
+  }, []);
+
   if (!active || filteredTags.length === 0) {
-    return { dropdown: null, handleKeyDown };
+    return { dropdown: null, handleKeyDown, handleBlur, isOpen: false };
   }
 
   const dropdown = (
@@ -243,7 +251,7 @@ export function useAATagAutocomplete({
     </div>
   );
 
-  return { dropdown, handleKeyDown };
+  return { dropdown, handleKeyDown, handleBlur, isOpen: true };
 }
 
 /**

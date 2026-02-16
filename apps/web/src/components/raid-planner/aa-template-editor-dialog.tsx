@@ -55,6 +55,7 @@ export function AATemplateEditorDialog({
   const [localTemplate, setLocalTemplate] = useState(initialTemplate);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
 
   // Re-initialize when dialog opens with new context
   useEffect(() => {
@@ -69,10 +70,25 @@ export function AATemplateEditorDialog({
   );
 
   const hasErrors = errors.length > 0;
+  const isDirty = localTemplate !== initialTemplate;
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && isDirty) {
+      setShowUnsavedConfirm(true);
+      return;
+    }
+    onOpenChange(newOpen);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[80vh] max-w-6xl flex-col">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="flex max-h-[80vh] max-w-6xl flex-col"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          if (isDirty) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {zoneName} — {contextLabel} AA Template
@@ -135,7 +151,7 @@ export function AATemplateEditorDialog({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
@@ -203,6 +219,32 @@ export function AATemplateEditorDialog({
               ) : (
                 "Reset Template"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={showUnsavedConfirm}
+        onOpenChange={setShowUnsavedConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to the AA template. Are you sure you want
+              to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Return to editor</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUnsavedConfirm(false);
+                onOpenChange(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

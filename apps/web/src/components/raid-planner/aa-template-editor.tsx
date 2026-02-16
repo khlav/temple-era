@@ -72,6 +72,7 @@ export function AATemplateInlineEditor({
           value={template}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={autocomplete.handleKeyDown}
+          onBlur={autocomplete.handleBlur}
           onClick={() => {
             // Trigger re-detection on click (cursor position change)
           }}
