@@ -27,16 +27,10 @@ export function CurrentLockoutAllRaids() {
     <Card>
       <CardHeader>
         <div className="flex items-end text-nowrap">
-          <div className="grow-0">Raids this week</div>
-          <div className="grow pb-0.5 text-right text-sm text-primary hover:underline">
+          <div className="grow-0">Completed raids this lockout</div>
+          <div className="grow text-right text-sm text-primary hover:underline">
             <Link href="/raids">View all raids</Link>
           </div>
-        </div>
-        <div className="grow text-sm text-muted-foreground">
-          Current lockout
-          {trackedRaidData &&
-            trackedRaidData.length > 0 &&
-            `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
         </div>
       </CardHeader>
       <CardContent>

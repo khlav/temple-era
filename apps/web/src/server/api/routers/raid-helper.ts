@@ -11,7 +11,11 @@ import {
   aliasedTable,
 } from "drizzle-orm";
 import { formatInTimeZone } from "date-fns-tz";
-import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  raidManagerProcedure,
+} from "~/server/api/trpc";
 import { CLASS_SPECS, inferTalentRole } from "~/lib/class-specs";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
@@ -91,6 +95,7 @@ interface PostedEvent {
   signUpCount?: number;
   softresId?: string;
   scheduledId?: string;
+  channelId: string;
 }
 
 interface PostedEventsResponse {
@@ -226,7 +231,7 @@ export const raidHelperRouter = createTRPCRouter({
   /**
    * Fetch scheduled events from the Discord server
    */
-  getScheduledEvents: raidManagerProcedure
+  getScheduledEvents: publicProcedure
     .input(
       z.object({
         allowableHoursPastStart: z.number().min(0).default(0),
@@ -323,6 +328,8 @@ export const raidHelperRouter = createTRPCRouter({
             startTime: e.startTime,
             leaderName: e.leaderName,
             signUpCount: e.signUpCount ?? 0,
+            channelId: e.channelId,
+            serverId: env.DISCORD_SERVER_ID,
             roleCounts,
           };
         }),

@@ -4,10 +4,8 @@ import React from "react";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import type { Session } from "next-auth";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
-import Image from "next/image";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AttendanceProgressBar } from "~/components/common/attendance-progress-bar";
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
@@ -187,79 +185,65 @@ export function PersonalAttendanceSummary({
     };
   }, []);
 
-  // Show login/select character prompt if not fully authenticated/configured
-  if (!currentUserSession?.user || !activeCharacterId) {
+  // Show select character prompt if logged in but no primary character selected
+  if (currentUserSession?.user && !activeCharacterId) {
     return (
-      <Card className="relative overflow-hidden">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <span>Raid Attendance, Last 6 lockouts</span>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-0">
-          {/* Blurred Background Content */}
-          <div className="pointer-events-none select-none opacity-50 blur-[2px]">
-            <AttendanceProgressBar
-              attendancePct={sampleData.stats.attendancePct}
-              weightedAttendance={sampleData.stats.weightedAttendance}
-              showEligibility={true}
-            />
-            <div className="mt-4">
-              <AttendanceHeatmapGrid
-                sampleData={sampleData.heatmap}
-                showCreditsRow={true}
-                showSubtitle={true}
-                showMaxCreditsHelper={true}
-                weeksBack={6}
-              />
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <CharacterSelector
+                onSelectAction={(char) => {
+                  saveProfileMutation.mutate({
+                    name: currentUserSession.user.name ?? "Unknown",
+                    characterId: char.characterId,
+                  });
+                }}
+                characterSet="primary"
+              >
+                <Button variant="outline" size="sm" className="h-8">
+                  Select primary character
+                </Button>
+              </CharacterSelector>
+              <p className="text-sm text-muted-foreground">
+                to view your attendance.
+              </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-          {/* Foreground Actions */}
-          <div className="absolute inset-x-0 top-[20%] z-10 flex justify-center p-6 text-center">
-            <div className="rounded-lg border bg-card p-6 shadow-sm">
-              {!currentUserSession?.user ? (
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <Button
-                    onClick={() =>
-                      signIn("discord", { redirectTo: "/?signin=1" })
-                    }
-                    size="sm"
-                    className="flex items-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2]"
-                  >
-                    <Image
-                      src="/img/discord-mark-white.svg"
-                      alt="Discord"
-                      height={14}
-                      width={14}
-                    />
-                    Sign in with Discord
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    and select your primary character to view your attendance.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <CharacterSelector
-                    onSelectAction={(char) => {
-                      saveProfileMutation.mutate({
-                        name: currentUserSession.user.name ?? "Unknown",
-                        characterId: char.characterId,
-                      });
-                    }}
-                    characterSet="primary"
-                  >
-                    <Button variant="outline" size="sm" className="h-8">
-                      Select primary character
-                    </Button>
-                  </CharacterSelector>
-                  <p className="text-sm text-muted-foreground">
-                    to view your attendance.
-                  </p>
-                </div>
-              )}
-            </div>
+  // If not logged in and no session, we just return the blurred sample state
+  // This will be wrapped by the parent's blur overlay anyway.
+  if (!activeCharacterId) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <span>Raid Attendance, Last 6 lockouts</span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          <AttendanceProgressBar
+            attendancePct={sampleData.stats.attendancePct}
+            weightedAttendance={sampleData.stats.weightedAttendance}
+            showEligibility={true}
+          />
+          <div className="mt-4">
+            <AttendanceHeatmapGrid
+              sampleData={sampleData.heatmap}
+              showCreditsRow={true}
+              showSubtitle={true}
+              showMaxCreditsHelper={true}
+              weeksBack={6}
+            />
           </div>
         </CardContent>
       </Card>
