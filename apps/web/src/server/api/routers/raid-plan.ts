@@ -739,6 +739,7 @@ export const raidPlanRouter = createTRPCRouter({
         name: z.string().min(1).max(256),
         zoneId: z.string().min(1).max(64),
         startAt: z.date().optional(),
+        cloneFromPlanId: z.string().uuid().optional(),
         characters: z.array(
           z.object({
             characterId: z.number().nullable(),
@@ -796,60 +797,110 @@ export const raidPlanRouter = createTRPCRouter({
           );
         }
 
-        // Copy template encounters if an active template exists for this zone (skip for custom zones)
-        const template =
-          input.zoneId === CUSTOM_ZONE_ID
-            ? []
-            : await tx
-                .select({
-                  id: raidPlanTemplates.id,
-                  defaultAATemplate: raidPlanTemplates.defaultAATemplate,
-                })
-                .from(raidPlanTemplates)
-                .where(
-                  and(
-                    eq(raidPlanTemplates.zoneId, input.zoneId),
-                    eq(raidPlanTemplates.isActive, true),
-                  ),
-                )
-                .limit(1);
+        // If cloning from an existing plan, copy its setup
+        if (input.cloneFromPlanId) {
+          const sourcePlan = await tx
+            .select({
+              defaultAATemplate: raidPlans.defaultAATemplate,
+              useDefaultAA: raidPlans.useDefaultAA,
+            })
+            .from(raidPlans)
+            .where(eq(raidPlans.id, input.cloneFromPlanId))
+            .limit(1);
 
-        if (template.length > 0) {
-          // Update the plan with default AA template from zone template
-          // If template exists, automatically enable it
-          if (template[0]!.defaultAATemplate) {
+          if (sourcePlan.length > 0) {
+            // Update new plan with source's AA settings
             await tx
               .update(raidPlans)
               .set({
-                defaultAATemplate: template[0]!.defaultAATemplate,
-                useDefaultAA: true,
+                defaultAATemplate: sourcePlan[0]!.defaultAATemplate,
+                useDefaultAA: sourcePlan[0]!.useDefaultAA,
               })
               .where(eq(raidPlans.id, planId));
+
+            // Copy encounters
+            const sourceEncounters = await tx
+              .select({
+                encounterKey: raidPlanEncounters.encounterKey,
+                encounterName: raidPlanEncounters.encounterName,
+                sortOrder: raidPlanEncounters.sortOrder,
+                aaTemplate: raidPlanEncounters.aaTemplate,
+                useCustomAA: raidPlanEncounters.useCustomAA,
+              })
+              .from(raidPlanEncounters)
+              .where(eq(raidPlanEncounters.raidPlanId, input.cloneFromPlanId))
+              .orderBy(raidPlanEncounters.sortOrder);
+
+            if (sourceEncounters.length > 0) {
+              await tx.insert(raidPlanEncounters).values(
+                sourceEncounters.map((enc) => ({
+                  raidPlanId: planId,
+                  encounterKey: enc.encounterKey,
+                  encounterName: enc.encounterName,
+                  sortOrder: enc.sortOrder,
+                  useDefaultGroups: true, // Always reset to default groups on clone
+                  aaTemplate: enc.aaTemplate,
+                  useCustomAA: enc.useCustomAA,
+                })),
+              );
+            }
           }
+        } else {
+          // Fall back to template encounters if an active template exists for this zone (skip for custom zones)
+          const template =
+            input.zoneId === CUSTOM_ZONE_ID
+              ? []
+              : await tx
+                  .select({
+                    id: raidPlanTemplates.id,
+                    defaultAATemplate: raidPlanTemplates.defaultAATemplate,
+                  })
+                  .from(raidPlanTemplates)
+                  .where(
+                    and(
+                      eq(raidPlanTemplates.zoneId, input.zoneId),
+                      eq(raidPlanTemplates.isActive, true),
+                    ),
+                  )
+                  .limit(1);
 
-          const templateEncounters = await tx
-            .select({
-              encounterKey: raidPlanTemplateEncounters.encounterKey,
-              encounterName: raidPlanTemplateEncounters.encounterName,
-              sortOrder: raidPlanTemplateEncounters.sortOrder,
-              aaTemplate: raidPlanTemplateEncounters.aaTemplate,
-            })
-            .from(raidPlanTemplateEncounters)
-            .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
-            .orderBy(raidPlanTemplateEncounters.sortOrder);
+          if (template.length > 0) {
+            // Update the plan with default AA template from zone template
+            // If template exists, automatically enable it
+            if (template[0]!.defaultAATemplate) {
+              await tx
+                .update(raidPlans)
+                .set({
+                  defaultAATemplate: template[0]!.defaultAATemplate,
+                  useDefaultAA: true,
+                })
+                .where(eq(raidPlans.id, planId));
+            }
 
-          if (templateEncounters.length > 0) {
-            await tx.insert(raidPlanEncounters).values(
-              templateEncounters.map((enc) => ({
-                raidPlanId: planId,
-                encounterKey: enc.encounterKey,
-                encounterName: enc.encounterName,
-                sortOrder: enc.sortOrder,
-                useDefaultGroups: true,
-                aaTemplate: enc.aaTemplate,
-                useCustomAA: !!enc.aaTemplate, // Enable AA if template exists
-              })),
-            );
+            const templateEncounters = await tx
+              .select({
+                encounterKey: raidPlanTemplateEncounters.encounterKey,
+                encounterName: raidPlanTemplateEncounters.encounterName,
+                sortOrder: raidPlanTemplateEncounters.sortOrder,
+                aaTemplate: raidPlanTemplateEncounters.aaTemplate,
+              })
+              .from(raidPlanTemplateEncounters)
+              .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
+              .orderBy(raidPlanTemplateEncounters.sortOrder);
+
+            if (templateEncounters.length > 0) {
+              await tx.insert(raidPlanEncounters).values(
+                templateEncounters.map((enc) => ({
+                  raidPlanId: planId,
+                  encounterKey: enc.encounterKey,
+                  encounterName: enc.encounterName,
+                  sortOrder: enc.sortOrder,
+                  useDefaultGroups: true,
+                  aaTemplate: enc.aaTemplate,
+                  useCustomAA: !!enc.aaTemplate, // Enable AA if template exists
+                })),
+              );
+            }
           }
         }
 

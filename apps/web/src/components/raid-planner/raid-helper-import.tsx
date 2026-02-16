@@ -22,8 +22,9 @@ import {
   AlertTriangle,
   MinusCircle,
   History,
+  ChevronDown,
 } from "lucide-react";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
@@ -35,6 +36,12 @@ import { ZoneSelect } from "./zone-select";
 import { ScheduledEventsTable } from "./scheduled-events-table";
 import { PastPlansTable } from "./past-plans-table";
 import { UrlImportForm } from "./url-import-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -172,6 +179,7 @@ export function RaidPlannerImport() {
         eventId={selectedEventId}
         open={!!selectedEventId}
         onOpenChange={(open) => !open && setSelectedEventId(null)}
+        pastPlans={pastPlans}
       />
 
       {/* Find Players Dialog */}
@@ -211,18 +219,24 @@ interface CharacterMatchingDialogProps {
   eventId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  pastPlans?: RouterOutputs["raidPlan"]["getPastPlans"];
 }
 
 function CharacterMatchingDialog({
   eventId,
   open,
   onOpenChange,
+  pastPlans,
 }: CharacterMatchingDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { data: session } = useSession();
   const [homeServer, setHomeServer] = useState("");
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [cloneFromPlanId, setCloneFromPlanId] = useState<string | null>(null);
+  const [cloneFromPlanName, setCloneFromPlanName] = useState<string | null>(
+    null,
+  );
 
   // Default home server to user's primary character server
   const characterId = session?.user?.characterId;
@@ -312,10 +326,12 @@ function CharacterMatchingDialog({
     }
   }, [matchResults, autoDetectedZone, selectedZone]);
 
-  // Reset selectedZone when dialog closes
+  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedZone(null);
+      setCloneFromPlanId(null);
+      setCloneFromPlanName(null);
     }
   }, [open]);
 
@@ -323,10 +339,6 @@ function CharacterMatchingDialog({
 
   const createPlanMutation = api.raidPlan.create.useMutation({
     onSuccess: (data) => {
-      toast({
-        title: "Plan created",
-        description: "Redirecting to plan details...",
-      });
       onOpenChange(false);
       router.push(`/raid-manager/raid-planner/${data.id}`);
     },
@@ -395,8 +407,16 @@ function CharacterMatchingDialog({
       zoneId: effectiveZone,
       startAt: new Date(eventDetails.event.startTime * 1000),
       characters,
+      cloneFromPlanId: cloneFromPlanId ?? undefined,
     });
-  }, [eventId, eventDetails, matchResults, effectiveZone, createPlanMutation]);
+  }, [
+    eventId,
+    eventDetails,
+    matchResults,
+    effectiveZone,
+    createPlanMutation,
+    cloneFromPlanId,
+  ]);
 
   const handleCopyMRT = useCallback(() => {
     if (!matchResults) return;
@@ -703,24 +723,86 @@ function CharacterMatchingDialog({
                 <Copy className="mr-2 h-4 w-4" />
                 {copied ? "Copied!" : "Copy MRT Export"}
               </Button>
-              <Button
-                onClick={handleCreatePlan}
-                disabled={!effectiveZone || createPlanMutation.isPending}
-                title={
-                  !effectiveZone
-                    ? "Please select a zone to create the plan"
-                    : undefined
-                }
-              >
-                {createPlanMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Plan"
-                )}
-              </Button>
+              <div className="flex items-center">
+                <Button
+                  onClick={handleCreatePlan}
+                  disabled={!effectiveZone || createPlanMutation.isPending}
+                  className="max-w-[230px] rounded-r-none"
+                  title={
+                    cloneFromPlanName ||
+                    (!effectiveZone
+                      ? "Please select a zone to create the plan"
+                      : "Create Plan")
+                  }
+                >
+                  <span className="block truncate">
+                    {createPlanMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      </>
+                    ) : cloneFromPlanId ? (
+                      `Cloning: ${cloneFromPlanName}`
+                    ) : (
+                      "Create Plan"
+                    )}
+                  </span>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="default"
+                      className="rounded-l-none border-l border-primary-foreground/20 px-2"
+                      disabled={createPlanMutation.isPending}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                      Clone From Recent Plan
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setCloneFromPlanId(null);
+                          setCloneFromPlanName(null);
+                        }}
+                        className="italic text-primary"
+                      >
+                        Create new plan (default)
+                      </DropdownMenuItem>
+                      {pastPlans && pastPlans.length > 0 ? (
+                        pastPlans.slice(0, 10).map((plan) => (
+                          <DropdownMenuItem
+                            key={plan.id}
+                            onSelect={() => {
+                              setCloneFromPlanId(plan.id);
+                              setCloneFromPlanName(plan.name);
+                              // Auto-select zone if available in the past plan
+                              if (plan.zoneId) {
+                                setSelectedZone(plan.zoneId);
+                              }
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{plan.name}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {plan.startAt
+                                  ? new Date(plan.startAt).toLocaleDateString()
+                                  : plan.zoneId}
+                              </span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+                          No past plans found
+                        </div>
+                      )}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </DialogFooter>
         )}
