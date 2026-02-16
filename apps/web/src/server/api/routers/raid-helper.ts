@@ -237,7 +237,7 @@ export const raidHelperRouter = createTRPCRouter({
         allowableHoursPastStart: z.number().min(0).default(0),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const response = await fetch(
         `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/events`,
         {
@@ -255,6 +255,22 @@ export const raidHelperRouter = createTRPCRouter({
       }
 
       const data = (await response.json()) as PostedEventsResponse;
+
+      // Fetch Discord ID for the current user if authenticated
+      let userDiscordId: string | null = null;
+      if (ctx.session?.user?.id) {
+        const account = await ctx.db.query.accounts.findFirst({
+          where: (accounts, { eq, and }) =>
+            and(
+              eq(accounts.userId, ctx.session!.user.id),
+              eq(accounts.provider, "discord"),
+            ),
+          columns: {
+            providerAccountId: true,
+          },
+        });
+        userDiscordId = account?.providerAccountId ?? null;
+      }
 
       const secondsPerHour = 3600;
       const minStartTime =
@@ -275,6 +291,7 @@ export const raidHelperRouter = createTRPCRouter({
             Melee: 0,
             Ranged: 0,
           };
+          let userSignupStatus: string | null = null;
 
           try {
             // Fetch event details to get signups
@@ -296,6 +313,22 @@ export const raidHelperRouter = createTRPCRouter({
               };
 
               for (const signup of signUps) {
+                if (userDiscordId && signup.userId === userDiscordId) {
+                  // Check if className indicates a special status
+                  const specialStatuses = [
+                    "Bench",
+                    "Late",
+                    "Tentative",
+                    "Absence",
+                    "Absent",
+                  ];
+                  if (specialStatuses.includes(signup.className)) {
+                    userSignupStatus = signup.className;
+                  } else {
+                    userSignupStatus = "Confirmed";
+                  }
+                }
+
                 // Clean specName by removing numbers (e.g., "Protection1" -> "Protection")
                 const specName = signup.specName?.replace(/[0-9]/g, "") ?? "";
                 const resolvedClass = resolveClassName(
@@ -331,6 +364,7 @@ export const raidHelperRouter = createTRPCRouter({
             channelId: e.channelId,
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
+            userSignupStatus,
           };
         }),
       );
