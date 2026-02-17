@@ -12,14 +12,15 @@ import {
   EyeOff,
 } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { RaidPlanHeader } from "./raid-plan-header";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
-import { ReorderEncountersDialog } from "./reorder-encounters-dialog";
+import { ManageEncountersDialog } from "./manage-encounters-dialog";
+import { EncounterTabNav } from "./encounter-tab-nav";
 import { MRTControls } from "./mrt-controls";
 import { AAPanel } from "./aa-panel";
 import { RaidPlanDetailSkeleton } from "./skeletons";
@@ -77,6 +78,9 @@ export function RaidPlanDetail({
   } = mutations;
 
   const utils = api.useUtils();
+  const createEncounterMutation = api.raidPlan.createEncounter.useMutation({
+    onSuccess: () => void refetch(),
+  });
   const togglePublicMutation = api.raidPlan.togglePublic.useMutation({
     onMutate: async ({ isPublic }) => {
       await utils.raidPlan.getById.cancel({ planId });
@@ -191,54 +195,48 @@ export function RaidPlanDetail({
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {/* Tabs above two-column layout */}
-        <div className="flex items-center gap-2">
-          <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="default">Default/Trash</TabsTrigger>
-            {plan.encounters.map((encounter) => (
-              <TabsTrigger
-                key={encounter.id}
-                value={encounter.id}
-                className={cn(
-                  "group relative pr-6",
-                  encounter.useDefaultGroups ? "italic opacity-50" : "",
-                )}
-              >
-                {encounter.encounterName}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100 group-data-[state=active]:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteEncounterId(encounter.id);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.stopPropagation();
-                      setDeleteEncounterId(encounter.id);
-                    }
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="flex flex-col gap-1">
+        <EncounterTabNav
+          encounters={plan.encounters}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          leftActions={
             <AddEncounterDialog planId={planId} onEncounterCreated={refetch} />
-            <ReorderEncountersDialog
+          }
+          actions={
+            <ManageEncountersDialog
               encounters={plan.encounters.map((e) => ({
                 id: e.id,
                 encounterName: e.encounterName,
                 sortOrder: e.sortOrder,
               }))}
-              onSave={(encounters) =>
-                reorderEncountersMutation.mutate({ encounters })
+              onSave={(encounters) => {
+                // Handle reorder
+                reorderEncountersMutation.mutate({
+                  encounters: encounters.map((e) => ({
+                    id: e.id,
+                    sortOrder: e.sortOrder,
+                  })),
+                });
+                // Handle renames
+                encounters.forEach((e) => {
+                  if (e.encounterName) {
+                    updateEncounterMutation.mutate({
+                      encounterId: e.id,
+                      encounterName: e.encounterName,
+                    });
+                  }
+                });
+              }}
+              onDelete={(encounterId) => setDeleteEncounterId(encounterId)}
+              onAdd={(encounterName) =>
+                createEncounterMutation.mutate({ planId, encounterName })
               }
               isPending={reorderEncountersMutation.isPending}
+              isDeletePending={deleteEncounterMutation.isPending}
+              isAddPending={createEncounterMutation.isPending}
             />
-          </div>
-        </div>
+          }
+        />
 
         {/* Two-column layout for tab content - wrapped in shared DndContext */}
         <DndContext

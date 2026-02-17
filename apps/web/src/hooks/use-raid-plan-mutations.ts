@@ -21,34 +21,62 @@ export function useRaidPlanMutations({
   } = api.raidPlan.getById.useQuery({ planId }, { refetchInterval: 5000 });
 
   const updateEncounterMutation = api.raidPlan.updateEncounter.useMutation({
-    onSuccess: () => {
-      void refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          encounters: old.encounters.map((e) =>
+            e.id === input.encounterId
+              ? {
+                  ...e,
+                  ...(input.encounterName !== undefined && {
+                    encounterName: input.encounterName,
+                  }),
+                }
+              : e,
+          ),
+        };
       });
+      return { prev };
     },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
   });
 
   const deleteEncounterMutation = api.raidPlan.deleteEncounter.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          encounters: old.encounters.filter((e) => e.id !== input.encounterId),
+        };
+      });
+      return { prev };
+    },
     onSuccess: () => {
       toast({
         title: "Encounter deleted",
         description: "The encounter has been removed.",
       });
       onEncounterDeleted?.();
-      void refetch();
     },
-    onError: (error) => {
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       toast({
         title: "Error",
-        description: error.message,
+        description: _err.message,
         variant: "destructive",
       });
     },
+    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
   });
 
   const resetEncounterMutation =

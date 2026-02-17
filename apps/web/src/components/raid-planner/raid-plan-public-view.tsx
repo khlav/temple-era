@@ -5,14 +5,14 @@ import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
 import { formatRaidDate } from "~/utils/date-formatting";
 import { ExternalLink, Info, Edit } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
 import { AAPanel } from "./aa-panel";
 import { RaidPlanDetailSkeleton } from "./skeletons";
 import { CUSTOM_ZONE_ID, RAID_ZONE_CONFIG } from "~/lib/raid-zones";
 import { INSTANCE_TO_ZONE, CUSTOM_ZONE_DISPLAY_NAME } from "~/lib/raid-zones";
-import { cn } from "~/lib/utils";
+import { EncounterTabNav } from "./encounter-tab-nav";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { buildEncounterCharacters, type RaidPlanCharacter } from "./types";
 import { getGroupCount } from "./constants";
@@ -159,22 +159,11 @@ export function RaidPlanPublicView({
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Tabs (no add/reorder buttons) */}
-          <div className="flex items-center gap-2">
-            <TabsList className="h-auto flex-wrap">
-              <TabsTrigger value="default">Default/Trash</TabsTrigger>
-              {plan.encounters.map((encounter) => (
-                <TabsTrigger
-                  key={encounter.id}
-                  value={encounter.id}
-                  className={cn(
-                    encounter.useDefaultGroups ? "italic opacity-50" : "",
-                  )}
-                >
-                  {encounter.encounterName}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <EncounterTabNav
+            encounters={plan.encounters}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
 
           {/* Banners */}
           {!isLoggedIn && (

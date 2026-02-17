@@ -407,17 +407,19 @@ export function AATemplateRenderer({
         {renderedContent}
 
         {/* Slot summary */}
-        {slots.length > 0 && slotCharacterMap.size != slots.length && (
-          <div className="absolute right-2 top-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <AlertTriangle className="h-3 w-3" />
-            {slots.length - slotCharacterMap.size} empty assignment
-            {slots.length - slotCharacterMap.size !== 1 ? "s" : ""}
-          </div>
-        )}
+        {!disabled &&
+          slots.length > 0 &&
+          slotCharacterMap.size != slots.length && (
+            <div className="absolute right-2 top-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <AlertTriangle className="h-3 w-3" />
+              {slots.length - slotCharacterMap.size} empty assignment
+              {slots.length - slotCharacterMap.size !== 1 ? "s" : ""}
+            </div>
+          )}
       </div>
 
-      {/* Multi-slot warning */}
-      {multiSlotCharacters.length > 0 && (
+      {/* Multi-slot warning (editor only) */}
+      {!disabled && multiSlotCharacters.length > 0 && (
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 p-2 text-sm text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
           <div>
