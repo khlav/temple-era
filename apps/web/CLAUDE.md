@@ -70,6 +70,8 @@ The `pre-push` hook runs before every push:
 4. Runs production build
 5. Checks for remaining `console.log` statements (warning)
 
+**Important**: The `postbuild` script runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Do not interpret them as build failures. Only check the exit code to determine success.
+
 ## Architecture Overview
 
 ### Tech Stack
@@ -330,6 +332,7 @@ The `user-facing` label controls Discord notifications for merged PRs.
 ### Environment Setup
 
 **Prerequisites:**
+
 - Node.js 22.x (required: `>=22.0.0 <23.0.0`)
 - pnpm 9.x (`packageManager: pnpm@9.15.1`)
 
