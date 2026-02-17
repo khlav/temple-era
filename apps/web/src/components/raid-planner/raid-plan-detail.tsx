@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Loader2, X, RotateCcw, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  X,
+  RotateCcw,
+  RefreshCw,
+  ArrowRightFromLine,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -18,6 +26,7 @@ import { RaidPlanDetailSkeleton } from "./skeletons";
 import { DeleteEncounterDialog } from "./delete-encounter-dialog";
 import { CharacterReplacementDialog } from "./character-replacement-dialog";
 import { RefreshConfirmDialog } from "./refresh-confirm-dialog";
+import { PushDefaultAADialog } from "./push-default-aa-dialog";
 import { CUSTOM_ZONE_ID, RAID_ZONE_CONFIG } from "~/lib/raid-zones";
 import { cn } from "~/lib/utils";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
@@ -40,6 +49,8 @@ export function RaidPlanDetail({
   const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(
     null,
   );
+  const [showPushDialog, setShowPushDialog] = useState(false);
+  const [showDefaultAARef, setShowDefaultAARef] = useState(false);
   const { updateBreadcrumbSegment } = useBreadcrumb();
 
   const mutations = useRaidPlanMutations({
@@ -62,6 +73,7 @@ export function RaidPlanDetail({
     clearAAAssignmentsMutation,
     refreshCharactersMutation,
     reorderEncountersMutation,
+    pushDefaultAAMutation,
   } = mutations;
 
   const utils = api.useUtils();
@@ -192,16 +204,23 @@ export function RaidPlanDetail({
                 )}
               >
                 {encounter.encounterName}
-                <button
-                  type="button"
+                <span
+                  role="button"
+                  tabIndex={0}
                   className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100 group-data-[state=active]:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeleteEncounterId(encounter.id);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      setDeleteEncounterId(encounter.id);
+                    }
+                  }}
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -227,7 +246,14 @@ export function RaidPlanDetail({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <div
+            className={cn(
+              "mt-4 grid gap-6",
+              showDefaultAARef && activeTab !== "default"
+                ? "lg:grid-cols-[1fr_1fr_0.6fr]"
+                : "lg:grid-cols-2",
+            )}
+          >
             {/* Left column: Group planning */}
             <div>
               {/* Default Tab */}
@@ -384,21 +410,31 @@ export function RaidPlanDetail({
                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                   )}
                   {plan.useDefaultAA && plan.defaultAATemplate && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleCopyAA(
-                          plan.defaultAATemplate,
-                          plan.aaSlotAssignments.filter(
-                            (a) => a.raidPlanId === planId,
-                          ),
-                          plan.characters as RaidPlanCharacter[],
-                        )
-                      }
-                      className="ml-auto h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
-                    >
-                      {aaCopied ? "Copied!" : "Copy AA Text"}
-                    </button>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowPushDialog(true)}
+                        className="flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <ArrowRightFromLine className="h-3 w-3" />
+                        Push to Encounters
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyAA(
+                            plan.defaultAATemplate,
+                            plan.aaSlotAssignments.filter(
+                              (a) => a.raidPlanId === planId,
+                            ),
+                            plan.characters as RaidPlanCharacter[],
+                          )
+                        }
+                        className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                      >
+                        {aaCopied ? "Copied!" : "Copy AA Text"}
+                      </button>
+                    </div>
                   )}
                 </div>
                 {plan.useDefaultAA ? (
@@ -470,23 +506,47 @@ export function RaidPlanDetail({
                     {updateEncounterMutation.isPending && (
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                     )}
-                    {encounter.useCustomAA && encounter.aaTemplate && (
+                    <div className="ml-auto flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() =>
-                          handleCopyAA(
-                            encounter.aaTemplate,
-                            plan.aaSlotAssignments.filter(
-                              (a) => a.encounterId === encounter.id,
-                            ),
-                            plan.characters as RaidPlanCharacter[],
-                          )
+                        onClick={() => setShowDefaultAARef((v) => !v)}
+                        className={cn(
+                          "flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors",
+                          showDefaultAARef
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                        )}
+                        title={
+                          showDefaultAARef
+                            ? "Hide default AA reference"
+                            : "Show default AA reference"
                         }
-                        className="ml-auto h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
                       >
-                        {aaCopied ? "Copied!" : "Copy AA Text"}
+                        {showDefaultAARef ? (
+                          <EyeOff className="h-3 w-3" />
+                        ) : (
+                          <Eye className="h-3 w-3" />
+                        )}
+                        Default AA
                       </button>
-                    )}
+                      {encounter.useCustomAA && encounter.aaTemplate && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleCopyAA(
+                              encounter.aaTemplate,
+                              plan.aaSlotAssignments.filter(
+                                (a) => a.encounterId === encounter.id,
+                              ),
+                              plan.characters as RaidPlanCharacter[],
+                            )
+                          }
+                          className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                        >
+                          {aaCopied ? "Copied!" : "Copy AA Text"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {encounter.useCustomAA ? (
                     <AAPanel
@@ -546,12 +606,53 @@ export function RaidPlanDetail({
                 </TabsContent>
               ))}
             </div>
+
+            {/* 3rd column: Default AA Reference (compact, read-only) */}
+            {showDefaultAARef && activeTab !== "default" && (
+              <div className="border-l pl-4">
+                <div className="sticky top-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Default AA Reference
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowDefaultAARef(false)}
+                      className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {plan.useDefaultAA && plan.defaultAATemplate ? (
+                    <div className="w-[133.33%] origin-top-left scale-75">
+                      <AAPanel
+                        template={plan.defaultAATemplate}
+                        characters={plan.characters as RaidPlanCharacter[]}
+                        slotAssignments={plan.aaSlotAssignments.filter(
+                          (a) => a.raidPlanId === planId,
+                        )}
+                        contextId={`${planId}-ref`}
+                        contextLabel="Default (Reference)"
+                        zoneName={zoneName}
+                        readOnly
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded border border-dashed p-3">
+                      <p className="text-center text-[11px] text-muted-foreground">
+                        No default AA configured
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Drag overlay for shared DndContext */}
           <DragOverlay dropAnimation={null}>
             {activeCharacter && (
-              <div className="flex items-center gap-1 rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
+              <div className="flex w-max items-center gap-1 whitespace-nowrap rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
                 {activeCharacter.class && (
                   <ClassIcon characterClass={activeCharacter.class} px={14} />
                 )}
@@ -594,6 +695,19 @@ export function RaidPlanDetail({
         onConfirm={() => {
           setShowRefreshDialog(false);
           void handleRefreshFromRaidhelper();
+        }}
+      />
+
+      <PushDefaultAADialog
+        open={showPushDialog}
+        onOpenChange={(open) => !open && setShowPushDialog(false)}
+        planId={planId}
+        isPushing={pushDefaultAAMutation.isPending}
+        onConfirm={() => {
+          pushDefaultAAMutation.mutate(
+            { raidPlanId: planId, preview: false },
+            { onSuccess: () => setShowPushDialog(false) },
+          );
         }}
       />
     </div>

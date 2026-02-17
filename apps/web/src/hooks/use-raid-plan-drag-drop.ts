@@ -6,6 +6,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import {
   buildEncounterCharacters,
   type RaidPlanCharacter,
@@ -19,6 +20,20 @@ interface UseRaidPlanDragDropOptions {
   activeTab: string;
 }
 
+/**
+ * Parse an aa-assigned draggable ID.
+ * Format: "aa-assigned:{contextId}:{slotName}:{planCharacterId}"
+ * The planCharacterId (UUID) is always the last segment.
+ */
+function parseAssignedDragId(id: string) {
+  const withoutPrefix = id.slice("aa-assigned:".length);
+  const segments = withoutPrefix.split(":");
+  const charId = segments[segments.length - 1]!;
+  const contextId = segments[0]!;
+  const slotName = segments.slice(1, -1).join(":");
+  return { charId, contextId, slotName };
+}
+
 export function useRaidPlanDragDrop({
   mutations,
   activeTab,
@@ -26,6 +41,8 @@ export function useRaidPlanDragDrop({
   const {
     plan,
     assignAASlotMutation,
+    removeAASlotMutation,
+    reorderAASlotMutation,
     moveCharacterMutation,
     swapCharactersMutation,
     moveEncounterCharMutation,
@@ -45,7 +62,10 @@ export function useRaidPlanDragDrop({
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      const charId = event.active.id as string;
+      const rawId = event.active.id as string;
+      const charId = rawId.startsWith("aa-assigned:")
+        ? parseAssignedDragId(rawId).charId
+        : rawId;
       const char = plan?.characters.find((c) => c.id === charId) as
         | RaidPlanCharacter
         | undefined;
@@ -59,12 +79,94 @@ export function useRaidPlanDragDrop({
       setActiveCharacter(null);
 
       const { active, over } = event;
-      if (!over || !plan) return;
-
       const activeId = active.id as string;
+      const isSlotCharDrag = activeId.startsWith("aa-assigned:");
+
+      if (!plan) return;
+
+      // Handle dragging an already-assigned slot character
+      if (isSlotCharDrag) {
+        const {
+          charId,
+          contextId,
+          slotName: sourceSlot,
+        } = parseAssignedDragId(activeId);
+        const isDefaultView = contextId === plan.id;
+
+        if (over) {
+          const overId = over.id as string;
+
+          // Check if the drop target is also an assigned character (reorder)
+          if (overId.startsWith("aa-assigned:")) {
+            const {
+              charId: targetCharId,
+              contextId: targetContext,
+              slotName: targetSlot,
+            } = parseAssignedDragId(overId);
+            if (targetSlot === sourceSlot && targetContext === contextId) {
+              // Same slot — reorder
+              const isDefaultView = contextId === plan.id;
+              const slotAssignments = plan.aaSlotAssignments
+                .filter((a) => {
+                  const contextMatch = isDefaultView
+                    ? a.raidPlanId === contextId
+                    : a.encounterId === contextId;
+                  return contextMatch && a.slotName === sourceSlot;
+                })
+                .sort((a, b) => a.sortOrder - b.sortOrder);
+
+              const currentIds = slotAssignments.map((a) => a.planCharacterId);
+              const oldIndex = currentIds.indexOf(charId);
+              const newIndex = currentIds.indexOf(targetCharId);
+              if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                const reordered = arrayMove(currentIds, oldIndex, newIndex);
+                reorderAASlotMutation.mutate({
+                  encounterId: isDefaultView ? undefined : contextId,
+                  raidPlanId: isDefaultView ? contextId : undefined,
+                  slotName: sourceSlot,
+                  planCharacterIds: reordered,
+                });
+              }
+              return;
+            }
+          }
+
+          if (overId.startsWith("aa-slot:")) {
+            const targetSlot = overId.split(":").slice(2).join(":");
+            if (targetSlot !== sourceSlot) {
+              // Move: remove from source, assign to target
+              removeAASlotMutation.mutate({
+                encounterId: isDefaultView ? undefined : contextId,
+                raidPlanId: isDefaultView ? contextId : undefined,
+                planCharacterId: charId,
+                slotName: sourceSlot,
+              });
+              assignAASlotMutation.mutate({
+                encounterId: isDefaultView ? undefined : contextId,
+                raidPlanId: isDefaultView ? contextId : undefined,
+                planCharacterId: charId,
+                slotName: targetSlot,
+              });
+            }
+            // Dropped on same slot droppable — no-op (reorder handled above)
+          }
+        } else {
+          // Dropped on dead space — remove from source
+          removeAASlotMutation.mutate({
+            encounterId: isDefaultView ? undefined : contextId,
+            raidPlanId: isDefaultView ? contextId : undefined,
+            planCharacterId: charId,
+            slotName: sourceSlot,
+          });
+        }
+        return;
+      }
+
+      if (!over) return;
+
       const overId = over.id as string;
 
-      // Check if this is an AA slot drop
+      // Check if this is an AA slot drop (roster char → slot)
       if (overId.startsWith("aa-slot:")) {
         const parts = overId.split(":");
         const contextId = parts[1]; // encounterId or raidPlanId
@@ -202,6 +304,8 @@ export function useRaidPlanDragDrop({
       plan,
       activeTab,
       assignAASlotMutation,
+      removeAASlotMutation,
+      reorderAASlotMutation,
       moveCharacterMutation,
       swapCharactersMutation,
       moveEncounterCharMutation,

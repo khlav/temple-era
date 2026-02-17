@@ -1464,7 +1464,7 @@ export const raidPlanRouter = createTRPCRouter({
       // Batch update using CASE/WHEN for all sort orders in a single query
       const cases = input.planCharacterIds.map(
         (id, i) =>
-          sql`WHEN ${raidPlanEncounterAASlots.planCharacterId} = ${id} THEN ${i}`,
+          sql`WHEN ${raidPlanEncounterAASlots.planCharacterId} = ${id} THEN ${sql.raw(String(i))}`,
       );
 
       const contextFilter = input.encounterId
@@ -1508,6 +1508,248 @@ export const raidPlanRouter = createTRPCRouter({
         );
 
       return { success: true };
+    }),
+
+  /**
+   * Push default AA slot assignments to all encounters that share matching slot names.
+   * When preview=true, returns a summary without making changes.
+   * When preview=false (default), performs the push and returns the summary.
+   */
+  pushDefaultAAAssignments: raidManagerProcedure
+    .input(
+      z.object({
+        raidPlanId: z.string().uuid(),
+        preview: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 1. Fetch default AA slot assignments (where raidPlanId is set, encounterId is null)
+      const defaultAssignments = await ctx.db
+        .select({
+          planCharacterId: raidPlanEncounterAASlots.planCharacterId,
+          slotName: raidPlanEncounterAASlots.slotName,
+          sortOrder: raidPlanEncounterAASlots.sortOrder,
+          characterName: raidPlanCharacters.characterName,
+        })
+        .from(raidPlanEncounterAASlots)
+        .innerJoin(
+          raidPlanCharacters,
+          eq(raidPlanEncounterAASlots.planCharacterId, raidPlanCharacters.id),
+        )
+        .where(eq(raidPlanEncounterAASlots.raidPlanId, input.raidPlanId));
+
+      if (defaultAssignments.length === 0) {
+        return {
+          encounters: [] as {
+            encounterId: string;
+            encounterName: string;
+            matchingSlots: string[];
+            matchingSlotCount: number;
+            slotsWithExisting: number;
+            overwrites: {
+              slotName: string;
+              characterNames: string[];
+              newCharacterNames: string[];
+            }[];
+          }[],
+          totalSlotsPushed: 0,
+        };
+      }
+
+      // Group default assignments by slot name
+      const defaultBySlot = new Map<
+        string,
+        { planCharacterId: string; sortOrder: number; characterName: string }[]
+      >();
+      for (const a of defaultAssignments) {
+        const existing = defaultBySlot.get(a.slotName) ?? [];
+        existing.push({
+          planCharacterId: a.planCharacterId,
+          sortOrder: a.sortOrder,
+          characterName: a.characterName,
+        });
+        defaultBySlot.set(a.slotName, existing);
+      }
+
+      // 2. Fetch all encounters with custom AA enabled and a template
+      const encounters = await ctx.db
+        .select({
+          id: raidPlanEncounters.id,
+          encounterName: raidPlanEncounters.encounterName,
+          aaTemplate: raidPlanEncounters.aaTemplate,
+        })
+        .from(raidPlanEncounters)
+        .where(
+          and(
+            eq(raidPlanEncounters.raidPlanId, input.raidPlanId),
+            eq(raidPlanEncounters.useCustomAA, true),
+          ),
+        );
+
+      // 3. For each encounter, compute matching slots
+      const encounterSummaries: {
+        encounterId: string;
+        encounterName: string;
+        matchingSlots: string[];
+        slotsWithExisting: number;
+        overwrites: {
+          slotName: string;
+          characterNames: string[];
+          newCharacterNames: string[];
+        }[];
+      }[] = [];
+
+      // Fetch existing encounter AA assignments for comparison
+      const encounterIds = encounters
+        .filter((e) => e.aaTemplate)
+        .map((e) => e.id);
+
+      let existingEncounterAssignments: {
+        encounterId: string | null;
+        slotName: string;
+        characterName: string;
+      }[] = [];
+
+      if (encounterIds.length > 0) {
+        existingEncounterAssignments = await ctx.db
+          .select({
+            encounterId: raidPlanEncounterAASlots.encounterId,
+            slotName: raidPlanEncounterAASlots.slotName,
+            characterName: raidPlanCharacters.characterName,
+          })
+          .from(raidPlanEncounterAASlots)
+          .innerJoin(
+            raidPlanCharacters,
+            eq(raidPlanEncounterAASlots.planCharacterId, raidPlanCharacters.id),
+          )
+          .where(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
+      }
+
+      // Group existing assignments by encounter -> slot -> character names
+      const existingByEncounter = new Map<string, Map<string, string[]>>();
+      for (const a of existingEncounterAssignments) {
+        if (!a.encounterId) continue;
+        const slots =
+          existingByEncounter.get(a.encounterId) ?? new Map<string, string[]>();
+        const names = slots.get(a.slotName) ?? [];
+        names.push(a.characterName);
+        slots.set(a.slotName, names);
+        existingByEncounter.set(a.encounterId, slots);
+      }
+
+      for (const encounter of encounters) {
+        if (!encounter.aaTemplate) continue;
+
+        const encounterSlotNames = getSlotNames(encounter.aaTemplate);
+        const matchingSlots = encounterSlotNames.filter((name) =>
+          defaultBySlot.has(name),
+        );
+
+        if (matchingSlots.length === 0) continue;
+
+        const existingSlots =
+          existingByEncounter.get(encounter.id) ?? new Map<string, string[]>();
+        const overwrites: {
+          slotName: string;
+          characterNames: string[];
+          newCharacterNames: string[];
+        }[] = [];
+        for (const name of matchingSlots) {
+          const charNames = existingSlots.get(name);
+          if (charNames && charNames.length > 0) {
+            const newChars = defaultBySlot.get(name) ?? [];
+            overwrites.push({
+              slotName: name,
+              characterNames: charNames,
+              newCharacterNames: newChars.map((c) => c.characterName),
+            });
+          }
+        }
+
+        encounterSummaries.push({
+          encounterId: encounter.id,
+          encounterName: encounter.encounterName,
+          matchingSlots,
+          slotsWithExisting: overwrites.length,
+          overwrites,
+        });
+      }
+
+      // 4. If preview mode, return summary without making changes
+      if (input.preview) {
+        return {
+          encounters: encounterSummaries.map((e) => ({
+            encounterId: e.encounterId,
+            encounterName: e.encounterName,
+            matchingSlots: e.matchingSlots,
+            matchingSlotCount: e.matchingSlots.length,
+            slotsWithExisting: e.slotsWithExisting,
+            overwrites: e.overwrites,
+          })),
+          totalSlotsPushed: encounterSummaries.reduce(
+            (sum, e) => sum + e.matchingSlots.length,
+            0,
+          ),
+        };
+      }
+
+      // 5. Execute the push within a transaction
+      await ctx.db.transaction(async (tx) => {
+        for (const summary of encounterSummaries) {
+          // Delete existing assignments for matching slots
+          for (const slotName of summary.matchingSlots) {
+            await tx
+              .delete(raidPlanEncounterAASlots)
+              .where(
+                and(
+                  eq(raidPlanEncounterAASlots.encounterId, summary.encounterId),
+                  eq(raidPlanEncounterAASlots.slotName, slotName),
+                ),
+              );
+          }
+
+          // Insert default assignments for matching slots
+          const valuesToInsert: {
+            encounterId: string;
+            raidPlanId: null;
+            planCharacterId: string;
+            slotName: string;
+            sortOrder: number;
+          }[] = [];
+
+          for (const slotName of summary.matchingSlots) {
+            const assignments = defaultBySlot.get(slotName) ?? [];
+            for (const a of assignments) {
+              valuesToInsert.push({
+                encounterId: summary.encounterId,
+                raidPlanId: null,
+                planCharacterId: a.planCharacterId,
+                slotName,
+                sortOrder: a.sortOrder,
+              });
+            }
+          }
+
+          if (valuesToInsert.length > 0) {
+            await tx.insert(raidPlanEncounterAASlots).values(valuesToInsert);
+          }
+        }
+      });
+
+      return {
+        encounters: encounterSummaries.map((e) => ({
+          encounterId: e.encounterId,
+          encounterName: e.encounterName,
+          matchingSlots: e.matchingSlots,
+          matchingSlotCount: e.matchingSlots.length,
+          slotsWithExisting: e.slotsWithExisting,
+          overwrites: e.overwrites,
+        })),
+        totalSlotsPushed: encounterSummaries.reduce(
+          (sum, e) => sum + e.matchingSlots.length,
+          0,
+        ),
+      };
     }),
 
   /**

@@ -357,13 +357,46 @@ export function useRaidPlanMutations({
 
   const reorderAASlotMutation =
     api.raidPlan.reorderAASlotCharacters.useMutation({
-      onSuccess: () => void refetch(),
-      onError: (error) => {
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const previousData = utils.raidPlan.getById.getData({ planId });
+
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          // Build a map of planCharacterId -> new sortOrder from the input
+          const orderMap = new Map(
+            input.planCharacterIds.map((id, i) => [id, i]),
+          );
+
+          return {
+            ...old,
+            aaSlotAssignments: old.aaSlotAssignments.map((a) => {
+              if (a.slotName !== input.slotName) return a;
+              const contextMatch = input.encounterId
+                ? a.encounterId === input.encounterId
+                : a.raidPlanId === input.raidPlanId;
+              if (!contextMatch) return a;
+              const newOrder = orderMap.get(a.planCharacterId);
+              if (newOrder === undefined) return a;
+              return { ...a, sortOrder: newOrder };
+            }),
+          };
+        });
+
+        return { previousData };
+      },
+      onError: (error, _variables, context) => {
+        if (context?.previousData) {
+          utils.raidPlan.getById.setData({ planId }, context.previousData);
+        }
         toast({
           title: "Error",
           description: error.message,
           variant: "destructive",
         });
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
       },
     });
 
@@ -405,6 +438,24 @@ export function useRaidPlanMutations({
       },
     });
 
+  const pushDefaultAAMutation =
+    api.raidPlan.pushDefaultAAAssignments.useMutation({
+      onSuccess: (data) => {
+        toast({
+          title: "Assignments pushed",
+          description: `Pushed ${data.totalSlotsPushed} slot${data.totalSlotsPushed !== 1 ? "s" : ""} to ${data.encounters.length} encounter${data.encounters.length !== 1 ? "s" : ""}`,
+        });
+        void refetch();
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+
   return {
     plan,
     isLoading,
@@ -428,5 +479,6 @@ export function useRaidPlanMutations({
     reorderAASlotMutation,
     clearAAAssignmentsMutation,
     reorderEncountersMutation,
+    pushDefaultAAMutation,
   };
 }

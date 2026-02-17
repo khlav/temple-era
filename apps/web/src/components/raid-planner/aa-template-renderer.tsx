@@ -10,6 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { AlertTriangle } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AAIcon } from "~/components/ui/aa-icons";
@@ -48,7 +49,7 @@ export function AATemplateRenderer({
   slotAssignments,
   onAssign,
   onRemove,
-  onReorder: _onReorder,
+  onReorder,
   disabled,
   skipDndContext,
   userCharacterIds = [],
@@ -146,11 +147,31 @@ export function AATemplateRenderer({
     return map;
   }, [characters]);
 
+  // Parse an aa-assigned draggable ID: "aa-assigned:{contextId}:{slotName}:{charId}"
+  const parseAssignedId = (id: string) => {
+    // Format: aa-assigned:{contextId}:{slotName}:{charId}
+    // charId is always the last segment (uuid), slotName is everything between contextId and charId
+    const withoutPrefix = id.slice("aa-assigned:".length);
+    const segments = withoutPrefix.split(":");
+    // Last segment is charId, second-to-last context is contextId (first), rest is slotName
+    const charId = segments[segments.length - 1]!;
+    // contextId is segments[0], slotName is segments[1..n-1]
+    const slotName = segments.slice(1, -1).join(":");
+    return { charId, slotName };
+  };
+
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
-    const charId = event.active.id as string;
-    const char = characterLookup.get(charId);
-    setActiveCharacter(char ?? null);
+    const activeId = event.active.id as string;
+
+    if (activeId.startsWith("aa-assigned:")) {
+      const { charId } = parseAssignedId(activeId);
+      const char = characterLookup.get(charId);
+      setActiveCharacter(char ?? null);
+    } else {
+      const char = characterLookup.get(activeId);
+      setActiveCharacter(char ?? null);
+    }
   };
 
   // Handle drag end
@@ -158,16 +179,60 @@ export function AATemplateRenderer({
     setActiveCharacter(null);
 
     const { active, over } = event;
-    if (!over || !onAssign) return;
+    const activeId = active.id as string;
+    const isSlotDrag = activeId.startsWith("aa-assigned:");
 
-    const charId = active.id as string;
-    const dropId = over.id as string;
+    if (isSlotDrag) {
+      const { charId, slotName: sourceSlot } = parseAssignedId(activeId);
 
-    // Parse drop target: "aa-slot:{contextId}:{slotName}"
-    if (dropId.startsWith("aa-slot:")) {
-      const parts = dropId.split(":");
-      const slotName = parts.slice(2).join(":"); // Handle slot names with colons
-      onAssign(charId, slotName);
+      if (over) {
+        const dropId = over.id as string;
+
+        // Check if the drop target is also an assigned character (reorder)
+        if (dropId.startsWith("aa-assigned:")) {
+          const { slotName: targetSlot } = parseAssignedId(dropId);
+          if (targetSlot === sourceSlot && onReorder) {
+            // Same slot — reorder
+            const slotChars = slotCharacterMap.get(sourceSlot) ?? [];
+            const sortableIds = slotChars.map(
+              (c) =>
+                `aa-assigned:${encounterId ?? raidPlanId ?? "unknown"}:${sourceSlot}:${c.planCharacterId}`,
+            );
+            const oldIndex = sortableIds.indexOf(activeId);
+            const newIndex = sortableIds.indexOf(dropId);
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+              const reordered = arrayMove(sortableIds, oldIndex, newIndex);
+              const newCharIds = reordered.map((id) => id.split(":").pop()!);
+              onReorder(sourceSlot, newCharIds);
+            }
+            return;
+          }
+        }
+
+        if (dropId.startsWith("aa-slot:")) {
+          const targetSlot = dropId.split(":").slice(2).join(":");
+          if (targetSlot !== sourceSlot) {
+            // Move: remove from source, assign to target
+            onRemove?.(charId, sourceSlot);
+            onAssign?.(charId, targetSlot);
+          }
+          // Dropped on same slot droppable — no-op (reorder handled above)
+        }
+      } else {
+        // Dropped on dead space — remove from source
+        onRemove?.(charId, sourceSlot);
+      }
+    } else {
+      // Roster drag — original behavior
+      if (!over || !onAssign) return;
+
+      const charId = activeId;
+      const dropId = over.id as string;
+
+      if (dropId.startsWith("aa-slot:")) {
+        const slotName = dropId.split(":").slice(2).join(":");
+        onAssign(charId, slotName);
+      }
     }
   };
 
