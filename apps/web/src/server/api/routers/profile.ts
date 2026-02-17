@@ -11,6 +11,7 @@ export const profile = createTRPCRouter({
         name: true,
         characterId: true,
         image: true,
+        isRaidManager: true,
       },
       with: {
         character: {

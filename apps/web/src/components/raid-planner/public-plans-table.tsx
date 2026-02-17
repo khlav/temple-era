@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Edit } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
 import { api } from "~/trpc/react";
 import {
@@ -13,6 +14,9 @@ import {
 } from "~/components/ui/tooltip";
 
 export function PublicPlansTable() {
+  const { data: session } = useSession();
+  const isRaidManager = !!session?.user?.isRaidManager;
+
   const { data: plans, isLoading } = api.raidPlan.getPublicPlans.useQuery({
     limit: 20,
   });
@@ -70,14 +74,28 @@ export function PublicPlansTable() {
                 className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
               >
                 <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-[90px]"
-                    asChild
-                  >
-                    <Link href={`/raid-plans/${plan.id}`}>View Plan</Link>
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-[90px]"
+                      asChild
+                    >
+                      <Link href={`/raid-plans/${plan.id}`}>View Plan</Link>
+                    </Button>
+                    {isRaidManager && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        asChild
+                      >
+                        <Link href={`/raid-manager/raid-planner/${plan.id}`}>
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </td>
                 <td className="p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                   {plan.name}

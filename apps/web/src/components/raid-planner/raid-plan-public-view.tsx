@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
 import { formatRaidDate } from "~/utils/date-formatting";
-import { ExternalLink, Info } from "lucide-react";
+import { ExternalLink, Info, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
@@ -25,12 +25,14 @@ interface RaidPlanPublicViewProps {
   planId: string;
   initialBreadcrumbData?: { [key: string]: string };
   isLoggedIn: boolean;
+  isRaidManager?: boolean;
 }
 
 export function RaidPlanPublicView({
   planId,
   initialBreadcrumbData,
   isLoggedIn,
+  isRaidManager = false,
 }: RaidPlanPublicViewProps) {
   const [activeTab, setActiveTab] = useState("default");
   const { updateBreadcrumbSegment } = useBreadcrumb();
@@ -110,6 +112,16 @@ export function RaidPlanPublicView({
             <h1 className="text-2xl font-bold tracking-tight">
               Raid Plan: {plan.name}
             </h1>
+            {isRaidManager && (
+              <div className="grow-0 align-text-top">
+                <Button className="py-5" asChild>
+                  <a href={`/raid-manager/raid-planner/${planId}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </a>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Metadata row */}
@@ -225,8 +237,8 @@ export function RaidPlanPublicView({
           {/* Two-column layout for tab content - wrapped in bare DndContext */}
           <DndContext>
             <div className="mt-4 grid gap-6 lg:grid-cols-2">
-              {/* Left column: Group planning (read-only) */}
-              <div>
+              {/* Groups column (order 2 on mobile, 1 on desktop) */}
+              <div className="order-2 lg:order-1">
                 {/* Default Tab */}
                 <TabsContent value="default" className="mt-0 space-y-3">
                   <RaidPlanGroupsGrid
@@ -275,8 +287,8 @@ export function RaidPlanPublicView({
                 ))}
               </div>
 
-              {/* Right column: AA Template (read-only) */}
-              <div className="border-l pl-6">
+              {/* AA Column (order 1 on mobile, 2 on desktop) */}
+              <div className="order-1 lg:order-2 lg:border-l lg:pl-6">
                 {/* Default Tab AA */}
                 <TabsContent value="default" className="mt-0 space-y-3">
                   {plan.useDefaultAA && plan.defaultAATemplate ? (

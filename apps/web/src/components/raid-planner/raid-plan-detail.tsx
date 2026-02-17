@@ -254,8 +254,8 @@ export function RaidPlanDetail({
                 : "lg:grid-cols-2",
             )}
           >
-            {/* Left column: Group planning */}
-            <div>
+            {/* Groups Column (order 2 on mobile, 1 on desktop) */}
+            <div className="order-2 lg:order-1">
               {/* Default Tab */}
               <TabsContent value="default" className="mt-0 space-y-3">
                 <div className="flex h-7 items-center">
@@ -384,8 +384,8 @@ export function RaidPlanDetail({
               ))}
             </div>
 
-            {/* Right column: AA Template */}
-            <div className="border-l pl-6">
+            {/* AA Column (order 1 on mobile, 2 on desktop) */}
+            <div className="order-1 lg:order-2 lg:border-l lg:pl-6">
               {/* Default Tab AA */}
               <TabsContent value="default" className="mt-0 space-y-3">
                 <div className="flex h-7 items-center gap-2">
@@ -609,7 +609,7 @@ export function RaidPlanDetail({
 
             {/* 3rd column: Default AA Reference (compact, read-only) */}
             {showDefaultAARef && activeTab !== "default" && (
-              <div className="border-l pl-4">
+              <div className="order-3 border-l pl-4 lg:order-3">
                 <div className="sticky top-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

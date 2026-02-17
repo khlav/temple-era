@@ -66,6 +66,7 @@ async function RaidPlanContent({ planId }: { planId: string }) {
       planId={planId}
       initialBreadcrumbData={planName ? { [planId]: planName } : undefined}
       isLoggedIn={!!session}
+      isRaidManager={session?.user?.isRaidManager}
     />
   );
 }
