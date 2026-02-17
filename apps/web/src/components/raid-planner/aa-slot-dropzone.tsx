@@ -233,7 +233,7 @@ export function AASlotInline({
     <span
       ref={setNodeRef}
       className={cn(
-        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5",
+        "inline rounded px-1.5 py-0.5",
         showBorder && "border border-dashed",
         showBorder && isOver && !isFull && "border-primary bg-primary/10",
         showBorder && isFull && "border-muted-foreground/30",
@@ -288,7 +288,7 @@ export function AARefInline({
   );
 
   return (
-    <span className="inline-flex items-center gap-0.5 rounded border border-dotted border-muted-foreground/30 px-1 py-0.5">
+    <span className="inline rounded border border-dotted border-muted-foreground/30 px-1 py-0.5">
       {sortedCharacters.length === 0 ? (
         <span className="text-xs text-muted-foreground/60">
           (ref:{slotName})

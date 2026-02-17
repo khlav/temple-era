@@ -51,13 +51,6 @@ export function EncounterTabNav({
         Encounter:
       </span>
 
-      {/* Left Actions (Mobile & Desktop) */}
-      {leftActions && (
-        <div className="flex items-center gap-1 [&>button]:h-11 md:[&>button]:h-9">
-          {leftActions}
-        </div>
-      )}
-
       {/* Mobile: styled dropdown + nav buttons */}
       <div className="flex flex-1 items-center gap-1.5 md:hidden">
         <Select value={activeTab} onValueChange={onTabChange}>
@@ -122,8 +115,9 @@ export function EncounterTabNav({
       </TabsList>
 
       {/* Right Actions (Mobile & Desktop) */}
-      {actions && (
+      {(leftActions || actions) && (
         <div className="flex items-center gap-1 [&>button]:h-11 md:[&>button]:h-9">
+          {leftActions && <div className="hidden md:flex">{leftActions}</div>}
           {actions}
         </div>
       )}
