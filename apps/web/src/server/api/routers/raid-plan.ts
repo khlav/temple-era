@@ -1174,10 +1174,14 @@ export const raidPlanRouter = createTRPCRouter({
         )
         .returning({ id: raidPlanEncounterAssignments.id });
 
+      // Character may not have an encounter assignment yet (e.g. added after
+      // custom groups were seeded). Create one on the fly.
       if (result.length === 0) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Encounter assignment not found",
+        await ctx.db.insert(raidPlanEncounterAssignments).values({
+          encounterId: input.encounterId,
+          planCharacterId: input.planCharacterId,
+          groupNumber: input.targetGroup,
+          position: input.targetPosition,
         });
       }
 
@@ -1213,6 +1217,34 @@ export const raidPlanRouter = createTRPCRouter({
             ]),
           ),
         );
+
+      // Create missing encounter assignments on the fly for characters added
+      // after custom groups were seeded (they start as bench with null positions)
+      const missingIds = [
+        input.planCharacterIdA,
+        input.planCharacterIdB,
+      ].filter((id) => !assignments.find((a) => a.planCharacterId === id));
+
+      for (const missingId of missingIds) {
+        const inserted = await ctx.db
+          .insert(raidPlanEncounterAssignments)
+          .values({
+            encounterId: input.encounterId,
+            planCharacterId: missingId,
+            groupNumber: null,
+            position: null,
+          })
+          .returning({
+            id: raidPlanEncounterAssignments.id,
+            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
+            groupNumber: raidPlanEncounterAssignments.groupNumber,
+            position: raidPlanEncounterAssignments.position,
+          });
+
+        if (inserted[0]) {
+          assignments.push(inserted[0]);
+        }
+      }
 
       if (assignments.length !== 2) {
         throw new TRPCError({

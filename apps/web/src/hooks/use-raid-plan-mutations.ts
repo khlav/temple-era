@@ -176,18 +176,33 @@ export function useRaidPlanMutations({
         const prev = utils.raidPlan.getById.getData({ planId });
         utils.raidPlan.getById.setData({ planId }, (old) => {
           if (!old) return old;
+          const exists = old.encounterAssignments.some(
+            (a) =>
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterId,
+          );
           return {
             ...old,
-            encounterAssignments: old.encounterAssignments.map((a) =>
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterId
-                ? {
-                    ...a,
+            encounterAssignments: exists
+              ? old.encounterAssignments.map((a) =>
+                  a.encounterId === input.encounterId &&
+                  a.planCharacterId === input.planCharacterId
+                    ? {
+                        ...a,
+                        groupNumber: input.targetGroup,
+                        position: input.targetPosition,
+                      }
+                    : a,
+                )
+              : [
+                  ...old.encounterAssignments,
+                  {
+                    encounterId: input.encounterId,
+                    planCharacterId: input.planCharacterId,
                     groupNumber: input.targetGroup,
                     position: input.targetPosition,
-                  }
-                : a,
-            ),
+                  },
+                ],
           };
         });
         return { prev };
@@ -205,41 +220,87 @@ export function useRaidPlanMutations({
         const prev = utils.raidPlan.getById.getData({ planId });
         utils.raidPlan.getById.setData({ planId }, (old) => {
           if (!old) return old;
+
+          const defaultAssignment = {
+            encounterId: input.encounterId,
+            groupNumber: null as number | null,
+            position: null as number | null,
+          };
           const assignA = old.encounterAssignments.find(
             (a) =>
               a.encounterId === input.encounterId &&
               a.planCharacterId === input.planCharacterIdA,
-          );
+          ) ?? {
+            ...defaultAssignment,
+            planCharacterId: input.planCharacterIdA,
+          };
           const assignB = old.encounterAssignments.find(
             (a) =>
               a.encounterId === input.encounterId &&
               a.planCharacterId === input.planCharacterIdB,
-          );
-          if (!assignA || !assignB) return old;
-          return {
-            ...old,
-            encounterAssignments: old.encounterAssignments.map((a) => {
-              if (
-                a.encounterId === input.encounterId &&
-                a.planCharacterId === input.planCharacterIdA
-              )
-                return {
-                  ...a,
-                  groupNumber: assignB.groupNumber,
-                  position: assignB.position,
-                };
-              if (
-                a.encounterId === input.encounterId &&
-                a.planCharacterId === input.planCharacterIdB
-              )
-                return {
-                  ...a,
-                  groupNumber: assignA.groupNumber,
-                  position: assignA.position,
-                };
-              return a;
-            }),
+          ) ?? {
+            ...defaultAssignment,
+            planCharacterId: input.planCharacterIdB,
           };
+
+          // Build updated assignments, swapping positions
+          let updated = old.encounterAssignments.map((a) => {
+            if (
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterIdA
+            )
+              return {
+                ...a,
+                groupNumber: assignB.groupNumber,
+                position: assignB.position,
+              };
+            if (
+              a.encounterId === input.encounterId &&
+              a.planCharacterId === input.planCharacterIdB
+            )
+              return {
+                ...a,
+                groupNumber: assignA.groupNumber,
+                position: assignA.position,
+              };
+            return a;
+          });
+
+          // Add new entries for characters that had no encounter assignment
+          if (
+            !old.encounterAssignments.some(
+              (a) =>
+                a.encounterId === input.encounterId &&
+                a.planCharacterId === input.planCharacterIdA,
+            )
+          ) {
+            updated = [
+              ...updated,
+              {
+                ...assignA,
+                groupNumber: assignB.groupNumber,
+                position: assignB.position,
+              },
+            ];
+          }
+          if (
+            !old.encounterAssignments.some(
+              (a) =>
+                a.encounterId === input.encounterId &&
+                a.planCharacterId === input.planCharacterIdB,
+            )
+          ) {
+            updated = [
+              ...updated,
+              {
+                ...assignB,
+                groupNumber: assignA.groupNumber,
+                position: assignA.position,
+              },
+            ];
+          }
+
+          return { ...old, encounterAssignments: updated };
         });
         return { prev };
       },
