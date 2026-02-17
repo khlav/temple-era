@@ -196,16 +196,16 @@ function EventRow({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="h-6 w-6"
+                className="h-7 w-7 border-muted-foreground"
                 onClick={handleFindPlayers}
                 disabled={isLoadingFindPlayers}
               >
                 {isLoadingFindPlayers ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Users className="h-3.5 w-3.5" />
+                  <Users className="h-4 w-4" />
                 )}
                 <span className="sr-only">Find Gamers</span>
               </Button>
