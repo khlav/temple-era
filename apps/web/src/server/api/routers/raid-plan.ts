@@ -1543,6 +1543,99 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   /**
+   * Transfer all custom encounter group positions from one character to another.
+   * For each encounter where fromPlanCharacterId has a non-null group position,
+   * assign that position to toPlanCharacterId and bench fromPlanCharacterId.
+   */
+  transferEncounterAssignments: raidManagerProcedure
+    .input(
+      z.object({
+        fromPlanCharacterId: z.string().uuid(),
+        toPlanCharacterId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get all encounter assignments for the source character that have positions
+      const fromAssignments = await ctx.db
+        .select()
+        .from(raidPlanEncounterAssignments)
+        .where(
+          eq(
+            raidPlanEncounterAssignments.planCharacterId,
+            input.fromPlanCharacterId,
+          ),
+        );
+
+      const assignmentsWithPositions = fromAssignments.filter(
+        (a) => a.groupNumber !== null && a.position !== null,
+      );
+
+      for (const assignment of assignmentsWithPositions) {
+        // Update or insert the target character's assignment with the source's position
+        const existing = await ctx.db
+          .update(raidPlanEncounterAssignments)
+          .set({
+            groupNumber: assignment.groupNumber,
+            position: assignment.position,
+          })
+          .where(
+            and(
+              eq(
+                raidPlanEncounterAssignments.encounterId,
+                assignment.encounterId,
+              ),
+              eq(
+                raidPlanEncounterAssignments.planCharacterId,
+                input.toPlanCharacterId,
+              ),
+            ),
+          )
+          .returning({ id: raidPlanEncounterAssignments.id });
+
+        if (existing.length === 0) {
+          await ctx.db.insert(raidPlanEncounterAssignments).values({
+            encounterId: assignment.encounterId,
+            planCharacterId: input.toPlanCharacterId,
+            groupNumber: assignment.groupNumber,
+            position: assignment.position,
+          });
+        }
+
+        // Bench the source character in this encounter
+        await ctx.db
+          .update(raidPlanEncounterAssignments)
+          .set({ groupNumber: null, position: null })
+          .where(eq(raidPlanEncounterAssignments.id, assignment.id));
+      }
+
+      return { success: true, transferred: assignmentsWithPositions.length };
+    }),
+
+  /**
+   * Bench a character in all custom encounter group assignments.
+   * Sets groupNumber and position to null for all encounter assignments.
+   */
+  benchEncounterAssignments: raidManagerProcedure
+    .input(
+      z.object({
+        planCharacterId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(raidPlanEncounterAssignments)
+        .set({ groupNumber: null, position: null })
+        .where(
+          eq(
+            raidPlanEncounterAssignments.planCharacterId,
+            input.planCharacterId,
+          ),
+        );
+
+      return { success: true };
+    }),
+
+  /**
    * Push default AA slot assignments to all encounters that share matching slot names.
    * When preview=true, returns a summary without making changes.
    * When preview=false (default), performs the push and returns the summary.

@@ -12,14 +12,16 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
 import { CLASS_TEXT_COLORS } from "./constants";
+import type { AssignmentDetail } from "~/hooks/use-raid-plan-drag-drop";
 
 interface CharacterReplacementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  existingAssignments?: { encounterName: string; slotName: string }[];
+  existingAssignments?: AssignmentDetail[];
   affectedCharacterName?: string;
   affectedCharacterClass?: string;
   newCharacterName?: string;
+  newCharacterClass?: string;
   isPending: boolean;
   onTransfer: () => void;
   onClearAssignments: () => void;
@@ -33,6 +35,7 @@ export function CharacterReplacementDialog({
   affectedCharacterName,
   affectedCharacterClass,
   newCharacterName,
+  newCharacterClass,
   isPending,
   onTransfer,
   onClearAssignments,
@@ -40,9 +43,38 @@ export function CharacterReplacementDialog({
 }: CharacterReplacementDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Replace Character</AlertDialogTitle>
+          <AlertDialogTitle>
+            Replacing{" "}
+            <span
+              className={
+                affectedCharacterClass
+                  ? (CLASS_TEXT_COLORS[affectedCharacterClass] ??
+                    "text-foreground")
+                  : "text-foreground"
+              }
+            >
+              {affectedCharacterName ?? "character"}
+            </span>
+            {newCharacterName && (
+              <>
+                {" "}
+                with{" "}
+                <span
+                  className={
+                    newCharacterClass
+                      ? (CLASS_TEXT_COLORS[newCharacterClass] ??
+                        "text-foreground")
+                      : "text-foreground"
+                  }
+                >
+                  {newCharacterName}
+                </span>
+              </>
+            )}
+            ...
+          </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
@@ -51,15 +83,61 @@ export function CharacterReplacementDialog({
                 >
                   {affectedCharacterName ?? "This character"}
                 </span>{" "}
-                has AA assignments in the following encounters:
+                has the following assignments:
               </p>
-              <ul className="list-inside list-disc text-sm">
-                {existingAssignments?.map((a, i) => (
-                  <li key={i}>
-                    {a.encounterName} ({a.slotName})
-                  </li>
-                ))}
-              </ul>
+              {(() => {
+                const groupAssignments = existingAssignments?.filter(
+                  (a) => a.type === "encounter-group",
+                );
+                const aaAssignments = existingAssignments?.filter(
+                  (a) => a.type === "aa",
+                );
+                const hasGroups =
+                  groupAssignments && groupAssignments.length > 0;
+                const hasAA = aaAssignments && aaAssignments.length > 0;
+
+                if (hasGroups && hasAA) {
+                  return (
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="mb-1 font-medium">Group Assignments</p>
+                        <ul className="list-inside list-disc">
+                          {groupAssignments.map((a, i) => (
+                            <li key={i} className="whitespace-nowrap">
+                              {a.encounterName} ({a.slotName})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="mb-1 font-medium">AA Assignments</p>
+                        <ul className="list-inside list-disc">
+                          {aaAssignments.map((a, i) => (
+                            <li key={i} className="whitespace-nowrap">
+                              {a.encounterName} ({a.slotName})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="text-sm">
+                    <p className="mb-1 font-medium">
+                      {hasGroups ? "Group Assignments" : "AA Assignments"}
+                    </p>
+                    <ul className="list-inside list-disc">
+                      {existingAssignments?.map((a, i) => (
+                        <li key={i} className="whitespace-nowrap">
+                          {a.encounterName} ({a.slotName})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
               <p>What would you like to do?</p>
             </div>
           </AlertDialogDescription>

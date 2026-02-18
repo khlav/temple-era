@@ -50,7 +50,13 @@ export function useRaidPlanHandlers({
   const [pendingCharacterUpdate, setPendingCharacterUpdate] = useState<{
     planCharacterId: string;
     newCharacter: RaidParticipant;
-    existingAssignments: { encounterName: string; slotName: string }[];
+    affectedCharacterName: string;
+    affectedCharacterClass?: string;
+    existingAssignments: {
+      type: "aa" | "encounter-group";
+      encounterName: string;
+      slotName: string;
+    }[];
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
@@ -141,6 +147,7 @@ export function useRaidPlanHandlers({
           plan?.encounters.map((e) => [e.id, e.encounterName]) ?? [],
         );
         const assignmentDetails = aaAssignments.map((a) => ({
+          type: "aa" as const,
           encounterName: a.encounterId
             ? (encounterMap.get(a.encounterId) ?? "Unknown")
             : "Default/Trash",
@@ -148,9 +155,14 @@ export function useRaidPlanHandlers({
         }));
 
         // Show confirmation dialog
+        const existingChar = plan?.characters.find(
+          (c) => c.id === planCharacterId,
+        );
         setPendingCharacterUpdate({
           planCharacterId,
           newCharacter: character,
+          affectedCharacterName: existingChar?.characterName ?? "Unknown",
+          affectedCharacterClass: existingChar?.class ?? undefined,
           existingAssignments: assignmentDetails,
         });
         return;

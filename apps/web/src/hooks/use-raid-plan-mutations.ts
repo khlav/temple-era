@@ -518,13 +518,107 @@ export function useRaidPlanMutations({
 
   const clearAAAssignmentsMutation =
     api.raidPlan.clearAAAssignmentsForCharacter.useMutation({
-      onError: (error) => {
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            aaSlotAssignments: old.aaSlotAssignments.filter(
+              (a) => a.planCharacterId !== input.planCharacterId,
+            ),
+          };
+        });
+        return { prev };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
         toast({
           title: "Error",
-          description: error.message,
+          description: _err.message,
           variant: "destructive",
         });
       },
+      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    });
+
+  const transferEncounterAssignmentsMutation =
+    api.raidPlan.transferEncounterAssignments.useMutation({
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            encounterAssignments: old.encounterAssignments.map((a) => {
+              if (
+                a.planCharacterId === input.fromPlanCharacterId &&
+                a.groupNumber !== null
+              ) {
+                return { ...a, groupNumber: null, position: null };
+              }
+              if (a.planCharacterId === input.toPlanCharacterId) {
+                // Find the source assignment for this encounter
+                const source = old.encounterAssignments.find(
+                  (s) =>
+                    s.planCharacterId === input.fromPlanCharacterId &&
+                    s.encounterId === a.encounterId &&
+                    s.groupNumber !== null,
+                );
+                if (source) {
+                  return {
+                    ...a,
+                    groupNumber: source.groupNumber,
+                    position: source.position,
+                  };
+                }
+              }
+              return a;
+            }),
+          };
+        });
+        return { prev };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+        toast({
+          title: "Error",
+          description: _err.message,
+          variant: "destructive",
+        });
+      },
+      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    });
+
+  const benchEncounterAssignmentsMutation =
+    api.raidPlan.benchEncounterAssignments.useMutation({
+      onMutate: async (input) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        utils.raidPlan.getById.setData({ planId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            encounterAssignments: old.encounterAssignments.map((a) =>
+              a.planCharacterId === input.planCharacterId
+                ? { ...a, groupNumber: null, position: null }
+                : a,
+            ),
+          };
+        });
+        return { prev };
+      },
+      onError: (_err, _vars, ctx) => {
+        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+        toast({
+          title: "Error",
+          description: _err.message,
+          variant: "destructive",
+        });
+      },
+      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
     });
 
   const pushDefaultAAMutation =
@@ -567,6 +661,8 @@ export function useRaidPlanMutations({
     removeAASlotMutation,
     reorderAASlotMutation,
     clearAAAssignmentsMutation,
+    transferEncounterAssignmentsMutation,
+    benchEncounterAssignmentsMutation,
     reorderEncountersMutation,
     pushDefaultAAMutation,
   };

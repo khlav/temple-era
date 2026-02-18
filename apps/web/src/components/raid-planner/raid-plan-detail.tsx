@@ -686,7 +686,10 @@ export function RaidPlanDetail({
         open={!!pendingCharacterUpdate}
         onOpenChange={(open) => !open && setPendingCharacterUpdate(null)}
         existingAssignments={pendingCharacterUpdate?.existingAssignments}
+        affectedCharacterName={pendingCharacterUpdate?.affectedCharacterName}
+        affectedCharacterClass={pendingCharacterUpdate?.affectedCharacterClass}
         newCharacterName={pendingCharacterUpdate?.newCharacter.name}
+        newCharacterClass={pendingCharacterUpdate?.newCharacter.class}
         isPending={clearAAAssignmentsMutation.isPending}
         onTransfer={() => handleCharacterReplaceConfirm(false)}
         onClearAssignments={() => handleCharacterReplaceConfirm(true)}
@@ -700,6 +703,7 @@ export function RaidPlanDetail({
         affectedCharacterName={pendingDragOperation?.affectedCharacterName}
         affectedCharacterClass={pendingDragOperation?.affectedCharacterClass}
         newCharacterName={pendingDragOperation?.transferTargetName}
+        newCharacterClass={pendingDragOperation?.transferTargetClass}
         isPending={clearAAAssignmentsMutation.isPending}
         onTransfer={() => handlePendingDragConfirm("transfer")}
         onClearAssignments={() => handlePendingDragConfirm("clear")}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
@@ -220,6 +220,16 @@ export function AASlotInline({
       disabled || (maxCharacters ? characters.length >= maxCharacters : false),
   });
 
+  // When dragging something that isn't from this exact slot, skip the
+  // SortableContext entirely so its sortable items don't steal the drop target
+  // from the parent droppable. This makes the full slot area droppable.
+  const { active } = useDndContext();
+  const activeId = active?.id as string | undefined;
+  const isFromThisSlot =
+    !!activeId &&
+    activeId.startsWith(`aa-assigned:${encounterId}:${slotName}:`);
+  const useSortableRendering = !activeId || isFromThisSlot;
+
   const isFull = maxCharacters ? characters.length >= maxCharacters : false;
   const sortedCharacters = [...characters].sort(
     (a, b) => a.sortOrder - b.sortOrder,
@@ -243,7 +253,7 @@ export function AASlotInline({
     >
       {sortedCharacters.length === 0 ? (
         <span className="text-xs text-muted-foreground/60">[{slotName}]</span>
-      ) : (
+      ) : useSortableRendering ? (
         <SortableContext
           items={sortedCharacters.map(
             (c) =>
@@ -264,6 +274,24 @@ export function AASlotInline({
             />
           ))}
         </SortableContext>
+      ) : (
+        sortedCharacters.map((char, index) => (
+          <span
+            key={char.planCharacterId}
+            className={cn(
+              "inline-flex items-center gap-0.5",
+              "text-sm font-medium",
+              !noColor && char.characterClass
+                ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
+                : "text-foreground",
+            )}
+          >
+            <span>{char.characterName}</span>
+            {index < sortedCharacters.length - 1 && (
+              <span className="text-muted-foreground"> </span>
+            )}
+          </span>
+        ))
       )}
     </span>
   );

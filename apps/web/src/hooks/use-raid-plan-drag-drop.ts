@@ -15,6 +15,12 @@ import type { useRaidPlanMutations } from "./use-raid-plan-mutations";
 
 type Mutations = ReturnType<typeof useRaidPlanMutations>;
 
+export type AssignmentDetail = {
+  type: "aa" | "encounter-group";
+  encounterName: string;
+  slotName: string;
+};
+
 export type PendingDragOperation = {
   type: "move" | "swap";
   planCharacterId: string;
@@ -25,7 +31,8 @@ export type PendingDragOperation = {
   affectedCharacterName: string;
   affectedCharacterClass?: string;
   transferTargetName?: string;
-  existingAssignments: { encounterName: string; slotName: string }[];
+  transferTargetClass?: string;
+  existingAssignments: AssignmentDetail[];
 };
 
 interface UseRaidPlanDragDropOptions {
@@ -61,6 +68,8 @@ export function useRaidPlanDragDrop({
     moveEncounterCharMutation,
     swapEncounterCharsMutation,
     clearAAAssignmentsMutation,
+    transferEncounterAssignmentsMutation,
+    benchEncounterAssignmentsMutation,
   } = mutations;
 
   const [activeCharacter, setActiveCharacter] =
@@ -78,31 +87,52 @@ export function useRaidPlanDragDrop({
   );
 
   /**
-   * Check if a character has AA assignments and return details.
+   * Check if a character has AA assignments or custom encounter group positions.
    * Returns null if no assignments exist.
    */
-  const getAAAssignmentDetails = useCallback(
-    (
-      planCharacterId: string,
-    ): { encounterName: string; slotName: string }[] | null => {
+  const getAssignmentDetails = useCallback(
+    (planCharacterId: string): AssignmentDetail[] | null => {
       if (!plan) return null;
-
-      const aaAssignments = plan.aaSlotAssignments.filter(
-        (a) => a.planCharacterId === planCharacterId,
-      );
-
-      if (aaAssignments.length === 0) return null;
 
       const encounterMap = new Map(
         plan.encounters.map((e) => [e.id, e.encounterName]),
       );
 
-      return aaAssignments.map((a) => ({
-        encounterName: a.encounterId
-          ? (encounterMap.get(a.encounterId) ?? "Unknown")
-          : "Default/Trash",
-        slotName: a.slotName,
-      }));
+      const details: AssignmentDetail[] = [];
+
+      // AA slot assignments
+      const aaAssignments = plan.aaSlotAssignments.filter(
+        (a) => a.planCharacterId === planCharacterId,
+      );
+      for (const a of aaAssignments) {
+        details.push({
+          type: "aa",
+          encounterName: a.encounterId
+            ? (encounterMap.get(a.encounterId) ?? "Unknown")
+            : "Default/Trash",
+          slotName: a.slotName,
+        });
+      }
+
+      // Custom encounter group positions (encounters with useDefaultGroups=false)
+      const customEncounterIds = new Set(
+        plan.encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id),
+      );
+      const encounterGroupAssignments = plan.encounterAssignments.filter(
+        (a) =>
+          a.planCharacterId === planCharacterId &&
+          customEncounterIds.has(a.encounterId) &&
+          a.groupNumber !== null,
+      );
+      for (const a of encounterGroupAssignments) {
+        details.push({
+          type: "encounter-group",
+          encounterName: encounterMap.get(a.encounterId) ?? "Unknown",
+          slotName: `Group ${a.groupNumber! + 1}`,
+        });
+      }
+
+      return details.length > 0 ? details : null;
     },
     [plan],
   );
@@ -153,45 +183,59 @@ export function useRaidPlanDragDrop({
       setPendingDragOperation(null);
 
       if (action === "cancel") {
-        // Don't execute the drag at all
         return;
       }
 
+      const hasAAAssignments = op.existingAssignments.some(
+        (a) => a.type === "aa",
+      );
+      const hasEncounterGroups = op.existingAssignments.some(
+        (a) => a.type === "encounter-group",
+      );
+
       if (action === "clear") {
-        // Clear AA assignments, then execute the drag
-        clearAAAssignmentsMutation.mutate(
-          { planCharacterId: op.affectedCharacterId },
-          { onSuccess: () => executeDragMutation(op) },
-        );
+        // Fire all mutations in parallel — each has optimistic updates
+        if (hasAAAssignments) {
+          clearAAAssignmentsMutation.mutate({
+            planCharacterId: op.affectedCharacterId,
+          });
+        }
+        if (hasEncounterGroups) {
+          benchEncounterAssignmentsMutation.mutate({
+            planCharacterId: op.affectedCharacterId,
+          });
+        }
+        executeDragMutation(op);
         return;
       }
 
       if (action === "transfer" && op.type === "swap") {
-        // Clear affected character's AA assignments, reassign them to the
-        // incoming character, then execute the swap
-        const assignmentsToTransfer = plan?.aaSlotAssignments.filter(
-          (a) => a.planCharacterId === op.affectedCharacterId,
-        );
-
-        clearAAAssignmentsMutation.mutate(
-          { planCharacterId: op.affectedCharacterId },
-          {
-            onSuccess: () => {
-              // Reassign each AA slot to the incoming character
-              if (assignmentsToTransfer) {
-                for (const assignment of assignmentsToTransfer) {
-                  assignAASlotMutation.mutate({
-                    encounterId: assignment.encounterId ?? undefined,
-                    raidPlanId: assignment.raidPlanId ?? undefined,
-                    planCharacterId: op.planCharacterId,
-                    slotName: assignment.slotName,
-                  });
-                }
-              }
-              executeDragMutation(op);
-            },
-          },
-        );
+        // Fire all mutations in parallel — each has optimistic updates
+        if (hasAAAssignments) {
+          const assignmentsToTransfer = plan?.aaSlotAssignments.filter(
+            (a) => a.planCharacterId === op.affectedCharacterId,
+          );
+          clearAAAssignmentsMutation.mutate({
+            planCharacterId: op.affectedCharacterId,
+          });
+          if (assignmentsToTransfer) {
+            for (const assignment of assignmentsToTransfer) {
+              assignAASlotMutation.mutate({
+                encounterId: assignment.encounterId ?? undefined,
+                raidPlanId: assignment.raidPlanId ?? undefined,
+                planCharacterId: op.planCharacterId,
+                slotName: assignment.slotName,
+              });
+            }
+          }
+        }
+        if (hasEncounterGroups) {
+          transferEncounterAssignmentsMutation.mutate({
+            fromPlanCharacterId: op.affectedCharacterId,
+            toPlanCharacterId: op.planCharacterId,
+          });
+        }
+        executeDragMutation(op);
         return;
       }
     },
@@ -200,6 +244,8 @@ export function useRaidPlanDragDrop({
       plan?.aaSlotAssignments,
       clearAAAssignmentsMutation,
       assignAASlotMutation,
+      transferEncounterAssignmentsMutation,
+      benchEncounterAssignmentsMutation,
       executeDragMutation,
     ],
   );
@@ -356,7 +402,7 @@ export function useRaidPlanDragDrop({
       if (overId === "bench-droppable") {
         if (isDefaultTab) {
           // Check if the character being moved to bench has AA assignments
-          const assignments = getAAAssignmentDetails(activeId);
+          const assignments = getAssignmentDetails(activeId);
           if (assignments) {
             setPendingDragOperation({
               type: "move",
@@ -404,7 +450,7 @@ export function useRaidPlanDragDrop({
             const activeIsOnBench =
               (activeChar as RaidPlanCharacter).defaultGroup === null;
             if (activeIsOnBench) {
-              const assignments = getAAAssignmentDetails(targetChar.id);
+              const assignments = getAssignmentDetails(targetChar.id);
               if (assignments) {
                 setPendingDragOperation({
                   type: "swap",
@@ -418,6 +464,8 @@ export function useRaidPlanDragDrop({
                   transferTargetName:
                     (activeChar as RaidPlanCharacter).characterName ??
                     "Unknown",
+                  transferTargetClass:
+                    (activeChar as RaidPlanCharacter).class ?? undefined,
                   existingAssignments: assignments,
                 });
                 return;
@@ -462,7 +510,7 @@ export function useRaidPlanDragDrop({
           const activeIsInGroup =
             (activeChar as RaidPlanCharacter).defaultGroup !== null;
           if (activeIsInGroup) {
-            const assignments = getAAAssignmentDetails(activeId);
+            const assignments = getAssignmentDetails(activeId);
             if (assignments) {
               setPendingDragOperation({
                 type: "swap",
@@ -477,6 +525,8 @@ export function useRaidPlanDragDrop({
                   (activeChar as RaidPlanCharacter).class ?? undefined,
                 transferTargetName:
                   (targetChar as RaidPlanCharacter).characterName ?? "Unknown",
+                transferTargetClass:
+                  (targetChar as RaidPlanCharacter).class ?? undefined,
                 existingAssignments: assignments,
               });
               return;
@@ -505,7 +555,7 @@ export function useRaidPlanDragDrop({
       swapCharactersMutation,
       moveEncounterCharMutation,
       swapEncounterCharsMutation,
-      getAAAssignmentDetails,
+      getAssignmentDetails,
     ],
   );
 
