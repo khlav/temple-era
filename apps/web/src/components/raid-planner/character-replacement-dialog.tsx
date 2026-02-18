@@ -11,11 +11,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
+import { CLASS_TEXT_COLORS } from "./constants";
 
 interface CharacterReplacementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingAssignments?: { encounterName: string; slotName: string }[];
+  affectedCharacterName?: string;
+  affectedCharacterClass?: string;
   newCharacterName?: string;
   isPending: boolean;
   onTransfer: () => void;
@@ -27,6 +30,8 @@ export function CharacterReplacementDialog({
   open,
   onOpenChange,
   existingAssignments,
+  affectedCharacterName,
+  affectedCharacterClass,
   newCharacterName,
   isPending,
   onTransfer,
@@ -41,7 +46,12 @@ export function CharacterReplacementDialog({
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
-                This character has AA assignments in the following encounters:
+                <span
+                  className={`font-semibold ${affectedCharacterClass ? (CLASS_TEXT_COLORS[affectedCharacterClass] ?? "text-foreground") : "text-foreground"}`}
+                >
+                  {affectedCharacterName ?? "This character"}
+                </span>{" "}
+                has AA assignments in the following encounters:
               </p>
               <ul className="list-inside list-disc text-sm">
                 {existingAssignments?.map((a, i) => (
@@ -58,9 +68,11 @@ export function CharacterReplacementDialog({
           <AlertDialogCancel disabled={isPending} onClick={onCancel}>
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onTransfer} disabled={isPending}>
-            Transfer to {newCharacterName}
-          </AlertDialogAction>
+          {newCharacterName && (
+            <AlertDialogAction onClick={onTransfer} disabled={isPending}>
+              Transfer to {newCharacterName}
+            </AlertDialogAction>
+          )}
           <AlertDialogAction
             onClick={onClearAssignments}
             disabled={isPending}

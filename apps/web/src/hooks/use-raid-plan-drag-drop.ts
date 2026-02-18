@@ -15,6 +15,19 @@ import type { useRaidPlanMutations } from "./use-raid-plan-mutations";
 
 type Mutations = ReturnType<typeof useRaidPlanMutations>;
 
+export type PendingDragOperation = {
+  type: "move" | "swap";
+  planCharacterId: string;
+  targetGroup: number | null;
+  targetPosition: number | null;
+  targetCharacterId?: string;
+  affectedCharacterId: string;
+  affectedCharacterName: string;
+  affectedCharacterClass?: string;
+  transferTargetName?: string;
+  existingAssignments: { encounterName: string; slotName: string }[];
+};
+
 interface UseRaidPlanDragDropOptions {
   mutations: Mutations;
   activeTab: string;
@@ -47,10 +60,14 @@ export function useRaidPlanDragDrop({
     swapCharactersMutation,
     moveEncounterCharMutation,
     swapEncounterCharsMutation,
+    clearAAAssignmentsMutation,
   } = mutations;
 
   const [activeCharacter, setActiveCharacter] =
     useState<RaidPlanCharacter | null>(null);
+
+  const [pendingDragOperation, setPendingDragOperation] =
+    useState<PendingDragOperation | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -58,6 +75,36 @@ export function useRaidPlanDragDrop({
         distance: 8,
       },
     }),
+  );
+
+  /**
+   * Check if a character has AA assignments and return details.
+   * Returns null if no assignments exist.
+   */
+  const getAAAssignmentDetails = useCallback(
+    (
+      planCharacterId: string,
+    ): { encounterName: string; slotName: string }[] | null => {
+      if (!plan) return null;
+
+      const aaAssignments = plan.aaSlotAssignments.filter(
+        (a) => a.planCharacterId === planCharacterId,
+      );
+
+      if (aaAssignments.length === 0) return null;
+
+      const encounterMap = new Map(
+        plan.encounters.map((e) => [e.id, e.encounterName]),
+      );
+
+      return aaAssignments.map((a) => ({
+        encounterName: a.encounterId
+          ? (encounterMap.get(a.encounterId) ?? "Unknown")
+          : "Default/Trash",
+        slotName: a.slotName,
+      }));
+    },
+    [plan],
   );
 
   const handleDragStart = useCallback(
@@ -72,6 +119,89 @@ export function useRaidPlanDragDrop({
       setActiveCharacter(char ?? null);
     },
     [plan?.characters],
+  );
+
+  /**
+   * Execute a pending drag operation (called after dialog confirmation or directly).
+   */
+  const executeDragMutation = useCallback(
+    (op: PendingDragOperation) => {
+      if (op.type === "move") {
+        moveCharacterMutation.mutate({
+          planCharacterId: op.planCharacterId,
+          targetGroup: op.targetGroup,
+          targetPosition: op.targetPosition,
+        });
+      } else if (op.type === "swap" && op.targetCharacterId) {
+        swapCharactersMutation.mutate({
+          planCharacterIdA: op.planCharacterId,
+          planCharacterIdB: op.targetCharacterId,
+        });
+      }
+    },
+    [moveCharacterMutation, swapCharactersMutation],
+  );
+
+  /**
+   * Handle confirmation from the replacement dialog for a pending drag operation.
+   */
+  const handlePendingDragConfirm = useCallback(
+    (action: "transfer" | "clear" | "cancel") => {
+      if (!pendingDragOperation) return;
+
+      const op = pendingDragOperation;
+      setPendingDragOperation(null);
+
+      if (action === "cancel") {
+        // Don't execute the drag at all
+        return;
+      }
+
+      if (action === "clear") {
+        // Clear AA assignments, then execute the drag
+        clearAAAssignmentsMutation.mutate(
+          { planCharacterId: op.affectedCharacterId },
+          { onSuccess: () => executeDragMutation(op) },
+        );
+        return;
+      }
+
+      if (action === "transfer" && op.type === "swap") {
+        // Clear affected character's AA assignments, reassign them to the
+        // incoming character, then execute the swap
+        const assignmentsToTransfer = plan?.aaSlotAssignments.filter(
+          (a) => a.planCharacterId === op.affectedCharacterId,
+        );
+
+        clearAAAssignmentsMutation.mutate(
+          { planCharacterId: op.affectedCharacterId },
+          {
+            onSuccess: () => {
+              // Reassign each AA slot to the incoming character
+              if (assignmentsToTransfer) {
+                for (const assignment of assignmentsToTransfer) {
+                  assignAASlotMutation.mutate({
+                    encounterId: assignment.encounterId ?? undefined,
+                    raidPlanId: assignment.raidPlanId ?? undefined,
+                    planCharacterId: op.planCharacterId,
+                    slotName: assignment.slotName,
+                  });
+                }
+              }
+              executeDragMutation(op);
+            },
+          },
+        );
+        return;
+      }
+    },
+    [
+      pendingDragOperation,
+      plan?.aaSlotAssignments,
+      clearAAAssignmentsMutation,
+      assignAASlotMutation,
+      executeDragMutation,
+    ],
   );
 
   const handleDragEnd = useCallback(
@@ -225,6 +355,23 @@ export function useRaidPlanDragDrop({
       // Handle bench drop
       if (overId === "bench-droppable") {
         if (isDefaultTab) {
+          // Check if the character being moved to bench has AA assignments
+          const assignments = getAAAssignmentDetails(activeId);
+          if (assignments) {
+            setPendingDragOperation({
+              type: "move",
+              planCharacterId: activeId,
+              targetGroup: null,
+              targetPosition: null,
+              affectedCharacterId: activeId,
+              affectedCharacterName:
+                (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
+              affectedCharacterClass:
+                (activeChar as RaidPlanCharacter).class ?? undefined,
+              existingAssignments: assignments,
+            });
+            return;
+          }
           moveCharacterMutation.mutate({
             planCharacterId: activeId,
             targetGroup: null,
@@ -252,6 +399,30 @@ export function useRaidPlanDragDrop({
         if (targetChar) {
           // Swap with occupant
           if (isDefaultTab) {
+            // Only check AA assignments when bench is involved
+            // (bench → group displaces occupant to bench)
+            const activeIsOnBench =
+              (activeChar as RaidPlanCharacter).defaultGroup === null;
+            if (activeIsOnBench) {
+              const assignments = getAAAssignmentDetails(targetChar.id);
+              if (assignments) {
+                setPendingDragOperation({
+                  type: "swap",
+                  planCharacterId: activeId,
+                  targetGroup,
+                  targetPosition,
+                  targetCharacterId: targetChar.id,
+                  affectedCharacterId: targetChar.id,
+                  affectedCharacterName: targetChar.characterName ?? "Unknown",
+                  affectedCharacterClass: targetChar.class ?? undefined,
+                  transferTargetName:
+                    (activeChar as RaidPlanCharacter).characterName ??
+                    "Unknown",
+                  existingAssignments: assignments,
+                });
+                return;
+              }
+            }
             swapCharactersMutation.mutate({
               planCharacterIdA: activeId,
               planCharacterIdB: targetChar.id,
@@ -287,6 +458,30 @@ export function useRaidPlanDragDrop({
       const targetChar = plan.characters.find((c) => c.id === overId);
       if (targetChar) {
         if (isDefaultTab) {
+          // Only check AA assignments when a group character is going to bench
+          const activeIsInGroup =
+            (activeChar as RaidPlanCharacter).defaultGroup !== null;
+          if (activeIsInGroup) {
+            const assignments = getAAAssignmentDetails(activeId);
+            if (assignments) {
+              setPendingDragOperation({
+                type: "swap",
+                planCharacterId: activeId,
+                targetGroup: null,
+                targetPosition: null,
+                targetCharacterId: targetChar.id,
+                affectedCharacterId: activeId,
+                affectedCharacterName:
+                  (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
+                affectedCharacterClass:
+                  (activeChar as RaidPlanCharacter).class ?? undefined,
+                transferTargetName:
+                  (targetChar as RaidPlanCharacter).characterName ?? "Unknown",
+                existingAssignments: assignments,
+              });
+              return;
+            }
+          }
           swapCharactersMutation.mutate({
             planCharacterIdA: activeId,
             planCharacterIdB: overId,
@@ -310,6 +505,7 @@ export function useRaidPlanDragDrop({
       swapCharactersMutation,
       moveEncounterCharMutation,
       swapEncounterCharsMutation,
+      getAAAssignmentDetails,
     ],
   );
 
@@ -318,5 +514,8 @@ export function useRaidPlanDragDrop({
     activeCharacter,
     handleDragStart,
     handleDragEnd,
+    pendingDragOperation,
+    setPendingDragOperation,
+    handlePendingDragConfirm,
   };
 }

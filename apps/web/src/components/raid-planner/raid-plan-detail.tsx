@@ -119,8 +119,15 @@ export function RaidPlanDetail({
     }
   }, [planId, plan?.name, initialBreadcrumbData, updateBreadcrumbSegment]);
 
-  const { sensors, activeCharacter, handleDragStart, handleDragEnd } =
-    useRaidPlanDragDrop({ mutations, activeTab });
+  const {
+    sensors,
+    activeCharacter,
+    handleDragStart,
+    handleDragEnd,
+    pendingDragOperation,
+    setPendingDragOperation,
+    handlePendingDragConfirm,
+  } = useRaidPlanDragDrop({ mutations, activeTab });
 
   const {
     pendingCharacterUpdate,
@@ -684,6 +691,19 @@ export function RaidPlanDetail({
         onTransfer={() => handleCharacterReplaceConfirm(false)}
         onClearAssignments={() => handleCharacterReplaceConfirm(true)}
         onCancel={() => setPendingCharacterUpdate(null)}
+      />
+
+      <CharacterReplacementDialog
+        open={!!pendingDragOperation}
+        onOpenChange={(open) => !open && setPendingDragOperation(null)}
+        existingAssignments={pendingDragOperation?.existingAssignments}
+        affectedCharacterName={pendingDragOperation?.affectedCharacterName}
+        affectedCharacterClass={pendingDragOperation?.affectedCharacterClass}
+        newCharacterName={pendingDragOperation?.transferTargetName}
+        isPending={clearAAAssignmentsMutation.isPending}
+        onTransfer={() => handlePendingDragConfirm("transfer")}
+        onClearAssignments={() => handlePendingDragConfirm("clear")}
+        onCancel={() => handlePendingDragConfirm("cancel")}
       />
 
       <RefreshConfirmDialog
