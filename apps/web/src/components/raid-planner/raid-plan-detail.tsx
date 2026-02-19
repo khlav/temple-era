@@ -152,6 +152,8 @@ export function RaidPlanDetail({
     handleAAReorder,
     handleDefaultAATemplateSave,
     handleEncounterAATemplateSave,
+    handleExportAllAA,
+    isExportingAA,
   } = useRaidPlanHandlers({ planId, mutations });
 
   if (isLoading) {
@@ -198,6 +200,8 @@ export function RaidPlanDetail({
           togglePublicMutation.mutate({ planId, isPublic })
         }
         onZoneUpdate={refetch}
+        onExportAllAA={handleExportAllAA}
+        isExportingAA={isExportingAA}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

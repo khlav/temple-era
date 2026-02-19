@@ -1138,7 +1138,7 @@ export const raidPlanRouter = createTRPCRouter({
             defaultGroup: charA.defaultGroup,
             defaultPosition: charA.defaultPosition,
           })
-          .where(eq(raidPlanCharacters.id, input.planCharacterIdB));
+          .where(eq(raidPlanCharacters.id, charB.id));
       });
 
       return { success: true };

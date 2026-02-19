@@ -7,6 +7,7 @@ import {
   type AACharacterAssignment,
 } from "~/lib/aa-template";
 import { MRTCodec } from "~/lib/mrt-codec";
+import { AACodec } from "~/lib/aa-codec";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import {
   type RaidPlanCharacter,
@@ -62,6 +63,7 @@ export function useRaidPlanHandlers({
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
   const [copied, setCopied] = useState(false);
   const [aaCopied, setAACopied] = useState(false);
+  const [isExportingAA, setIsExportingAA] = useState(false);
   const [homeServer, setHomeServer] = useState("");
 
   // Default home server to the logged-in user's primary character server
@@ -539,6 +541,81 @@ export function useRaidPlanHandlers({
     [updateEncounterMutation],
   );
 
+  const handleExportAllAA = useCallback(async () => {
+    if (!plan) return;
+    setIsExportingAA(true);
+    try {
+      const children: any[] = [];
+      const raidPlanCharacters = plan.characters as RaidPlanCharacter[];
+
+      // Sort encounters by sortOrder
+      const sortedEncounters = [...plan.encounters].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+
+      for (const encounter of sortedEncounters) {
+        // 1. Determine template (use encounter specific or default)
+        const template = encounter.useCustomAA
+          ? encounter.aaTemplate
+          : plan.defaultAATemplate;
+
+        if (!template) continue;
+
+        // 2. Build the assignment map for this encounter
+        const encounterAssignments = plan.aaSlotAssignments.filter(
+          (a) => a.encounterId === encounter.id,
+        );
+
+        const assignmentMap = new Map<string, AACharacterAssignment[]>();
+        for (const assignment of encounterAssignments) {
+          const char = raidPlanCharacters.find(
+            (c) => c.id === assignment.planCharacterId,
+          );
+          if (!char) continue;
+
+          const existing = assignmentMap.get(assignment.slotName) ?? [];
+          existing.push({ name: char.characterName, class: char.class });
+          assignmentMap.set(assignment.slotName, existing);
+        }
+
+        // 3. Render contents
+        const renderedContents = renderAATemplate(template, assignmentMap);
+
+        // 4. Add to children
+        children.push({
+          Type: "Page",
+          Name: encounter.encounterName,
+          Contents: renderedContents,
+          Index: encounter.sortOrder,
+        });
+      }
+
+      const exportData = {
+        Type: "Category",
+        Name: plan.name,
+        Children: children,
+      };
+
+      const codec = new AACodec();
+      const exportString = codec.encode(exportData, "Category");
+
+      await navigator.clipboard.writeText(exportString);
+      toast({
+        title: "Copied!",
+        description: "All encounter AAs have been copied to your clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Export failed",
+        description:
+          err instanceof Error ? err.message : "Failed to export AAs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingAA(false);
+    }
+  }, [plan, toast]);
+
   return {
     // State
     pendingCharacterUpdate,
@@ -564,5 +641,7 @@ export function useRaidPlanHandlers({
     handleAAReorder,
     handleDefaultAATemplateSave,
     handleEncounterAATemplateSave,
+    handleExportAllAA,
+    isExportingAA,
   };
 }

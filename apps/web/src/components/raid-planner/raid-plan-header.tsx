@@ -2,7 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, ExternalLink, Loader2, Pencil, Check, X } from "lucide-react";
+import {
+  Trash2,
+  ExternalLink,
+  Loader2,
+  Pencil,
+  Check,
+  X,
+  ClipboardCopy,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Switch } from "~/components/ui/switch";
@@ -38,6 +46,8 @@ interface RaidPlanHeaderProps {
   isPublic?: boolean;
   onTogglePublic?: (isPublic: boolean) => void;
   onZoneUpdate?: () => void;
+  onExportAllAA?: () => void;
+  isExportingAA?: boolean;
 }
 
 export function RaidPlanHeader({
@@ -51,6 +61,8 @@ export function RaidPlanHeader({
   isPublic,
   onTogglePublic,
   onZoneUpdate,
+  onExportAllAA,
+  isExportingAA,
 }: RaidPlanHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -245,43 +257,64 @@ export function RaidPlanHeader({
           </div>
         )}
 
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="mr-1.5 h-4 w-4" />
-              Delete
+        <div className="flex items-center gap-2">
+          {onExportAllAA && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportAllAA}
+              disabled={isExportingAA}
+            >
+              {isExportingAA ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <ClipboardCopy className="mr-1.5 h-4 w-4" />
+              )}
+              Export All AAs
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Raid Plan</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete &quot;{name}&quot;? This will
-                permanently remove all characters, encounters, and assignments.
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+          >
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Raid Plan</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &quot;{name}&quot;? This will
+                  permanently remove all characters, encounters, and
+                  assignments. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Metadata row */}
