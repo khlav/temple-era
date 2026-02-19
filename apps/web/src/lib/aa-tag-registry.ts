@@ -48,6 +48,7 @@ const TEXTURE_CATEGORIES: Record<string, { category: string; label: string }> =
     // Warrior
     sunder: { category: "warrior", label: "Warrior" },
     aoe: { category: "warrior", label: "Warrior" },
+    shout: { category: "warrior", label: "Warrior" },
     mock: { category: "warrior", label: "Warrior" },
     pummel: { category: "warrior", label: "Warrior" },
     taunt: { category: "warrior", label: "Warrior" },
@@ -103,6 +104,8 @@ const TEXTURE_CATEGORIES: Record<string, { category: string; label: string }> =
     counterspell: { category: "mage", label: "Mage" },
     sheep: { category: "mage", label: "Mage" },
     polymorph: { category: "mage", label: "Mage" },
+    pig: { category: "mage", label: "Mage" },
+    turtle: { category: "mage", label: "Mage" },
     decurse: { category: "mage", label: "Mage" },
     ai: { category: "mage", label: "Mage" },
     dampen: { category: "mage", label: "Mage" },
@@ -131,6 +134,8 @@ const TEXTURE_CATEGORIES: Record<string, { category: string; label: string }> =
     feint: { category: "rogue", label: "Rogue" },
     cloak: { category: "rogue", label: "Rogue" },
     blind: { category: "rogue", label: "Rogue" },
+    cheap: { category: "rogue", label: "Rogue" },
+    kidney: { category: "rogue", label: "Rogue" },
     // Consumables
     lip: { category: "consumables", label: "Consumables" },
     stone: { category: "consumables", label: "Consumables" },
@@ -189,6 +194,7 @@ const TAG_DISPLAY_NAMES: Record<string, string> = {
   // Warrior
   sunder: "Sunder Armor",
   aoe: "Challenging Shout",
+  shout: "Challenging Shout",
   mock: "Mocking Blow",
   pummel: "Pummel",
   taunt: "Taunt",
@@ -244,6 +250,8 @@ const TAG_DISPLAY_NAMES: Record<string, string> = {
   counterspell: "Counterspell",
   sheep: "Polymorph",
   polymorph: "Polymorph",
+  pig: "Polymorph: Pig",
+  turtle: "Polymorph: Turtle",
   decurse: "Remove Curse",
   ai: "Arcane Intellect",
   dampen: "Dampen Magic",
@@ -272,6 +280,8 @@ const TAG_DISPLAY_NAMES: Record<string, string> = {
   feint: "Feint",
   cloak: "Cloak of Shadows",
   blind: "Blind",
+  cheap: "Cheap Shot",
+  kidney: "Kidney Shot",
   // Consumables
   lip: "LIP",
   stone: "Stoneshield",
