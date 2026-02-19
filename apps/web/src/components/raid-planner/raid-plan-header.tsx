@@ -270,7 +270,7 @@ export function RaidPlanHeader({
               ) : (
                 <ClipboardCopy className="mr-1.5 h-4 w-4" />
               )}
-              Export All AAs
+              Copy AA Import
             </Button>
           )}
 

@@ -548,18 +548,46 @@ export function useRaidPlanHandlers({
       const children: any[] = [];
       const raidPlanCharacters = plan.characters as RaidPlanCharacter[];
 
-      // Sort encounters by sortOrder
+      // 1. Add Trash/General page if enabled
+      if (plan.useDefaultAA && plan.defaultAATemplate) {
+        const defaultAssignments = plan.aaSlotAssignments.filter(
+          (a) => !a.encounterId && a.raidPlanId === plan.id,
+        );
+
+        const assignmentMap = new Map<string, AACharacterAssignment[]>();
+        for (const assignment of defaultAssignments) {
+          const char = raidPlanCharacters.find(
+            (c) => c.id === assignment.planCharacterId,
+          );
+          if (!char) continue;
+
+          const existing = assignmentMap.get(assignment.slotName) ?? [];
+          existing.push({ name: char.characterName, class: char.class });
+          assignmentMap.set(assignment.slotName, existing);
+        }
+
+        const renderedContents = renderAATemplate(
+          plan.defaultAATemplate,
+          assignmentMap,
+        );
+        children.push({
+          Type: "Page",
+          Name: "Trash/General",
+          Contents: renderedContents,
+          Index: 0,
+        });
+      }
+
+      // 2. Add Encounter pages if enabled
       const sortedEncounters = [...plan.encounters].sort(
         (a, b) => a.sortOrder - b.sortOrder,
       );
 
       for (const encounter of sortedEncounters) {
-        // 1. Determine template (use encounter specific or default)
-        const template = encounter.useCustomAA
-          ? encounter.aaTemplate
-          : plan.defaultAATemplate;
+        // Skip if AA is not enabled for this encounter
+        if (!encounter.useCustomAA || !encounter.aaTemplate) continue;
 
-        if (!template) continue;
+        const template = encounter.aaTemplate;
 
         // 2. Build the assignment map for this encounter
         const encounterAssignments = plan.aaSlotAssignments.filter(
@@ -586,8 +614,12 @@ export function useRaidPlanHandlers({
           Type: "Page",
           Name: encounter.encounterName,
           Contents: renderedContents,
-          Index: encounter.sortOrder,
+          Index: encounter.sortOrder + 1,
         });
+      }
+
+      if (children.length === 0) {
+        throw new Error("No AA pages were found to export.");
       }
 
       const exportData = {
@@ -601,8 +633,14 @@ export function useRaidPlanHandlers({
 
       await navigator.clipboard.writeText(exportString);
       toast({
-        title: "Copied!",
-        description: "All encounter AAs have been copied to your clipboard.",
+        title: "Copied Encoded AAs!",
+        description: (
+          <>
+            Import <strong>{plan.name}</strong> ({children.length} page
+            {children.length !== 1 ? "s" : ""}) into Angry Era using Menu &gt;
+            Import &gt; Encoded AA.
+          </>
+        ),
       });
     } catch (err) {
       toast({
