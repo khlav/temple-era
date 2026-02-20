@@ -96,7 +96,7 @@ function getEndgameItemNames(
 const firstRaidInZoneRule: SoftResRule = {
   id: "first-raid-zone",
   name: "First raid in this zone",
-  description: "Character found, but no previous raids in this zone.",
+  description: "Character found, but no previous guild raids in this zone.",
   level: "highlight",
   evaluate: (ctx) =>
     ctx.zone !== null &&
@@ -124,7 +124,9 @@ const newOrUnmatchedRaiderRule: SoftResRule = {
 
 /**
  * Rule 3: Info - Restricted item (OK)
- * Character has SR'd a restricted item but has >= 50% attendance
+ * Character has SR'd a restricted item and meets BOTH:
+ *   (1) >= 50% primary attendance
+ *   (2) >= 4 logged raids in Naxx
  */
 const restrictedItemOkRule: SoftResRule = {
   id: "restricted-item-ok",
@@ -134,22 +136,23 @@ const restrictedItemOkRule: SoftResRule = {
       .filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId))
       .map((itemId) => ctx.srItemNames?.get(itemId) ?? `Item#${itemId}`);
 
-    return `Reserved \`${restrictedItemNames.join(", ")}\` and above 50% attendance. Good luck!!`;
+    return `Reserved \`${restrictedItemNames.join(", ")}\` — above 50% player attendance and 4+ Naxx raids on ${ctx.characterName}. Good luck!!`;
   },
   level: "info",
   evaluate: (ctx) =>
     hasRestrictedNaxxItem(ctx) &&
     ctx.primaryAttendancePct !== null &&
-    ctx.primaryAttendancePct >= 0.5,
+    ctx.primaryAttendancePct >= 0.5 &&
+    ctx.zoneRaidsAttended !== null &&
+    ctx.zoneRaidsAttended >= 4,
   icon: "Info",
 };
 
 /**
  * Rule 4: Error - Restricted item, below 50% attendance
- * Character has SR'd a restricted item but has < 50% attendance
  */
-const restrictedItemIneligibleRule: SoftResRule = {
-  id: "restricted-item-ineligible",
+const restrictedItemAttendanceIneligibleRule: SoftResRule = {
+  id: "restricted-item-attendance-ineligible",
   name: "Restricted SR - Not eligible",
   description: (ctx) => {
     const restrictedItems = ctx.srItems
@@ -157,7 +160,12 @@ const restrictedItemIneligibleRule: SoftResRule = {
       .map((itemId) => ctx.srItemNames!.get(itemId) || `Item#${itemId}`)
       .filter(Boolean);
 
-    return `Reserved \`${restrictedItems.join(", ")}\`, but does not meet Temple raid attendance requirements (50%+).`;
+    const attendance =
+      ctx.primaryAttendancePct !== null
+        ? `${Math.round(ctx.primaryAttendancePct * 100)}%`
+        : "no logged";
+
+    return `Reserved \`${restrictedItems.join(", ")}\` — ${ctx.characterName} does not meet requirements: 50%+ Temple attendance (has ${attendance}).`;
   },
   level: "error",
   evaluate: (ctx) =>
@@ -167,14 +175,69 @@ const restrictedItemIneligibleRule: SoftResRule = {
 };
 
 /**
- * Rule 5: Warning - Newer character, end-game item
+ * Rule 4.5: Warning - Restricted item, below 4 zone raids (Future)
+ */
+const restrictedItemRaidCountIneligibleRule: SoftResRule = {
+  id: "restricted-item-raid-count-ineligible",
+  name: "(Future Restriction) Restricted SR - Not eligible",
+  description: (ctx) => {
+    const restrictedItems = ctx.srItems
+      .filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId))
+      .map((itemId) => ctx.srItemNames!.get(itemId) || `Item#${itemId}`)
+      .filter(Boolean);
+
+    const naxxCount = ctx.zoneRaidsAttended ?? 0;
+
+    return `(Future Restriction) Reserved \`${restrictedItems.join(", ")}\` — ${ctx.characterName} does not meet requirements: 4+ Naxx raids (has ${naxxCount} on ${ctx.characterName}).`;
+  },
+  level: "future",
+  evaluate: (ctx) =>
+    hasRestrictedNaxxItem(ctx) &&
+    (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
+  icon: "AlertTriangle",
+};
+
+/**
+ * Rule 5: Info - End-game item, OK!
+ * Character has SR'd an end-game item and has 4+ logged raids in the zone
+ */
+const endgameItemOkRule: SoftResRule = {
+  id: "endgame-item-ok",
+  name: "End-game SR - OK!",
+  description: (ctx) => {
+    let itemNames: string[] = [];
+    if (ctx.zone === "Blackwing Lair") {
+      itemNames = getEndgameItemNames(ctx, ENDGAME_BWL_ITEMS);
+    } else if (ctx.zone === "Temple of Ahn'Qiraj") {
+      itemNames = getEndgameItemNames(ctx, ENDGAME_AQ40_ITEMS);
+    }
+    const raidCount = ctx.zoneRaidsAttended ?? 0;
+    return `Reserved \`${itemNames.join(", ")}\` — ${raidCount} ${ctx.zone} raid${raidCount === 1 ? "" : "s"} on ${ctx.characterName}. Good luck!!`;
+  },
+  level: "info",
+  evaluate: (ctx) => {
+    if (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4) {
+      return false;
+    }
+    if (ctx.zone === "Blackwing Lair") {
+      return hasEndgameBWLItem(ctx);
+    } else if (ctx.zone === "Temple of Ahn'Qiraj") {
+      return hasEndgameAQ40Item(ctx);
+    }
+    return false;
+  },
+  icon: "Info",
+};
+
+/**
+ * Rule 6: Warning - Newer character, end-game item
  * Character has < 4 logged raids in current zone (or is not found) and SR'd an end-game item
  */
 const newerCharacterEndgameItemRule: SoftResRule = {
   id: "newer-character-endgame-item",
-  name: "Newer character, end-game item",
+  name: "(Future Restriction) End-game SR - Not eligible",
   description: (ctx) => {
-    const raidCount = ctx.zoneRaidsAttendedBenched ?? 0;
+    const raidCount = ctx.zoneRaidsAttended ?? 0;
     let itemNames: string[] = [];
 
     if (ctx.zone === "Blackwing Lair") {
@@ -184,18 +247,15 @@ const newerCharacterEndgameItemRule: SoftResRule = {
     }
 
     if (ctx.characterId === null) {
-      return `Reserved end-game item \`${itemNames.join(", ")}\` but character not found in database.`;
+      return `(Future Restriction) Reserved end-game item \`${itemNames.join(", ")}\` — ${ctx.characterName} not found in database.`;
     }
 
-    return `Reserved end-game item \`${itemNames.join(", ")}\` with only ${raidCount} logged raid${raidCount === 1 ? "" : "s"} in ${ctx.zone}.`;
+    return `(Future Restriction) Reserved end-game item \`${itemNames.join(", ")}\` — requires 4+ ${ctx.zone} raids (has ${raidCount} on ${ctx.characterName}).`;
   },
-  level: "warning",
+  level: "future",
   evaluate: (ctx) => {
-    // Skip if character has 4+ raids in zone
-    if (
-      ctx.zoneRaidsAttendedBenched !== null &&
-      ctx.zoneRaidsAttendedBenched >= 4
-    ) {
+    // Skip if character has 4+ attended raids in zone
+    if (ctx.zoneRaidsAttended !== null && ctx.zoneRaidsAttended >= 4) {
       return false;
     }
 
@@ -219,7 +279,9 @@ export const SOFTRES_RULES: SoftResRule[] = [
   firstRaidInZoneRule,
   newOrUnmatchedRaiderRule,
   restrictedItemOkRule,
-  restrictedItemIneligibleRule,
+  restrictedItemAttendanceIneligibleRule,
+  restrictedItemRaidCountIneligibleRule,
+  endgameItemOkRule,
   newerCharacterEndgameItemRule,
 ];
 

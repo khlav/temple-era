@@ -26,7 +26,8 @@ export interface MatchedCharacterStats {
   primaryCharacterId: number | null;
   primaryCharacterName: string | null;
   totalRaidsAttendedBenched: number;
-  zoneRaidsAttendedBenched: number;
+  zoneRaidsAttended: number; // attended only (no bench)
+  zoneRaidsAttendedBenched: number; // attended + benched
   primaryAttendancePct: number | null;
 }
 
@@ -275,11 +276,12 @@ export async function getCharacterStatsBatch(
       primaryCharacterId: character.primaryCharacterId,
       primaryCharacterName: character.primaryCharacter?.name ?? null,
       totalRaidsAttendedBenched:
-        (totalAttendeeMap.get(characterId) ?? 0) +
-        (totalBenchMap.get(characterId) ?? 0),
+        Number(totalAttendeeMap.get(characterId) ?? 0) +
+        Number(totalBenchMap.get(characterId) ?? 0),
+      zoneRaidsAttended: Number(zoneAttendeeMap.get(characterId) ?? 0),
       zoneRaidsAttendedBenched:
-        (zoneAttendeeMap.get(characterId) ?? 0) +
-        (zoneBenchMap.get(characterId) ?? 0),
+        Number(zoneAttendeeMap.get(characterId) ?? 0) +
+        Number(zoneBenchMap.get(characterId) ?? 0),
       // Look up attendance using the coalesced primaryCharacterId (primaryCharacterId ?? characterId)
       primaryAttendancePct:
         primaryAttendanceMap.get(primaryCharacterId) ?? null,

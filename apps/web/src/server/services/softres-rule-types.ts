@@ -2,7 +2,7 @@
  * Type definitions for SoftRes rule system
  */
 
-export type RuleLevel = "info" | "highlight" | "warning" | "error";
+export type RuleLevel = "info" | "highlight" | "warning" | "future" | "error";
 
 export interface RuleEvaluationContext {
   // Character data
@@ -14,7 +14,8 @@ export interface RuleEvaluationContext {
 
   // Attendance statistics (null for unmatched characters)
   totalRaidsAttendedBenched: number | null;
-  zoneRaidsAttendedBenched: number | null;
+  zoneRaidsAttended: number | null; // attended only (no bench)
+  zoneRaidsAttendedBenched: number | null; // attended + benched
   primaryAttendancePct: number | null;
 
   // SoftRes data

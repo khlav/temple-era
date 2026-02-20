@@ -33,11 +33,12 @@ export interface SoftResScanResult {
     id: string;
     name: string;
     description: string;
-    level: "info" | "highlight" | "warning" | "error";
+    level: "info" | "highlight" | "warning" | "future" | "error";
     icon: string;
   }>;
   stats: {
     totalRaidsAttendedBenched: number;
+    zoneRaidsAttended: number;
     zoneRaidsAttendedBenched: number;
     primaryAttendancePct: number | null;
   } | null; // null for unmatched characters
@@ -251,6 +252,7 @@ export const softres = createTRPCRouter({
           primaryCharacterId: data.stats.primaryCharacterId,
           primaryCharacterName: data.stats.primaryCharacterName,
           totalRaidsAttendedBenched: data.stats.totalRaidsAttendedBenched,
+          zoneRaidsAttended: data.stats.zoneRaidsAttended,
           zoneRaidsAttendedBenched: data.stats.zoneRaidsAttendedBenched,
           primaryAttendancePct: data.stats.primaryAttendancePct,
           srItems: data.reservedChar.items,
@@ -269,7 +271,8 @@ export const softres = createTRPCRouter({
 
         // Sort rules by priority: error > warning > highlight > info
         const severityOrder = {
-          error: 4,
+          error: 5,
+          future: 4,
           warning: 3,
           highlight: 2,
           info: 1,
@@ -298,6 +301,7 @@ export const softres = createTRPCRouter({
           })),
           stats: {
             totalRaidsAttendedBenched: data.stats.totalRaidsAttendedBenched,
+            zoneRaidsAttended: data.stats.zoneRaidsAttended,
             zoneRaidsAttendedBenched: data.stats.zoneRaidsAttendedBenched,
             primaryAttendancePct: data.stats.primaryAttendancePct,
           },
@@ -314,6 +318,7 @@ export const softres = createTRPCRouter({
           primaryCharacterId: null,
           primaryCharacterName: null,
           totalRaidsAttendedBenched: null,
+          zoneRaidsAttended: null,
           zoneRaidsAttendedBenched: null,
           primaryAttendancePct: null,
           srItems: unmatchedChar.srItems.map((item) => item.itemId),
@@ -332,7 +337,8 @@ export const softres = createTRPCRouter({
 
         // Sort rules by priority: error > warning > highlight > info
         const severityOrder = {
-          error: 4,
+          error: 5,
+          future: 4,
           warning: 3,
           highlight: 2,
           info: 1,
@@ -365,7 +371,8 @@ export const softres = createTRPCRouter({
 
       // Sort results by severity (error > warning > highlight > info), then by count of rules at that severity
       const severityOrder = {
-        error: 4,
+        error: 5,
+        future: 4,
         warning: 3,
         highlight: 2,
         info: 1,
