@@ -350,97 +350,101 @@ export function useRaidPlanHandlers({
     exportMRT(plan.characters as RaidPlanCharacter[]);
   }, [plan, exportMRT]);
 
-  const handleRefreshFromRaidhelper = useCallback(async () => {
-    if (!plan?.raidHelperEventId) return;
-    setIsRefreshing(true);
-    try {
-      // 1. Fetch current event details from Raidhelper
-      const eventDetails = await utils.raidHelper.getEventDetails.fetch({
-        eventId: plan.raidHelperEventId,
-      });
-
-      // 2. Build signups for matching (same transform as raid-helper-import)
-      const allSignups = [
-        ...eventDetails.signups.assigned,
-        ...eventDetails.signups.unassigned,
-      ];
-      const signupsForMatching = allSignups.map((s) => ({
-        userId: s.userId,
-        discordName: s.name,
-        className: s.className,
-        specName: s.specName,
-        partyId: s.partyId,
-        slotId: s.slotId,
-      }));
-
-      // 3. Match signups to database characters
-      const matchResults =
-        await utils.raidHelper.matchSignupsToCharacters.fetch({
-          signups: signupsForMatching,
+  const handleRefreshFromRaidhelper = useCallback(
+    async (mode: "fullReimport" | "addNewSignupsToBench" = "fullReimport") => {
+      if (!plan?.raidHelperEventId) return;
+      setIsRefreshing(true);
+      try {
+        // 1. Fetch current event details from Raidhelper
+        const eventDetails = await utils.raidHelper.getEventDetails.fetch({
+          eventId: plan.raidHelperEventId,
         });
 
-      // 4. Transform match results to characters array (same as handleCreatePlan)
-      const characters = matchResults
-        .filter((r) => {
-          const lowerClass = r.className.toLowerCase();
-          return lowerClass !== "absent" && lowerClass !== "absence";
-        })
-        .map((r) => {
-          const defaultGroup =
-            r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
-          const defaultPosition =
-            defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
-          const characterName =
-            r.status === "matched" && r.matchedCharacter
-              ? r.matchedCharacter.characterName
-              : r.discordName;
-          const characterId =
-            r.status === "matched" && r.matchedCharacter
-              ? r.matchedCharacter.characterId
-              : null;
-          const normalizedClass = r.className
-            ? r.className.charAt(0).toUpperCase() +
-              r.className.slice(1).toLowerCase()
-            : null;
-          const writeInClass =
-            !characterId &&
-            normalizedClass &&
-            VALID_WRITE_IN_CLASSES.has(normalizedClass)
-              ? normalizedClass
-              : null;
-          return {
-            characterId,
-            characterName,
-            defaultGroup,
-            defaultPosition,
-            writeInClass,
-          };
-        });
+        // 2. Build signups for matching (same transform as raid-helper-import)
+        const allSignups = [
+          ...eventDetails.signups.assigned,
+          ...eventDetails.signups.unassigned,
+        ];
+        const signupsForMatching = allSignups.map((s) => ({
+          userId: s.userId,
+          discordName: s.name,
+          className: s.className,
+          specName: s.specName,
+          partyId: s.partyId,
+          slotId: s.slotId,
+        }));
 
-      // 5. Call the refresh mutation
-      refreshCharactersMutation.mutate({
-        planId: plan.id,
-        characters,
-      });
-    } catch (err) {
-      toast({
-        title: "Refresh failed",
-        description:
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch from Raidhelper",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [
-    plan?.raidHelperEventId,
-    plan?.id,
-    utils,
-    refreshCharactersMutation,
-    toast,
-  ]);
+        // 3. Match signups to database characters
+        const matchResults =
+          await utils.raidHelper.matchSignupsToCharacters.fetch({
+            signups: signupsForMatching,
+          });
+
+        // 4. Transform match results to characters array (same as handleCreatePlan)
+        const characters = matchResults
+          .filter((r) => {
+            const lowerClass = r.className.toLowerCase();
+            return lowerClass !== "absent" && lowerClass !== "absence";
+          })
+          .map((r) => {
+            const defaultGroup =
+              r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
+            const defaultPosition =
+              defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
+            const characterName =
+              r.status === "matched" && r.matchedCharacter
+                ? r.matchedCharacter.characterName
+                : r.discordName;
+            const characterId =
+              r.status === "matched" && r.matchedCharacter
+                ? r.matchedCharacter.characterId
+                : null;
+            const normalizedClass = r.className
+              ? r.className.charAt(0).toUpperCase() +
+                r.className.slice(1).toLowerCase()
+              : null;
+            const writeInClass =
+              !characterId &&
+              normalizedClass &&
+              VALID_WRITE_IN_CLASSES.has(normalizedClass)
+                ? normalizedClass
+                : null;
+            return {
+              characterId,
+              characterName,
+              defaultGroup,
+              defaultPosition,
+              writeInClass,
+            };
+          });
+
+        // 5. Call the refresh mutation
+        refreshCharactersMutation.mutate({
+          planId: plan.id,
+          mode,
+          characters,
+        });
+      } catch (err) {
+        toast({
+          title: "Refresh failed",
+          description:
+            err instanceof Error
+              ? err.message
+              : "Failed to fetch from Raidhelper",
+          variant: "destructive",
+        });
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [
+      plan?.raidHelperEventId,
+      plan?.id,
+      utils,
+      refreshCharactersMutation,
+      toast,
+    ],
+  );
 
   const handleCopyAA = useCallback(
     (

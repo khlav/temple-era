@@ -1886,6 +1886,9 @@ export const raidPlanRouter = createTRPCRouter({
     .input(
       z.object({
         planId: z.string().uuid(),
+        mode: z
+          .enum(["fullReimport", "addNewSignupsToBench"])
+          .default("fullReimport"),
         characters: z.array(
           z.object({
             characterId: z.number().nullable(),
@@ -1969,14 +1972,20 @@ export const raidPlanRouter = createTRPCRouter({
       const toInsert = input.characters.filter(
         (_, i) => !matchedNewIndices.has(i),
       );
-      const toDelete = existing
-        .filter((e) => !matchedExistingIds.has(e.id))
-        .map((e) => e.id);
+
+      // If just adding new signups, we don't delete anyone and don't update existing
+      const isMergeOnly = input.mode === "addNewSignupsToBench";
+      const toDelete = isMergeOnly
+        ? []
+        : existing
+            .filter((e) => !matchedExistingIds.has(e.id))
+            .map((e) => e.id);
+      const charactersToUpdate = isMergeOnly ? new Map() : matches;
 
       // Execute all writes in a single transaction
       await ctx.db.transaction(async (tx) => {
         // Update matched records (preserves UUID → preserves all assignments)
-        for (const [newIndex, existingRecord] of matches) {
+        for (const [newIndex, existingRecord] of charactersToUpdate) {
           const newChar = input.characters[newIndex]!;
           await tx
             .update(raidPlanCharacters)
@@ -1999,8 +2008,8 @@ export const raidPlanRouter = createTRPCRouter({
               raidPlanId: input.planId,
               characterId: char.characterId,
               characterName: char.characterName,
-              defaultGroup: char.defaultGroup,
-              defaultPosition: char.defaultPosition,
+              defaultGroup: isMergeOnly ? null : char.defaultGroup,
+              defaultPosition: isMergeOnly ? null : char.defaultPosition,
               writeInClass: char.characterId
                 ? null
                 : (char.writeInClass ?? null),
@@ -2015,39 +2024,41 @@ export const raidPlanRouter = createTRPCRouter({
             .where(inArray(raidPlanCharacters.id, toDelete));
         }
 
-        // Reset all encounters back to "use default groups" and delete custom assignments
-        const customEncounters = await tx
-          .select({ id: raidPlanEncounters.id })
-          .from(raidPlanEncounters)
-          .where(
-            and(
-              eq(raidPlanEncounters.raidPlanId, input.planId),
-              eq(raidPlanEncounters.useDefaultGroups, false),
-            ),
-          );
-
-        if (customEncounters.length > 0) {
-          const customEncounterIds = customEncounters.map((e) => e.id);
-
-          await tx
-            .delete(raidPlanEncounterAssignments)
+        // Reset all encounters back to "use default groups" and delete custom assignments (Full Reimport ONLY)
+        if (!isMergeOnly) {
+          const customEncounters = await tx
+            .select({ id: raidPlanEncounters.id })
+            .from(raidPlanEncounters)
             .where(
-              inArray(
-                raidPlanEncounterAssignments.encounterId,
-                customEncounterIds,
+              and(
+                eq(raidPlanEncounters.raidPlanId, input.planId),
+                eq(raidPlanEncounters.useDefaultGroups, false),
               ),
             );
 
-          await tx
-            .update(raidPlanEncounters)
-            .set({ useDefaultGroups: true })
-            .where(inArray(raidPlanEncounters.id, customEncounterIds));
+          if (customEncounters.length > 0) {
+            const customEncounterIds = customEncounters.map((e) => e.id);
+
+            await tx
+              .delete(raidPlanEncounterAssignments)
+              .where(
+                inArray(
+                  raidPlanEncounterAssignments.encounterId,
+                  customEncounterIds,
+                ),
+              );
+
+            await tx
+              .update(raidPlanEncounters)
+              .set({ useDefaultGroups: true })
+              .where(inArray(raidPlanEncounters.id, customEncounterIds));
+          }
         }
       });
 
       return {
         added: toInsert.length,
-        updated: matches.size,
+        updated: charactersToUpdate.size,
         removed: toDelete.length,
       };
     }),

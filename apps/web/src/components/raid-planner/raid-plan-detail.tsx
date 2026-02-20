@@ -718,9 +718,9 @@ export function RaidPlanDetail({
         open={showRefreshDialog}
         onOpenChange={(open) => !open && setShowRefreshDialog(false)}
         isPending={isRefreshing || refreshCharactersMutation.isPending}
-        onConfirm={() => {
+        onConfirm={(mode: "fullReimport" | "addNewSignupsToBench") => {
           setShowRefreshDialog(false);
-          void handleRefreshFromRaidhelper();
+          void handleRefreshFromRaidhelper(mode);
         }}
       />
 
