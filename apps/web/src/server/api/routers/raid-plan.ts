@@ -230,7 +230,8 @@ export const raidPlanRouter = createTRPCRouter({
           sortOrder: raidPlanEncounterAASlots.sortOrder,
         })
         .from(raidPlanEncounterAASlots)
-        .where(or(...aaSlotConditions));
+        .where(or(...aaSlotConditions))
+        .orderBy(raidPlanEncounterAASlots.sortOrder);
 
       return {
         ...plan[0]!,
@@ -397,7 +398,8 @@ export const raidPlanRouter = createTRPCRouter({
           sortOrder: raidPlanEncounterAASlots.sortOrder,
         })
         .from(raidPlanEncounterAASlots)
-        .where(or(...aaSlotConditions));
+        .where(or(...aaSlotConditions))
+        .orderBy(raidPlanEncounterAASlots.sortOrder);
 
       return {
         ...plan[0]!,

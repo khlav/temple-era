@@ -456,7 +456,10 @@ export function useRaidPlanHandlers({
 
       // Build the assignment map for rendering
       const assignmentMap = new Map<string, AACharacterAssignment[]>();
-      for (const assignment of slotAssignments) {
+      const sorted = [...slotAssignments].sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      );
+      for (const assignment of sorted) {
         const char = characters.find(
           (c) => c.id === assignment.planCharacterId,
         );
@@ -554,9 +557,9 @@ export function useRaidPlanHandlers({
 
       // 1. Add Trash/General page if enabled
       if (plan.useDefaultAA && plan.defaultAATemplate) {
-        const defaultAssignments = plan.aaSlotAssignments.filter(
-          (a) => !a.encounterId && a.raidPlanId === plan.id,
-        );
+        const defaultAssignments = plan.aaSlotAssignments
+          .filter((a) => !a.encounterId && a.raidPlanId === plan.id)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
 
         const assignmentMap = new Map<string, AACharacterAssignment[]>();
         for (const assignment of defaultAssignments) {
@@ -594,9 +597,9 @@ export function useRaidPlanHandlers({
         const template = encounter.aaTemplate;
 
         // 2. Build the assignment map for this encounter
-        const encounterAssignments = plan.aaSlotAssignments.filter(
-          (a) => a.encounterId === encounter.id,
-        );
+        const encounterAssignments = plan.aaSlotAssignments
+          .filter((a) => a.encounterId === encounter.id)
+          .sort((a, b) => a.sortOrder - b.sortOrder);
 
         const assignmentMap = new Map<string, AACharacterAssignment[]>();
         for (const assignment of encounterAssignments) {
