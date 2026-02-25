@@ -301,21 +301,29 @@ Format: `type(scope): description`
 
 #### "Ship It" Process
 
-When the user says "ship it", follow these steps exactly:
-
-1. **Create feature branch** (if on main): `git checkout -b {type}/{description}`
-2. **Stage and commit**:
-   - `git add .`
-   - `git commit -m "{type}({scope}): {description}"`
-3. **Push branch**: `git push origin {branch-name}`
-4. **Create PR**: Use `gh pr create` and follow `.github/pull_request_template.md`
-5. **Apply user-facing label**:
-   - Apply for `feature/` and `fix/` branches (unless only config files changed)
-   - Skip for `chore/`, `dev/`, `refactor/` branches
-   - Use: `gh pr create --label "user-facing"`
-6. **Return clickable link**: `[PR #123: Title](https://github.com/khlav/temple-raids-t3/pull/123)`
+When the user says "ship it", invoke the `/ship` command (`.claude/commands/ship.md`). It handles state detection, branching, committing, pushing, and PR creation including the `user-facing` label automatically.
 
 The `user-facing` label controls Discord notifications for merged PRs.
+
+### Parallel Implementation
+
+When implementing features that span independent layers, consider spawning parallel sub-agents via the Task tool rather than working sequentially. This is most valuable when backend and frontend changes don't depend on each other being completed first.
+
+**When to suggest parallel agents:**
+
+- Feature touches both a tRPC router/Drizzle query **and** a React component or hook
+- Schema changes + UI changes that can be designed against a shared interface
+- Any task where 2+ files in different areas of the codebase need independent changes
+
+**Typical parallel split for this stack:**
+
+- **Backend agent**: tRPC router (`src/server/api/routers/`), Drizzle schema/queries (`src/server/db/`)
+- **Frontend agent**: React components (`src/components/`), hooks (`src/hooks/`), pages (`src/app/`)
+- **Types agent** (optional): Shared Zod schemas, TypeScript interfaces that both layers need
+
+After sub-agents complete, validate interface alignment with `pnpm typecheck` before committing.
+
+When proposing a plan for a multi-layer feature, explicitly call out which work can be parallelized and offer to spawn agents for each stream.
 
 #### PR Description Formatting
 
