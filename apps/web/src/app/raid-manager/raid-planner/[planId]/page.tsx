@@ -45,7 +45,7 @@ async function RaidPlanContent({ planId }: { planId: string }) {
 
 function RaidPlanSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="">
       <div className="space-y-2">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-96" />

@@ -186,7 +186,7 @@ export function RaidPlanDetail({
     plan.zoneId;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <RaidPlanHeader
         planId={plan.id}
         name={plan.name}

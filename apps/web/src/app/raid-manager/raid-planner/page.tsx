@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default async function RaidPlannerPage() {
   return (
     <main className="w-full px-4">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="text-3xl font-bold tracking-tight">Raid Planner</div>
         <Button variant="ghost" size="sm" asChild>
           <Link href="/raid-manager/raid-planner/config">

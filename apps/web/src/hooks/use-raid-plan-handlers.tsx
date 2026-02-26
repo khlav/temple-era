@@ -548,118 +548,122 @@ export function useRaidPlanHandlers({
     [updateEncounterMutation],
   );
 
-  const handleExportAllAA = useCallback(async () => {
-    if (!plan) return;
-    setIsExportingAA(true);
-    try {
-      const children: any[] = [];
-      const raidPlanCharacters = plan.characters as RaidPlanCharacter[];
+  const handleExportAllAA = useCallback(
+    async (categoryName?: string) => {
+      if (!plan) return;
+      setIsExportingAA(true);
+      const exportName = categoryName ?? plan.name;
+      try {
+        const children: any[] = [];
+        const raidPlanCharacters = plan.characters as RaidPlanCharacter[];
 
-      // 1. Add Trash/General page if enabled
-      if (plan.useDefaultAA && plan.defaultAATemplate) {
-        const defaultAssignments = plan.aaSlotAssignments
-          .filter((a) => !a.encounterId && a.raidPlanId === plan.id)
-          .sort((a, b) => a.sortOrder - b.sortOrder);
+        // 1. Add Trash/General page if enabled
+        if (plan.useDefaultAA && plan.defaultAATemplate) {
+          const defaultAssignments = plan.aaSlotAssignments
+            .filter((a) => !a.encounterId && a.raidPlanId === plan.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
 
-        const assignmentMap = new Map<string, AACharacterAssignment[]>();
-        for (const assignment of defaultAssignments) {
-          const char = raidPlanCharacters.find(
-            (c) => c.id === assignment.planCharacterId,
+          const assignmentMap = new Map<string, AACharacterAssignment[]>();
+          for (const assignment of defaultAssignments) {
+            const char = raidPlanCharacters.find(
+              (c) => c.id === assignment.planCharacterId,
+            );
+            if (!char) continue;
+
+            const existing = assignmentMap.get(assignment.slotName) ?? [];
+            existing.push({ name: char.characterName, class: char.class });
+            assignmentMap.set(assignment.slotName, existing);
+          }
+
+          const renderedContents = renderAATemplate(
+            plan.defaultAATemplate,
+            assignmentMap,
           );
-          if (!char) continue;
-
-          const existing = assignmentMap.get(assignment.slotName) ?? [];
-          existing.push({ name: char.characterName, class: char.class });
-          assignmentMap.set(assignment.slotName, existing);
+          children.push({
+            Type: "Page",
+            Name: "Trash/General",
+            Contents: renderedContents,
+            Index: 0,
+          });
         }
 
-        const renderedContents = renderAATemplate(
-          plan.defaultAATemplate,
-          assignmentMap,
+        // 2. Add Encounter pages if enabled
+        const sortedEncounters = [...plan.encounters].sort(
+          (a, b) => a.sortOrder - b.sortOrder,
         );
-        children.push({
-          Type: "Page",
-          Name: "Trash/General",
-          Contents: renderedContents,
-          Index: 0,
-        });
-      }
 
-      // 2. Add Encounter pages if enabled
-      const sortedEncounters = [...plan.encounters].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
+        for (const encounter of sortedEncounters) {
+          // Skip if AA is not enabled for this encounter
+          if (!encounter.useCustomAA || !encounter.aaTemplate) continue;
 
-      for (const encounter of sortedEncounters) {
-        // Skip if AA is not enabled for this encounter
-        if (!encounter.useCustomAA || !encounter.aaTemplate) continue;
+          const template = encounter.aaTemplate;
 
-        const template = encounter.aaTemplate;
+          // 2. Build the assignment map for this encounter
+          const encounterAssignments = plan.aaSlotAssignments
+            .filter((a) => a.encounterId === encounter.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
 
-        // 2. Build the assignment map for this encounter
-        const encounterAssignments = plan.aaSlotAssignments
-          .filter((a) => a.encounterId === encounter.id)
-          .sort((a, b) => a.sortOrder - b.sortOrder);
+          const assignmentMap = new Map<string, AACharacterAssignment[]>();
+          for (const assignment of encounterAssignments) {
+            const char = raidPlanCharacters.find(
+              (c) => c.id === assignment.planCharacterId,
+            );
+            if (!char) continue;
 
-        const assignmentMap = new Map<string, AACharacterAssignment[]>();
-        for (const assignment of encounterAssignments) {
-          const char = raidPlanCharacters.find(
-            (c) => c.id === assignment.planCharacterId,
-          );
-          if (!char) continue;
+            const existing = assignmentMap.get(assignment.slotName) ?? [];
+            existing.push({ name: char.characterName, class: char.class });
+            assignmentMap.set(assignment.slotName, existing);
+          }
 
-          const existing = assignmentMap.get(assignment.slotName) ?? [];
-          existing.push({ name: char.characterName, class: char.class });
-          assignmentMap.set(assignment.slotName, existing);
+          // 3. Render contents
+          const renderedContents = renderAATemplate(template, assignmentMap);
+
+          // 4. Add to children
+          children.push({
+            Type: "Page",
+            Name: encounter.encounterName,
+            Contents: renderedContents,
+            Index: encounter.sortOrder + 1,
+          });
         }
 
-        // 3. Render contents
-        const renderedContents = renderAATemplate(template, assignmentMap);
+        if (children.length === 0) {
+          throw new Error("No AA pages were found to export.");
+        }
 
-        // 4. Add to children
-        children.push({
-          Type: "Page",
-          Name: encounter.encounterName,
-          Contents: renderedContents,
-          Index: encounter.sortOrder + 1,
+        const exportData = {
+          Type: "Category",
+          Name: exportName,
+          Children: children,
+        };
+
+        const codec = new AACodec();
+        const exportString = codec.encode(exportData, "Category");
+
+        await navigator.clipboard.writeText(exportString);
+        toast({
+          title: "Copied Encoded AAs!",
+          description: (
+            <>
+              Import <strong>{exportName}</strong> ({children.length} page
+              {children.length !== 1 ? "s" : ""}) into Angry Era using Menu &gt;
+              Import &gt; Encoded AA.
+            </>
+          ),
         });
+      } catch (err) {
+        toast({
+          title: "Export failed",
+          description:
+            err instanceof Error ? err.message : "Failed to export AAs",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExportingAA(false);
       }
-
-      if (children.length === 0) {
-        throw new Error("No AA pages were found to export.");
-      }
-
-      const exportData = {
-        Type: "Category",
-        Name: plan.name,
-        Children: children,
-      };
-
-      const codec = new AACodec();
-      const exportString = codec.encode(exportData, "Category");
-
-      await navigator.clipboard.writeText(exportString);
-      toast({
-        title: "Copied Encoded AAs!",
-        description: (
-          <>
-            Import <strong>{plan.name}</strong> ({children.length} page
-            {children.length !== 1 ? "s" : ""}) into Angry Era using Menu &gt;
-            Import &gt; Encoded AA.
-          </>
-        ),
-      });
-    } catch (err) {
-      toast({
-        title: "Export failed",
-        description:
-          err instanceof Error ? err.message : "Failed to export AAs",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExportingAA(false);
-    }
-  }, [plan, toast]);
+    },
+    [plan, toast],
+  );
 
   return {
     // State
