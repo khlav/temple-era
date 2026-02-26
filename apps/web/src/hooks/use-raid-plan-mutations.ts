@@ -1,3 +1,4 @@
+import { useState, useCallback, useEffect, useRef } from "react";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 
@@ -12,13 +13,70 @@ export function useRaidPlanMutations({
 }: UseRaidPlanMutationsOptions) {
   const { toast } = useToast();
   const utils = api.useUtils();
+  const [isPollingActive, setIsPollingActive] = useState(true);
+  const lastActivityRef = useRef(Date.now());
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const POLLING_INTERVAL = 5000;
+  const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+  const startPolling = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setIsPollingActive(true);
+  }, []);
+
+  const trackActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    if (!isPollingActive) {
+      setIsPollingActive(true);
+    }
+  }, [isPollingActive]);
+
+  // Handle inactivity timeout
+  useEffect(() => {
+    const checkInactivity = () => {
+      const now = Date.now();
+      if (now - lastActivityRef.current >= INACTIVITY_TIMEOUT) {
+        setIsPollingActive(false);
+      }
+    };
+
+    if (isPollingActive) {
+      timerRef.current = setInterval(checkInactivity, 10000); // Check every 10s
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPollingActive, INACTIVITY_TIMEOUT]);
 
   const {
     data: plan,
     isLoading,
     error,
     refetch,
-  } = api.raidPlan.getById.useQuery({ planId }, { refetchInterval: 5000 });
+  } = api.raidPlan.getById.useQuery(
+    { planId },
+    {
+      refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
+    },
+  );
+
+  // Snapshot plan to detect "refreshes" (data changes)
+  const prevPlanJsonRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (plan) {
+      const currentPlanJson = JSON.stringify(plan);
+      if (
+        prevPlanJsonRef.current &&
+        prevPlanJsonRef.current !== currentPlanJson
+      ) {
+        // Data updated from a poll, count as activity
+        trackActivity();
+      }
+      prevPlanJsonRef.current = currentPlanJson;
+    }
+  }, [plan, trackActivity]);
 
   const updateEncounterMutation = api.raidPlan.updateEncounter.useMutation({
     onMutate: async (input) => {
@@ -45,7 +103,10 @@ export function useRaidPlanMutations({
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
-    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    onSettled: () => {
+      trackActivity();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
   });
 
   const deleteEncounterMutation = api.raidPlan.deleteEncounter.useMutation({
@@ -76,12 +137,16 @@ export function useRaidPlanMutations({
         variant: "destructive",
       });
     },
-    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    onSettled: () => {
+      trackActivity();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
   });
 
   const resetEncounterMutation =
     api.raidPlan.resetEncounterToDefault.useMutation({
       onSuccess: (data) => {
+        trackActivity();
         toast({
           title: "Reset to default",
           description: `Encounter groups reset to match default (${data.count} assignments)`,
@@ -123,7 +188,10 @@ export function useRaidPlanMutations({
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
-    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    onSettled: () => {
+      trackActivity();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
   });
 
   const swapCharactersMutation = api.raidPlan.swapCharacters.useMutation({
@@ -163,7 +231,10 @@ export function useRaidPlanMutations({
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
-    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    onSettled: () => {
+      trackActivity();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
   });
 
   const addCharacterMutation = api.raidPlan.addCharacter.useMutation();
@@ -210,7 +281,10 @@ export function useRaidPlanMutations({
       onError: (_err, _vars, ctx) => {
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       },
-      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+      onSettled: () => {
+        trackActivity();
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     });
 
   const swapEncounterCharsMutation =
@@ -307,11 +381,15 @@ export function useRaidPlanMutations({
       onError: (_err, _vars, ctx) => {
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       },
-      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+      onSettled: () => {
+        trackActivity();
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     });
 
   const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
     onSuccess: (data) => {
+      trackActivity();
       toast({
         title: "Roster refreshed",
         description: `+${data.added} added, ${data.updated} updated, -${data.removed} removed`,
@@ -328,7 +406,10 @@ export function useRaidPlanMutations({
   });
 
   const updatePlanMutation = api.raidPlan.update.useMutation({
-    onSuccess: () => void refetch(),
+    onSuccess: () => {
+      trackActivity();
+      void refetch();
+    },
     onError: (error) => {
       toast({
         title: "Error",
@@ -395,6 +476,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
+        trackActivity();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     },
@@ -440,6 +522,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
+        trackActivity();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -485,6 +568,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
+        trackActivity();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -513,7 +597,10 @@ export function useRaidPlanMutations({
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
-    onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+    onSettled: () => {
+      trackActivity();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
   });
 
   const clearAAAssignmentsMutation =
@@ -540,7 +627,10 @@ export function useRaidPlanMutations({
           variant: "destructive",
         });
       },
-      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+      onSettled: () => {
+        trackActivity();
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     });
 
   const transferEncounterAssignmentsMutation =
@@ -589,7 +679,10 @@ export function useRaidPlanMutations({
           variant: "destructive",
         });
       },
-      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+      onSettled: () => {
+        trackActivity();
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     });
 
   const benchEncounterAssignmentsMutation =
@@ -618,12 +711,16 @@ export function useRaidPlanMutations({
           variant: "destructive",
         });
       },
-      onSettled: () => void utils.raidPlan.getById.invalidate({ planId }),
+      onSettled: () => {
+        trackActivity();
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
     });
 
   const pushDefaultAAMutation =
     api.raidPlan.pushDefaultAAAssignments.useMutation({
       onSuccess: (data) => {
+        trackActivity();
         toast({
           title: "Assignments pushed",
           description: `Pushed ${data.totalSlotsPushed} slot${data.totalSlotsPushed !== 1 ? "s" : ""} to ${data.encounters.length} encounter${data.encounters.length !== 1 ? "s" : ""}`,
@@ -665,5 +762,8 @@ export function useRaidPlanMutations({
     benchEncounterAssignmentsMutation,
     reorderEncountersMutation,
     pushDefaultAAMutation,
+    isPollingActive,
+    startPolling,
+    trackActivity,
   };
 }

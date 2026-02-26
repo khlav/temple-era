@@ -75,6 +75,8 @@ export function RaidPlanDetail({
     refreshCharactersMutation,
     reorderEncountersMutation,
     pushDefaultAAMutation,
+    isPollingActive,
+    startPolling,
   } = mutations;
 
   const utils = api.useUtils();
@@ -202,6 +204,8 @@ export function RaidPlanDetail({
         onZoneUpdate={refetch}
         onExportAllAA={handleExportAllAA}
         isExportingAA={isExportingAA}
+        isPollingActive={isPollingActive}
+        onRestartPolling={startPolling}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

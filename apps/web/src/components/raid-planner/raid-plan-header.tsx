@@ -56,6 +56,7 @@ import {
 } from "~/lib/raid-zones";
 import { formatRaidDate } from "~/utils/date-formatting";
 import { ZoneSelect } from "./zone-select";
+import { PollingIndicator } from "./polling-indicator";
 
 interface RaidPlanHeaderProps {
   planId: string;
@@ -70,6 +71,8 @@ interface RaidPlanHeaderProps {
   onZoneUpdate?: () => void;
   onExportAllAA?: (categoryName: string) => void | Promise<void>;
   isExportingAA?: boolean;
+  isPollingActive?: boolean;
+  onRestartPolling?: () => void;
 }
 
 export function RaidPlanHeader({
@@ -85,6 +88,8 @@ export function RaidPlanHeader({
   onZoneUpdate,
   onExportAllAA,
   isExportingAA,
+  isPollingActive = true,
+  onRestartPolling,
 }: RaidPlanHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -363,41 +368,65 @@ export function RaidPlanHeader({
         <div className="flex flex-col items-end gap-1">
           {onExportAllAA && (
             <>
-              <div className="flex">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCategoryName(name);
-                    setExportDialogOpen(true);
-                  }}
-                  disabled={isExportingAA}
-                  className="rounded-r-none border-r-0"
-                >
-                  {isExportingAA ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-1.5 h-4 w-4" />
-                  )}
-                  Export Encoded AA
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isExportingAA}
-                      className="rounded-l-none px-2"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => void onExportAllAA(name)}>
-                      <Zap className="mr-2 h-3.5 w-3.5" />
-                      Quick Export
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="flex items-center gap-2">
+                <PollingIndicator
+                  isPollingActive={isPollingActive}
+                  onRestartPolling={onRestartPolling}
+                  side="left"
+                  activeTooltip={
+                    <div className="flex w-fit flex-col gap-0.5 whitespace-nowrap">
+                      <span className="font-bold">Live Updates</span>
+                      <span className="text-xs">
+                        Syncing near-real-time updates from other users.
+                      </span>
+                    </div>
+                  }
+                  inactiveTooltip={
+                    <div className="flex w-fit flex-col gap-0.5 whitespace-nowrap">
+                      <span className="font-bold">Polling Paused</span>
+                      <span className="text-xs">
+                        No updates in the last 5 minutes. Click to resume.
+                      </span>
+                    </div>
+                  }
+                />
+                <div className="flex">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCategoryName(name);
+                      setExportDialogOpen(true);
+                    }}
+                    disabled={isExportingAA}
+                    className="rounded-r-none border-r-0"
+                  >
+                    {isExportingAA ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-1.5 h-4 w-4" />
+                    )}
+                    Export Encoded AA
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={isExportingAA}
+                        className="rounded-l-none border-l-0 px-2"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => void onExportAllAA?.(name)}
+                      >
+                        <Zap className="mr-2 h-3.5 w-3.5" />
+                        Quick Export
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               <Dialog
@@ -419,7 +448,7 @@ export function RaidPlanHeader({
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && categoryName.trim()) {
                           setExportDialogOpen(false);
-                          void onExportAllAA(categoryName.trim());
+                          void onExportAllAA?.(categoryName.trim());
                         }
                       }}
                       placeholder={name}
@@ -435,7 +464,7 @@ export function RaidPlanHeader({
                     <Button
                       onClick={() => {
                         setExportDialogOpen(false);
-                        void onExportAllAA(categoryName.trim() || name);
+                        void onExportAllAA?.(categoryName.trim() || name);
                       }}
                       disabled={isExportingAA}
                     >
