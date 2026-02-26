@@ -32,7 +32,7 @@ const levelColors = {
     "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   warning:
     "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  future:
+  inactive:
     "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
   error: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
@@ -171,7 +171,7 @@ export function SoftResScanTable({
                               const itemNameColor =
                                 rule.level === "error"
                                   ? "text-red-700 dark:text-red-400"
-                                  : rule.level === "future"
+                                  : rule.level === "inactive"
                                     ? "text-orange-700 dark:text-orange-400"
                                     : rule.level === "warning"
                                       ? "text-yellow-700 dark:text-yellow-400"

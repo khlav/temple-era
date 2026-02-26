@@ -179,7 +179,7 @@ const restrictedItemAttendanceIneligibleRule: SoftResRule = {
  */
 const restrictedItemRaidCountIneligibleRule: SoftResRule = {
   id: "restricted-item-raid-count-ineligible",
-  name: "(Future Restriction) Restricted SR - Not eligible",
+  name: "(Inactive) Restricted SR - Not eligible",
   description: (ctx) => {
     const restrictedItems = ctx.srItems
       .filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId))
@@ -188,9 +188,9 @@ const restrictedItemRaidCountIneligibleRule: SoftResRule = {
 
     const naxxCount = ctx.zoneRaidsAttended ?? 0;
 
-    return `(Future Restriction) Reserved \`${restrictedItems.join(", ")}\` — ${ctx.characterName} does not meet requirements: 4+ Naxx raids (has ${naxxCount} on ${ctx.characterName}).`;
+    return `(Inactive) Reserved \`${restrictedItems.join(", ")}\` — ${ctx.characterName} does not meet requirements: 4+ Naxx raids (has ${naxxCount} on ${ctx.characterName}).`;
   },
-  level: "future",
+  level: "inactive",
   evaluate: (ctx) =>
     hasRestrictedNaxxItem(ctx) &&
     (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
@@ -235,7 +235,7 @@ const endgameItemOkRule: SoftResRule = {
  */
 const newerCharacterEndgameItemRule: SoftResRule = {
   id: "newer-character-endgame-item",
-  name: "(Future Restriction) End-game SR - Not eligible",
+  name: "(Inactive) End-game SR - Not eligible",
   description: (ctx) => {
     const raidCount = ctx.zoneRaidsAttended ?? 0;
     let itemNames: string[] = [];
@@ -247,12 +247,12 @@ const newerCharacterEndgameItemRule: SoftResRule = {
     }
 
     if (ctx.characterId === null) {
-      return `(Future Restriction) Reserved end-game item \`${itemNames.join(", ")}\` — ${ctx.characterName} not found in database.`;
+      return `(Inactive) Reserved end-game item \`${itemNames.join(", ")}\` — ${ctx.characterName} not found in database.`;
     }
 
-    return `(Future Restriction) Reserved end-game item \`${itemNames.join(", ")}\` — requires 4+ ${ctx.zone} raids (has ${raidCount} on ${ctx.characterName}).`;
+    return `(Inactive) Reserved end-game item \`${itemNames.join(", ")}\` — requires 4+ ${ctx.zone} raids (has ${raidCount} on ${ctx.characterName}).`;
   },
-  level: "future",
+  level: "inactive",
   evaluate: (ctx) => {
     // Skip if character has 4+ attended raids in zone
     if (ctx.zoneRaidsAttended !== null && ctx.zoneRaidsAttended >= 4) {

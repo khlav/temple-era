@@ -33,7 +33,7 @@ export interface SoftResScanResult {
     id: string;
     name: string;
     description: string;
-    level: "info" | "highlight" | "warning" | "future" | "error";
+    level: "info" | "highlight" | "warning" | "inactive" | "error";
     icon: string;
   }>;
   stats: {
@@ -272,7 +272,7 @@ export const softres = createTRPCRouter({
         // Sort rules by priority: error > warning > highlight > info
         const severityOrder = {
           error: 5,
-          future: 4,
+          inactive: 4,
           warning: 3,
           highlight: 2,
           info: 1,
@@ -338,7 +338,7 @@ export const softres = createTRPCRouter({
         // Sort rules by priority: error > warning > highlight > info
         const severityOrder = {
           error: 5,
-          future: 4,
+          inactive: 4,
           warning: 3,
           highlight: 2,
           info: 1,
@@ -372,7 +372,7 @@ export const softres = createTRPCRouter({
       // Sort results by severity (error > warning > highlight > info), then by count of rules at that severity
       const severityOrder = {
         error: 5,
-        future: 4,
+        inactive: 4,
         warning: 3,
         highlight: 2,
         info: 1,

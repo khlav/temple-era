@@ -2,7 +2,7 @@
  * Type definitions for SoftRes rule system
  */
 
-export type RuleLevel = "info" | "highlight" | "warning" | "future" | "error";
+export type RuleLevel = "info" | "highlight" | "warning" | "inactive" | "error";
 
 export interface RuleEvaluationContext {
   // Character data
