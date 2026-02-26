@@ -3,12 +3,34 @@ name: Discord PR Notification
 on:
   pull_request:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR Number"
+        required: true
+        default: "123"
+      pr_title:
+        description: "PR Title"
+        required: true
+        default: "Test Notification"
+      pr_description:
+        description: "PR Description"
+        required: true
+        default: 'This is a test notification with "double quotes".'
+      pr_url:
+        description: "PR URL"
+        required: true
+        default: "https://github.com/khlav/temple-raids-t3"
+      merged_at:
+        description: "Merged At Timestamp"
+        required: true
+        default: "2026-02-26T00:00:00Z"
 
 jobs:
   notify-discord:
     if: |
-      github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'user-facing')
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'user-facing')) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,11 +38,11 @@ jobs:
       - name: Send Discord Notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.inputs.pr_title || github.event.pull_request.title }}
+          PR_DESCRIPTION: ${{ github.event.inputs.pr_description || github.event.pull_request.body }}
+          PR_URL: ${{ github.event.inputs.pr_url || github.event.pull_request.html_url }}
+          MERGED_AT: ${{ github.event.inputs.merged_at || github.event.pull_request.merged_at }}
         run: |
           chmod +x .github/scripts/discord-notify.sh
-          .github/scripts/discord-notify.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.event.pull_request.title }}" \
-            "${{ github.event.pull_request.body }}" \
-            "${{ github.event.pull_request.html_url }}" \
-            "${{ github.event.pull_request.merged_at }}"
+          .github/scripts/discord-notify.sh
