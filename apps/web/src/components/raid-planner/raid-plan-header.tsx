@@ -401,11 +401,11 @@ export function RaidPlanHeader({
                     className="rounded-r-none border-r-0"
                   >
                     {isExportingAA ? (
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin lg:mr-1.5" />
                     ) : (
-                      <Download className="mr-1.5 h-4 w-4" />
+                      <Download className="h-4 w-4 lg:mr-1.5" />
                     )}
-                    Export Encoded AA
+                    <span className="hidden lg:inline">Export Encoded AA</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -487,8 +487,8 @@ export function RaidPlanHeader({
                 size="sm"
                 className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
-                <Trash2 className="mr-1 h-3 w-3" />
-                Delete
+                <Trash2 className="h-3 w-3 lg:mr-1" />
+                <span className="hidden lg:inline">Delete</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
