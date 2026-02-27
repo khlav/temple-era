@@ -8,6 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   ChartBarSquareIcon,
@@ -27,9 +28,16 @@ import {
   ScanLine,
   ClipboardList,
   LayoutGrid,
-  DraftingCompass
+  DraftingCompass,
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
+
+const mutedTooltip = (label: string) =>
+  ({
+    children: label,
+    className:
+      "pointer-events-none bg-muted text-muted-foreground border border-border shadow-sm",
+  }) as const;
 
 const coreItems = [
   { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
@@ -88,7 +96,7 @@ export async function AppSidebar({
   const session = await auth();
 
   return (
-    <Sidebar {...props}>
+    <Sidebar className="cursor-default" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -120,7 +128,7 @@ export async function AppSidebar({
             <SidebarMenu>
               {coreItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={mutedTooltip(item.title)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -131,6 +139,7 @@ export async function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarSeparator className="mx-4 bg-gray-400/40" />
         <SidebarGroup className="py-0">
           <SidebarGroupLabel className="py-0">
             {reportsSectionTitle}
@@ -139,7 +148,7 @@ export async function AppSidebar({
             <SidebarMenu>
               {reportsLinks.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild tooltip={mutedTooltip(item.title)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -151,46 +160,58 @@ export async function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
         {session?.user?.isRaidManager && (
-          <SidebarGroup className="py-0">
-            <SidebarGroupLabel className="py-0">
-              {raidManagerTitle}
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="py-0">
-              <SidebarMenu>
-                {raidManagerLinks.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <>
+            <SidebarSeparator className="mx-4 bg-gray-400/40" />
+            <SidebarGroup className="py-0">
+              <SidebarGroupLabel className="py-0">
+                {raidManagerTitle}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="py-0">
+                <SidebarMenu>
+                  {raidManagerLinks.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={mutedTooltip(item.title)}
+                      >
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
         {session?.user?.isAdmin && (
-          <SidebarGroup className="py-0">
-            <SidebarGroupLabel className="py-0">
-              {adminSectionTitle}
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="py-0">
-              <SidebarMenu>
-                {adminLinks.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <>
+            <SidebarSeparator className="mx-4 bg-gray-400/40" />
+            <SidebarGroup className="py-0">
+              <SidebarGroupLabel className="py-0">
+                {adminSectionTitle}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="py-0">
+                <SidebarMenu>
+                  {adminLinks.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={mutedTooltip(item.title)}
+                      >
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
       </SidebarContent>
     </Sidebar>
