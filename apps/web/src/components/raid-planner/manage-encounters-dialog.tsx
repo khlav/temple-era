@@ -821,19 +821,8 @@ export function ManageEncountersDialog({
       }
 
       if (activeContainer === targetContainer) {
-        // Handle sorting within the same container
-        const itemsInContainer = prev[activeContainer] ?? [];
-        const oldIndex = itemsInContainer.indexOf(activeId);
-        const newIndex = itemsInContainer.indexOf(overId);
-
-        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-          const next = {
-            ...prev,
-            [activeContainer]: arrayMove(itemsInContainer, oldIndex, newIndex),
-          };
-          itemsRef.current = next;
-          return next;
-        }
+        // No-op: within-container reordering is deferred to handleDragEnd
+        // to prevent confusing visual shuffling while dragging.
         return prev;
       }
 
@@ -846,23 +835,12 @@ export function ManageEncountersDialog({
       const activeIdx = srcItems.indexOf(activeId);
       if (activeIdx === -1) return prev;
 
-      let insertIdx: number;
-      if (overId in prev) {
-        // Dropped on the container
-        insertIdx = dstItems.length;
-      } else {
-        insertIdx = dstItems.indexOf(overId);
-        if (insertIdx === -1) insertIdx = dstItems.length;
-      }
-
+      // Append to end of target container during drag.
+      // handleDragEnd will place it at the correct index.
       const next = {
         ...prev,
         [activeContainer]: srcItems.filter((id) => id !== activeId),
-        [targetContainer]: [
-          ...dstItems.slice(0, insertIdx),
-          activeId,
-          ...dstItems.slice(insertIdx),
-        ],
+        [targetContainer]: [...dstItems, activeId],
       };
 
       // Guard: Don't update if state hasn't actually changed
