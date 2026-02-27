@@ -12,7 +12,11 @@ import {
   Download,
   ChevronDown,
   Zap,
+  Settings,
+  Globe,
+  GlobeLock,
 } from "lucide-react";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Switch } from "~/components/ui/switch";
@@ -25,7 +29,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import {
   Dialog,
@@ -39,6 +42,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import {
@@ -57,6 +61,13 @@ import {
 import { formatRaidDate } from "~/utils/date-formatting";
 import { ZoneSelect } from "./zone-select";
 import { PollingIndicator } from "./polling-indicator";
+
+const ZONE_BADGE_CLASSES: Record<string, string> = {
+  naxxramas: "bg-[hsl(var(--chart-2)/0.15)] border-chart-2 text-chart-2",
+  aq40: "bg-[hsl(var(--chart-4)/0.15)] border-chart-4 text-chart-4",
+  bwl: "bg-[hsl(var(--chart-5)/0.15)] border-chart-5 text-chart-5",
+  mc: "bg-[hsl(var(--chart-3)/0.15)] border-chart-3 text-chart-3",
+};
 
 interface RaidPlanHeaderProps {
   planId: string;
@@ -225,9 +236,12 @@ export function RaidPlanHeader({
         <div>
           {isEditing ? (
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold tracking-tight">
-                Raid Plan:
-              </span>
+              <Badge
+                variant="secondary"
+                className="pointer-events-none px-2 py-0.5 text-muted-foreground"
+              >
+                Plan
+              </Badge>
               <Input
                 ref={inputRef}
                 value={editedName}
@@ -266,12 +280,46 @@ export function RaidPlanHeader({
             </div>
           ) : (
             <div className="group flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                Raid Plan: {name}
-              </h1>
-              <span className="pl-1 text-base text-muted-foreground">
-                {zoneName}
-              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex cursor-default items-center gap-2">
+                      <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+                        <Badge
+                          variant="secondary"
+                          className="pointer-events-none px-2 py-0.5 text-muted-foreground"
+                        >
+                          Plan
+                        </Badge>
+                        {name}
+                      </h1>
+                      <Badge
+                        variant="secondary"
+                        className={`pointer-events-none hidden px-2 py-0.5 lg:inline-flex ${ZONE_BADGE_CLASSES[zoneId] ?? "text-muted-foreground"}`}
+                      >
+                        {zoneName}
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  {(startAt ?? event) && (
+                    <TooltipContent
+                      side="top"
+                      className="dark border-none bg-secondary text-muted-foreground"
+                    >
+                      {startAt ? (
+                        <p>{formatRaidDate(startAt)}</p>
+                      ) : event ? (
+                        <a
+                          href={`/raids/${event.raidId}`}
+                          className="hover:underline"
+                        >
+                          Event: {event.name} ({event.date})
+                        </a>
+                      ) : null}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 size="icon"
                 variant="ghost"
@@ -286,80 +334,6 @@ export function RaidPlanHeader({
               </Button>
             </div>
           )}
-        </div>
-
-        {/* Metadata row */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          {startAt ? (
-            <>
-              <span>{formatRaidDate(startAt)}</span>
-              <span>|</span>
-            </>
-          ) : (
-            event && (
-              <>
-                <a
-                  href={`/raids/${event.raidId}`}
-                  className="hover:text-foreground hover:underline"
-                >
-                  Event: {event.name} ({event.date})
-                </a>
-                <span>|</span>
-              </>
-            )
-          )}
-          {onTogglePublic && (
-            <>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
-                      <label
-                        htmlFor="public-toggle"
-                        className={
-                          "text-sm font-medium text-muted-foreground" +
-                          (isPublic ? " text-primary" : "")
-                        }
-                      >
-                        {isPublic ? "Shared" : "Share"}
-                      </label>
-                      <Switch
-                        id="public-toggle"
-                        checked={isPublic ?? false}
-                        onCheckedChange={onTogglePublic}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    className="dark border-none bg-secondary text-muted-foreground"
-                  >
-                    <p>{isPublic ? "Shared" : "Share"} with Raiders</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {isPublic && (
-                <a
-                  href={`/raid-plans/${planId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
-              <span>|</span>
-            </>
-          )}
-          <a
-            href={`https://raid-helper.dev/event/${raidHelperEventId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-          >
-            Raid-Helper
-            <ExternalLink className="h-3 w-3" />
-          </a>
         </div>
       </div>
 
@@ -390,6 +364,54 @@ export function RaidPlanHeader({
                     </div>
                   }
                 />
+                {onTogglePublic && (
+                  <>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="public-toggle"
+                              className={
+                                "text-sm font-medium text-muted-foreground" +
+                                (isPublic ? " text-primary" : "")
+                              }
+                            >
+                              {isPublic ? (
+                                <Globe className="h-5 w-5" />
+                              ) : (
+                                <GlobeLock className="h-5 w-5" />
+                              )}
+                            </label>
+                            <Switch
+                              id="public-toggle"
+                              checked={isPublic ?? false}
+                              onCheckedChange={onTogglePublic}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="dark border-none bg-secondary text-muted-foreground"
+                        >
+                          {isPublic ? (
+                            <a
+                              href={`/raid-plans/${planId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 hover:text-foreground hover:underline"
+                            >
+                              Shared with Raiders
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            <p>Not shared with Raiders</p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </>
+                )}
                 <div className="flex">
                   <Button
                     variant="outline"
@@ -405,7 +427,7 @@ export function RaidPlanHeader({
                     ) : (
                       <Download className="h-4 w-4 lg:mr-1.5" />
                     )}
-                    <span className="hidden lg:inline">Export Encoded AA</span>
+                    <span className="hidden lg:inline">Export AAs</span>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -427,6 +449,47 @@ export function RaidPlanHeader({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+
+                {/* Settings / gear menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {isPublic && (
+                      <DropdownMenuItem asChild>
+                        <a
+                          href={`/raid-plans/${planId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                          View Public Plan
+                        </a>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <a
+                        href={`https://raid-helper.dev/event/${raidHelperEventId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                        Raid Helper
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      Delete Plan
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <Dialog
@@ -481,16 +544,6 @@ export function RaidPlanHeader({
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
           >
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="h-3 w-3 lg:mr-1" />
-                <span className="hidden lg:inline">Delete</span>
-              </Button>
-            </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Raid Plan</AlertDialogTitle>

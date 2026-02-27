@@ -45,12 +45,48 @@ export const raidPlanTemplatesRelations = relations(
   raidPlanTemplates,
   ({ many }) => ({
     encounters: many(raidPlanTemplateEncounters),
+    encounterGroups: many(raidPlanTemplateEncounterGroups),
+  }),
+);
+
+/**
+ * Encounter groups for a zone template.
+ * Groups organize encounters into collapsible sections (e.g., "Spider Wing").
+ * Groups and ungrouped encounters share a global sortOrder space.
+ */
+export const raidPlanTemplateEncounterGroups = tableCreator(
+  "raid_plan_template_encounter_group",
+  {
+    ...IdPkAsUUID,
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => raidPlanTemplates.id, { onDelete: "cascade" }),
+    groupName: varchar("group_name", { length: 256 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...DefaultTimestamps,
+  },
+  (table) => ({
+    templateIdIdx: index(
+      "raid_plan_template_encounter_group__template_id_idx",
+    ).on(table.templateId),
+  }),
+);
+
+export const raidPlanTemplateEncounterGroupsRelations = relations(
+  raidPlanTemplateEncounterGroups,
+  ({ one, many }) => ({
+    template: one(raidPlanTemplates, {
+      fields: [raidPlanTemplateEncounterGroups.templateId],
+      references: [raidPlanTemplates.id],
+    }),
+    encounters: many(raidPlanTemplateEncounters),
   }),
 );
 
 /**
  * Encounter presets for a zone template.
  * All encounters are copied to new raid plans for this zone.
+ * Encounters with a groupId belong to that group; NULL groupId = top-level.
  */
 export const raidPlanTemplateEncounters = tableCreator(
   "raid_plan_template_encounter",
@@ -59,6 +95,10 @@ export const raidPlanTemplateEncounters = tableCreator(
     templateId: uuid("template_id")
       .notNull()
       .references(() => raidPlanTemplates.id, { onDelete: "cascade" }),
+    groupId: uuid("group_id").references(
+      () => raidPlanTemplateEncounterGroups.id,
+      { onDelete: "set null" },
+    ),
     encounterKey: varchar("encounter_key", { length: 64 }).notNull(),
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -69,6 +109,9 @@ export const raidPlanTemplateEncounters = tableCreator(
     templateIdIdx: index("raid_plan_template_encounter__template_id_idx").on(
       table.templateId,
     ),
+    groupIdIdx: index("raid_plan_template_encounter__group_id_idx").on(
+      table.groupId,
+    ),
   }),
 );
 
@@ -78,6 +121,10 @@ export const raidPlanTemplateEncountersRelations = relations(
     template: one(raidPlanTemplates, {
       fields: [raidPlanTemplateEncounters.templateId],
       references: [raidPlanTemplates.id],
+    }),
+    group: one(raidPlanTemplateEncounterGroups, {
+      fields: [raidPlanTemplateEncounters.groupId],
+      references: [raidPlanTemplateEncounterGroups.id],
     }),
   }),
 );
@@ -123,6 +170,7 @@ export const raidPlansRelations = relations(raidPlans, ({ one, many }) => ({
     references: [raids.raidId],
   }),
   characters: many(raidPlanCharacters),
+  encounterGroups: many(raidPlanEncounterGroups),
   encounters: many(raidPlanEncounters),
   defaultAASlots: many(raidPlanEncounterAASlots),
 }));
@@ -175,8 +223,43 @@ export const raidPlanCharactersRelations = relations(
 );
 
 /**
+ * Encounter groups for a raid plan.
+ * Groups organize encounters into collapsible sections (e.g., "Spider Wing").
+ * Groups and ungrouped encounters share a global sortOrder space.
+ */
+export const raidPlanEncounterGroups = tableCreator(
+  "raid_plan_encounter_group",
+  {
+    ...IdPkAsUUID,
+    raidPlanId: uuid("raid_plan_id")
+      .notNull()
+      .references(() => raidPlans.id, { onDelete: "cascade" }),
+    groupName: varchar("group_name", { length: 256 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...DefaultTimestamps,
+  },
+  (table) => ({
+    raidPlanIdIdx: index("raid_plan_encounter_group__raid_plan_id_idx").on(
+      table.raidPlanId,
+    ),
+  }),
+);
+
+export const raidPlanEncounterGroupsRelations = relations(
+  raidPlanEncounterGroups,
+  ({ one, many }) => ({
+    raidPlan: one(raidPlans, {
+      fields: [raidPlanEncounterGroups.raidPlanId],
+      references: [raidPlans.id],
+    }),
+    encounters: many(raidPlanEncounters),
+  }),
+);
+
+/**
  * Encounters configured for a raid plan.
  * Copied from template on plan creation, then user can add/remove.
+ * Encounters with a groupId belong to that group; NULL groupId = top-level.
  */
 export const raidPlanEncounters = tableCreator(
   "raid_plan_encounter",
@@ -185,6 +268,9 @@ export const raidPlanEncounters = tableCreator(
     raidPlanId: uuid("raid_plan_id")
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
+    groupId: uuid("group_id").references(() => raidPlanEncounterGroups.id, {
+      onDelete: "set null",
+    }),
     encounterKey: varchar("encounter_key", { length: 64 }).notNull(),
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -197,6 +283,7 @@ export const raidPlanEncounters = tableCreator(
     raidPlanIdIdx: index("raid_plan_encounter__raid_plan_id_idx").on(
       table.raidPlanId,
     ),
+    groupIdIdx: index("raid_plan_encounter__group_id_idx").on(table.groupId),
   }),
 );
 
@@ -206,6 +293,10 @@ export const raidPlanEncountersRelations = relations(
     raidPlan: one(raidPlans, {
       fields: [raidPlanEncounters.raidPlanId],
       references: [raidPlans.id],
+    }),
+    group: one(raidPlanEncounterGroups, {
+      fields: [raidPlanEncounters.groupId],
+      references: [raidPlanEncounterGroups.id],
     }),
     assignments: many(raidPlanEncounterAssignments),
     aaSlots: many(raidPlanEncounterAASlots),

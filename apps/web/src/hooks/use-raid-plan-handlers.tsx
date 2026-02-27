@@ -557,7 +557,7 @@ export function useRaidPlanHandlers({
         const children: any[] = [];
         const raidPlanCharacters = plan.characters as RaidPlanCharacter[];
 
-        // 1. Add Trash/General page if enabled
+        // 1. Add Default/Trash page if enabled
         if (plan.useDefaultAA && plan.defaultAATemplate) {
           const defaultAssignments = plan.aaSlotAssignments
             .filter((a) => !a.encounterId && a.raidPlanId === plan.id)
@@ -581,24 +581,18 @@ export function useRaidPlanHandlers({
           );
           children.push({
             Type: "Page",
-            Name: "Trash/General",
+            Name: "Default/Trash",
             Contents: renderedContents,
-            Index: 0,
+            Index: -1,
           });
         }
 
-        // 2. Add Encounter pages if enabled
-        const sortedEncounters = [...plan.encounters].sort(
-          (a, b) => a.sortOrder - b.sortOrder,
-        );
+        // 2. Build the hierarchy of groups and encounters
+        const topLevelPages: any[] = [];
+        const groupPagesMap = new Map<string, any[]>();
 
-        for (const encounter of sortedEncounters) {
-          // Skip if AA is not enabled for this encounter
-          if (!encounter.useCustomAA || !encounter.aaTemplate) continue;
-
+        const buildPage = (encounter: any) => {
           const template = encounter.aaTemplate;
-
-          // 2. Build the assignment map for this encounter
           const encounterAssignments = plan.aaSlotAssignments
             .filter((a) => a.encounterId === encounter.id)
             .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -615,17 +609,48 @@ export function useRaidPlanHandlers({
             assignmentMap.set(assignment.slotName, existing);
           }
 
-          // 3. Render contents
           const renderedContents = renderAATemplate(template, assignmentMap);
-
-          // 4. Add to children
-          children.push({
+          return {
             Type: "Page",
             Name: encounter.encounterName,
             Contents: renderedContents,
-            Index: encounter.sortOrder + 1,
-          });
+            Index: encounter.sortOrder,
+          };
+        };
+
+        // Group encounters by group or root
+        for (const encounter of plan.encounters) {
+          if (!encounter.useCustomAA || !encounter.aaTemplate) continue;
+          const page = buildPage(encounter);
+          if (encounter.groupId) {
+            const groupPages = groupPagesMap.get(encounter.groupId) ?? [];
+            groupPages.push(page);
+            groupPagesMap.set(encounter.groupId, groupPages);
+          } else {
+            topLevelPages.push(page);
+          }
         }
+
+        // Add groups as nested categories
+        const sortedGroups = [...plan.encounterGroups].sort(
+          (a, b) => a.sortOrder - b.sortOrder,
+        );
+        for (const group of sortedGroups) {
+          const childrenInGroup = groupPagesMap.get(group.id);
+          if (childrenInGroup && childrenInGroup.length > 0) {
+            topLevelPages.push({
+              Type: "Category",
+              Name: group.groupName,
+              Children: childrenInGroup.sort((a, b) => a.Index - b.Index),
+              Index: group.sortOrder,
+            });
+          }
+        }
+
+        // Sort all top-level items (encounters and groups) by their shared sortOrder
+        const sortedChildren = topLevelPages.sort((a, b) => a.Index - b.Index);
+
+        children.push(...sortedChildren);
 
         if (children.length === 0) {
           throw new Error("No AA pages were found to export.");
@@ -640,14 +665,33 @@ export function useRaidPlanHandlers({
         const codec = new AACodec();
         const exportString = codec.encode(exportData, "Category");
 
+        // Helper to count pages and groups recursively
+        const countStructure = (items: any[]) => {
+          let pages = 0;
+          let groups = 0;
+          const traverse = (list: any[]) => {
+            for (const item of list) {
+              if (item.Type === "Page") pages++;
+              else if (item.Type === "Category") {
+                groups++;
+                if (item.Children) traverse(item.Children);
+              }
+            }
+          };
+          traverse(items);
+          return { pages, groups };
+        };
+
+        const { pages, groups } = countStructure(children);
+
         await navigator.clipboard.writeText(exportString);
         toast({
           title: "Copied Encoded AAs!",
           description: (
             <>
-              Import <strong>{exportName}</strong> ({children.length} page
-              {children.length !== 1 ? "s" : ""}) into Angry Era using Menu &gt;
-              Import &gt; Encoded AA.
+              Import <strong>{exportName}</strong> into Angry Era ({pages} page
+              {pages !== 1 ? "s" : ""}, {groups} subgroup
+              {groups !== 1 ? "s" : ""}) using Menu &gt; Import &gt; Encoded AA.
             </>
           ),
         });

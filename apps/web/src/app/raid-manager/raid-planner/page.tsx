@@ -24,7 +24,7 @@ export default async function RaidPlannerPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/raid-manager/raid-planner/config">
             <Settings className="mr-1 h-4 w-4" />
-            Config
+            Manage Templates
           </Link>
         </Button>
       </div>

@@ -5,6 +5,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   Loader2,
   X,
+  Copy,
   RotateCcw,
   RefreshCw,
   ArrowRightFromLine,
@@ -15,12 +16,13 @@ import { ClassIcon } from "~/components/ui/class-icon";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Button } from "~/components/ui/button";
+import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 import { RaidPlanHeader } from "./raid-plan-header";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
 import { AddEncounterDialog } from "./add-encounter-dialog";
 import { ManageEncountersDialog } from "./manage-encounters-dialog";
-import { EncounterTabNav } from "./encounter-tab-nav";
+import { EncounterSidebar } from "./encounter-sidebar";
 import { MRTControls } from "./mrt-controls";
 import { AAPanel } from "./aa-panel";
 import { RaidPlanDetailSkeleton } from "./skeletons";
@@ -83,6 +85,131 @@ export function RaidPlanDetail({
   const createEncounterMutation = api.raidPlan.createEncounter.useMutation({
     onSuccess: () => void refetch(),
   });
+  const createEncounterGroupMutation =
+    api.raidPlan.createEncounterGroup.useMutation({
+      onMutate: async ({ planId: pid, groupName }) => {
+        await utils.raidPlan.getById.cancel({ planId: pid });
+        const prev = utils.raidPlan.getById.getData({ planId: pid });
+        if (prev) {
+          const maxSort = Math.max(
+            -1,
+            ...prev.encounterGroups.map((g) => g.sortOrder),
+            ...prev.encounters.map((e) => e.sortOrder),
+          );
+          utils.raidPlan.getById.setData(
+            { planId: pid },
+            {
+              ...prev,
+              encounterGroups: [
+                ...prev.encounterGroups,
+                { id: crypto.randomUUID(), groupName, sortOrder: maxSort + 1 },
+              ],
+            },
+          );
+        }
+        return { prev };
+      },
+      onError: (_err, { planId: pid }, context) => {
+        if (context?.prev)
+          utils.raidPlan.getById.setData({ planId: pid }, context.prev);
+      },
+      onSettled: (_data, _err, { planId: pid }) => {
+        void utils.raidPlan.getById.invalidate({ planId: pid });
+      },
+    });
+  const updateEncounterGroupMutation =
+    api.raidPlan.updateEncounterGroup.useMutation({
+      onMutate: async ({ groupId, groupName }) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        if (prev) {
+          utils.raidPlan.getById.setData(
+            { planId },
+            {
+              ...prev,
+              encounterGroups: prev.encounterGroups.map((g) =>
+                g.id === groupId ? { ...g, groupName } : g,
+              ),
+            },
+          );
+        }
+        return { prev };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.prev)
+          utils.raidPlan.getById.setData({ planId }, context.prev);
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
+    });
+  const deleteEncounterGroupMutation =
+    api.raidPlan.deleteEncounterGroup.useMutation({
+      onMutate: async ({ groupId, mode }) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        if (prev) {
+          utils.raidPlan.getById.setData(
+            { planId },
+            {
+              ...prev,
+              encounterGroups: prev.encounterGroups.filter(
+                (g) => g.id !== groupId,
+              ),
+              encounters:
+                mode === "deleteChildren"
+                  ? prev.encounters.filter((e) => e.groupId !== groupId)
+                  : prev.encounters.map((e) =>
+                      e.groupId === groupId ? { ...e, groupId: null } : e,
+                    ),
+            },
+          );
+        }
+        return { prev };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.prev)
+          utils.raidPlan.getById.setData({ planId }, context.prev);
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
+    });
+  const reorderEncounterGroupsMutation =
+    api.raidPlan.reorderEncounterGroups.useMutation({
+      onMutate: async ({ groups, encounters: encUpdates }) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        if (prev) {
+          const groupOrderMap = new Map(groups.map((g) => [g.id, g.sortOrder]));
+          const encOrderMap = new Map(
+            encUpdates.map((e) => [e.id, e.sortOrder]),
+          );
+          utils.raidPlan.getById.setData(
+            { planId },
+            {
+              ...prev,
+              encounterGroups: prev.encounterGroups.map((g) => {
+                const so = groupOrderMap.get(g.id);
+                return so !== undefined ? { ...g, sortOrder: so } : g;
+              }),
+              encounters: prev.encounters.map((e) => {
+                const so = encOrderMap.get(e.id);
+                return so !== undefined ? { ...e, sortOrder: so } : e;
+              }),
+            },
+          );
+        }
+        return { prev };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.prev)
+          utils.raidPlan.getById.setData({ planId }, context.prev);
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
+    });
   const togglePublicMutation = api.raidPlan.togglePublic.useMutation({
     onMutate: async ({ isPublic }) => {
       await utils.raidPlan.getById.cancel({ planId });
@@ -208,472 +335,541 @@ export function RaidPlanDetail({
         onRestartPolling={startPolling}
       />
 
+      <Separator className="my-2" />
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        {/* Tabs above two-column layout */}
-        <EncounterTabNav
-          encounters={plan.encounters}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          leftActions={
-            <AddEncounterDialog planId={planId} onEncounterCreated={refetch} />
-          }
-          actions={
-            <ManageEncountersDialog
-              encounters={plan.encounters.map((e) => ({
-                id: e.id,
-                encounterName: e.encounterName,
-                sortOrder: e.sortOrder,
-              }))}
-              onSave={(encounters) => {
-                // Handle reorder
-                reorderEncountersMutation.mutate({
-                  encounters: encounters.map((e) => ({
-                    id: e.id,
-                    sortOrder: e.sortOrder,
-                  })),
-                });
-                // Handle renames
-                encounters.forEach((e) => {
-                  if (e.encounterName) {
-                    updateEncounterMutation.mutate({
-                      encounterId: e.id,
-                      encounterName: e.encounterName,
+        <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,_1fr)]">
+          {/* Sidebar column */}
+          <EncounterSidebar
+            encounterGroups={plan.encounterGroups}
+            encounters={plan.encounters}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            leftActions={
+              <AddEncounterDialog
+                planId={planId}
+                onEncounterCreated={refetch}
+              />
+            }
+            actions={
+              <ManageEncountersDialog
+                encounters={plan.encounters.map((e) => ({
+                  id: e.id,
+                  encounterName: e.encounterName,
+                  sortOrder: e.sortOrder,
+                  groupId: e.groupId,
+                }))}
+                encounterGroups={plan.encounterGroups}
+                onSave={({ groups, encounters }) => {
+                  // Update group sortOrders
+                  if (groups.length > 0) {
+                    reorderEncounterGroupsMutation.mutate({
+                      groups: groups.map((g) => ({
+                        id: g.id,
+                        sortOrder: g.sortOrder,
+                      })),
+                      encounters: encounters
+                        .filter((e) => e.groupId === null)
+                        .map((e) => ({ id: e.id, sortOrder: e.sortOrder })),
                     });
                   }
-                });
-              }}
-              onDelete={(encounterId) => setDeleteEncounterId(encounterId)}
-              onAdd={(encounterName) =>
-                createEncounterMutation.mutate({ planId, encounterName })
-              }
-              isPending={reorderEncountersMutation.isPending}
-              isDeletePending={deleteEncounterMutation.isPending}
-              isAddPending={createEncounterMutation.isPending}
-            />
-          }
-        />
+                  // Update encounter sortOrders and groupId assignments
+                  reorderEncountersMutation.mutate({
+                    encounters: encounters.map((e) => ({
+                      id: e.id,
+                      sortOrder: e.sortOrder,
+                      groupId: e.groupId,
+                    })),
+                  });
+                  // Renames
+                  groups.forEach((g) => {
+                    if (g.groupName) {
+                      updateEncounterGroupMutation.mutate({
+                        groupId: g.id,
+                        groupName: g.groupName,
+                      });
+                    }
+                  });
+                  encounters.forEach((e) => {
+                    if (e.encounterName) {
+                      updateEncounterMutation.mutate({
+                        encounterId: e.id,
+                        encounterName: e.encounterName,
+                      });
+                    }
+                  });
+                }}
+                onDelete={(encounterId) => setDeleteEncounterId(encounterId)}
+                onAdd={(encounterName) =>
+                  createEncounterMutation.mutate({ planId, encounterName })
+                }
+                onCreateGroup={(groupName) =>
+                  createEncounterGroupMutation.mutate({ planId, groupName })
+                }
+                onDeleteGroup={(groupId, mode) =>
+                  deleteEncounterGroupMutation.mutate({ groupId, mode })
+                }
+                isPending={
+                  reorderEncountersMutation.isPending ||
+                  reorderEncounterGroupsMutation.isPending
+                }
+                isDeletePending={deleteEncounterMutation.isPending}
+                isAddPending={createEncounterMutation.isPending}
+                isGroupPending={
+                  createEncounterGroupMutation.isPending ||
+                  deleteEncounterGroupMutation.isPending
+                }
+              />
+            }
+          />
 
-        {/* Two-column layout for tab content - wrapped in shared DndContext */}
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div
-            className={cn(
-              "mt-4 grid gap-6",
-              showDefaultAARef && activeTab !== "default"
-                ? "lg:grid-cols-[1fr_1fr_0.6fr]"
-                : "lg:grid-cols-2",
-            )}
+          {/* Content column */}
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            {/* Groups Column (order 2 on mobile, 1 on desktop) */}
-            <div className="order-2 lg:order-1">
-              {/* Default Tab */}
-              <TabsContent value="default" className="mt-0 space-y-3">
-                <div className="flex h-7 items-center">
-                  {plan.raidHelperEventId && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 border-destructive text-xs"
-                      disabled={
-                        isRefreshing || refreshCharactersMutation.isPending
-                      }
-                      onClick={() => setShowRefreshDialog(true)}
-                    >
-                      {isRefreshing || refreshCharactersMutation.isPending ? (
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-1 h-3 w-3" />
-                      )}
-                      Reimport
-                    </Button>
-                  )}
-                  <MRTControls
-                    onExportMRT={handleExportMRT}
-                    mrtCopied={copied}
-                    homeServer={homeServer}
-                    onHomeServerChange={setHomeServer}
-                  />
-                </div>
-                <RaidPlanGroupsGrid
-                  characters={plan.characters as RaidPlanCharacter[]}
-                  groupCount={groupCount}
-                  editable
-                  skipDndContext
-                  onCharacterUpdate={handleCharacterUpdate}
-                  onSlotFill={handleSlotFill}
-                  onCharacterDelete={handleCharacterDelete}
-                />
-              </TabsContent>
-
-              {/* Encounter Tabs */}
-              {plan.encounters.map((encounter) => (
-                <TabsContent
-                  key={encounter.id}
-                  value={encounter.id}
-                  className="mt-0 space-y-3"
-                >
-                  <div className="flex h-7 items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <Checkbox
-                        id={`use-custom-${encounter.id}`}
-                        checked={!encounter.useDefaultGroups}
-                        onCheckedChange={(checked) => {
-                          updateEncounterMutation.mutate({
-                            encounterId: encounter.id,
-                            useDefaultGroups: checked !== true,
-                          });
-                        }}
-                        disabled={updateEncounterMutation.isPending}
-                      />
-                      <label
-                        htmlFor={`use-custom-${encounter.id}`}
-                        className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Use Custom Groups
-                      </label>
-                      {!encounter.useDefaultGroups && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            resetEncounterMutation.mutate({
-                              encounterId: encounter.id,
-                            });
-                          }}
-                          disabled={resetEncounterMutation.isPending}
-                          className="ml-1 flex h-5 items-center gap-0.5 rounded border border-muted-foreground/30 px-1.5 text-[10px] text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50 disabled:opacity-50"
-                          title="Reset to default groups"
+            <div className="relative">
+              <p className="mb-2 text-lg font-semibold">
+                {activeTab === "default"
+                  ? "Default/Trash"
+                  : (plan.encounters.find((e) => e.id === activeTab)
+                      ?.encounterName ?? "Encounter")}
+              </p>
+              <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+                {/* Groups Column (order 2 on mobile, 1 on desktop) */}
+                <div className="order-2 lg:order-1">
+                  {/* Default Tab */}
+                  <TabsContent value="default" className="mt-0 space-y-3">
+                    <div className="flex h-7 items-center">
+                      {plan.raidHelperEventId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 border-destructive text-xs"
+                          disabled={
+                            isRefreshing || refreshCharactersMutation.isPending
+                          }
+                          onClick={() => setShowRefreshDialog(true)}
                         >
-                          <RotateCcw className="h-2.5 w-2.5" />
-                          Reset
-                        </button>
+                          {isRefreshing ||
+                          refreshCharactersMutation.isPending ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="mr-1 h-3 w-3" />
+                          )}
+                          Reimport
+                        </Button>
                       )}
-                      {(updateEncounterMutation.isPending ||
-                        resetEncounterMutation.isPending) && (
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      )}
+                      <MRTControls
+                        onExportMRT={handleExportMRT}
+                        mrtCopied={copied}
+                        homeServer={homeServer}
+                        onHomeServerChange={setHomeServer}
+                      />
                     </div>
-                    <MRTControls
-                      onExportMRT={() =>
-                        exportMRT(
-                          buildEncounterCharacters(
+                    <RaidPlanGroupsGrid
+                      characters={plan.characters as RaidPlanCharacter[]}
+                      groupCount={groupCount}
+                      editable
+                      skipDndContext
+                      onCharacterUpdate={handleCharacterUpdate}
+                      onSlotFill={handleSlotFill}
+                      onCharacterDelete={handleCharacterDelete}
+                    />
+                  </TabsContent>
+
+                  {/* Encounter Tabs */}
+                  {plan.encounters.map((encounter) => (
+                    <TabsContent
+                      key={encounter.id}
+                      value={encounter.id}
+                      className="mt-0 space-y-3"
+                    >
+                      <div className="flex h-7 items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Checkbox
+                            id={`use-custom-${encounter.id}`}
+                            checked={!encounter.useDefaultGroups}
+                            onCheckedChange={(checked) => {
+                              updateEncounterMutation.mutate({
+                                encounterId: encounter.id,
+                                useDefaultGroups: checked !== true,
+                              });
+                            }}
+                            disabled={updateEncounterMutation.isPending}
+                          />
+                          <label
+                            htmlFor={`use-custom-${encounter.id}`}
+                            className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Custom Groups
+                          </label>
+                          {!encounter.useDefaultGroups && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                resetEncounterMutation.mutate({
+                                  encounterId: encounter.id,
+                                });
+                              }}
+                              disabled={resetEncounterMutation.isPending}
+                              className="ml-1 flex h-5 items-center gap-0.5 rounded border border-muted-foreground/30 px-1.5 text-[10px] text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50 disabled:opacity-50"
+                              title="Reset to default groups"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" />
+                              Reset
+                            </button>
+                          )}
+                          {(updateEncounterMutation.isPending ||
+                            resetEncounterMutation.isPending) && (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        <MRTControls
+                          onExportMRT={() =>
+                            exportMRT(
+                              buildEncounterCharacters(
+                                plan.characters as RaidPlanCharacter[],
+                                plan.encounterAssignments,
+                                encounter.id,
+                              ),
+                            )
+                          }
+                          mrtCopied={copied}
+                          homeServer={homeServer}
+                          onHomeServerChange={setHomeServer}
+                          disabled={encounter.useDefaultGroups}
+                        />
+                      </div>
+
+                      {encounter.useDefaultGroups ? (
+                        <RaidPlanGroupsGrid
+                          characters={plan.characters as RaidPlanCharacter[]}
+                          groupCount={groupCount}
+                          locked
+                          dragOnly
+                          skipDndContext
+                        />
+                      ) : (
+                        <RaidPlanGroupsGrid
+                          characters={buildEncounterCharacters(
                             plan.characters as RaidPlanCharacter[],
                             plan.encounterAssignments,
                             encounter.id,
-                          ),
-                        )
-                      }
-                      mrtCopied={copied}
-                      homeServer={homeServer}
-                      onHomeServerChange={setHomeServer}
-                      disabled={encounter.useDefaultGroups}
-                    />
-                  </div>
-
-                  {encounter.useDefaultGroups ? (
-                    <RaidPlanGroupsGrid
-                      characters={plan.characters as RaidPlanCharacter[]}
-                      groupCount={groupCount}
-                      locked
-                      dragOnly
-                      skipDndContext
-                    />
-                  ) : (
-                    <RaidPlanGroupsGrid
-                      characters={buildEncounterCharacters(
-                        plan.characters as RaidPlanCharacter[],
-                        plan.encounterAssignments,
-                        encounter.id,
+                          )}
+                          groupCount={groupCount}
+                          editable
+                          showEditControls={false}
+                          skipDndContext
+                        />
                       )}
-                      groupCount={groupCount}
-                      editable
-                      showEditControls={false}
-                      skipDndContext
-                    />
-                  )}
-                </TabsContent>
-              ))}
-            </div>
-
-            {/* AA Column (order 1 on mobile, 2 on desktop) */}
-            <div className="order-1 lg:order-2 lg:border-l lg:pl-6">
-              {/* Default Tab AA */}
-              <TabsContent value="default" className="mt-0 space-y-3">
-                <div className="flex h-7 items-center gap-2">
-                  <Checkbox
-                    id="include-aa-default"
-                    checked={plan.useDefaultAA}
-                    onCheckedChange={(checked) => {
-                      updatePlanMutation.mutate({
-                        planId,
-                        useDefaultAA: checked === true,
-                      });
-                    }}
-                    disabled={updatePlanMutation.isPending}
-                  />
-                  <label
-                    htmlFor="include-aa-default"
-                    className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Include AngryEra
-                  </label>
-                  {updatePlanMutation.isPending && (
-                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                  )}
-                  {plan.useDefaultAA && plan.defaultAATemplate && (
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setShowPushDialog(true)}
-                        className="flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <ArrowRightFromLine className="h-3 w-3" />
-                        Push to Encounters
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopyAA(
-                            plan.defaultAATemplate,
-                            plan.aaSlotAssignments.filter(
-                              (a) => a.raidPlanId === planId,
-                            ),
-                            plan.characters as RaidPlanCharacter[],
-                          )
-                        }
-                        className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
-                      >
-                        {aaCopied ? "Copied!" : "Copy AA Text"}
-                      </button>
-                    </div>
-                  )}
+                    </TabsContent>
+                  ))}
                 </div>
-                {plan.useDefaultAA ? (
-                  <AAPanel
-                    template={plan.defaultAATemplate}
-                    onSaveTemplate={handleDefaultAATemplateSave}
-                    characters={plan.characters as RaidPlanCharacter[]}
-                    slotAssignments={plan.aaSlotAssignments.filter(
-                      (a) => a.raidPlanId === planId,
-                    )}
-                    onAssign={(charId, slotName) =>
-                      handleAAAssign(charId, slotName, { raidPlanId: planId })
-                    }
-                    onRemove={(charId, slotName) =>
-                      handleAARemove(charId, slotName, { raidPlanId: planId })
-                    }
-                    onReorder={(slotName, ids) =>
-                      handleAAReorder(slotName, ids, { raidPlanId: planId })
-                    }
-                    contextId={planId}
-                    contextLabel="Default/Trash"
-                    zoneName={zoneName}
-                    isSaving={updatePlanMutation.isPending}
-                    defaultTemplate={zoneTemplate?.defaultAATemplate}
-                    onResetToDefault={() => {
-                      if (zoneTemplate?.defaultAATemplate) {
-                        handleDefaultAATemplateSave(
-                          zoneTemplate.defaultAATemplate,
-                        );
-                      }
-                    }}
-                    isResetting={updatePlanMutation.isPending}
-                  />
-                ) : (
-                  <div className="rounded-lg border border-dashed p-6">
-                    <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                      Check &quot;Include AngryEra&quot; to enable AA
-                      assignments
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
 
-              {/* Encounter Tab AA */}
-              {plan.encounters.map((encounter) => (
-                <TabsContent
-                  key={encounter.id}
-                  value={encounter.id}
-                  className="mt-0 space-y-3"
-                >
-                  <div className="flex h-7 items-center gap-2">
-                    <Checkbox
-                      id={`include-aa-${encounter.id}`}
-                      checked={encounter.useCustomAA}
-                      onCheckedChange={(checked) => {
-                        updateEncounterMutation.mutate({
-                          encounterId: encounter.id,
-                          useCustomAA: checked === true,
-                        });
-                      }}
-                      disabled={updateEncounterMutation.isPending}
-                    />
-                    <label
-                      htmlFor={`include-aa-${encounter.id}`}
-                      className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Include AngryEra
-                    </label>
-                    {updateEncounterMutation.isPending && (
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    )}
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setShowDefaultAARef((v) => !v)}
-                        className={cn(
-                          "flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors",
-                          showDefaultAARef
-                            ? "border-primary/50 bg-primary/10 text-primary"
-                            : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                        )}
-                        title={
-                          showDefaultAARef
-                            ? "Hide default AA reference"
-                            : "Show default AA reference"
-                        }
+                {/* AA Column (order 1 on mobile, 2 on desktop) */}
+                <div className="order-1 lg:order-2 lg:border-l lg:pl-6">
+                  {/* Default Tab AA */}
+                  <TabsContent value="default" className="mt-0 space-y-3">
+                    <div className="flex h-7 items-center gap-2">
+                      <Checkbox
+                        id="include-aa-default"
+                        checked={plan.useDefaultAA}
+                        onCheckedChange={(checked) => {
+                          updatePlanMutation.mutate({
+                            planId,
+                            useDefaultAA: checked === true,
+                          });
+                        }}
+                        disabled={updatePlanMutation.isPending}
+                      />
+                      <label
+                        htmlFor="include-aa-default"
+                        className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {showDefaultAARef ? (
-                          <EyeOff className="h-3 w-3" />
-                        ) : (
-                          <Eye className="h-3 w-3" />
-                        )}
-                        Default AA
-                      </button>
-                      {encounter.useCustomAA && encounter.aaTemplate && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleCopyAA(
-                              encounter.aaTemplate,
-                              plan.aaSlotAssignments.filter(
-                                (a) => a.encounterId === encounter.id,
-                              ),
-                              plan.characters as RaidPlanCharacter[],
-                            )
-                          }
-                          className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
-                        >
-                          {aaCopied ? "Copied!" : "Copy AA Text"}
-                        </button>
+                        AngryEra
+                      </label>
+                      {updatePlanMutation.isPending && (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      )}
+                      {plan.useDefaultAA && plan.defaultAATemplate && (
+                        <div className="ml-auto flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowPushDialog(true)}
+                            className="flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                          >
+                            <ArrowRightFromLine className="h-3 w-3" />
+                            Push to Encounters
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyAA(
+                                plan.defaultAATemplate,
+                                plan.aaSlotAssignments.filter(
+                                  (a) => a.raidPlanId === planId,
+                                ),
+                                plan.characters as RaidPlanCharacter[],
+                              )
+                            }
+                            className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                          >
+                            {aaCopied ? (
+                              "Copied!"
+                            ) : (
+                              <>
+                                <Copy className="mr-1 inline h-3 w-3" />
+                                AA
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
-                  </div>
-                  {encounter.useCustomAA ? (
-                    <AAPanel
-                      template={encounter.aaTemplate}
-                      onSaveTemplate={(template) =>
-                        handleEncounterAATemplateSave(encounter.id, template)
-                      }
-                      characters={plan.characters as RaidPlanCharacter[]}
-                      slotAssignments={plan.aaSlotAssignments.filter(
-                        (a) => a.encounterId === encounter.id,
-                      )}
-                      onAssign={(charId, slotName) =>
-                        handleAAAssign(charId, slotName, {
-                          encounterId: encounter.id,
-                        })
-                      }
-                      onRemove={(charId, slotName) =>
-                        handleAARemove(charId, slotName, {
-                          encounterId: encounter.id,
-                        })
-                      }
-                      onReorder={(slotName, ids) =>
-                        handleAAReorder(slotName, ids, {
-                          encounterId: encounter.id,
-                        })
-                      }
-                      contextId={encounter.id}
-                      contextLabel={encounter.encounterName}
-                      zoneName={zoneName}
-                      isSaving={updateEncounterMutation.isPending}
-                      defaultTemplate={
-                        zoneTemplate?.encounters.find(
-                          (e) => e.encounterKey === encounter.encounterKey,
-                        )?.aaTemplate
-                      }
-                      onResetToDefault={() => {
-                        const templateEncounter = zoneTemplate?.encounters.find(
-                          (e) => e.encounterKey === encounter.encounterKey,
-                        );
-                        if (templateEncounter?.aaTemplate) {
-                          handleEncounterAATemplateSave(
-                            encounter.id,
-                            templateEncounter.aaTemplate,
-                          );
-                        }
-                      }}
-                      isResetting={updateEncounterMutation.isPending}
-                    />
-                  ) : (
-                    <div className="rounded-lg border border-dashed p-6">
-                      <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                        Check &quot;Include AngryEra&quot; to enable AA
-                        assignments
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </div>
-
-            {/* 3rd column: Default AA Reference (compact, read-only) */}
-            {showDefaultAARef && activeTab !== "default" && (
-              <div className="order-3 border-l pl-4 lg:order-3">
-                <div className="sticky top-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Default AA Reference
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setShowDefaultAARef(false)}
-                      className="rounded p-0.5 text-muted-foreground hover:bg-muted"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  {plan.useDefaultAA && plan.defaultAATemplate ? (
-                    <div className="w-[133.33%] origin-top-left scale-75">
+                    {plan.useDefaultAA ? (
                       <AAPanel
                         template={plan.defaultAATemplate}
+                        onSaveTemplate={handleDefaultAATemplateSave}
                         characters={plan.characters as RaidPlanCharacter[]}
                         slotAssignments={plan.aaSlotAssignments.filter(
                           (a) => a.raidPlanId === planId,
                         )}
-                        contextId={`${planId}-ref`}
-                        contextLabel="Default (Reference)"
+                        onAssign={(charId, slotName) =>
+                          handleAAAssign(charId, slotName, {
+                            raidPlanId: planId,
+                          })
+                        }
+                        onRemove={(charId, slotName) =>
+                          handleAARemove(charId, slotName, {
+                            raidPlanId: planId,
+                          })
+                        }
+                        onReorder={(slotName, ids) =>
+                          handleAAReorder(slotName, ids, { raidPlanId: planId })
+                        }
+                        contextId={planId}
+                        contextLabel="Default/Trash"
                         zoneName={zoneName}
-                        readOnly
+                        isSaving={updatePlanMutation.isPending}
+                        defaultTemplate={zoneTemplate?.defaultAATemplate}
+                        onResetToDefault={() => {
+                          if (zoneTemplate?.defaultAATemplate) {
+                            handleDefaultAATemplateSave(
+                              zoneTemplate.defaultAATemplate,
+                            );
+                          }
+                        }}
+                        isResetting={updatePlanMutation.isPending}
                       />
-                    </div>
-                  ) : (
-                    <div className="rounded border border-dashed p-3">
-                      <p className="text-center text-[11px] text-muted-foreground">
-                        No default AA configured
-                      </p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="rounded-lg border border-dashed p-6">
+                        <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+                          Check &quot;Include AngryEra&quot; to enable AA
+                          assignments
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Encounter Tab AA */}
+                  {plan.encounters.map((encounter) => (
+                    <TabsContent
+                      key={encounter.id}
+                      value={encounter.id}
+                      className="mt-0 space-y-3"
+                    >
+                      <div className="flex h-7 items-center gap-2">
+                        <Checkbox
+                          id={`include-aa-${encounter.id}`}
+                          checked={encounter.useCustomAA}
+                          onCheckedChange={(checked) => {
+                            updateEncounterMutation.mutate({
+                              encounterId: encounter.id,
+                              useCustomAA: checked === true,
+                            });
+                          }}
+                          disabled={updateEncounterMutation.isPending}
+                        />
+                        <label
+                          htmlFor={`include-aa-${encounter.id}`}
+                          className="text-xs font-medium leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          AngryEra
+                        </label>
+                        {updateEncounterMutation.isPending && (
+                          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                        )}
+                        <div className="ml-auto flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowDefaultAARef((v) => !v)}
+                            className={cn(
+                              "flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors",
+                              showDefaultAARef
+                                ? "border-primary/50 bg-primary/10 text-primary"
+                                : "border-input bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                            )}
+                            title={
+                              showDefaultAARef
+                                ? "Hide default AA reference"
+                                : "Show default AA reference"
+                            }
+                          >
+                            {showDefaultAARef ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                            Default AA
+                          </button>
+                          {encounter.useCustomAA && encounter.aaTemplate && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyAA(
+                                  encounter.aaTemplate,
+                                  plan.aaSlotAssignments.filter(
+                                    (a) => a.encounterId === encounter.id,
+                                  ),
+                                  plan.characters as RaidPlanCharacter[],
+                                )
+                              }
+                              className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                            >
+                              {aaCopied ? (
+                                "Copied!"
+                              ) : (
+                                <>
+                                  <Copy className="mr-1 inline h-3 w-3" />
+                                  AA
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {encounter.useCustomAA ? (
+                        <AAPanel
+                          template={encounter.aaTemplate}
+                          onSaveTemplate={(template) =>
+                            handleEncounterAATemplateSave(
+                              encounter.id,
+                              template,
+                            )
+                          }
+                          characters={plan.characters as RaidPlanCharacter[]}
+                          slotAssignments={plan.aaSlotAssignments.filter(
+                            (a) => a.encounterId === encounter.id,
+                          )}
+                          onAssign={(charId, slotName) =>
+                            handleAAAssign(charId, slotName, {
+                              encounterId: encounter.id,
+                            })
+                          }
+                          onRemove={(charId, slotName) =>
+                            handleAARemove(charId, slotName, {
+                              encounterId: encounter.id,
+                            })
+                          }
+                          onReorder={(slotName, ids) =>
+                            handleAAReorder(slotName, ids, {
+                              encounterId: encounter.id,
+                            })
+                          }
+                          contextId={encounter.id}
+                          contextLabel={encounter.encounterName}
+                          zoneName={zoneName}
+                          isSaving={updateEncounterMutation.isPending}
+                          defaultTemplate={
+                            zoneTemplate?.encounters.find(
+                              (e) => e.encounterKey === encounter.encounterKey,
+                            )?.aaTemplate
+                          }
+                          onResetToDefault={() => {
+                            const templateEncounter =
+                              zoneTemplate?.encounters.find(
+                                (e) =>
+                                  e.encounterKey === encounter.encounterKey,
+                              );
+                            if (templateEncounter?.aaTemplate) {
+                              handleEncounterAATemplateSave(
+                                encounter.id,
+                                templateEncounter.aaTemplate,
+                              );
+                            }
+                          }}
+                          isResetting={updateEncounterMutation.isPending}
+                        />
+                      ) : (
+                        <div className="rounded-lg border border-dashed p-6">
+                          <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+                            Check &quot;Include AngryEra&quot; to enable AA
+                            assignments
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Drag overlay for shared DndContext */}
-          <DragOverlay dropAnimation={null}>
-            {activeCharacter && (
-              <div className="flex w-max items-center gap-1 whitespace-nowrap rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
-                {activeCharacter.class && (
-                  <ClassIcon characterClass={activeCharacter.class} px={14} />
-                )}
-                {activeCharacter.characterName}
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+              {/* Default AA Reference — floats to the right of the grid */}
+              {showDefaultAARef && activeTab !== "default" && (
+                <div className="absolute left-full top-0 ml-6 w-64">
+                  <div className="sticky top-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Default AA Reference
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowDefaultAARef(false)}
+                        className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {plan.useDefaultAA && plan.defaultAATemplate ? (
+                      <div className="w-[133.33%] origin-top-left scale-75">
+                        <AAPanel
+                          template={plan.defaultAATemplate}
+                          characters={plan.characters as RaidPlanCharacter[]}
+                          slotAssignments={plan.aaSlotAssignments.filter(
+                            (a) => a.raidPlanId === planId,
+                          )}
+                          contextId={`${planId}-ref`}
+                          contextLabel="Default (Reference)"
+                          zoneName={zoneName}
+                          readOnly
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded border border-dashed p-3">
+                        <p className="text-center text-[11px] text-muted-foreground">
+                          No default AA configured
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Drag overlay for shared DndContext */}
+            <DragOverlay dropAnimation={null}>
+              {activeCharacter && (
+                <div className="flex w-max items-center gap-1 whitespace-nowrap rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
+                  {activeCharacter.class && (
+                    <ClassIcon characterClass={activeCharacter.class} px={14} />
+                  )}
+                  {activeCharacter.characterName}
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        </div>
       </Tabs>
 
       <DeleteEncounterDialog

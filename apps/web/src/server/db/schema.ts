@@ -55,20 +55,24 @@ export const {
 export const {
   // Template Tables
   raidPlanTemplates,
+  raidPlanTemplateEncounterGroups,
   raidPlanTemplateEncounters,
 
   // Plan Tables
   raidPlans,
   raidPlanCharacters,
+  raidPlanEncounterGroups,
   raidPlanEncounters,
   raidPlanEncounterAssignments,
   raidPlanEncounterAASlots,
 
   // Relations
   raidPlanTemplatesRelations,
+  raidPlanTemplateEncounterGroupsRelations,
   raidPlanTemplateEncountersRelations,
   raidPlansRelations,
   raidPlanCharactersRelations,
+  raidPlanEncounterGroupsRelations,
   raidPlanEncountersRelations,
   raidPlanEncounterAssignmentsRelations,
   raidPlanEncounterAASlotsRelations,

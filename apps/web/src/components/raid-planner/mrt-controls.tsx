@@ -1,5 +1,6 @@
 "use client";
 
+import { Copy } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { WOW_SERVERS } from "./constants";
 
@@ -53,7 +54,14 @@ export function MRTControls({
           disabled && "opacity-40",
         )}
       >
-        {mrtCopied ? "Copied!" : "Copy MRT Export"}
+        {mrtCopied ? (
+          "Copied!"
+        ) : (
+          <>
+            <Copy className="mr-1 inline h-3 w-3" />
+            MRT Group
+          </>
+        )}
       </button>
     </div>
   );
