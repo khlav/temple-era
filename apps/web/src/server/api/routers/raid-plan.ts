@@ -2351,6 +2351,75 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   /**
+   * Bulk save the entire encounter and group structure (names, orders, parent-child).
+   * Wrapped in a transaction for atomicity.
+   */
+  saveEncounterStructure: raidManagerProcedure
+    .input(
+      z.object({
+        planId: z.string().uuid(),
+        groups: z.array(
+          z.object({
+            id: z.string().uuid(),
+            groupName: z.string().min(1).max(256).optional(),
+            sortOrder: z.number().int(),
+          }),
+        ),
+        encounters: z.array(
+          z.object({
+            id: z.string().uuid(),
+            encounterName: z.string().min(1).max(256).optional(),
+            sortOrder: z.number().int(),
+            groupId: z.string().uuid().nullable(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.transaction(async (tx) => {
+        // Update groups
+        for (const g of input.groups) {
+          const updates: any = { sortOrder: g.sortOrder };
+          if (g.groupName) updates.groupName = g.groupName;
+
+          await tx
+            .update(raidPlanEncounterGroups)
+            .set(updates)
+            .where(
+              and(
+                eq(raidPlanEncounterGroups.id, g.id),
+                eq(raidPlanEncounterGroups.raidPlanId, input.planId),
+              ),
+            );
+        }
+
+        // Update encounters
+        for (const enc of input.encounters) {
+          const updates: any = {
+            sortOrder: enc.sortOrder,
+            groupId: enc.groupId,
+          };
+          if (enc.encounterName) {
+            updates.encounterName = enc.encounterName;
+            updates.encounterKey = slugifyEncounterName(enc.encounterName);
+          }
+
+          await tx
+            .update(raidPlanEncounters)
+            .set(updates)
+            .where(
+              and(
+                eq(raidPlanEncounters.id, enc.id),
+                eq(raidPlanEncounters.raidPlanId, input.planId),
+              ),
+            );
+        }
+      });
+
+      return { success: true };
+    }),
+
+  /**
    * Get AA slot assignments for a specific plan character.
    * Used to check if a character has assignments before replacing them.
    */

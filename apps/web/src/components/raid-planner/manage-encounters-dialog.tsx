@@ -559,7 +559,8 @@ function SortableGroupSection({
   groupId,
   items,
   localNames,
-  onDelete,
+  onDeleteEncounter,
+  onDeleteGroup,
   onRename,
   onMoveToRoot,
   onToggleCollapse,
@@ -577,7 +578,8 @@ function SortableGroupSection({
   groupId: string;
   items: Items;
   localNames: LocalNames;
-  onDelete: (id: string) => void;
+  onDeleteEncounter: (id: string) => void;
+  onDeleteGroup: (id: string) => void;
   onRename: (itemId: string, n: string) => void;
   onMoveToRoot: (itemId: string) => void;
   onToggleCollapse: (groupId: string) => void;
@@ -625,7 +627,7 @@ function SortableGroupSection({
         name={currentName}
         collapsed={collapsed}
         onToggleCollapse={() => onToggleCollapse(groupId)}
-        onDelete={() => onDelete(groupId)}
+        onDelete={() => onDeleteGroup(groupId)}
         onRename={(n) => onRename(itemId, n)}
         isPending={isPending || (isGroupPending ?? false)}
         editingId={editingId}
@@ -654,7 +656,7 @@ function SortableGroupSection({
                   id={encItemId}
                   name={encName}
                   indented
-                  onDelete={() => onDelete(encId)}
+                  onDelete={() => onDeleteEncounter(encId)}
                   onRename={(n) => onRename(encItemId, n)}
                   onMoveToRoot={() => onMoveToRoot(encItemId)}
                   isPending={isPending || isDeletePending}
@@ -1114,7 +1116,8 @@ export function ManageEncountersDialog({
                               groupId={groupId}
                               items={items}
                               localNames={localNames}
-                              onDelete={onDelete}
+                              onDeleteEncounter={onDelete}
+                              onDeleteGroup={setDeleteGroupId}
                               onRename={renameItem}
                               onMoveToRoot={moveEncToRoot}
                               onToggleCollapse={toggleCollapse}

@@ -75,7 +75,6 @@ export function RaidPlanDetail({
     updatePlanMutation,
     clearAAAssignmentsMutation,
     refreshCharactersMutation,
-    reorderEncountersMutation,
     pushDefaultAAMutation,
     isPollingActive,
     startPolling,
@@ -117,32 +116,6 @@ export function RaidPlanDetail({
         void utils.raidPlan.getById.invalidate({ planId: pid });
       },
     });
-  const updateEncounterGroupMutation =
-    api.raidPlan.updateEncounterGroup.useMutation({
-      onMutate: async ({ groupId, groupName }) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        if (prev) {
-          utils.raidPlan.getById.setData(
-            { planId },
-            {
-              ...prev,
-              encounterGroups: prev.encounterGroups.map((g) =>
-                g.id === groupId ? { ...g, groupName } : g,
-              ),
-            },
-          );
-        }
-        return { prev };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.prev)
-          utils.raidPlan.getById.setData({ planId }, context.prev);
-      },
-      onSettled: () => {
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
   const deleteEncounterGroupMutation =
     api.raidPlan.deleteEncounterGroup.useMutation({
       onMutate: async ({ groupId, mode }) => {
@@ -175,41 +148,6 @@ export function RaidPlanDetail({
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
-  const reorderEncounterGroupsMutation =
-    api.raidPlan.reorderEncounterGroups.useMutation({
-      onMutate: async ({ groups, encounters: encUpdates }) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        if (prev) {
-          const groupOrderMap = new Map(groups.map((g) => [g.id, g.sortOrder]));
-          const encOrderMap = new Map(
-            encUpdates.map((e) => [e.id, e.sortOrder]),
-          );
-          utils.raidPlan.getById.setData(
-            { planId },
-            {
-              ...prev,
-              encounterGroups: prev.encounterGroups.map((g) => {
-                const so = groupOrderMap.get(g.id);
-                return so !== undefined ? { ...g, sortOrder: so } : g;
-              }),
-              encounters: prev.encounters.map((e) => {
-                const so = encOrderMap.get(e.id);
-                return so !== undefined ? { ...e, sortOrder: so } : e;
-              }),
-            },
-          );
-        }
-        return { prev };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.prev)
-          utils.raidPlan.getById.setData({ planId }, context.prev);
-      },
-      onSettled: () => {
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
   const togglePublicMutation = api.raidPlan.togglePublic.useMutation({
     onMutate: async ({ isPublic }) => {
       await utils.raidPlan.getById.cancel({ planId });
@@ -228,6 +166,60 @@ export function RaidPlanDetail({
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
+
+  const saveEncounterStructureMutation =
+    api.raidPlan.saveEncounterStructure.useMutation({
+      onMutate: async (payload) => {
+        await utils.raidPlan.getById.cancel({ planId });
+        const prev = utils.raidPlan.getById.getData({ planId });
+        if (prev) {
+          const groupMap = new Map(payload.groups.map((g) => [g.id, g]));
+          const encounterMap = new Map(
+            payload.encounters.map((e) => [e.id, e]),
+          );
+
+          utils.raidPlan.getById.setData(
+            { planId },
+            {
+              ...prev,
+              encounterGroups: prev.encounterGroups.map((g) => {
+                const update = groupMap.get(g.id);
+                return update
+                  ? {
+                      ...g,
+                      sortOrder: update.sortOrder,
+                      ...(update.groupName
+                        ? { groupName: update.groupName }
+                        : {}),
+                    }
+                  : g;
+              }),
+              encounters: prev.encounters.map((e) => {
+                const update = encounterMap.get(e.id);
+                return update
+                  ? {
+                      ...e,
+                      sortOrder: update.sortOrder,
+                      groupId: update.groupId,
+                      ...(update.encounterName
+                        ? { encounterName: update.encounterName }
+                        : {}),
+                    }
+                  : e;
+              }),
+            },
+          );
+        }
+        return { prev };
+      },
+      onError: (_err, _vars, context) => {
+        if (context?.prev)
+          utils.raidPlan.getById.setData({ planId }, context.prev);
+      },
+      onSettled: () => {
+        void utils.raidPlan.getById.invalidate({ planId });
+      },
+    });
 
   // Fetch the zone template for "Reset to Default" functionality (skip for custom zones)
   const { data: zoneTemplate } = api.raidPlanTemplate.getByZoneId.useQuery(
@@ -361,42 +353,19 @@ export function RaidPlanDetail({
                 }))}
                 encounterGroups={plan.encounterGroups}
                 onSave={({ groups, encounters }) => {
-                  // Update group sortOrders
-                  if (groups.length > 0) {
-                    reorderEncounterGroupsMutation.mutate({
-                      groups: groups.map((g) => ({
-                        id: g.id,
-                        sortOrder: g.sortOrder,
-                      })),
-                      encounters: encounters
-                        .filter((e) => e.groupId === null)
-                        .map((e) => ({ id: e.id, sortOrder: e.sortOrder })),
-                    });
-                  }
-                  // Update encounter sortOrders and groupId assignments
-                  reorderEncountersMutation.mutate({
+                  saveEncounterStructureMutation.mutate({
+                    planId,
+                    groups: groups.map((g) => ({
+                      id: g.id,
+                      sortOrder: g.sortOrder,
+                      groupName: g.groupName,
+                    })),
                     encounters: encounters.map((e) => ({
                       id: e.id,
                       sortOrder: e.sortOrder,
                       groupId: e.groupId,
+                      encounterName: e.encounterName,
                     })),
-                  });
-                  // Renames
-                  groups.forEach((g) => {
-                    if (g.groupName) {
-                      updateEncounterGroupMutation.mutate({
-                        groupId: g.id,
-                        groupName: g.groupName,
-                      });
-                    }
-                  });
-                  encounters.forEach((e) => {
-                    if (e.encounterName) {
-                      updateEncounterMutation.mutate({
-                        encounterId: e.id,
-                        encounterName: e.encounterName,
-                      });
-                    }
                   });
                 }}
                 onDelete={(encounterId) => setDeleteEncounterId(encounterId)}
@@ -409,10 +378,7 @@ export function RaidPlanDetail({
                 onDeleteGroup={(groupId, mode) =>
                   deleteEncounterGroupMutation.mutate({ groupId, mode })
                 }
-                isPending={
-                  reorderEncountersMutation.isPending ||
-                  reorderEncounterGroupsMutation.isPending
-                }
+                isPending={saveEncounterStructureMutation.isPending}
                 isDeletePending={deleteEncounterMutation.isPending}
                 isAddPending={createEncounterMutation.isPending}
                 isGroupPending={
