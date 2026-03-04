@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { DndContext } from "@dnd-kit/core";
 import { formatRaidDate } from "~/utils/date-formatting";
-import { Info, Edit } from "lucide-react";
+import { Info, Edit, Eye } from "lucide-react";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { CharacterSelector } from "~/components/characters/character-selector";
+import { ClassIcon } from "~/components/ui/class-icon";
 
 const ZONE_BADGE_CLASSES: Record<string, string> = {
   naxxramas: "bg-[hsl(var(--chart-2)/0.15)] border-chart-2 text-chart-2",
@@ -50,6 +51,9 @@ export function RaidPlanPublicView({
   isRaidManager = false,
 }: RaidPlanPublicViewProps) {
   const [activeTab, setActiveTab] = useState("default");
+  const [viewAsCharacterId, setViewAsCharacterId] = useState<number | null>(
+    null,
+  );
   const { updateBreadcrumbSegment } = useBreadcrumb();
   const utils = api.useUtils();
 
@@ -74,15 +78,34 @@ export function RaidPlanPublicView({
     },
   });
 
-  const userCharacterIds = useMemo(
-    () => userProfile?.userCharacterIds ?? [],
-    [userProfile?.userCharacterIds],
+  // Fetch the "view as" character and their secondaries (public procedure)
+  const { data: viewAsCharacter } = api.character.getCharacterById.useQuery(
+    viewAsCharacterId ?? 0,
+    { enabled: viewAsCharacterId !== null },
   );
 
-  // Identify encounters where the current viewer has an AA assignment
+  // All character IDs belonging to the "view as" character (primary + alts)
+  const userCharacterIds = useMemo(() => {
+    if (!viewAsCharacter) return [];
+    const ids = [viewAsCharacter.characterId];
+    if (viewAsCharacter.secondaryCharacters) {
+      ids.push(
+        ...viewAsCharacter.secondaryCharacters.map((c) => c.characterId),
+      );
+    }
+    return ids;
+  }, [viewAsCharacter]);
+
+  // Default to the logged-in user's primary character once profile loads
+  useEffect(() => {
+    if (viewAsCharacterId === null && userProfile?.characterId) {
+      setViewAsCharacterId(userProfile.characterId);
+    }
+  }, [viewAsCharacterId, userProfile?.characterId]);
+
+  // Identify encounters where the "view as" character has an AA assignment
   const assignmentLabelsMap = useMemo(() => {
     if (
-      !isLoggedIn ||
       !userCharacterIds.length ||
       !plan?.characters.length ||
       !plan?.aaSlotAssignments
@@ -90,7 +113,7 @@ export function RaidPlanPublicView({
       return new Map<string, string[]>();
     }
 
-    // Find the planCharacterIds for the logged-in user's characters
+    // Find the planCharacterIds for the "view as" character's characters
     const viewerPlanCharacterIds = new Set(
       plan.characters
         .filter(
@@ -119,7 +142,7 @@ export function RaidPlanPublicView({
     }
 
     return labelsMap;
-  }, [isLoggedIn, userCharacterIds, plan?.characters, plan?.aaSlotAssignments]);
+  }, [userCharacterIds, plan?.characters, plan?.aaSlotAssignments]);
 
   // Update breadcrumb to show plan name instead of UUID
   useEffect(() => {
@@ -209,16 +232,56 @@ export function RaidPlanPublicView({
                 )}
               </Tooltip>
             </TooltipProvider>
-            {isRaidManager && (
-              <div className="grow-0 align-text-top">
+            <div className="flex shrink-0 items-center gap-2">
+              {/* View As selector */}
+              <div className="flex items-center gap-1.5">
+                <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <CharacterSelector
+                  characterSet="primary"
+                  onSelectAction={(char) =>
+                    setViewAsCharacterId(char.characterId)
+                  }
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2 text-sm"
+                  >
+                    {viewAsCharacter ? (
+                      <>
+                        <ClassIcon
+                          characterClass={viewAsCharacter.class}
+                          px={14}
+                        />
+                        <span>{viewAsCharacter.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Anyone</span>
+                    )}
+                  </Button>
+                </CharacterSelector>
+                {viewAsCharacterId !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => setViewAsCharacterId(null)}
+                    title="Clear selection"
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+
+              {isRaidManager && (
                 <Button className="py-5" asChild>
                   <a href={`/raid-manager/raid-planner/${planId}`}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </a>
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
