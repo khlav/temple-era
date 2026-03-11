@@ -6,7 +6,6 @@ import { RaidPlanPublicView } from "~/components/raid-planner/raid-plan-public-v
 import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
-
 interface PageProps {
   params: Promise<{ planId: string }>;
 }
@@ -24,9 +23,26 @@ export async function generateMetadata({
 
     const plan = await caller.raidPlan.getPublicById({ planId });
     if (plan) {
+      const encounterCount = plan.encounters?.length ?? 0;
+
+      // Map zone IDs to their generated background images
+      const zoneImageMap: Record<string, string> = {
+        mc: "/img/zones/mc.png",
+        naxxramas: "/img/zones/naxxramas.png",
+        bwl: "/img/zones/bwl.png",
+        aq20: "/img/zones/aq.png",
+        aq40: "/img/zones/aq.png",
+        zg: "/img/zones/zg.png",
+      };
+
+      const ogImage = zoneImageMap[plan.zoneId] ?? "/img/temple_512.jpeg";
+
       return {
         title: `${plan.name} - Raid Plan`,
-        description: `View the raid plan for ${plan.name}`,
+        description: `View ${plan.name} assignments for ${encounterCount} encounters. Sign in with Discord to highlight your characters' groups + assignments throughout.`,
+        openGraph: {
+          images: [ogImage],
+        },
       };
     }
   } catch {
