@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { RaidPlanDetail } from "~/components/raid-planner/raid-plan-detail";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -28,11 +29,26 @@ async function RaidPlanContent({ planId }: { planId: string }) {
   const caller = createCaller(ctx);
 
   let planName: string | undefined;
+  let shouldRedirectToPublic = false;
   try {
     const plan = await caller.raidPlan.getById({ planId });
     planName = plan?.name;
   } catch {
-    // Plan may not exist or user may not have access
+    // User does not have raid manager access — check if a public view exists (fallback for layout redirect)
+    try {
+      const publicPlan = await caller.raidPlan.getPublicById({ planId });
+      if (publicPlan) {
+        shouldRedirectToPublic = true;
+      }
+    } catch {
+      // Plan is not public either; fall through and let the planner handle it
+    }
+  }
+
+  if (shouldRedirectToPublic) {
+    // [AGENT_NOTE]: This is a fallback redirect that mirrors the logic in the raid-manager layout.
+    // It depends on the public view route being `/raid-plans/[planId]`.
+    redirect(`/raid-plans/${planId}`);
   }
 
   return (

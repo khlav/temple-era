@@ -388,6 +388,30 @@ export function RaidPlanHeader({
                               checked={isPublic ?? false}
                               onCheckedChange={onTogglePublic}
                             />
+                            <div
+                              className={`flex items-center transition-all duration-300 ease-in-out ${
+                                isPublic
+                                  ? "w-8 scale-100 opacity-100"
+                                  : "pointer-events-none w-0 scale-95 opacity-0"
+                              }`}
+                            >
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground transition-colors hover:text-primary"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/raid-plans/${planId}`;
+                                  void navigator.clipboard.writeText(url);
+                                  toast({
+                                    title: "URL Copied",
+                                    description:
+                                      "Public link copied to clipboard",
+                                  });
+                                }}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent
