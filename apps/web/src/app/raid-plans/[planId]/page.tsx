@@ -39,7 +39,7 @@ export async function generateMetadata({
 
       return {
         title: `${plan.name} - Raid Plan`,
-        description: `View ${plan.name} assignments for ${encounterCount} encounters. Sign in with Discord to highlight your characters' groups + assignments throughout.`,
+        description: `Sign in with Discord to highlight your characters' groups + assignments. (${encounterCount} encounters)`,
         openGraph: {
           images: [ogImage],
         },
