@@ -194,7 +194,7 @@ export const RecipesWithCrafters = () => {
                 exclude (e.g.{" "}
                 <span className="font-mono text-chart-3">-leather</span>)
               </li>
-              <li>Click tags or crafter names to add them to your search</li>
+              <li>Click tags to add them to your search</li>
             </ul>
           </TableSearchTips>
           <div className="flex items-center space-x-2">
@@ -294,22 +294,18 @@ export const RecipesWithCrafters = () => {
                             </Tooltip>
                           ) : (
                             recipe.characters?.map((character) => (
-                              <Button
-                                variant="secondary"
+                              <Link
                                 key={character.characterId}
-                                className={`bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:opacity-100 ${
+                                href={`/characters/${character.characterId}`}
+                                className={`inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${
                                   !character.isActiveRaider &&
                                   showInactiveCharacters
                                     ? "opacity-40"
                                     : "opacity-70"
                                 }`}
-                                onClick={() => handleTagClick(character.name)}
-                                onContextMenu={(e) =>
-                                  handleTagRightClick(character.name, e)
-                                }
                               >
                                 {character.name}
-                              </Button>
+                              </Link>
                             ))
                           )}
                         </div>
