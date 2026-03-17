@@ -366,9 +366,9 @@ export function RaidPlanPublicView({
                     : (plan.encounters.find((e) => e.id === activeTab)
                         ?.encounterName ?? "Encounter")}
                 </p>
-                <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-                  {/* Groups column (order 2 on mobile, 1 on desktop) */}
-                  <div className="order-2 lg:order-1">
+                <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+                  {/* Groups column (order 2 on mobile, right on desktop) */}
+                  <div className="order-2 lg:order-2 lg:border-l lg:pl-6">
                     {/* Default Tab */}
                     <TabsContent value="default" className="mt-0 space-y-3">
                       <RaidPlanGroupsGrid
@@ -417,8 +417,8 @@ export function RaidPlanPublicView({
                     ))}
                   </div>
 
-                  {/* AA Column (order 1 on mobile, 2 on desktop) */}
-                  <div className="order-1 lg:order-2 lg:border-l lg:pl-6">
+                  {/* AA Column (order 1 on mobile, middle/left on desktop) */}
+                  <div className="order-1 lg:order-1">
                     {/* Default Tab AA */}
                     <TabsContent value="default" className="mt-0 space-y-3">
                       {plan.useDefaultAA && plan.defaultAATemplate ? (
