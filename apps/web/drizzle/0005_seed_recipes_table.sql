@@ -108,5 +108,8 @@ VALUES
     (27725, 22252, 'Tailoring', 'Satchel of Cenarius', FALSE, 'Holds herbs. Handy.', ARRAY['qol']),
     (8238, 6657, 'Cooking', 'Savory Deviate Delight', FALSE, 'Yarr or *silence*', ARRAY['pirate', 'ninja']),
     (12081, 10030, 'Tailoring', 'Admiral''s Hat', FALSE, 'BiS Yarr.', ARRAY['pirate']),
-    (20029, NULL, 'Enchanting', 'Enchant Weapon - Icy Chill', FALSE, 'For Coldrage Daggers on Viscidous', ARRAY['aq40', 'melee'])
+    (20029, NULL, 'Enchanting', 'Enchant Weapon - Icy Chill', FALSE, 'For Coldrage Daggers on Viscidous', ARRAY['aq40', 'melee']),
+    (20853, 16982, 'Leatherworking', 'Corehound Boots', FALSE, 'Fire resist boots for tanks and melee in BWL/MC', ARRAY['feet', 'bwl/mc', 'tank', 'melee', 'fireresist']),
+    (23707, 19149, 'Leatherworking', 'Lava Belt', FALSE, 'Fire resist belt for tanks and melee in BWL/MC', ARRAY['waist', 'bwl/mc', 'tank', 'melee', 'fireresist']),
+    (20854, 16983, 'Leatherworking', 'Molten Helm', FALSE, 'Fire resist helm for tanks and melee in BWL/MC', ARRAY['head', 'bwl/mc', 'tank', 'melee', 'fireresist'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;
