@@ -55,7 +55,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="space-y-1 text-muted-foreground">
+              <div className="space-y-3 text-muted-foreground">
                 <div>
                   Raiders must maintain 50%+ large raid attendance over 6
                   lockout weeks to roll on{" "}
@@ -66,18 +66,13 @@ export default function DashboardBanner({ session }: { session?: Session }) {
                   >
                     specific Naxx gear
                   </Link>
-                  .
-                </div>
-                <div>
-                  In practice, this means raiders must participate in ~1.5
+                  . In practice, this means raiders must participate in ~1.5
                   different 40-player raids (in different zones) on average each
                   week to stay eligible.
                 </div>
-                <div className="pt-2">
-                  Note: If a raid is full, you can earn credit by being
-                  ready/available at raid time and contacting an officer.
-                </div>
                 <div>
+                  Note: If a raid is full, you can earn credit by being
+                  ready/available at raid time and contacting an officer.{" "}
                   <Link
                     className="text-blue-500 hover:text-secondary-foreground hover:underline"
                     href={raid_policy_channel_url}

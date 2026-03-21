@@ -195,7 +195,7 @@ export function AttendanceHeatmapGrid({
     if (!weekData || !weekData.attended) {
       return (
         <div
-          className={`h-4 w-4 rounded border border-muted bg-background ${
+          className={`h-4 w-4 rounded border border-border/80 bg-transparent ${
             isHistorical ? "opacity-30" : ""
           }`}
         />
