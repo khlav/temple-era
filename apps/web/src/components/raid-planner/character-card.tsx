@@ -112,6 +112,7 @@ export function CharacterCard({
         isHighlighted && "ring-2 ring-yellow-400 dark:ring-yellow-500",
         isDragging && "opacity-50",
         isDragOverlay && "shadow-lg ring-2 ring-primary/50",
+        isDraggable && "cursor-grab touch-none active:cursor-grabbing",
       )}
       style={{
         ...(classColor ? { backgroundColor: classColor } : {}),
@@ -121,15 +122,10 @@ export function CharacterCard({
             }
           : {}),
       }}
+      {...(isDraggable ? dragHandleProps : {})}
     >
       {/* Draggable area: icon (or grip) + name */}
-      <span
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-1.5",
-          isDraggable && "cursor-grab touch-none active:cursor-grabbing",
-        )}
-        {...(isDraggable ? dragHandleProps : {})}
-      >
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
         {isWowClass ? (
           <ClassIcon characterClass={character.class!} px={14} />
         ) : StatusIcon ? (
@@ -150,6 +146,7 @@ export function CharacterCard({
         <button
           type="button"
           className="absolute right-1 rounded bg-card/80 p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => onEditClick(character.id)}
         >
           <Pencil className="h-3 w-3 text-muted-foreground" />
