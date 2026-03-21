@@ -40,7 +40,7 @@ function parseUrlParams(
   const displayMode =
     urlDisplayMode === "names" || urlDisplayMode === "icons"
       ? urlDisplayMode
-      : "icons";
+      : "names";
 
   return {
     startDate: urlStartDate,
@@ -67,7 +67,7 @@ function buildUrlParams(filters: ReportFilters): URLSearchParams {
     params.set("days", filters.daysOfWeek.join(","));
   if (filters.characterIds.length > 0)
     params.set("characters", filters.characterIds.join(","));
-  if (filters.displayMode !== "icons")
+  if (filters.displayMode !== "names")
     params.set("displayMode", filters.displayMode);
   return params;
 }
@@ -250,6 +250,20 @@ export function AttendanceReportClient({
                 variant="ghost"
                 size="sm"
                 className={`h-7 px-3 text-xs ${
+                  filters.displayMode === "names"
+                    ? "bg-chart-2/10 text-chart-2"
+                    : ""
+                }`}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, displayMode: "names" }))
+                }
+              >
+                Names
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-3 text-xs ${
                   filters.displayMode === "icons"
                     ? "bg-chart-2/10 text-chart-2"
                     : ""
@@ -265,20 +279,6 @@ export function AttendanceReportClient({
                       : "text-muted-foreground"
                   }`}
                 />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-7 px-3 text-xs ${
-                  filters.displayMode === "names"
-                    ? "bg-chart-2/10 text-chart-2"
-                    : ""
-                }`}
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, displayMode: "names" }))
-                }
-              >
-                Names
               </Button>
             </div>
           </div>
