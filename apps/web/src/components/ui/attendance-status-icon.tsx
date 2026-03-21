@@ -43,10 +43,9 @@ export function AttendanceStatusIcon({
     } else {
       // Default colors if not provided
       if (status === "attendee") {
-        classes.push("text-chart-2");
+        classes.push("text-primary");
       } else {
-        // Default bench color to match dashboard
-        classes.push("text-chart-2");
+        classes.push("text-muted-foreground");
       }
     }
 

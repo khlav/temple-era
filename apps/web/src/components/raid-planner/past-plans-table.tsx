@@ -43,9 +43,6 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
             >
               Plans ({plans.length})
             </th>
-            <th className="h-10 w-auto px-2 text-left align-middle font-medium text-muted-foreground md:w-3/12">
-              Date
-            </th>
             <th className="hidden h-10 px-2 text-center align-middle font-medium text-muted-foreground md:table-cell md:w-[60px]">
               Link
             </th>
@@ -70,7 +67,7 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="w-[90px]"
+                    className="w-20"
                     asChild
                   >
                     <Link href={`/raid-manager/raid-planner/${plan.id}`}>
@@ -78,14 +75,13 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                     </Link>
                   </Button>
                 </td>
-                <td className="p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                  {plan.name}
-                </td>
-                <td className="whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                  <div className="flex flex-col md:flex-row md:gap-1">
-                    <span>{dateStr}</span>
-                    <span className="hidden md:inline">•</span>
-                    <span className="text-muted-foreground">{timeStr}</span>
+                <td className="w-full p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                  <div className="min-w-0">
+                    <div className="truncate">{plan.name}</div>
+                    <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                      {dateStr}
+                      {timeStr ? ` • ${timeStr}` : ""}
+                    </div>
                   </div>
                 </td>
                 <td className="hidden p-2 text-center align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">

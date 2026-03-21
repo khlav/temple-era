@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "~/trpc/react";
 import Link from "next/link";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
-import { Search } from "lucide-react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { Button } from "~/components/ui/button";
@@ -170,13 +169,8 @@ export const RecipesWithCrafters = () => {
 
   return (
     <div className="w-full space-y-2">
-      {/* Search Input - Fixed at top */}
-      <div className="space-y-1">
-        <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={20}
-          />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1">
           <TableSearchInput
             key={searchInputKey}
             ref={searchInputRef}
@@ -186,41 +180,43 @@ export const RecipesWithCrafters = () => {
                 ? `Search recipes, professions, tags, or characters... (e.g. ${placeholderSearch})`
                 : "Search recipes, professions, tags, or characters..."
             }
-            className="w-full pl-10"
             defaultValue={searchTerms || initialSearch}
             onDebouncedChange={(v) => setSearchTerms(v ?? "")}
             isLoading={isLoading}
           />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <TableSearchTips>
-            <p className="mb-1 font-medium">Search tips:</p>
-            <ul className="list-disc space-y-1 pl-4">
-              <li>Type multiple terms to match ALL terms</li>
-              <li>
-                Use <span className="font-mono text-chart-3">#tag</span> to
-                search by tag
-              </li>
-              <li>
-                Use <span className="font-mono text-chart-3">-term</span> to
-                exclude (e.g.{" "}
-                <span className="font-mono text-chart-3">-leather</span>)
-              </li>
-              <li>Click tags to add them to your search</li>
-            </ul>
-          </TableSearchTips>
-          <div className="flex items-center space-x-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{filteredRecipes.length} matches</Badge>
+            <TableSearchTips>
+              <p className="mb-1 font-medium">Search tips:</p>
+              <ul className="list-disc space-y-1 pl-4">
+                <li>Type multiple terms to match ALL terms</li>
+                <li>
+                  Use <span className="font-mono text-chart-3">#tag</span> to
+                  search by tag
+                </li>
+                <li>
+                  Use <span className="font-mono text-chart-3">-term</span> to
+                  exclude (e.g.{" "}
+                  <span className="font-mono text-chart-3">-leather</span>)
+                </li>
+                <li>Click tags to add them to your search</li>
+              </ul>
+            </TableSearchTips>
+          </div>
+          <div className="flex items-center gap-2">
             <Checkbox
               id="show-inactive"
               checked={showInactiveCharacters}
               onCheckedChange={(checked) =>
                 setShowInactiveCharacters(checked === true)
               }
-              className="border-muted-foreground/50 data-[state=checked]:border-muted-foreground/50 data-[state=checked]:bg-muted-foreground/30 data-[state=checked]:text-foreground"
+              className="rounded-[4px] border-muted-foreground/50 data-[state=checked]:border-primary/50 data-[state=checked]:bg-primary/25 data-[state=checked]:text-foreground"
             />
             <label
               htmlFor="show-inactive"
-              className="text-sm leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="whitespace-nowrap text-sm leading-none text-muted-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Show inactive characters
             </label>

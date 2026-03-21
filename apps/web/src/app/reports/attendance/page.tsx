@@ -6,11 +6,15 @@ import { headers } from "next/headers";
 import { auth } from "~/server/auth";
 import type { Metadata } from "next";
 import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "Side-by-side attendance | Temple Raids",
-  description:
-    "View detailed raid attendance reports with customizable filters and date ranges",
+  ...createPageMetadata({
+    title: "Attendance Report",
+    description:
+      "View detailed raid attendance reports with customizable filters and date ranges.",
+    path: "/reports/attendance",
+  }),
 };
 
 export default async function AttendanceReportPage() {
@@ -28,11 +32,7 @@ export default async function AttendanceReportPage() {
 
   return (
     <main className="w-full">
-      <PageHeader
-        title="Side-by-side attendance"
-        description="Compare attendance across multiple characters with shared filters and a scrollable matrix."
-        className="mb-4"
-      />
+      <PageHeader title="Side-by-side attendance" className="mb-4" />
 
       <Suspense fallback={<div>Loading...</div>}>
         <AttendanceReportClient

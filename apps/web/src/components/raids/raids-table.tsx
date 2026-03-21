@@ -34,10 +34,10 @@ export function RaidsTable({
           itemKey={(raid) => raid.raidId ?? `${raid.name}-${raid.date}`}
           estimateItemHeight={148}
           overscan={5}
-          className="h-[min(68svh,42rem)] rounded-xl border p-3"
+          className="panel-subtle h-[min(68svh,42rem)] rounded-2xl border border-border/70 p-3"
           innerClassName="pr-1"
           emptyState={
-            <div className="rounded-xl border px-4 py-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
               No raids found.
             </div>
           }
@@ -119,13 +119,13 @@ export function RaidsTable({
           )}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <div className="border-b bg-background px-4 py-3 text-sm text-muted-foreground">
+        <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
+          <div className="border-b border-border/70 bg-card/65 px-4 py-3 text-sm text-muted-foreground">
             Note: Only Tracked raids are considered for attendance restrictions.
           </div>
           <div
             className={cn(
-              "grid items-center gap-3 border-b bg-background px-4 py-3 text-sm font-medium text-muted-foreground",
+              "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
               desktopGridClass,
             )}
           >
@@ -151,7 +151,7 @@ export function RaidsTable({
             renderItem={(r) => (
               <div
                 className={cn(
-                  "grid items-center gap-3 border-b px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
+                  "grid items-center gap-3 border-b border-border/60 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/35",
                   desktopGridClass,
                 )}
               >

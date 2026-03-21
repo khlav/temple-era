@@ -1,6 +1,18 @@
 import { HydrateClient } from "~/trpc/server";
 import { RaidLogLoader } from "~/components/raids/raidlog-loader";
 import { Separator } from "~/components/ui/separator";
+import { type Metadata } from "next";
+import { createPageMetadata } from "~/lib/site-metadata";
+
+export const metadata: Metadata = {
+  ...createPageMetadata({
+    title: "Refresh Raid Log",
+    description:
+      "Refresh a Warcraft Logs report without creating a new raid event.",
+    path: "/raid-manager/log-refresh",
+    noIndex: true,
+  }),
+};
 
 export default async function RaidPage() {
   return (

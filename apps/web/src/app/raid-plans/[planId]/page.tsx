@@ -6,6 +6,7 @@ import { RaidPlanPublicView } from "~/components/raid-planner/raid-plan-public-v
 import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
+import { siteConfig } from "~/lib/site-metadata";
 interface PageProps {
   params: Promise<{ planId: string }>;
 }
@@ -36,11 +37,27 @@ export async function generateMetadata({
       };
 
       const ogImage = zoneImageMap[plan.zoneId] ?? "/img/temple_512.jpeg";
+      const title = `${plan.name} Raid Plan`;
+      const description = `Sign in with Discord to highlight your characters' groups and assignments. (${encounterCount} encounters)`;
 
       return {
-        title: `${plan.name} - Raid Plan`,
-        description: `Sign in with Discord to highlight your characters' groups + assignments. (${encounterCount} encounters)`,
+        title,
+        description,
+        alternates: {
+          canonical: `/raid-plans/${planId}`,
+        },
         openGraph: {
+          title: `${siteConfig.name} | ${title}`,
+          description,
+          url: `${siteConfig.url}/raid-plans/${planId}`,
+          siteName: siteConfig.name,
+          type: "website",
+          images: [ogImage],
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: `${siteConfig.name} | ${title}`,
+          description,
           images: [ogImage],
         },
       };
@@ -51,6 +68,7 @@ export async function generateMetadata({
 
   return {
     title: "Raid Plan",
+    description: "View a public Temple raid plan.",
     robots: {
       index: false,
       follow: false,

@@ -3,14 +3,15 @@ import { HydrateClient } from "~/trpc/server";
 import { CreateRaid } from "~/components/raids/create-raid";
 import { redirect } from "next/navigation";
 import { type Metadata } from "next";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "New Raid",
+    description: "Create a new raid from a Warcraft Logs report link.",
+    path: "/raids/new",
+    noIndex: true,
+  }),
 };
 
 export default async function RaidNewPage() {

@@ -38,7 +38,7 @@ export function AttendanceProgressBar({
                 value={attendancePercent}
                 className="h-4 bg-muted"
                 indicatorClassName={cn(
-                  isAboveThreshold ? "bg-chart-2" : "bg-gray-400",
+                  isAboveThreshold ? "bg-primary" : "bg-gray-500",
                 )}
               />
               {/* 50% dotted line */}
@@ -62,7 +62,7 @@ export function AttendanceProgressBar({
         <div className="mt-[1px] flex justify-end text-xs text-muted-foreground">
           {isAboveThreshold ? (
             <span>
-              <span className="text-chart-2">Eligible</span> to SR{" "}
+              <span className="text-primary">Eligible</span> to SR{" "}
               <Link
                 href={env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL}
                 target="_blank"

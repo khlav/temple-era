@@ -6,11 +6,15 @@ import Link from "next/link";
 import { auth } from "~/server/auth";
 import { type Metadata } from "next";
 import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  alternates: {
-    canonical: "/rare-recipes",
-  },
+  ...createPageMetadata({
+    title: "Rare Recipes",
+    description:
+      "Find rare crafted recipes and the characters who can make them.",
+    path: "/rare-recipes",
+  }),
 };
 
 export default async function RecipeManagerIndex() {
@@ -20,7 +24,6 @@ export default async function RecipeManagerIndex() {
     <main className="w-full">
       <PageHeader
         title="Rare Recipes & Crafters"
-        description="Find who can craft rare items, filter by tags, and browse Temple's profession coverage."
         actions={
           !!session?.user ? (
             <Button asChild className="w-full sm:w-auto">

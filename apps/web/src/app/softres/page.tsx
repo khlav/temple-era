@@ -4,6 +4,18 @@ import { SoftResScanForm } from "~/components/softres/softres-scan-form";
 import { Suspense } from "react";
 import { DiscordSoftResLinks } from "~/components/softres/discord-softres-links";
 import { Skeleton } from "~/components/ui/skeleton";
+import { type Metadata } from "next";
+import { createPageMetadata } from "~/lib/site-metadata";
+
+export const metadata: Metadata = {
+  ...createPageMetadata({
+    title: "SoftRes Scan",
+    description:
+      "Analyze soft reserves against attendance and raid requirements.",
+    path: "/softres",
+    noIndex: true,
+  }),
+};
 
 export default async function SoftResScanPage() {
   const session = await auth();

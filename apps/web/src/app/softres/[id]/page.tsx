@@ -8,15 +8,15 @@ import { type Metadata } from "next";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "SoftRes Scan - Temple Raid Attendance",
-  description:
-    "Checks characters and their soft reserves against attendance constraints and other rules + information.",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  ...createPageMetadata({
+    title: "SoftRes Scan",
+    description:
+      "Check characters and their soft reserves against attendance constraints and guild rules.",
+    noIndex: true,
+  }),
 };
 
 async function SoftResScanContentServer({ raidId }: { raidId: string }) {

@@ -3,18 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
-import { Pencil, Check } from "lucide-react";
+import { Pencil, Check, ChevronDown } from "lucide-react";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Accordion,
@@ -22,8 +14,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import { usePersistedBooleanPreference } from "~/hooks/use-persisted-boolean-preference";
 import { useToast } from "~/hooks/use-toast";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import { cn } from "~/lib/utils";
 
 interface CharacterRecipesProps {
   character: RaidParticipant;
@@ -31,12 +30,27 @@ interface CharacterRecipesProps {
 }
 
 const WOWHEAD_SPELL_URL_BASE = "https://www.wowhead.com/classic/spell=";
+const RECIPES_CARD_COOKIE = "temple_character_recipes_open";
+
+function formatRecipeName(recipeName: string) {
+  return recipeName.replace(/^Enchant\s+/i, "");
+}
+
+function sortRecipesByDisplayName<T extends { recipe: string }>(recipes: T[]) {
+  return [...recipes].sort((a, b) =>
+    formatRecipeName(a.recipe).localeCompare(formatRecipeName(b.recipe)),
+  );
+}
 
 export const CharacterRecipes = ({
   character,
   showRecipeEditor = false,
 }: CharacterRecipesProps) => {
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isOpen, setIsOpen] = usePersistedBooleanPreference({
+    cookieName: RECIPES_CARD_COOKIE,
+    defaultValue: true,
+  });
   const { toast } = useToast();
   const characterId = character.characterId;
 
@@ -201,126 +215,139 @@ export const CharacterRecipes = ({
   return (
     <div className="w-full">
       <WOWHeadTooltips />
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-0 pt-4">
-          <CardTitle>Crafting & Rare Recipes</CardTitle>
-          {showRecipeEditor &&
-            (isEditMode ? (
-              <Button
-                variant="default"
-                size="icon"
-                onClick={() => setIsEditMode(false)}
-                aria-label="Done editing"
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2 pt-3">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left transition-colors hover:text-foreground"
+                aria-label={isOpen ? "Collapse recipes" : "Expand recipes"}
               >
-                <Check className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="link"
-                size="icon"
-                onClick={() => setIsEditMode(true)}
-                className="border border-primary"
-                aria-label="Edit recipes"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            ))}
-        </CardHeader>
-        <CardContent>
-          {isEditMode ? (
-            // Edit Mode - Show all recipes with checkboxes
-            <Accordion type="multiple" className="w-full">
-              {Object.entries(recipesByProfession ?? {}).map(
-                ([profession, recipes]) => (
-                  <AccordionItem key={profession} value={profession}>
-                    <AccordionTrigger className="text-sm">
-                      {profession}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        {recipes.map((recipe) => {
-                          const isKnown = characterKnowsRecipe(
-                            recipe.recipeSpellId,
-                          );
-                          return (
-                            <div
-                              key={recipe.recipeSpellId}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`recipe-${recipe.recipeSpellId}`}
-                                checked={isKnown}
-                                onCheckedChange={(checked) =>
-                                  handleRecipeToggle(
-                                    recipe.recipeSpellId,
-                                    checked as boolean,
-                                  )
-                                }
-                                disabled={
-                                  addRecipeToCharacter.isPending ||
-                                  removeRecipeFromCharacter.isPending
-                                }
-                              />
-                              <label
-                                htmlFor={`recipe-${recipe.recipeSpellId}`}
-                                className="flex-1 cursor-pointer text-sm"
-                              >
-                                <Link
-                                  href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                  target="_blank"
-                                  className="hover:underline"
-                                  onClick={(e) =>
-                                    handleRecipeClick(recipe.recipeSpellId, e)
-                                  }
-                                >
-                                  {recipe.recipe}
-                                </Link>
-                                {recipe.isCommon && (
-                                  <span className="ml-1 text-xs italic text-muted-foreground">
-                                    Common
-                                  </span>
-                                )}
-                              </label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ),
-              )}
-            </Accordion>
-          ) : (
-            // View Mode - Show character's recipes in a table
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Profession</TableHead>
-                  <TableHead>Recipes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {characterRecipesByProfession &&
-                Object.entries(characterRecipesByProfession).length > 0 ? (
-                  Object.entries(characterRecipesByProfession).map(
+                <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+                  Crafting & Rare Recipes
+                </CardTitle>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                    !isOpen && "-rotate-90",
+                  )}
+                />
+              </button>
+            </CollapsibleTrigger>
+            {isOpen &&
+              showRecipeEditor &&
+              (isEditMode ? (
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setIsEditMode(false)}
+                  aria-label="Done editing"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="link"
+                  size="icon"
+                  onClick={() => setIsEditMode(true)}
+                  className="h-8 w-8 border border-primary"
+                  aria-label="Edit recipes"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              ))}
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className={cn("pt-0")}>
+              {isEditMode ? (
+                <Accordion type="multiple" className="w-full">
+                  {Object.entries(recipesByProfession ?? {}).map(
                     ([profession, recipes]) => (
-                      <TableRow key={profession}>
-                        <TableCell className="font-medium">
+                      <AccordionItem key={profession} value={profession}>
+                        <AccordionTrigger className="text-sm">
                           {profession}
-                        </TableCell>
-                        <TableCell>
-                          <div className="grid grid-cols-1 gap-1 lg:grid-cols-2">
-                            {recipes.map((recipe) => (
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+                            {sortRecipesByDisplayName(recipes).map((recipe) => {
+                              const isKnown = characterKnowsRecipe(
+                                recipe.recipeSpellId,
+                              );
+                              return (
+                                <div
+                                  key={recipe.recipeSpellId}
+                                  className="flex items-start gap-2"
+                                >
+                                  <Checkbox
+                                    id={`recipe-${recipe.recipeSpellId}`}
+                                    checked={isKnown}
+                                    onCheckedChange={(checked) =>
+                                      handleRecipeToggle(
+                                        recipe.recipeSpellId,
+                                        checked as boolean,
+                                      )
+                                    }
+                                    disabled={
+                                      addRecipeToCharacter.isPending ||
+                                      removeRecipeFromCharacter.isPending
+                                    }
+                                  />
+                                  <label
+                                    htmlFor={`recipe-${recipe.recipeSpellId}`}
+                                    className="min-w-0 flex-1 cursor-pointer text-sm leading-5"
+                                  >
+                                    <Link
+                                      href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                      target="_blank"
+                                      className="hover:underline"
+                                      onClick={(e) =>
+                                        handleRecipeClick(
+                                          recipe.recipeSpellId,
+                                          e,
+                                        )
+                                      }
+                                    >
+                                      {formatRecipeName(recipe.recipe)}
+                                    </Link>
+                                    {recipe.isCommon && (
+                                      <span className="ml-1 text-xs italic text-muted-foreground">
+                                        Common
+                                      </span>
+                                    )}
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ),
+                  )}
+                </Accordion>
+              ) : (
+                <div className="space-y-4">
+                  {characterRecipesByProfession &&
+                  Object.entries(characterRecipesByProfession).length > 0 ? (
+                    Object.entries(characterRecipesByProfession).map(
+                      ([profession, recipes]) => (
+                        <section key={profession} className="space-y-2">
+                          <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                            {profession}
+                          </div>
+                          <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2 xl:grid-cols-3">
+                            {sortRecipesByDisplayName(recipes).map((recipe) => (
                               <div
                                 key={recipe.recipeSpellId}
-                                className="text-nowrap text-sm"
+                                className="min-w-0 text-sm leading-5"
                               >
                                 <Link
                                   href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
                                   target="_blank"
                                   className="hover:underline"
                                 >
-                                  {recipe.recipe}
+                                  {formatRecipeName(recipe.recipe)}
                                 </Link>
                                 {recipe.isCommon && (
                                   <span className="ml-1 text-xs italic text-muted-foreground">
@@ -330,25 +357,20 @@ export const CharacterRecipes = ({
                               </div>
                             ))}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ),
-                  )
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="py-4 text-center text-muted-foreground"
-                    >
+                        </section>
+                      ),
+                    )
+                  ) : (
+                    <div className="py-4 text-center text-muted-foreground">
                       No crafting recipes found for this character.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };

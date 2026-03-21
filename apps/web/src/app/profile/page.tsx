@@ -4,14 +4,15 @@ import { Separator } from "~/components/ui/separator";
 import { ProfileEditor } from "~/components/profile/profile-editor";
 import { redirect } from "next/navigation";
 import { type Metadata } from "next";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "Profile",
+    description: "Manage your Discord link and Temple character settings.",
+    path: "/profile",
+    noIndex: true,
+  }),
 };
 
 export default async function ProfileIndex() {

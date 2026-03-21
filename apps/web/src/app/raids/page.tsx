@@ -12,11 +12,14 @@ import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  alternates: {
-    canonical: "/raids",
-  },
+  ...createPageMetadata({
+    title: "Raids",
+    description: "Browse tracked raids, attendance, and Warcraft Logs history.",
+    path: "/raids",
+  }),
 };
 
 async function RaidsListContent({ session }: { session: Session | null }) {
@@ -38,7 +41,6 @@ export default async function RaidIndex() {
       <main className="w-full">
         <PageHeader
           title="Raids"
-          description="Browse tracked raids, see attendance credit, and jump into Warcraft Logs."
           className="mb-4"
           actions={
             session?.user?.isRaidManager ? (

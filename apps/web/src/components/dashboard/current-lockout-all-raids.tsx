@@ -18,6 +18,12 @@ import { ExternalLinkIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import {
+  getInstanceIdForZoneName,
+  ZONE_BADGE_COMPACT_CLASSES,
+  ZONE_ACCENT_CLASSES,
+} from "~/lib/raid-zones";
 
 export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } =
@@ -57,7 +63,22 @@ export function CurrentLockoutAllRaids() {
                           target="_self"
                           href={"/raids/" + r.raidId}
                         >
-                          <div>{r.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span>{r.name}</span>
+                            {(() => {
+                              const zoneId = getInstanceIdForZoneName(r.zone);
+                              return zoneId ? (
+                                <Badge
+                                  variant="outline"
+                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
+                                >
+                                  {zoneId === "naxxramas"
+                                    ? "NAXX"
+                                    : zoneId.toUpperCase()}
+                                </Badge>
+                              ) : null;
+                            })()}
+                          </div>
                           <div className="text-xs tracking-tight text-muted-foreground">
                             {PrettyPrintDate(new Date(r.date), true)}
                           </div>
@@ -73,7 +94,6 @@ export function CurrentLockoutAllRaids() {
                             }
                             size={20}
                             variant="centered"
-                            iconClassName="text-chart-2"
                           />
                         )}
                       </div>

@@ -90,17 +90,20 @@ export function AttendanceReport({
               <tbody>
                 {raiders.map((raider, index) => {
                   const isHighlighted = raider.isCurrentUser;
-                  // Fill color: green for current user, primary for >=50%, gray for <50%
+                  const rowClass = isHighlighted ? "bg-cyan-400/6" : "";
                   const barColor = isHighlighted
-                    ? "bg-chart-2"
+                    ? "bg-cyan-400"
                     : raider.isEligible
                       ? "bg-primary"
-                      : "bg-gray-400";
+                      : "bg-gray-500";
 
                   return (
                     <tr
                       key={raider.characterId ?? index}
-                      className="group cursor-pointer transition-opacity hover:opacity-80"
+                      className={cn(
+                        "group cursor-pointer rounded-md transition-opacity hover:opacity-80",
+                        rowClass,
+                      )}
                       onClick={() => handleRowClick(raider.characterId)}
                     >
                       {/* Character Name */}
@@ -112,7 +115,7 @@ export function AttendanceReport({
                           className={cn(
                             "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none",
                             isHighlighted
-                              ? "font-bold text-chart-2"
+                              ? "font-bold text-cyan-200"
                               : "text-muted-foreground",
                           )}
                           style={{ minHeight: "1rem", height: "1rem" }}
@@ -152,7 +155,7 @@ export function AttendanceReport({
                                     isHighlighted
                                       ? raider.attendancePercent >= 20
                                         ? "text-background"
-                                        : "text-chart-2"
+                                        : "text-cyan-200"
                                       : raider.attendancePercent >= 20
                                         ? "text-primary-foreground"
                                         : "text-muted-foreground",

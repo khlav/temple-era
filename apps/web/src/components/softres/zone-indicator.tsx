@@ -4,10 +4,10 @@
  */
 
 const ZONE_COLORS = {
-  naxxramas: "bg-chart-2", // Teal/cyan
-  aq40: "bg-chart-4", // Purple
-  bwl: "bg-chart-5", // Pink/red
-  mc: "bg-chart-3", // Orange/yellow
+  naxxramas: "bg-emerald-400",
+  aq40: "bg-cyan-400",
+  bwl: "bg-violet-400",
+  mc: "bg-amber-400",
 } as const;
 
 interface ZoneIndicatorProps {

@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrettyPrintDate } from "~/lib/helpers";
 import type { Raid } from "~/server/api/interfaces/raid";
+import { Badge } from "~/components/ui/badge";
 
 export function AllRaids({
   session,
@@ -66,19 +67,26 @@ export function AllRaids({
         <RaidsTableSkeleton rows={10} />
       ) : (
         <div className="space-y-2">
-          <div className="space-y-1">
-            <TableSearchInput
-              placeholder="Search raids by name, zone, date, creator..."
-              defaultValue={initialSearch}
-              onDebouncedChange={(v) => setSearchTerms(v ?? "")}
-            />
-            <TableSearchTips>
-              <p className="mb-1 font-medium">Search tips:</p>
-              <ul className="list-disc space-y-1 pl-4">
-                <li>Search by raid name, zone, date text, or creator name</li>
-                <li>Enter multiple terms to narrow results (AND search)</li>
-              </ul>
-            </TableSearchTips>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <TableSearchInput
+                placeholder="Search raids by name, zone, date, creator..."
+                defaultValue={initialSearch}
+                onDebouncedChange={(v) => setSearchTerms(v ?? "")}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+              <Badge variant="secondary">
+                {filteredRaids?.length ?? 0} raids
+              </Badge>
+              <TableSearchTips>
+                <p className="mb-1 font-medium">Search tips:</p>
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>Search by raid name, zone, date text, or creator name</li>
+                  <li>Enter multiple terms to narrow results (AND search)</li>
+                </ul>
+              </TableSearchTips>
+            </div>
           </div>
           <RaidsTable raids={filteredRaids} session={session} />
         </div>

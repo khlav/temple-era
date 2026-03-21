@@ -29,6 +29,11 @@ import {
   TooltipTrigger,
 } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
+import { Badge } from "~/components/ui/badge";
+import {
+  ZONE_ACCENT_CLASSES,
+  ZONE_BADGE_COMPACT_CLASSES,
+} from "~/lib/raid-zones";
 
 interface UpcomingEventsProps {
   session?: Session;
@@ -155,6 +160,18 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
 
   const displayEvents = session ? events : sampleEvents;
 
+  const getEventZoneId = (channelName: string | null | undefined) => {
+    if (!channelName) return null;
+    const normalized = channelName.toLowerCase();
+    if (normalized.includes("naxx")) return "naxxramas";
+    if (normalized.includes("aq40")) return "aq40";
+    if (normalized.includes("bwl")) return "bwl";
+    if (normalized.includes("mc")) return "mc";
+    if (normalized.includes("zg")) return "zg";
+    if (normalized.includes("onyx")) return "onyxia";
+    return null;
+  };
+
   return (
     <Card className="relative h-full overflow-hidden">
       <CardHeader className="pb-1">
@@ -194,6 +211,19 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                             <span className="truncate text-sm font-medium">
                               {event.displayTitle || event.title}
                             </span>
+                            {(() => {
+                              const zoneId = getEventZoneId(event.channelName);
+                              return zoneId ? (
+                                <Badge
+                                  variant="outline"
+                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
+                                >
+                                  {zoneId === "naxxramas"
+                                    ? "NAXX"
+                                    : zoneId.toUpperCase()}
+                                </Badge>
+                              ) : null;
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell className="px-2 py-1.5">
@@ -228,7 +258,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                                       "Confirmed";
 
                                     let Icon = Check;
-                                    let iconClass = "text-chart-2";
+                                    let iconClass = "text-primary";
 
                                     if (!isConfirmed) {
                                       iconClass = "text-muted-foreground";

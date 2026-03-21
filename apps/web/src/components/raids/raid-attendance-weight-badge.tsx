@@ -26,13 +26,18 @@ export const RaidAttendenceWeightBadge = ({
       {attendanceWeight > 0 ? (
         attendanceWeight == 0.5 ? (
           <Badge
-            variant="secondary"
-            className="bg-primary-foreground text-primary"
+            variant="outline"
+            className="bg-sky-500/8 border-sky-300/20 text-sky-300"
           >
             {TRACKED_RAID_LABEL__HALF_CREDIT}
           </Badge>
         ) : (
-          <Badge variant="default">{TRACKED_RAID_LABEL__FULL_CREDIT}</Badge>
+          <Badge
+            variant="outline"
+            className="border-yellow-300/45 bg-yellow-400/10 text-yellow-200"
+          >
+            {TRACKED_RAID_LABEL__FULL_CREDIT}
+          </Badge>
         )
       ) : (
         <Badge variant="outline" className="text-muted-foreground">

@@ -1,6 +1,17 @@
 import React from "react";
+import { type Metadata } from "next";
 import { Separator } from "~/components/ui/separator";
 import { CharacterManager } from "~/components/raid-manager/character-manager";
+import { createPageMetadata } from "~/lib/site-metadata";
+
+export const metadata: Metadata = {
+  ...createPageMetadata({
+    title: "Character Manager",
+    description: "Manage main and alt links for Temple raiding characters.",
+    path: "/raid-manager/characters",
+    noIndex: true,
+  }),
+};
 
 export default async function CharacterManagerIndex() {
   return (

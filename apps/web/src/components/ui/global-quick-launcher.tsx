@@ -37,9 +37,6 @@ export function GlobalQuickLauncher() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selectedRef = useRef<HTMLDivElement>(null);
 
-  // Debug logging
-  console.log("GlobalSearch - open state:", open);
-
   const { data, isLoading } = api.search.global.useQuery(
     { query: debouncedQuery },
     { enabled: debouncedQuery.length > 0 },

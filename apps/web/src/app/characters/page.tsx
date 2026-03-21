@@ -10,14 +10,15 @@ import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "Characters",
+    description: "View Temple's raiding roster, attendance, and linked alts.",
+    path: "/characters",
+    noIndex: true,
+  }),
 };
 
 async function CharactersListContent({ session }: { session: Session | null }) {
@@ -38,11 +39,7 @@ export default async function PlayersIndex() {
   return (
     <HydrateClient>
       <main className="w-full">
-        <PageHeader
-          title="Raiding Characters"
-          description="Search every logged character and compare their raid attendance at a glance."
-          className="mb-4"
-        />
+        <PageHeader title="Raiding Characters" className="mb-4" />
         <div className="w-full">
           <Suspense fallback={<AllCharactersTableSkeleton rows={14} />}>
             <CharactersListContent session={session} />

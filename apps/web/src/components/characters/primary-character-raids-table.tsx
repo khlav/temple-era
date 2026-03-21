@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import Link from "next/link";
-import { ExternalLinkIcon, Search } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
@@ -21,6 +21,7 @@ import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import { Badge } from "~/components/ui/badge";
 
 export function PrimaryCharacterRaidsTable({
   characterId,
@@ -101,22 +102,22 @@ export function PrimaryCharacterRaidsTable({
   }, [filteredRaids]);
 
   return (
-    <div>
-      {/* Search Bar */}
-      <div className="relative mb-4">
-        <Search
-          className="pointer-events-none absolute left-3 top-[18px] -translate-y-1/2 text-muted-foreground"
-          size={20}
-        />
-        <TableSearchInput
-          ref={searchInputRef}
-          type="text"
-          placeholder="Search raids by name, zone, date, character..."
-          className="w-full pl-10"
-          defaultValue={initialSearch}
-          onDebouncedChange={(v) => setSearchTerms(v ?? "")}
-        />
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1">
+          <TableSearchInput
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search raids by name, zone, date, character..."
+            defaultValue={initialSearch}
+            onDebouncedChange={(v) => setSearchTerms(v ?? "")}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+          <Badge variant="secondary">{raidStats.total} raids</Badge>
+          <div className="whitespace-nowrap text-sm text-muted-foreground">
+            {raidStats.attended} attended, {raidStats.benched} benched
+          </div>
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
             <ul className="list-disc space-y-1 pl-4">
@@ -124,10 +125,6 @@ export function PrimaryCharacterRaidsTable({
               <li>Enter multiple terms to narrow results (AND search)</li>
             </ul>
           </TableSearchTips>
-          <span>
-            All-time raids: {raidStats.total} ({raidStats.attended} attended,{" "}
-            {raidStats.benched} benched)
-          </span>
         </div>
       </div>
 

@@ -6,15 +6,14 @@ import { RaidPlanDetail } from "~/components/raid-planner/raid-plan-detail";
 import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "Raid Plan",
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "Raid Plan",
+    description: "View and edit a Temple raid plan.",
+    noIndex: true,
+  }),
 };
 
 interface PageProps {

@@ -57,17 +57,13 @@ import {
   INSTANCE_TO_ZONE,
   CUSTOM_ZONE_ID,
   CUSTOM_ZONE_DISPLAY_NAME,
+  ZONE_ACCENT_CLASSES,
 } from "~/lib/raid-zones";
 import { formatRaidDate } from "~/utils/date-formatting";
 import { ZoneSelect } from "./zone-select";
 import { PollingIndicator } from "./polling-indicator";
 
-const ZONE_BADGE_CLASSES: Record<string, string> = {
-  naxxramas: "bg-[hsl(var(--chart-2)/0.15)] border-chart-2 text-chart-2",
-  aq40: "bg-[hsl(var(--chart-4)/0.15)] border-chart-4 text-chart-4",
-  bwl: "bg-[hsl(var(--chart-5)/0.15)] border-chart-5 text-chart-5",
-  mc: "bg-[hsl(var(--chart-3)/0.15)] border-chart-3 text-chart-3",
-};
+const ZONE_BADGE_CLASSES = ZONE_ACCENT_CLASSES;
 
 interface RaidPlanHeaderProps {
   planId: string;

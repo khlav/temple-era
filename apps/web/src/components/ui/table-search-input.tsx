@@ -55,24 +55,21 @@ export const TableSearchInput = React.forwardRef<
 
   return (
     <div className="relative">
-      <Search
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-        size={20}
-      />
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <DebouncedInput
         {...props}
         key={debouncedInputKey}
         ref={ref}
         delay={delay}
         placeholder={isLoading ? "" : placeholder}
-        className={`w-full pl-10 ${className ?? ""}`}
+        className={`h-11 w-full rounded-xl border-border/80 bg-card/70 pl-9 pr-16 ${className ?? ""}`}
         defaultValue={debouncedInputKey === 0 ? defaultValue : ""}
         onChange={handleChange}
         onDebouncedChange={onDebouncedChange}
         autoFocus={autoFocus}
       />
       {isLoading && (
-        <div className="pointer-events-none absolute inset-0 rounded-md bg-muted/30">
+        <div className="pointer-events-none absolute inset-0 rounded-xl bg-muted/30">
           <div className="absolute left-10 right-0 top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded">
             <div className="h-full w-2/3 animate-pulse bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60" />
           </div>
@@ -82,7 +79,7 @@ export const TableSearchInput = React.forwardRef<
         <button
           type="button"
           aria-label="Clear search"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
           onClick={handleClear}
         >
           Clear

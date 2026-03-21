@@ -10,6 +10,7 @@ import {
   characterRecipeMap,
 } from "~/server/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { siteConfig } from "~/lib/site-metadata";
 
 export async function getRaidMetadata(raidId: number) {
   try {
@@ -568,13 +569,13 @@ function generateRaidStoryDescription(raidData: any): string {
 export function generateRaidMetadata(raidData: any, raidId: number) {
   if (!raidData) {
     return {
-      title: `Temple Raid Attendance - Raids - ${raidId}`,
+      title: `Raid ${raidId}`,
       description: `Raid details for raid ${raidId}`,
     };
   }
 
   // Build enhanced title
-  const title = `Temple Raid Attendance - ${raidData.name}${raidData.zone ? ` (${raidData.zone})` : ""}`;
+  const title = `${raidData.name}${raidData.zone ? ` (${raidData.zone})` : ""}`;
 
   // Build story-like description
   const description = generateRaidStoryDescription(raidData);
@@ -583,11 +584,11 @@ export function generateRaidMetadata(raidData: any, raidId: number) {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
   const openGraph = {
-    title,
+    title: `${siteConfig.name} | ${title}`,
     description,
     type: "website" as const,
     url: `${baseUrl}/raids/${raidId}`,
-    siteName: "Temple Raid Attendance",
+    siteName: siteConfig.name,
   };
 
   // Build structured data for SEO
@@ -626,13 +627,13 @@ export function generateCharacterMetadata(
 ) {
   if (!characterData) {
     return {
-      title: `Temple Raid Attendance - Characters - ${characterId}`,
+      title: `Character ${characterId}`,
       description: `Character details for character ${characterId}`,
     };
   }
 
   // Build enhanced title
-  const title = `Temple Raid Attendance - ${characterData.name}${characterData.class ? ` (${characterData.class})` : ""}`;
+  const title = `${characterData.name}${characterData.class ? ` (${characterData.class})` : ""}`;
 
   // Build story-like description
   const description = generateCharacterStoryDescription(characterData);
@@ -641,11 +642,11 @@ export function generateCharacterMetadata(
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
   const openGraph = {
-    title,
+    title: `${siteConfig.name} | ${title}`,
     description,
     type: "profile" as const,
     url: `${baseUrl}/characters/${characterId}`,
-    siteName: "Temple Raid Attendance",
+    siteName: siteConfig.name,
   };
 
   // Build structured data for SEO

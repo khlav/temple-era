@@ -63,14 +63,11 @@ export function ScheduledEventsTable({
           <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
             <th
               colSpan={2}
-              className="h-10 w-1/4 px-2 text-left align-middle font-medium text-muted-foreground md:w-3/12"
+              className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground"
             >
               Events ({events.length})
             </th>
-            <th className="hidden h-10 w-1/4 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell md:w-2/12">
-              Date
-            </th>
-            <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
+            <th className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground">
               Signups
             </th>
             <th className="h-10 px-2 text-center align-middle font-medium text-muted-foreground md:w-[60px]">
@@ -165,7 +162,7 @@ function EventRow({
     <tr className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
       <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
         {existingPlanId ? (
-          <Button variant="secondary" size="sm" className="w-[90px]" asChild>
+          <Button variant="secondary" size="sm" className="w-20" asChild>
             <Link href={`/raid-manager/raid-planner/${existingPlanId}`}>
               View Plan
             </Link>
@@ -174,31 +171,29 @@ function EventRow({
           <Button
             variant="ghost"
             size="sm"
-            className="w-[90px] border border-dashed text-muted-foreground hover:border-primary hover:text-primary"
+            className="w-20 border border-dashed text-muted-foreground hover:border-primary hover:text-primary"
             onClick={onSelect}
           >
             Create Plan
           </Button>
         )}
       </td>
-      <td className="whitespace-nowrap p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-        {event.displayTitle ?? event.title}
-      </td>
-      <td className="hidden whitespace-nowrap p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-        <div className="flex flex-col md:flex-row md:gap-1">
-          <span>{formattedDate}</span>
-          <span className="hidden md:inline">•</span>
-          <span className="text-muted-foreground">{formattedTime}</span>
+      <td className="w-[50%] p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+        <div className="min-w-0">
+          <div className="truncate">{event.displayTitle ?? event.title}</div>
+          <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+            {formattedDate} {formattedTime ? `• ${formattedTime}` : ""}
+          </div>
         </div>
       </td>
-      <td className="p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+      <td className="w-[50%] p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
         <div className="flex items-center justify-start gap-3">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
-                size="icon"
-                className="h-7 w-7 border-muted-foreground"
+                size="sm"
+                className="h-7 border-border/60 px-2 lg:px-2.5"
                 onClick={handleFindPlayers}
                 disabled={isLoadingFindPlayers}
               >
@@ -207,7 +202,9 @@ function EventRow({
                 ) : (
                   <Users className="h-4 w-4" />
                 )}
-                <span className="sr-only">Find Gamers</span>
+                <span className="sr-only lg:not-sr-only lg:ml-1.5">
+                  Find Gamers
+                </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent

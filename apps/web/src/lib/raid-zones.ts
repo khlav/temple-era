@@ -24,6 +24,23 @@ export const RAID_ZONE_CONFIG = [
  */
 export const CUSTOM_ZONE_ID = "custom";
 export const CUSTOM_ZONE_DISPLAY_NAME = "Custom";
+export const ZONE_BADGE_COMPACT_CLASSES =
+  "shrink-0 px-1.5 py-0.5 text-[10px] leading-none tracking-[0.12em]";
+export const ZONE_ACCENT_CLASSES: Record<string, string> = {
+  naxxramas: "bg-emerald-500/12 border-emerald-400/35 text-emerald-300",
+  aq40: "bg-sky-500/12 border-sky-400/35 text-sky-300",
+  bwl: "bg-red-500/12 border-red-400/35 text-red-300",
+  mc: "bg-orange-500/12 border-orange-300/40 text-orange-200",
+  onyxia: "bg-slate-500/12 border-slate-400/35 text-slate-300",
+  aq20: "bg-teal-500/12 border-teal-400/35 text-teal-300",
+  zg: "bg-lime-500/12 border-lime-400/35 text-lime-300",
+  custom: "bg-slate-500/12 border-slate-400/35 text-slate-300",
+};
+
+export function getInstanceIdForZoneName(zoneName: string | null | undefined) {
+  if (!zoneName) return undefined;
+  return RAID_ZONE_CONFIG.find((zone) => zone.name === zoneName)?.instance;
+}
 
 /**
  * Array of raid zone names (derived from RAID_ZONE_CONFIG)

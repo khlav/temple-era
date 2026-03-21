@@ -9,10 +9,12 @@ import { useEffect, useState } from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Badge } from "~/components/ui/badge";
 
 export function CharacterManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("s") ?? "";
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export function CharacterManager() {
     } else {
       params.delete("s");
     }
-    router.replace(`?${params.toString()}`);
+    router.replace(`?${params.toString()}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
@@ -69,22 +71,29 @@ export function CharacterManager() {
   return (
     <div className="space-y-2">
       {/* Search Input - Fixed at top */}
-      <div className="space-y-1">
-        <TableSearchInput
-          placeholder="Search..."
-          defaultValue={searchParams.get("s") ?? ""}
-          onDebouncedChange={(v) => setSearchTerm(v)}
-        />
-        <TableSearchTips>
-          <p className="mb-1 font-medium">Search tips:</p>
-          <ul className="list-disc space-y-1 pl-4">
-            <li>Search across primary and secondary character names/classes</li>
-            <li>
-              Includes status keywords like{" "}
-              <span className="font-mono text-chart-3">ignored</span>
-            </li>
-          </ul>
-        </TableSearchTips>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1">
+          <TableSearchInput
+            placeholder="Search mains, alts, class, or status..."
+            defaultValue={initialSearch}
+            onDebouncedChange={(v) => setSearchTerm(v ?? "")}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+          <Badge variant="secondary">{filteredPlayers.length} mains</Badge>
+          <TableSearchTips>
+            <p className="mb-1 font-medium">Search tips:</p>
+            <ul className="list-disc space-y-1 pl-4">
+              <li>
+                Search across primary and secondary character names/classes
+              </li>
+              <li>
+                Includes status keywords like{" "}
+                <span className="font-mono text-chart-3">ignored</span>
+              </li>
+            </ul>
+          </TableSearchTips>
+        </div>
       </div>
 
       {/* Scrollable content area */}

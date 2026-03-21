@@ -23,7 +23,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
 
   return (
     <div className="pb-2">
-      <Card className="text-sm">
+      <Card className="overflow-hidden text-sm">
         <Collapsible
           open={isOpen}
           onOpenChange={setIsOpen}
@@ -31,15 +31,19 @@ export default function DashboardBanner({ session }: { session?: Session }) {
         >
           <CollapsibleTrigger asChild>
             <CardHeader
-              className={`cursor-pointer p-4 transition-colors hover:bg-muted/50 ${
+              className={`cursor-pointer p-4 transition-colors hover:bg-accent/40 ${
                 isOpen ? "pb-0" : ""
               }`}
             >
               <div className="flex flex-row items-center gap-2">
-                <div className="flex grow-0 items-center gap-1 font-bold text-primary">
-                  <span>Please Read</span>
+                <div className="flex grow-0 items-center gap-2 font-bold text-primary">
+                  <span className="font-display uppercase tracking-[0.18em]">
+                    Please Read
+                  </span>
                   <InfoIcon className="h-4 w-4" />
-                  <span>Temple Raid Attendance & Loot Policy</span>
+                  <span className="text-foreground">
+                    Temple Raid Attendance & Loot Policy
+                  </span>
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
@@ -51,7 +55,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="text-muted-foreground">
+              <div className="space-y-1 text-muted-foreground">
                 <div>
                   Raiders must maintain 50%+ large raid attendance over 6
                   lockout weeks to roll on{" "}

@@ -12,7 +12,7 @@ import { CharacterRecipes } from "~/components/characters/character-recipes";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { AttendanceProgressBar } from "~/components/common/attendance-progress-bar";
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { api } from "~/trpc/react";
 import { CharacterBadges } from "~/components/characters/character-badges";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
@@ -121,10 +121,10 @@ export function CharacterDetail({
           <>
             <Separator className="my-2 w-full" />
             <Card>
-              <CardHeader className="pb-0">
-                <div className="font-bold">
-                  Raid Attendance, Last 6 lockouts
-                </div>
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+                  Raid Attendance
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <CharacterAttendanceContent characterId={characterId} />

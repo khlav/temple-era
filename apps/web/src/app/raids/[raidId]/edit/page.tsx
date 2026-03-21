@@ -9,6 +9,7 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { noIndexRobots } from "~/lib/site-metadata";
 
 // Cache the raid data fetch to avoid duplicate calls between generateMetadata and page component
 const getCachedRaidData = cache(async (raidId: number) => {
@@ -26,24 +27,20 @@ export async function generateMetadata({
 
   if (!raidData) {
     return {
-      title: `Temple Raid Attendance - Raids - ${raidId} - Edit`,
+      title: `Edit Raid ${raidId}`,
       description: `Edit raid details for raid ${raidId}`,
+      robots: noIndexRobots,
     };
   }
 
-  const title = `Temple Raid Attendance - ${raidData.name} - Edit`;
+  const title = `Edit ${raidData.name}`;
 
   const description = `Edit raid details for ${raidData.name}${raidData.zone ? ` in ${raidData.zone}` : ""}${raidData.date ? ` on ${new Date(raidData.date).toLocaleDateString()}` : ""}`;
 
   return {
     title,
     description,
-    robots: {
-      index: false,
-      follow: false,
-      noarchive: true,
-      nosnippet: true,
-    },
+    robots: noIndexRobots,
   };
 }
 

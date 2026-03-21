@@ -6,15 +6,15 @@ import { Separator } from "~/components/ui/separator";
 import { Button } from "~/components/ui/button";
 import { RaidPlannerStart } from "~/components/raid-planner/raid-planner-start";
 import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "Raid Planner",
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "Raid Planner",
+    description: "Build and manage raid plans for upcoming Temple raids.",
+    path: "/raid-manager/raid-planner",
+    noIndex: true,
+  }),
 };
 
 export default async function RaidPlannerPage() {
@@ -22,7 +22,6 @@ export default async function RaidPlannerPage() {
     <main className="w-full">
       <PageHeader
         title="Raid Planner"
-        description="Plan groups and assignments before the raid."
         actions={
           <Button
             variant="ghost"

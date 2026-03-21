@@ -10,8 +10,13 @@ import { api } from "~/trpc/react";
 import { RaidPlanGroupsGrid } from "./raid-plan-groups-grid";
 import { AAPanel } from "./aa-panel";
 import { RaidPlanDetailSkeleton } from "./skeletons";
-import { CUSTOM_ZONE_ID, RAID_ZONE_CONFIG } from "~/lib/raid-zones";
-import { INSTANCE_TO_ZONE, CUSTOM_ZONE_DISPLAY_NAME } from "~/lib/raid-zones";
+import {
+  CUSTOM_ZONE_DISPLAY_NAME,
+  CUSTOM_ZONE_ID,
+  INSTANCE_TO_ZONE,
+  RAID_ZONE_CONFIG,
+  ZONE_ACCENT_CLASSES,
+} from "~/lib/raid-zones";
 import { EncounterSidebar } from "./encounter-sidebar";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { buildEncounterCharacters, type RaidPlanCharacter } from "./types";
@@ -30,12 +35,7 @@ import {
 import { CharacterSelector } from "~/components/characters/character-selector";
 import { ClassIcon } from "~/components/ui/class-icon";
 
-const ZONE_BADGE_CLASSES: Record<string, string> = {
-  naxxramas: "bg-[hsl(var(--chart-2)/0.15)] border-chart-2 text-chart-2",
-  aq40: "bg-[hsl(var(--chart-4)/0.15)] border-chart-4 text-chart-4",
-  bwl: "bg-[hsl(var(--chart-5)/0.15)] border-chart-5 text-chart-5",
-  mc: "bg-[hsl(var(--chart-3)/0.15)] border-chart-3 text-chart-3",
-};
+const ZONE_BADGE_CLASSES = ZONE_ACCENT_CLASSES;
 
 interface RaidPlanPublicViewProps {
   planId: string;

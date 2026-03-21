@@ -13,17 +13,9 @@ export function SidebarSearchBox() {
     navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const keyCombo = isMac ? "⌘K" : "Ctrl+K";
 
-  // Debug logging
-  if (typeof window !== "undefined") {
-    console.log("Platform:", navigator.platform);
-    console.log("Is Mac:", isMac);
-    console.log("Key combo:", keyCombo);
-  }
-
   return (
     <SidebarMenuButton
       onClick={() => {
-        console.log("Sidebar search clicked, setting open to true");
         setOpen(true);
       }}
       className="border-2 bg-black text-muted-foreground"

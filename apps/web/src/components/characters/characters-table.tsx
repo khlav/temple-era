@@ -108,7 +108,7 @@ export function CharactersTable({
   return (
     <div className="space-y-3">
       {isLoading ? (
-        <div className="min-h-[360px] overflow-y-auto overflow-x-hidden rounded-xl border md:min-h-[600px] md:border-0">
+        <div className="min-h-[360px] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70 md:min-h-[600px] md:border-0">
           <GenericCharactersTableSkeleton
             rows={13}
             showRaidColumns={showRaidColumns}
@@ -120,10 +120,10 @@ export function CharactersTable({
           itemKey={(character) => character.characterId}
           estimateItemHeight={132}
           overscan={6}
-          className="h-[min(68svh,42rem)] rounded-xl border p-3"
+          className="panel-subtle h-[min(68svh,42rem)] rounded-2xl border border-border/70 p-3"
           innerClassName="pr-1"
           emptyState={
-            <div className="rounded-xl border px-4 py-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
               No characters found.
             </div>
           }
@@ -191,10 +191,10 @@ export function CharactersTable({
           )}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border">
+        <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
           <div
             className={cn(
-              "grid items-center gap-3 border-b bg-background px-4 py-3 text-sm font-medium text-muted-foreground",
+              "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground",
               session?.user?.isRaidManager
                 ? showRaidColumns
                   ? "grid-cols-[44px_minmax(0,3fr)_minmax(0,1.2fr)_repeat(4,minmax(0,0.7fr))]"
@@ -231,7 +231,7 @@ export function CharactersTable({
             renderItem={(c: RaidParticipant) => (
               <div
                 className={cn(
-                  "grid items-center gap-3 border-b px-4 py-2 text-sm transition-colors hover:bg-muted/50",
+                  "grid items-center gap-3 border-b border-border/60 px-4 py-2.5 text-sm transition-colors hover:bg-accent/35",
                   session?.user?.isRaidManager
                     ? showRaidColumns
                       ? "grid-cols-[44px_minmax(0,3fr)_minmax(0,1.2fr)_repeat(4,minmax(0,0.7fr))]"

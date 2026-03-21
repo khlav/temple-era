@@ -20,10 +20,10 @@ function formatDateMMDD(dateString: string): string {
 
 // Map zones to chart colors (using Tailwind chart color classes)
 const ZONE_COLORS = {
-  naxxramas: "bg-chart-2", // Teal/cyan for green
-  aq40: "bg-chart-4", // Purple in dark mode
-  bwl: "bg-chart-5", // Pink/red in dark mode
-  mc: "bg-chart-3", // Orange in dark mode (close to yellow)
+  naxxramas: "bg-chart-2", // Undead green
+  aq40: "bg-chart-4", // Cool blue
+  bwl: "bg-chart-5", // Dragon crimson / bronze
+  mc: "bg-chart-3", // Molten orange-red
 } as const;
 
 // Map zones to text colors for icons

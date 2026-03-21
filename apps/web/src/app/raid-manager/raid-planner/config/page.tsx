@@ -2,15 +2,16 @@ import React from "react";
 import { type Metadata } from "next";
 import { Separator } from "~/components/ui/separator";
 import { RaidPlannerConfig } from "~/components/raid-planner/raid-planner-config";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "Raid Plan Templates",
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  ...createPageMetadata({
+    title: "Raid Plan Templates",
+    description:
+      "Configure reusable encounter templates for Temple raid plans.",
+    path: "/raid-manager/raid-planner/config",
+    noIndex: true,
+  }),
 };
 
 export default async function RaidPlannerConfigPage() {

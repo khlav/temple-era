@@ -2,10 +2,15 @@ import { type Metadata } from "next";
 import { Suspense } from "react";
 import { PublicPlansTable } from "~/components/raid-planner/public-plans-table";
 import { Skeleton } from "~/components/ui/skeleton";
+import { PageHeader } from "~/components/ui/page-header";
+import { createPageMetadata } from "~/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "Recent Raid Plans",
-  description: "Browse recent raid plans shared by raid managers",
+  ...createPageMetadata({
+    title: "Raid Plans",
+    description: "Browse recent raid plans shared by Temple raid managers.",
+    path: "/raid-plans",
+  }),
 };
 
 function PublicPlansTableSkeleton() {
@@ -20,13 +25,8 @@ function PublicPlansTableSkeleton() {
 
 export default async function PublicRaidPlansPage() {
   return (
-    <main className="w-full px-4">
-      <div className="mb-2 text-3xl font-bold tracking-tight">
-        Recent Raid Plans
-      </div>
-      <div className="mb-4 text-muted-foreground">
-        Browse recent raid plans shared by raid managers.
-      </div>
+    <main className="w-full">
+      <PageHeader title="Recent Raid Plans" className="mb-4" />
       <Suspense fallback={<PublicPlansTableSkeleton />}>
         <PublicPlansTable />
       </Suspense>

@@ -1,6 +1,6 @@
+import Image from "next/image";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import Image from "next/image";
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +21,37 @@ export interface SignupVolumeRoleCounts {
   Healer: number;
 }
 
+const ROLE_ROWS = [
+  {
+    role: "Tank",
+    key: "Tank",
+    color: "bg-amber-400",
+    textColor: "text-amber-300",
+    icon: "tank",
+  },
+  {
+    role: "Melee",
+    key: "Melee",
+    color: "bg-rose-500",
+    textColor: "text-rose-300",
+    icon: "melee",
+  },
+  {
+    role: "Ranged",
+    key: "Ranged",
+    color: "bg-sky-500",
+    textColor: "text-sky-300",
+    icon: "ranged",
+  },
+  {
+    role: "Healer",
+    key: "Healer",
+    color: "bg-emerald-500",
+    textColor: "text-emerald-300",
+    icon: "healer",
+  },
+] as const;
+
 export const RAID_TARGETS = {
   DEFAULT: 40,
   TWENTY_MAN: 20,
@@ -36,10 +67,18 @@ export function getRaidTarget(title: string, channelName: string): number {
 
 export function getSignupStatusColor(count: number, target: number) {
   const percentage = count / target;
-  if (percentage < 0.67) return { bg: "bg-red-500", text: "text-red-500" };
-  if (percentage < 1.0) return { bg: "bg-amber-500", text: "text-amber-500" };
-  if (percentage > 1.15) return { bg: "bg-blue-600", text: "text-blue-600" };
-  return { bg: "bg-emerald-500", text: "text-emerald-500" };
+
+  if (percentage < 0.67) {
+    return { bg: "bg-slate-500", text: "text-slate-300" };
+  }
+  if (percentage < 1.0) {
+    return { bg: "bg-sky-500", text: "text-sky-300" };
+  }
+  if (percentage > 1.15) {
+    return { bg: "bg-primary", text: "text-primary" };
+  }
+
+  return { bg: "bg-emerald-500", text: "text-emerald-400" };
 }
 
 interface SignupVolumeIndicatorProps {
@@ -50,6 +89,87 @@ interface SignupVolumeIndicatorProps {
   roleCounts?: SignupVolumeRoleCounts;
 }
 
+function RoleSignupTooltip({
+  count,
+  target,
+  roleCounts,
+}: {
+  count: number;
+  target: number;
+  roleCounts: SignupVolumeRoleCounts;
+}) {
+  const PEOPLE_PER_PILL = 5;
+
+  return (
+    <TooltipContent
+      side="right"
+      className="border-border/80 bg-card/95 text-secondary-foreground"
+    >
+      <div className="space-y-1 text-xs">
+        <div className="font-semibold text-foreground">
+          {count} / {target} signups
+        </div>
+        <div className="h-px bg-border" />
+        <div className="space-y-1">
+          {ROLE_ROWS.map((row) => {
+            const rowCount = roleCounts[row.key];
+            const pillsNeeded = Math.max(
+              1,
+              Math.ceil(rowCount / PEOPLE_PER_PILL),
+            );
+
+            return (
+              <div key={row.role} className="flex items-center gap-1">
+                <span
+                  className={cn(
+                    "w-5 shrink-0 text-right font-mono font-semibold",
+                    row.textColor,
+                  )}
+                >
+                  {rowCount}
+                </span>
+                <Image
+                  src={`/img/aa/role_${row.icon}.svg`}
+                  alt={row.role}
+                  width={14}
+                  height={14}
+                  className="shrink-0"
+                />
+                <div className="flex gap-px">
+                  {Array.from({ length: pillsNeeded }).map((_, i) => {
+                    const segmentStart = i * PEOPLE_PER_PILL;
+                    const fillAmount = Math.max(
+                      0,
+                      Math.min(1, (rowCount - segmentStart) / PEOPLE_PER_PILL),
+                    );
+
+                    return (
+                      <div
+                        key={i}
+                        className="h-2 w-6 overflow-hidden rounded bg-muted/35"
+                      >
+                        {fillAmount > 0 && (
+                          <div
+                            className={cn(
+                              "h-full transition-all duration-300",
+                              row.color,
+                            )}
+                            style={{ width: `${fillAmount * 100}%` }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </TooltipContent>
+  );
+}
+
 export function SignupVolumeIndicator({
   count,
   title,
@@ -57,28 +177,21 @@ export function SignupVolumeIndicator({
   variant = "total",
   roleCounts,
 }: SignupVolumeIndicatorProps) {
-  if (variant === "role" && roleCounts) {
-    // Role Variant: 4 Rows (Tank, Melee, Ranged, Healer)
-    const ROWS = [
-      { role: "Tank", count: roleCounts.Tank, color: "bg-amber-500" },
-      { role: "Melee", count: roleCounts.Melee, color: "bg-red-500" },
-      { role: "Ranged", count: roleCounts.Ranged, color: "bg-blue-500" },
-      { role: "Healer", count: roleCounts.Healer, color: "bg-emerald-500" },
-    ] as const;
+  const target = getRaidTarget(title, channelName);
 
+  if (variant === "role" && roleCounts) {
     const PEOPLE_PER_PILL = 5;
-    const target = getRaidTarget(title, channelName);
 
     return (
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <div className="flex flex-col gap-px">
-              {ROWS.map((row) => {
-                // Calculate dynamic number of pills needed for this row
+              {ROLE_ROWS.map((row) => {
+                const rowCount = roleCounts[row.key];
                 const pillsNeeded = Math.max(
                   1,
-                  Math.ceil(row.count / PEOPLE_PER_PILL),
+                  Math.ceil(rowCount / PEOPLE_PER_PILL),
                 );
 
                 return (
@@ -89,14 +202,14 @@ export function SignupVolumeIndicator({
                         0,
                         Math.min(
                           1,
-                          (row.count - segmentStart) / PEOPLE_PER_PILL,
+                          (rowCount - segmentStart) / PEOPLE_PER_PILL,
                         ),
                       );
 
                       return (
                         <div
                           key={i}
-                          className="relative h-full w-5 overflow-hidden rounded bg-muted/20"
+                          className="relative h-full w-5 overflow-hidden rounded bg-muted/35"
                         >
                           {fillAmount > 0 && (
                             <div
@@ -115,257 +228,78 @@ export function SignupVolumeIndicator({
               })}
             </div>
           </TooltipTrigger>
-          <TooltipContent
-            side="right"
-            className="bg-secondary text-secondary-foreground"
-          >
-            <div className="space-y-1 text-xs">
-              <div className="font-semibold text-foreground">
-                {count} / {target} signups
-              </div>
-              <div className="h-px bg-border" />
-              <div className="space-y-1">
-                {[
-                  {
-                    role: "Tank",
-                    count: roleCounts.Tank,
-                    color: "bg-amber-500",
-                    textColor: "text-amber-500",
-                    icon: "tank",
-                  },
-                  {
-                    role: "Melee",
-                    count: roleCounts.Melee,
-                    color: "bg-red-500",
-                    textColor: "text-red-500",
-                    icon: "melee",
-                  },
-                  {
-                    role: "Ranged",
-                    count: roleCounts.Ranged,
-                    color: "bg-blue-500",
-                    textColor: "text-blue-500",
-                    icon: "ranged",
-                  },
-                  {
-                    role: "Healer",
-                    count: roleCounts.Healer,
-                    color: "bg-emerald-500",
-                    textColor: "text-emerald-500",
-                    icon: "healer",
-                  },
-                ].map((row) => {
-                  const PEOPLE_PER_PILL = 5;
-                  const pillsNeeded = Math.max(
-                    1,
-                    Math.ceil(row.count / PEOPLE_PER_PILL),
-                  );
-
-                  return (
-                    <div key={row.role} className="flex items-center gap-1">
-                      <span
-                        className={cn(
-                          "w-5 shrink-0 text-right font-mono font-semibold",
-                          row.textColor,
-                        )}
-                      >
-                        {row.count}
-                      </span>
-                      <Image
-                        src={`/img/aa/role_${row.icon}.svg`}
-                        alt={row.role}
-                        width={14}
-                        height={14}
-                        className="shrink-0"
-                      />
-                      <div className="flex gap-px">
-                        {Array.from({ length: pillsNeeded }).map((_, i) => {
-                          const segmentStart = i * PEOPLE_PER_PILL;
-                          const fillAmount = Math.max(
-                            0,
-                            Math.min(
-                              1,
-                              (row.count - segmentStart) / PEOPLE_PER_PILL,
-                            ),
-                          );
-
-                          return (
-                            <div
-                              key={i}
-                              className="h-2 w-6 overflow-hidden rounded bg-muted/30"
-                            >
-                              {fillAmount > 0 && (
-                                <div
-                                  className={cn(
-                                    "h-full transition-all duration-300",
-                                    row.color,
-                                  )}
-                                  style={{ width: `${fillAmount * 100}%` }}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </TooltipContent>
+          <RoleSignupTooltip
+            count={count}
+            target={target}
+            roleCounts={roleCounts}
+          />
         </Tooltip>
       </TooltipProvider>
     );
   }
 
-  // Total Variant
-  const target = getRaidTarget(title, channelName);
   const colors = getSignupStatusColor(count, target);
-
   const isTwentyMan = target === RAID_TARGETS.TWENTY_MAN;
   const containerWidth = isTwentyMan ? 50 : 100;
-
-  // Width logic: 2px per signup, capped at container width
   const barWidth = Math.min(count * 2, containerWidth);
-  const targetMarkerPos = target * 2; // Position of the vertical line
-  const hasOverflow = count * 2 > containerWidth; // Check if signups exceed what the bar can display
+  const targetMarkerPos = target * 2;
+  const hasOverflow = count * 2 > containerWidth;
 
   const indicator = (
     <div className="flex items-center gap-1">
       <div
-        className="relative mt-0.5 h-2 rounded-sm bg-muted/30"
+        className="relative mt-0.5 h-2 rounded-sm bg-muted/35"
         style={{ width: `${containerWidth}px` }}
       >
-        {/* The progress bar */}
         <div
-          className={`h-full rounded-sm ${colors.bg} transition-all duration-300`}
+          className={cn(
+            "h-full rounded-sm transition-all duration-300",
+            colors.bg,
+          )}
           style={{ width: `${barWidth}px` }}
         />
-
-        {/* Target marker (vertical line) */}
         <div
           className="absolute -bottom-1 -top-1 z-10 w-[2px] bg-foreground/30"
           style={{ left: `${targetMarkerPos}px` }}
         />
       </div>
 
-      {/* Overflow indicator - show blue + if signups exceed bar capacity */}
       {hasOverflow && (
-        <span className="text-base font-bold leading-none text-blue-600">
-          +
-        </span>
+        <span className="text-base font-bold leading-none text-primary">+</span>
       )}
     </div>
   );
 
-  // Wrap in tooltip if roleCounts are available
   if (roleCounts) {
     return (
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{indicator}</TooltipTrigger>
-          <TooltipContent
-            side="right"
-            className="bg-secondary text-secondary-foreground"
-          >
-            <div className="space-y-1 text-xs">
-              <div className="font-semibold text-foreground">
-                {count} / {target} signups
-              </div>
-              <div className="h-px bg-border" />
-              <div className="space-y-1">
-                {[
-                  {
-                    role: "Tank",
-                    count: roleCounts.Tank,
-                    color: "bg-amber-500",
-                    textColor: "text-amber-500",
-                    icon: "tank",
-                  },
-                  {
-                    role: "Melee",
-                    count: roleCounts.Melee,
-                    color: "bg-red-500",
-                    textColor: "text-red-500",
-                    icon: "melee",
-                  },
-                  {
-                    role: "Ranged",
-                    count: roleCounts.Ranged,
-                    color: "bg-blue-500",
-                    textColor: "text-blue-500",
-                    icon: "ranged",
-                  },
-                  {
-                    role: "Healer",
-                    count: roleCounts.Healer,
-                    color: "bg-emerald-500",
-                    textColor: "text-emerald-500",
-                    icon: "healer",
-                  },
-                ].map((row) => {
-                  const PEOPLE_PER_PILL = 5;
-                  const pillsNeeded = Math.max(
-                    1,
-                    Math.ceil(row.count / PEOPLE_PER_PILL),
-                  );
-
-                  return (
-                    <div key={row.role} className="flex items-center gap-1">
-                      <span
-                        className={cn(
-                          "w-5 shrink-0 text-right font-mono font-semibold",
-                          row.textColor,
-                        )}
-                      >
-                        {row.count}
-                      </span>
-                      <Image
-                        src={`/img/aa/role_${row.icon}.svg`}
-                        alt={row.role}
-                        width={14}
-                        height={14}
-                        className="shrink-0"
-                      />
-                      <div className="flex gap-px">
-                        {Array.from({ length: pillsNeeded }).map((_, i) => {
-                          const segmentStart = i * PEOPLE_PER_PILL;
-                          const fillAmount = Math.max(
-                            0,
-                            Math.min(
-                              1,
-                              (row.count - segmentStart) / PEOPLE_PER_PILL,
-                            ),
-                          );
-
-                          return (
-                            <div
-                              key={i}
-                              className="h-2 w-6 overflow-hidden rounded bg-muted/30"
-                            >
-                              {fillAmount > 0 && (
-                                <div
-                                  className={cn(
-                                    "h-full transition-all duration-300",
-                                    row.color,
-                                  )}
-                                  style={{ width: `${fillAmount * 100}%` }}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </TooltipContent>
+          <RoleSignupTooltip
+            count={count}
+            target={target}
+            roleCounts={roleCounts}
+          />
         </Tooltip>
       </TooltipProvider>
     );
   }
 
-  return indicator;
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>{indicator}</TooltipTrigger>
+        <TooltipContent
+          side="right"
+          className="border-border/80 bg-card/95 text-secondary-foreground"
+        >
+          <div className="text-xs font-semibold">
+            <span className={colors.text}>
+              {count} / {target} signups
+            </span>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }

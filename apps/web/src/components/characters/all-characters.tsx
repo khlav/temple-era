@@ -7,6 +7,7 @@ import { TableSearchTips } from "~/components/ui/table-search-tips";
 import type { RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { AllCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
+import { Badge } from "~/components/ui/badge";
 
 export function AllCharacters({
   session,
@@ -83,18 +84,25 @@ export function AllCharacters({
     <>
       {hasData ? (
         <div className="space-y-2">
-          <div className="space-y-1">
-            <TableSearchInput
-              placeholder="Search..."
-              onDebouncedChange={(v) => setSearchTerm(v)}
-            />
-            <TableSearchTips>
-              <p className="mb-1 font-medium">Search tips:</p>
-              <ul className="list-disc space-y-1 pl-4">
-                <li>Search by name, server, class, slug, or primary name</li>
-                <li>Terms are ANDed together (must all appear)</li>
-              </ul>
-            </TableSearchTips>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <TableSearchInput
+                placeholder="Search characters, server, class, or main..."
+                onDebouncedChange={(v) => setSearchTerm(v)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+              <Badge variant="secondary">
+                {Object.keys(filteredPlayers).length} characters
+              </Badge>
+              <TableSearchTips>
+                <p className="mb-1 font-medium">Search tips:</p>
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>Search by name, server, class, slug, or primary name</li>
+                  <li>Terms are ANDed together (must all appear)</li>
+                </ul>
+              </TableSearchTips>
+            </div>
           </div>
           <CharactersTable characters={filteredPlayers} session={session} />
         </div>
