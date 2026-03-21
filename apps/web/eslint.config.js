@@ -1,11 +1,20 @@
-import js from "@eslint/js";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { FlatCompat } from "@eslint/eslintrc";
+
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 import nextPlugin from "@next/eslint-plugin-next";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
 
 const config = [
-  // Ignore patterns
   {
     ignores: [
       "node_modules/",
@@ -13,13 +22,23 @@ const config = [
       "out/",
       "build/",
       "dist/",
-      "*.config.js",
-      "*.config.ts",
+      "next.config.js",
+      "postcss.config.js",
+      "prettier.config.js",
+      "tailwind.config.ts",
+      "drizzle.config.ts",
       "next-env.d.ts",
-      "eslint.config.js",
     ],
   },
-  // Configuration for eslint.config.js itself - no type checking rules
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "react/no-unescaped-entities": "off",
+      "prefer-const": "off",
+      "@next/next/no-assign-module-variable": "off",
+    },
+  },
   {
     files: ["eslint.config.js"],
     languageOptions: {
@@ -31,14 +50,14 @@ const config = [
     },
     plugins: {
       "@typescript-eslint": typescriptEslint,
+      "@next/next": nextPlugin,
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "warn",
     },
   },
-  // Main configuration for all other files
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -47,25 +66,10 @@ const config = [
     },
     plugins: {
       "@typescript-eslint": typescriptEslint,
-      "@next/next": nextPlugin,
-      "react-hooks": reactHooksPlugin,
     },
     rules: {
-      // Next.js core web vitals rules (manually configured)
-      "react/no-unescaped-entities": "off",
-      "@next/next/no-page-custom-font": "error",
-      "@next/next/no-html-link-for-pages": "error",
-      "@next/next/no-img-element": "error",
-      "@next/next/no-sync-scripts": "error",
-      "@next/next/no-title-in-document-head": "error",
-      "@next/next/no-unwanted-polyfillio": "error",
-
-      // React hooks rules
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-
-      // TypeScript recommended rules (manually configured)
       "@typescript-eslint/array-type": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-type-imports": [
         "warn",
@@ -80,6 +84,8 @@ const config = [
           argsIgnorePattern: "^_",
         },
       ],
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
