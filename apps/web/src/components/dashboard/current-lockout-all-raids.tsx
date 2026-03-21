@@ -26,9 +26,9 @@ export function CurrentLockoutAllRaids() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-end text-nowrap">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end">
           <div className="grow-0">Completed raids this lockout</div>
-          <div className="grow text-right text-sm text-primary hover:underline">
+          <div className="grow text-left text-sm text-primary hover:underline sm:text-right">
             <Link href="/raids">View all raids</Link>
           </div>
         </div>

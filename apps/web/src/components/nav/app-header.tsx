@@ -51,11 +51,11 @@ export const AppHeader = () => {
   }, [currentPathPart, pathParts, breadcrumbData, pathname]);
 
   return (
-    <header className="flex h-10 w-full max-w-screen-xl shrink-0 items-center gap-2 border-b bg-background px-4">
+    <header className="flex min-h-10 w-full max-w-screen-xl shrink-0 items-center gap-2 border-b bg-background px-4 py-2">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
-      <Breadcrumb className="flex-1">
-        <BreadcrumbList>
+      <Breadcrumb className="min-w-0 flex-1 overflow-hidden">
+        <BreadcrumbList className="flex-nowrap overflow-hidden">
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link href="/">
@@ -66,9 +66,12 @@ export const AppHeader = () => {
           {parentPathParts.map((part, i) => (
             <React.Fragment key={`breadcrumb_${i}`}>
               <BreadcrumbSeparator />
-              <BreadcrumbItem>
+              <BreadcrumbItem className="hidden md:inline-flex">
                 <BreadcrumbLink asChild>
-                  <Link href={"/" + pathParts.slice(0, i + 1).join("/")}>
+                  <Link
+                    href={"/" + pathParts.slice(0, i + 1).join("/")}
+                    className="max-w-[140px] truncate lg:max-w-none"
+                  >
                     {breadcrumbData[part] || kebabToTitleCase(part)}
                   </Link>
                 </BreadcrumbLink>
@@ -78,8 +81,8 @@ export const AppHeader = () => {
           {currentPathPart ? (
             <>
               <BreadcrumbSeparator />
-              <BreadcrumbItem key={currentPathPart}>
-                <BreadcrumbPage>
+              <BreadcrumbItem key={currentPathPart} className="min-w-0">
+                <BreadcrumbPage className="block max-w-[180px] truncate sm:max-w-[280px]">
                   {breadcrumbData[currentPathPart] ||
                     kebabToTitleCase(currentPathPart)}
                 </BreadcrumbPage>

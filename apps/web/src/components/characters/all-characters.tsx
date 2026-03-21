@@ -37,32 +37,38 @@ export function AllCharacters({
   const filteredPlayers = (
     players
       ? Object.values(players).filter((player) => {
-          // Search only in specific fields, excluding characterId
-          const searchableFields = [
-            player.name,
-            player.server,
-            player.class,
-            player.classDetail,
-            player.slug,
-            player.primaryCharacterName,
-            player.raidAttendanceByZone?.["Molten Core"]?.attendee
-              ? "Molten Core mc"
-              : "",
-            player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee
-              ? "Blackwing Lair bwl"
-              : "",
-            player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee
-              ? "Temple of Ahn'Qiraj aq40"
-              : "",
-            player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : "",
-          ].filter(Boolean); // Remove null/undefined values
+          const terms = normalizeText(searchTerm).split(/\s+/).filter(Boolean);
+          if (terms.length === 0) {
+            return true;
+          }
 
-          return searchableFields.some((value) => {
-            // Normalize and check if any field contains the search term
-            return normalizeText(String(value)).includes(
-              normalizeText(searchTerm),
-            );
-          });
+          // Search only in specific fields, excluding characterId
+          const searchableText = normalizeText(
+            [
+              player.name,
+              player.server,
+              player.class,
+              player.classDetail,
+              player.slug,
+              player.primaryCharacterName,
+              player.raidAttendanceByZone?.["Molten Core"]?.attendee
+                ? "Molten Core mc"
+                : "",
+              player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee
+                ? "Blackwing Lair bwl"
+                : "",
+              player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee
+                ? "Temple of Ahn'Qiraj aq40"
+                : "",
+              player.raidAttendanceByZone?.Naxxramas?.attendee
+                ? "Naxxramas"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" "),
+          );
+
+          return terms.every((term) => searchableText.includes(term));
         })
       : []
   ).reduce((acc, rel) => {

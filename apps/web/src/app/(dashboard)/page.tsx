@@ -3,6 +3,7 @@ import { AttendanceDashboard } from "~/components/dashboard/attendance-dashboard
 import { auth } from "~/server/auth";
 import { type Metadata } from "next";
 import { env } from "~/env";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   title: "Temple Raid Attendance - Home",
@@ -19,10 +20,12 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const session = await auth();
   return (
-    <main className="w-full px-4">
-      <div className="mb-2 text-3xl font-bold tracking-tight">
-        Temple : Raid Attendance
-      </div>
+    <main className="w-full">
+      <PageHeader
+        title="Temple : Raid Attendance"
+        description="Guild attendance, upcoming raids, tracked lockouts, and quick access to Temple's operational tools."
+        className="mb-4"
+      />
       <AttendanceDashboard currentUserSession={session ?? undefined} />
     </main>
   );

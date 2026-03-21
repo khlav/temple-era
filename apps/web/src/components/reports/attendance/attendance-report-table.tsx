@@ -165,7 +165,10 @@ export function AttendanceReportTable({
   return (
     <Card>
       <CardContent className="overflow-hidden rounded-xl p-0">
-        <div className="max-h-[calc(100vh-200px)] min-h-[700px] overflow-x-auto overflow-y-auto">
+        <div className="border-b border-border/80 bg-muted/20 px-4 py-2 text-xs text-muted-foreground md:hidden">
+          Swipe horizontally to compare characters.
+        </div>
+        <div className="h-[min(68svh,42rem)] overflow-x-auto overflow-y-auto md:h-[min(72svh,52rem)]">
           <div className="relative w-full">
             <table className="w-full caption-bottom text-sm">
               <thead className="sticky top-0 z-[15] border-b bg-background shadow-[0_1px_0_0_hsl(var(--border))] [&_tr]:border-b">

@@ -19,6 +19,11 @@ import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import { Checkbox } from "~/components/ui/checkbox";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
+import { Card, CardContent } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { useIsMobile } from "~/hooks/use-mobile";
+import { VirtualizedList } from "~/components/ui/virtualized-list";
+import { CrafterList } from "~/components/rare-recipes/crafter-list";
 
 const SAMPLE_SEARCHES = [
   "#natureresist Tailoring",
@@ -34,6 +39,7 @@ const SAMPLE_SEARCHES = [
 ];
 
 export const RecipesWithCrafters = () => {
+  const isMobile = useIsMobile();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSearch = searchParams?.get("s") ?? "";
@@ -47,6 +53,7 @@ export const RecipesWithCrafters = () => {
   const WOWHEAD_SPELL_URL_BASE = "https://www.wowhead.com/classic/spell=";
 
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
+  const [searchInputKey, setSearchInputKey] = useState(0);
   const [placeholderSearch, setPlaceholderSearch] = useState<string>("");
   // Track if a search has been performed
   const [searchPerformed, setSearchPerformed] =
@@ -146,7 +153,11 @@ export const RecipesWithCrafters = () => {
 
     // If tag is not already in search terms, add it
     if (!currentTerms.includes(termToAdd)) {
-      setSearchTerms((prev) => (prev ? `${prev} ${termToAdd}` : termToAdd));
+      setSearchTerms((prev) => {
+        const nextValue = prev ? `${prev} ${termToAdd}` : termToAdd;
+        setSearchInputKey((key) => key + 1);
+        return nextValue;
+      });
     }
   };
 
@@ -167,6 +178,7 @@ export const RecipesWithCrafters = () => {
             size={20}
           />
           <TableSearchInput
+            key={searchInputKey}
             ref={searchInputRef}
             type="text"
             placeholder={
@@ -175,12 +187,12 @@ export const RecipesWithCrafters = () => {
                 : "Search recipes, professions, tags, or characters..."
             }
             className="w-full pl-10"
-            defaultValue={initialSearch}
+            defaultValue={searchTerms || initialSearch}
             onDebouncedChange={(v) => setSearchTerms(v ?? "")}
             isLoading={isLoading}
           />
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
             <ul className="list-disc space-y-1 pl-4">
@@ -197,7 +209,7 @@ export const RecipesWithCrafters = () => {
               <li>Click tags to add them to your search</li>
             </ul>
           </TableSearchTips>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 self-start sm:self-auto">
             <Checkbox
               id="show-inactive"
               checked={showInactiveCharacters}
@@ -217,7 +229,7 @@ export const RecipesWithCrafters = () => {
       </div>
 
       {/* Scrollable content area */}
-      <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
+      <div className="min-h-[360px] overflow-y-auto overflow-x-hidden md:min-h-[600px]">
         <div className="space-y-4">
           {isLoading && (
             <div className="py-4 text-center text-gray-500 dark:text-gray-400">
@@ -237,105 +249,175 @@ export const RecipesWithCrafters = () => {
           )}
 
           {isSuccess && (
-            <div className="relative w-full">
-              <WOWHeadTooltips />
-              <table className="w-full caption-bottom text-sm">
-                <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
-                  <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                    <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
-                      Recipe
-                    </th>
-                    <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
-                      Profession
-                    </th>
-                    <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
-                      Crafters
-                    </th>
-                    <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
-                      Tags
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="[&_tr:last-child]:border-0">
-                  {filteredRecipes.map((recipe) => (
-                    <tr
-                      key={recipe.recipeSpellId}
-                      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                    >
-                      <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        <div>
-                          <Link
-                            href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
-                            className="hover:underline"
-                            target="_blank"
-                          >
-                            {recipe.recipe}
-                          </Link>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {recipe.notes}
-                        </div>
-                      </td>
-                      <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        {recipe.profession}
-                      </td>
-                      <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        <div className="my-auto flex flex-wrap gap-1">
-                          {recipe.isCommon ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="text-nowrap text-xs italic text-chart-2">
-                                  Most crafters
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="bg-secondary text-muted-foreground">
-                                Trainable or very common drop
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            recipe.characters?.map((character) => (
-                              <Link
-                                key={character.characterId}
-                                href={`/characters/${character.characterId}`}
-                                className={`inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${
-                                  !character.isActiveRaider &&
-                                  showInactiveCharacters
-                                    ? "opacity-40"
-                                    : "opacity-70"
-                                }`}
-                              >
-                                {character.name}
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        <div className="flex flex-wrap gap-1.5">
-                          {recipe.tags?.map((tag, index) => (
-                            <Button
-                              key={index}
-                              variant="link"
-                              size="sm"
-                              className="h-3 p-0 text-xs font-normal text-muted-foreground opacity-70 transition-all duration-100 hover:opacity-100"
-                              onClick={() => handleTagClick(`#${tag}`)}
-                              onContextMenu={(e) =>
-                                handleTagRightClick(`#${tag}`, e)
+            <div className="space-y-3">
+              {isMobile ? (
+                <VirtualizedList
+                  items={filteredRecipes}
+                  itemKey={(recipe) => recipe.recipeSpellId}
+                  estimateItemHeight={188}
+                  overscan={4}
+                  className="h-[min(68svh,44rem)] rounded-xl border p-3"
+                  innerClassName="pr-1"
+                  emptyState={
+                    <div className="rounded-xl border px-4 py-8 text-center text-sm text-muted-foreground">
+                      No recipes found matching your search
+                    </div>
+                  }
+                  renderItem={(recipe) => (
+                    <div className="pb-3">
+                      <Card>
+                        <CardContent className="space-y-3 p-4">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary">
+                                {recipe.profession}
+                              </Badge>
+                              {recipe.isCommon ? (
+                                <Badge variant="secondary">Most crafters</Badge>
+                              ) : null}
+                            </div>
+                            <Link
+                              href={
+                                WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId
                               }
+                              className="text-base font-semibold hover:underline"
+                              target="_blank"
                             >
-                              #{tag}
-                            </Button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              {recipe.recipe}
+                            </Link>
+                            {recipe.notes ? (
+                              <p className="text-sm text-muted-foreground">
+                                {recipe.notes}
+                              </p>
+                            ) : null}
+                          </div>
 
-              {filteredRecipes.length === 0 && (
-                <div className="py-4 text-center text-muted-foreground">
-                  No recipes found matching your search
+                          {recipe.tags?.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {recipe.tags?.map((tag, index) => (
+                                <Button
+                                  key={index}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => handleTagClick(`#${tag}`)}
+                                  onContextMenu={(e) =>
+                                    handleTagRightClick(`#${tag}`, e)
+                                  }
+                                >
+                                  #{tag}
+                                </Button>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {!recipe.isCommon ? (
+                            <CrafterList
+                              characters={recipe.characters ?? []}
+                              showInactiveCharacters={showInactiveCharacters}
+                            />
+                          ) : null}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                />
+              ) : (
+                <div className="relative w-full">
+                  <WOWHeadTooltips />
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
+                      <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                        <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
+                          Recipe
+                        </th>
+                        <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
+                          Profession
+                        </th>
+                        <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
+                          Crafters
+                        </th>
+                        <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell">
+                          Tags
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {filteredRecipes.map((recipe) => (
+                        <tr
+                          key={recipe.recipeSpellId}
+                          className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                        >
+                          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                            <div>
+                              <Link
+                                href={
+                                  WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId
+                                }
+                                className="hover:underline"
+                                target="_blank"
+                              >
+                                {recipe.recipe}
+                              </Link>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {recipe.notes}
+                            </div>
+                          </td>
+                          <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                            {recipe.profession}
+                          </td>
+                          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                            <div className="my-auto flex flex-wrap gap-1">
+                              {recipe.isCommon ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-nowrap text-xs italic text-chart-2">
+                                      Most crafters
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-secondary text-muted-foreground">
+                                    Trainable or very common drop
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <CrafterList
+                                  characters={recipe.characters ?? []}
+                                  showInactiveCharacters={
+                                    showInactiveCharacters
+                                  }
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                            <div className="flex flex-wrap gap-1.5">
+                              {recipe.tags?.map((tag, index) => (
+                                <Button
+                                  key={index}
+                                  variant="link"
+                                  size="sm"
+                                  className="h-3 p-0 text-xs font-normal text-muted-foreground opacity-70 transition-all duration-100 hover:opacity-100"
+                                  onClick={() => handleTagClick(`#${tag}`)}
+                                  onContextMenu={(e) =>
+                                    handleTagRightClick(`#${tag}`, e)
+                                  }
+                                >
+                                  #{tag}
+                                </Button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {filteredRecipes.length === 0 && (
+                    <div className="py-4 text-center text-muted-foreground">
+                      No recipes found matching your search
+                    </div>
+                  )}
                 </div>
               )}
             </div>

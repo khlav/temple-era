@@ -5,6 +5,7 @@ import { Settings } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { Button } from "~/components/ui/button";
 import { RaidPlannerStart } from "~/components/raid-planner/raid-planner-start";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   title: "Raid Planner",
@@ -18,19 +19,27 @@ export const metadata: Metadata = {
 
 export default async function RaidPlannerPage() {
   return (
-    <main className="w-full px-4">
-      <div className="flex items-center justify-between">
-        <div className="text-3xl font-bold tracking-tight">Raid Planner</div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/raid-manager/raid-planner/config">
-            <Settings className="mr-1 h-4 w-4" />
-            Manage Templates
-          </Link>
-        </Button>
-      </div>
+    <main className="w-full">
+      <PageHeader
+        title="Raid Planner"
+        description="Plan groups and assignments before the raid."
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="w-full sm:w-auto"
+          >
+            <Link href="/raid-manager/raid-planner/config">
+              <Settings className="mr-1 h-4 w-4" />
+              Manage Templates
+            </Link>
+          </Button>
+        }
+      />
       <Separator className="my-2" />
-      <p className="mb-6 text-sm text-muted-foreground">
-        Plan groups and assignments before the raid.
+      <p className="mb-6 text-sm text-muted-foreground md:hidden">
+        Desktop remains the best experience for heavy drag-and-drop editing.
       </p>
       <RaidPlannerStart />
     </main>

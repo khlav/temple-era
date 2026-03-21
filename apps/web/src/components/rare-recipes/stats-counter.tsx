@@ -77,7 +77,7 @@ export const StatsCounter = ({
   );
 
   return (
-    <div className="hidden justify-around border-b py-3 md:flex">
+    <div className="grid grid-cols-3 gap-2 border-b py-3">
       <StatDisplay
         key={`recipes-${key}`}
         label="Recipes"

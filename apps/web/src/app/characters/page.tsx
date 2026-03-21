@@ -9,6 +9,7 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   robots: {
@@ -36,14 +37,13 @@ export default async function PlayersIndex() {
   const session = await auth();
   return (
     <HydrateClient>
-      <main className="w-full px-4">
-        <div className="text-3xl font-bold tracking-tight">
-          Raiding Characters
-        </div>
-        <div className="mb-2 text-muted-foreground">
-          All characters appearing in logs.
-        </div>
-        <div className="w-full lg:w-3/4">
+      <main className="w-full">
+        <PageHeader
+          title="Raiding Characters"
+          description="Search every logged character and compare their raid attendance at a glance."
+          className="mb-4"
+        />
+        <div className="w-full">
           <Suspense fallback={<AllCharactersTableSkeleton rows={14} />}>
             <CharactersListContent session={session} />
           </Suspense>

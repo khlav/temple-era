@@ -22,9 +22,8 @@ export const DebouncedInput = React.forwardRef<
 ) {
   const [value, setValue] = React.useState(defaultValue);
   const [debouncedValue] = useDebounce(value, delay);
-
-  // Only sync defaultValue on mount (prevents feedback loops from URL updates)
   const isInitialMount = React.useRef(true);
+
   React.useEffect(() => {
     if (isInitialMount.current && defaultValue !== value) {
       setValue(defaultValue);
@@ -32,7 +31,6 @@ export const DebouncedInput = React.forwardRef<
     }
   }, [defaultValue, value]);
 
-  // Call onDebouncedChange when debounced value changes (skip first render)
   React.useEffect(() => {
     if (!isInitialMount.current) {
       onDebouncedChange?.(debouncedValue);

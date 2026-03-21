@@ -11,6 +11,7 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   alternates: {
@@ -34,17 +35,19 @@ export default async function RaidIndex() {
 
   return (
     <HydrateClient>
-      <main className="w-full px-4">
-        <div className="flex gap-4">
-          <div className="grow-0 pb-4 text-3xl font-bold">Raids</div>
-          <div className="grow text-right">
-            {session?.user?.isRaidManager && (
-              <Button asChild className="accent-accent">
-                <Link href={`/raids/new`}> + New from Warcraft Logs link</Link>
+      <main className="w-full">
+        <PageHeader
+          title="Raids"
+          description="Browse tracked raids, see attendance credit, and jump into Warcraft Logs."
+          className="mb-4"
+          actions={
+            session?.user?.isRaidManager ? (
+              <Button asChild className="w-full sm:w-auto">
+                <Link href="/raids/new">+ New from Warcraft Logs link</Link>
               </Button>
-            )}
-          </div>
-        </div>
+            ) : null
+          }
+        />
         <Suspense fallback={<RaidsTableSkeleton rows={10} />}>
           <RaidsListContent session={session} />
         </Suspense>

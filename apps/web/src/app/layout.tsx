@@ -37,7 +37,7 @@ export default async function RootLayout({
       className={`${GeistSans.className} dark`}
       suppressHydrationWarning={true}
     >
-      <body className="flex h-screen">
+      <body className="flex min-h-svh">
         <ThemeProvider
           attribute="class"
           forcedTheme="dark"
@@ -51,10 +51,10 @@ export default async function RootLayout({
                     <GlobalQuickLauncherProvider>
                       <SidebarProvider defaultOpen={defaultOpen}>
                         <AppSidebar side="left" collapsible="icon" />
-                        <SidebarInset className="flex flex-col">
+                        <SidebarInset className="flex min-h-svh flex-col">
                           <AppHeader />
-                          <div className="flex-1 overflow-auto">
-                            <div className="max-w-screen-xl md:p-4">
+                          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                            <div className="mx-auto w-full max-w-screen-xl px-4 py-4 md:px-4">
                               {children}
                             </div>
                           </div>

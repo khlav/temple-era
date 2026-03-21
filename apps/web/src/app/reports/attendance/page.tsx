@@ -5,6 +5,7 @@ import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { auth } from "~/server/auth";
 import type { Metadata } from "next";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   title: "Side-by-side attendance | Temple Raids",
@@ -26,16 +27,12 @@ export default async function AttendanceReportPage() {
   });
 
   return (
-    <main className="w-full px-4">
-      <div className="flex gap-4">
-        <div className="grow-0 pb-4 text-3xl font-bold">
-          Side-by-side attendance
-        </div>
-      </div>
-      <p className="-mt-4 mb-4 text-muted-foreground">
-        Compare attendance across multiple characters side-by-side with
-        customizable filters.
-      </p>
+    <main className="w-full">
+      <PageHeader
+        title="Side-by-side attendance"
+        description="Compare attendance across multiple characters with shared filters and a scrollable matrix."
+        className="mb-4"
+      />
 
       <Suspense fallback={<div>Loading...</div>}>
         <AttendanceReportClient

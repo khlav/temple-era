@@ -44,13 +44,13 @@ export function AttendanceDashboard({
 
         {!currentUserSession && (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-            <div className="w-2/3 rounded-lg border bg-card/80 p-6 text-center shadow-lg backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-lg border bg-card/80 p-6 text-center shadow-lg backdrop-blur-sm">
               <div className="flex flex-col items-center gap-4">
                 <Button
                   onClick={() =>
                     signIn("discord", { redirectTo: "/?signin=1" })
                   }
-                  className="flex items-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2]"
+                  className="flex w-full items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2] sm:w-auto"
                 >
                   <Image
                     src="/img/discord-mark-white.svg"

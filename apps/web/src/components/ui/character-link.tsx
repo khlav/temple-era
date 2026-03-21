@@ -38,14 +38,14 @@ export function CharacterLink({
         px={iconSize}
         className="mr-1 grow-0"
       />
-      <div className="grow-0">{characterName}</div>
-      {primaryCharacterName ? (
-        <div className="pl-1.5 text-xs font-normal text-muted-foreground">
-          {primaryCharacterName}
-        </div>
-      ) : (
-        ""
-      )}
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        <div className="truncate">{characterName}</div>
+        {primaryCharacterName ? (
+          <div className="truncate text-xs font-normal text-muted-foreground">
+            {primaryCharacterName}
+          </div>
+        ) : null}
+      </div>
     </Link>
   );
 }

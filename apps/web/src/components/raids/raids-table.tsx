@@ -8,6 +8,10 @@ import { Badge } from "~/components/ui/badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import type { Session } from "next-auth";
+import { Card, CardContent } from "~/components/ui/card";
+import { useIsMobile } from "~/hooks/use-mobile";
+import { VirtualizedList } from "~/components/ui/virtualized-list";
+import { cn } from "~/lib/utils";
 
 export function RaidsTable({
   raids,
@@ -16,119 +20,204 @@ export function RaidsTable({
   raids: Raid[] | undefined;
   session?: Session;
 }) {
+  const isMobile = useIsMobile();
+  const mobileRaids = raids ?? [];
+  const desktopGridClass = session?.user?.isRaidManager
+    ? "grid-cols-[44px_minmax(0,3fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_72px]"
+    : "grid-cols-[minmax(0,3fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_72px]";
+
   return (
-    <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
-      <div className="relative w-full">
-        <table className="w-full caption-bottom whitespace-nowrap text-sm text-muted-foreground">
-          <caption className="mt-4 text-wrap text-sm text-muted-foreground">
-            Note: Only Tracked raids are considered for attendance restrictions.
-          </caption>
-          <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
-            <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-              {session?.user?.isRaidManager && (
-                <th className="h-10 w-40 px-2 text-left align-middle font-medium text-muted-foreground">
-                  {" "}
-                </th>
-              )}
-              <th className="h-10 w-1/2 px-2 text-left align-middle font-medium text-muted-foreground md:w-4/12">
-                Raids {raids ? `(${raids?.length})` : ""}
-              </th>
-              <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell md:w-2/12">
-                Zone
-              </th>
-              <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell md:w-2/12">
-                Date
-              </th>
-              <th className="h-10 w-1/4 px-2 text-left align-middle font-medium text-muted-foreground md:w-2/12">
-                Attendance
-              </th>
-              <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground md:table-cell md:w-1/12">
-                Created By
-              </th>
-              <th className="h-10 w-1/4 px-2 text-left text-center align-middle font-medium text-muted-foreground md:w-1/12">
-                WCL
-              </th>
-            </tr>
-          </thead>
-          <tbody className="[&_tr:last-child]:border-0">
-            {raids
-              ? raids.map((r: Raid) => (
-                  <tr
-                    key={r.raidId}
-                    className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                  >
-                    {session?.user?.isRaidManager && (
-                      <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        <Link
-                          href={`/raids/${r.raidId}/edit`}
-                          className="transition-all hover:text-primary"
-                        >
-                          <Edit
-                            className="opacity-0 group-hover:opacity-100"
-                            size={16}
-                          />
-                        </Link>
-                      </td>
-                    )}
-                    <td className="p-2 align-middle text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+    <div className="space-y-3">
+      {isMobile ? (
+        <VirtualizedList
+          items={mobileRaids}
+          itemKey={(raid) => raid.raidId ?? `${raid.name}-${raid.date}`}
+          estimateItemHeight={148}
+          overscan={5}
+          className="h-[min(68svh,42rem)] rounded-xl border p-3"
+          innerClassName="pr-1"
+          emptyState={
+            <div className="rounded-xl border px-4 py-8 text-center text-sm text-muted-foreground">
+              No raids found.
+            </div>
+          }
+          renderItem={(r) => (
+            <div className="pb-3">
+              <Card className="overflow-hidden">
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary">{r.zone}</Badge>
+                        <RaidAttendenceWeightBadge
+                          attendanceWeight={r.attendanceWeight}
+                        />
+                      </div>
                       <Link
-                        className="group w-full transition-all hover:text-primary"
+                        className="block text-base font-semibold text-secondary-foreground transition-all hover:text-primary"
                         target="_self"
-                        href={"/raids/" + r.raidId}
+                        href={`/raids/${r.raidId}`}
                       >
-                        <div>{r.name}</div>
-                        <div className="text-xs text-muted-foreground md:hidden">
-                          {PrettyPrintDate(new Date(r.date), true)}
-                        </div>
+                        <span className="line-clamp-2">{r.name}</span>
                       </Link>
-                      {(r.raidLogIds ?? []).length == 0 && (
-                        <Badge variant="destructive" className="ml-2">
-                          Error: No logs found
-                        </Badge>
+                      <p className="text-sm text-muted-foreground">
+                        {PrettyPrintDate(new Date(r.date), true)}
+                      </p>
+                    </div>
+                    {session?.user?.isRaidManager ? (
+                      <Link
+                        href={`/raids/${r.raidId}/edit`}
+                        className="shrink-0 rounded-md border border-border p-2 text-muted-foreground transition-all hover:text-primary"
+                        aria-label={`Edit ${r.name}`}
+                      >
+                        <Edit size={16} />
+                      </Link>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {r.creator?.name ? (
+                        <>
+                          <UserAvatar
+                            name={r.creator.name}
+                            image={r.creator.image}
+                          />
+                          <span className="truncate">{r.creator.name}</span>
+                        </>
+                      ) : (
+                        <span>Unknown creator</span>
                       )}
-                    </td>
-                    <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                      {r.zone}
-                    </td>
-                    <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                      {PrettyPrintDate(new Date(r.date), true)}
-                    </td>
-                    <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                      <RaidAttendenceWeightBadge
-                        attendanceWeight={r.attendanceWeight}
-                      />
-                    </td>
-                    <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                      <UserAvatar
-                        name={r.creator?.name ?? ""}
-                        image={r.creator?.image ?? ""}
-                      />
-                    </td>
-                    <td className="p-2 text-center align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                      {(r.raidLogIds ?? []).map((raidLogId) => {
-                        const reportUrl = GenerateWCLReportUrl(raidLogId);
-                        return (
-                          <Link
-                            key={raidLogId}
-                            href={reportUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group text-sm transition-all hover:text-primary hover:underline"
-                          >
-                            <ExternalLinkIcon
-                              className="ml-1 inline-block align-text-top"
-                              size={15}
-                            />
-                          </Link>
-                        );
-                      })}
-                    </td>
-                  </tr>
-                ))
-              : null}
-          </tbody>
-        </table>
-      </div>
+                    </div>
+                    {(r.raidLogIds ?? []).length > 0 ? (
+                      <Link
+                        href={GenerateWCLReportUrl(
+                          (r.raidLogIds ?? [])[0] ?? "",
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-sm transition-all hover:text-primary"
+                      >
+                        <span>WCL</span>
+                        <Badge
+                          variant="outline"
+                          className="px-1.5 py-0 text-[10px]"
+                        >
+                          {(r.raidLogIds ?? []).length}
+                        </Badge>
+                        <ExternalLinkIcon size={14} />
+                      </Link>
+                    ) : (
+                      <Badge variant="destructive" className="w-fit shrink-0">
+                        No logs
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border">
+          <div className="border-b bg-background px-4 py-3 text-sm text-muted-foreground">
+            Note: Only Tracked raids are considered for attendance restrictions.
+          </div>
+          <div
+            className={cn(
+              "grid items-center gap-3 border-b bg-background px-4 py-3 text-sm font-medium text-muted-foreground",
+              desktopGridClass,
+            )}
+          >
+            {session?.user?.isRaidManager ? <div /> : null}
+            <div>Raids {raids ? `(${raids.length})` : ""}</div>
+            <div>Zone</div>
+            <div>Date</div>
+            <div>Attendance</div>
+            <div>Created By</div>
+            <div className="text-center">WCL</div>
+          </div>
+          <VirtualizedList
+            items={mobileRaids}
+            itemKey={(raid) => raid.raidId ?? `${raid.name}-${raid.date}`}
+            estimateItemHeight={61}
+            overscan={10}
+            className="h-[min(72svh,48rem)]"
+            emptyState={
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No raids found.
+              </div>
+            }
+            renderItem={(r) => (
+              <div
+                className={cn(
+                  "grid items-center gap-3 border-b px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
+                  desktopGridClass,
+                )}
+              >
+                {session?.user?.isRaidManager ? (
+                  <Link
+                    href={`/raids/${r.raidId}/edit`}
+                    className="text-muted-foreground transition-all hover:text-primary"
+                    aria-label={`Edit ${r.name}`}
+                  >
+                    <Edit size={16} />
+                  </Link>
+                ) : null}
+                <div className="min-w-0">
+                  <Link
+                    className="block truncate text-secondary-foreground transition-all hover:text-primary"
+                    target="_self"
+                    href={`/raids/${r.raidId}`}
+                  >
+                    {r.name}
+                  </Link>
+                  {(r.raidLogIds ?? []).length === 0 ? (
+                    <Badge variant="destructive" className="mt-1 w-fit">
+                      Error: No logs found
+                    </Badge>
+                  ) : null}
+                </div>
+                <div className="truncate">{r.zone}</div>
+                <div className="truncate">
+                  {PrettyPrintDate(new Date(r.date), true)}
+                </div>
+                <div>
+                  <RaidAttendenceWeightBadge
+                    attendanceWeight={r.attendanceWeight}
+                  />
+                </div>
+                <div className="min-w-0">
+                  {r.creator?.name ? (
+                    <UserAvatar name={r.creator.name} image={r.creator.image} />
+                  ) : (
+                    <span className="text-muted-foreground">Unknown</span>
+                  )}
+                </div>
+                <div className="text-center">
+                  {(r.raidLogIds ?? []).map((raidLogId) => {
+                    const reportUrl = GenerateWCLReportUrl(raidLogId);
+                    return (
+                      <Link
+                        key={raidLogId}
+                        href={reportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group text-sm transition-all hover:text-primary hover:underline"
+                      >
+                        <ExternalLinkIcon
+                          className="ml-1 inline-block align-text-top"
+                          size={15}
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 }

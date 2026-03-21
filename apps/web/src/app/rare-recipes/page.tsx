@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import Link from "next/link";
 import { auth } from "~/server/auth";
 import { type Metadata } from "next";
+import { PageHeader } from "~/components/ui/page-header";
 
 export const metadata: Metadata = {
   alternates: {
@@ -16,19 +17,18 @@ export default async function RecipeManagerIndex() {
   const session = await auth();
 
   return (
-    <main className="w-full px-4">
-      <div className="flex gap-4">
-        <div className="grow-0 pb-4 text-3xl font-bold">
-          Rare Recipes & Crafters
-        </div>
-        <div className="grow text-right">
-          {!!session?.user && (
-            <Button asChild className="accent-accent">
-              <Link href={`/characters`}> + Add recipes to a character</Link>
+    <main className="w-full">
+      <PageHeader
+        title="Rare Recipes & Crafters"
+        description="Find who can craft rare items, filter by tags, and browse Temple's profession coverage."
+        actions={
+          !!session?.user ? (
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/characters">+ Add recipes to a character</Link>
             </Button>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
       <Separator className="my-2" />
       <RecipesWithCrafters />
     </main>

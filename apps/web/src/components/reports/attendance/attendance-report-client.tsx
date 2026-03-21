@@ -211,74 +211,89 @@ export function AttendanceReportClient({
 
   return (
     <div className="space-y-3">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <DateRangeFilter
-          startDate={filters.startDate}
-          endDate={filters.endDate}
-          onStartDateChange={(date) =>
-            setFilters((prev) => ({ ...prev, startDate: date }))
-          }
-          onEndDateChange={(date) =>
-            setFilters((prev) => ({ ...prev, endDate: date }))
-          }
-          defaultDateRange={data?.dateRange}
-        />
+      <div className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangeFilter
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            onStartDateChange={(date) =>
+              setFilters((prev) => ({ ...prev, startDate: date }))
+            }
+            onEndDateChange={(date) =>
+              setFilters((prev) => ({ ...prev, endDate: date }))
+            }
+            defaultDateRange={data?.dateRange}
+          />
 
-        <ZoneFilter
-          selectedZones={filters.zones}
-          onZonesChange={(zones) => setFilters((prev) => ({ ...prev, zones }))}
-        />
+          <ZoneFilter
+            selectedZones={filters.zones}
+            onZonesChange={(zones) =>
+              setFilters((prev) => ({ ...prev, zones }))
+            }
+          />
 
-        <DayOfWeekFilter
-          selectedDays={filters.daysOfWeek}
-          onDaysChange={(days) =>
-            setFilters((prev) => ({ ...prev, daysOfWeek: days }))
-          }
-        />
+          <DayOfWeekFilter
+            selectedDays={filters.daysOfWeek}
+            onDaysChange={(days) =>
+              setFilters((prev) => ({ ...prev, daysOfWeek: days }))
+            }
+          />
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleShareUrl}>
-            <Share2 className="h-4 w-4" />
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handleShareUrl}>
+              <Share2 className="h-4 w-4" />
+            </Button>
 
-          <div className="flex items-center gap-1 rounded-md border p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-7 px-3 text-xs ${
-                filters.displayMode === "icons"
-                  ? "bg-chart-2/10 text-chart-2"
-                  : ""
-              }`}
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, displayMode: "icons" }))
-              }
-            >
-              <Swords
-                className={`h-3.5 w-3.5 ${
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-3 text-xs ${
                   filters.displayMode === "icons"
-                    ? "text-chart-2"
-                    : "text-muted-foreground"
+                    ? "bg-chart-2/10 text-chart-2"
+                    : ""
                 }`}
-              />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-7 px-3 text-xs ${
-                filters.displayMode === "names"
-                  ? "bg-chart-2/10 text-chart-2"
-                  : ""
-              }`}
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, displayMode: "names" }))
-              }
-            >
-              Names
-            </Button>
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, displayMode: "icons" }))
+                }
+              >
+                <Swords
+                  className={`h-3.5 w-3.5 ${
+                    filters.displayMode === "icons"
+                      ? "text-chart-2"
+                      : "text-muted-foreground"
+                  }`}
+                />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-3 text-xs ${
+                  filters.displayMode === "names"
+                    ? "bg-chart-2/10 text-chart-2"
+                    : ""
+                }`}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, displayMode: "names" }))
+                }
+              >
+                Names
+              </Button>
+            </div>
           </div>
         </div>
+
+        <Card className="mt-3 border-dashed md:hidden">
+          <CardContent className="space-y-2 p-4">
+            <p className="text-sm font-medium">Mobile note</p>
+            <p className="text-sm text-muted-foreground">
+              This report is still a dense attendance matrix. It now scrolls
+              more safely on small screens, but comparing many characters at
+              once is still easiest on tablet or desktop.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Table */}
