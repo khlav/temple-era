@@ -395,17 +395,16 @@ export function RaidPlanHeader({
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8 text-muted-foreground transition-colors hover:text-primary"
-                                onClick={() => {
-                                  const url = `${window.location.origin}/raid-plans/${planId}`;
-                                  void navigator.clipboard.writeText(url);
-                                  toast({
-                                    title: "URL Copied",
-                                    description:
-                                      "Public link copied to clipboard",
-                                  });
-                                }}
+                                asChild
                               >
-                                <ExternalLink className="h-4 w-4" />
+                                <a
+                                  href={`/raid-plans/${planId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label="Open public plan in new tab"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
                               </Button>
                             </div>
                           </div>
