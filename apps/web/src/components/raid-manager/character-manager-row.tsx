@@ -37,7 +37,7 @@ export function CharacterManagerRow({
   const updateIsIgnored = api.character.updateIsIgnored.useMutation({
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to update character",
         description: error.message || "Failed to update ignore status.",
         variant: "destructive",
       });

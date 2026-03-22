@@ -42,7 +42,7 @@ export function AddEncounterDialog({
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to create encounter",
         description: error.message,
         variant: "destructive",
       });

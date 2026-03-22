@@ -6,7 +6,6 @@ import Link from "next/link";
 
 export const toastProfileSaved = (toast: typeof toastType) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <Check className="inline-block pr-1 text-emerald-700" />

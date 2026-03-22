@@ -16,7 +16,6 @@ export const toastRaidLogLoaded = (
   raidLog: RaidLog,
 ) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <Check className="inline-block pr-1 text-emerald-700" />
@@ -41,7 +40,6 @@ export const toastRaidLogInUse = (
   raidLog: RaidLog,
 ) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <X className="inline-block pr-1 text-red-700" />
@@ -77,7 +75,6 @@ export const toastRaidSaved = (
   includeAction: boolean,
 ) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <Check className="inline-block pr-1 text-emerald-700" />
@@ -118,7 +115,6 @@ export const toastRaidDataCleared = (
   raidData: Raid,
 ) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <span>Raid data cleared</span>
@@ -143,7 +139,6 @@ export const toastRaidDataCleared = (
 
 export const toastRaidDeleted = (toast: typeof toastType, raidData: Raid) => {
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <>
         <Trash className="inline-block pr-1 text-red-700" />

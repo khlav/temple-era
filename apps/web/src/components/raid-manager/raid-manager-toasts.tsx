@@ -16,7 +16,6 @@ export const toastCharacterSaved = (
     .map((c) => c.name)
     .join(", ");
   toast({
-    // @ts-expect-error Accepts <Element> just fine.  Ignore type safety concern.
     title: (
       <div>
         <div className="flex flex-row">

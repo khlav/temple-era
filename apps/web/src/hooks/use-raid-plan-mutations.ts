@@ -132,7 +132,7 @@ export function useRaidPlanMutations({
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       toast({
-        title: "Error",
+        title: "Failed to delete encounter",
         description: _err.message,
         variant: "destructive",
       });
@@ -155,7 +155,7 @@ export function useRaidPlanMutations({
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: "Failed to reset encounter",
           description: error.message,
           variant: "destructive",
         });
@@ -412,7 +412,7 @@ export function useRaidPlanMutations({
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to update plan",
         description: error.message,
         variant: "destructive",
       });
@@ -470,7 +470,7 @@ export function useRaidPlanMutations({
           utils.raidPlan.getById.setData({ planId }, context.previousData);
         }
         toast({
-          title: "Error",
+          title: "Failed to assign slot",
           description: error.message,
           variant: "destructive",
         });
@@ -516,7 +516,7 @@ export function useRaidPlanMutations({
           utils.raidPlan.getById.setData({ planId }, context.previousData);
         }
         toast({
-          title: "Error",
+          title: "Failed to remove slot",
           description: error.message,
           variant: "destructive",
         });
@@ -562,7 +562,7 @@ export function useRaidPlanMutations({
           utils.raidPlan.getById.setData({ planId }, context.previousData);
         }
         toast({
-          title: "Error",
+          title: "Failed to reorder slots",
           description: error.message,
           variant: "destructive",
         });
@@ -622,7 +622,7 @@ export function useRaidPlanMutations({
       onError: (_err, _vars, ctx) => {
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
         toast({
-          title: "Error",
+          title: "Failed to clear assignments",
           description: _err.message,
           variant: "destructive",
         });
@@ -674,7 +674,7 @@ export function useRaidPlanMutations({
       onError: (_err, _vars, ctx) => {
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
         toast({
-          title: "Error",
+          title: "Failed to transfer assignments",
           description: _err.message,
           variant: "destructive",
         });
@@ -706,7 +706,7 @@ export function useRaidPlanMutations({
       onError: (_err, _vars, ctx) => {
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
         toast({
-          title: "Error",
+          title: "Failed to bench character",
           description: _err.message,
           variant: "destructive",
         });
@@ -729,7 +729,7 @@ export function useRaidPlanMutations({
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: "Failed to push assignments",
           description: error.message,
           variant: "destructive",
         });

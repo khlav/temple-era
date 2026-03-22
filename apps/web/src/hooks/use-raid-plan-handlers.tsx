@@ -121,7 +121,7 @@ export function useRaidPlanHandlers({
               utils.raidPlan.getById.setData({ planId }, previousData);
             }
             toast({
-              title: "Error",
+              title: "Failed to update character",
               description: error.message,
               variant: "destructive",
             });
@@ -246,7 +246,7 @@ export function useRaidPlanHandlers({
               utils.raidPlan.getById.setData({ planId }, previousData);
             }
             toast({
-              title: "Error",
+              title: "Failed to fill slot",
               description: error.message,
               variant: "destructive",
             });
@@ -289,7 +289,7 @@ export function useRaidPlanHandlers({
               utils.raidPlan.getById.setData({ planId }, previousData);
             }
             toast({
-              title: "Error",
+              title: "Failed to remove character",
               description: error.message,
               variant: "destructive",
             });

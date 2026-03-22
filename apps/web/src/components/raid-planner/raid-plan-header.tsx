@@ -127,7 +127,7 @@ export function RaidPlanHeader({
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to delete plan",
         description: error.message,
         variant: "destructive",
       });
@@ -165,7 +165,7 @@ export function RaidPlanHeader({
         utils.raidPlan.getById.setData({ planId }, context.previousPlan);
       }
       toast({
-        title: "Error",
+        title: "Failed to update plan",
         description: error.message,
         variant: "destructive",
       });

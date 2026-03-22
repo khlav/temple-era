@@ -120,7 +120,7 @@ export const CharacterRecipes = ({
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to add recipe",
         description: error.message,
         variant: "destructive",
       });
@@ -153,7 +153,7 @@ export const CharacterRecipes = ({
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: "Failed to remove recipe",
           description: error.message,
           variant: "destructive",
         });

@@ -344,7 +344,7 @@ function CharacterMatchingDialog({
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to create plan",
         description: error.message,
         variant: "destructive",
       });

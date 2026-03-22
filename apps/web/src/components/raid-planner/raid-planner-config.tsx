@@ -82,7 +82,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: "Failed to save template",
         description: error.message,
         variant: "destructive",
       });
@@ -122,7 +122,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
       }
       toast({
-        title: "Error",
+        title: "Failed to update template",
         description: error.message,
         variant: "destructive",
       });
@@ -173,7 +173,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
       }
       toast({
-        title: "Error",
+        title: "Failed to add encounter",
         description: error.message,
         variant: "destructive",
       });
@@ -219,7 +219,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
       }
       toast({
-        title: "Error",
+        title: "Failed to update encounter",
         description: error.message,
         variant: "destructive",
       });
@@ -249,7 +249,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
       }
       toast({
-        title: "Error",
+        title: "Failed to delete encounter",
         description: error.message,
         variant: "destructive",
       });
@@ -264,7 +264,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
       onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
       onError: (error) =>
         toast({
-          title: "Error",
+          title: "Failed to create group",
           description: error.message,
           variant: "destructive",
         }),
@@ -275,7 +275,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
       onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
       onError: (error) =>
         toast({
-          title: "Error",
+          title: "Failed to update group",
           description: error.message,
           variant: "destructive",
         }),
@@ -286,7 +286,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
       onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
       onError: (error) =>
         toast({
-          title: "Error",
+          title: "Failed to delete group",
           description: error.message,
           variant: "destructive",
         }),
@@ -329,7 +329,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
           utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
         }
         toast({
-          title: "Error",
+          title: "Failed to reorder groups",
           description: error.message,
           variant: "destructive",
         });
