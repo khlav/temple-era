@@ -59,24 +59,24 @@ export function useRaidPlanMutations({
     { planId },
     {
       refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
+      refetchIntervalInBackground: false,
     },
   );
 
-  // Snapshot plan to detect "refreshes" (data changes)
-  const prevPlanJsonRef = useRef<string | null>(null);
+  const lastSeenRevisionRef = useRef<string | null>(null);
   useEffect(() => {
-    if (plan) {
-      const currentPlanJson = JSON.stringify(plan);
-      if (
-        prevPlanJsonRef.current &&
-        prevPlanJsonRef.current !== currentPlanJson
-      ) {
-        // Data updated from a poll, count as activity
-        trackActivity();
-      }
-      prevPlanJsonRef.current = currentPlanJson;
+    if (!plan?.lastModifiedAt) return;
+
+    const currentRevision = new Date(plan.lastModifiedAt).toISOString();
+    if (
+      lastSeenRevisionRef.current &&
+      lastSeenRevisionRef.current !== currentRevision
+    ) {
+      trackActivity();
     }
-  }, [plan, trackActivity]);
+
+    lastSeenRevisionRef.current = currentRevision;
+  }, [plan?.lastModifiedAt, trackActivity]);
 
   const updateEncounterMutation = api.raidPlan.updateEncounter.useMutation({
     onMutate: async (input) => {

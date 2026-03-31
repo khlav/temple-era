@@ -28,7 +28,7 @@ import {
 } from "~/server/db/schema";
 import { getZoneForInstance } from "~/lib/raid-zones";
 
-const RAID_HELPER_API_BASE = "https://raid-helper.dev/api";
+const RAID_HELPER_API_BASE = "https://raid-helper.xyz/api";
 
 /**
  * Resolve Raid-Helper title templates like "Naxx {eventtime#E MM/dd}"
@@ -239,13 +239,17 @@ export const raidHelperRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const response = await fetch(
-        `${RAID_HELPER_API_BASE}/v3/servers/${env.DISCORD_SERVER_ID}/events`,
+        `${RAID_HELPER_API_BASE}/v4/servers/${env.DISCORD_SERVER_ID}/events`,
         {
           headers: {
             Authorization: env.RAID_HELPER_API_KEY,
           },
         },
       );
+
+      if (response.status === 404) {
+        return [];
+      }
 
       if (!response.ok) {
         throw new TRPCError({
@@ -296,7 +300,12 @@ export const raidHelperRouter = createTRPCRouter({
           try {
             // Fetch event details to get signups
             const detailResponse = await fetch(
-              `${RAID_HELPER_API_BASE}/v2/events/${e.id}`,
+              `${RAID_HELPER_API_BASE}/v4/events/${e.id}`,
+              {
+                headers: {
+                  Authorization: env.RAID_HELPER_API_KEY,
+                },
+              },
             );
 
             if (detailResponse.ok) {
