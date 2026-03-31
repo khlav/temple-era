@@ -119,54 +119,7 @@ export const raidPlanRouter = createTRPCRouter({
           defaultAATemplate: raidPlans.defaultAATemplate,
           useDefaultAA: raidPlans.useDefaultAA,
           isPublic: raidPlans.isPublic,
-          lastModifiedAt: sql<Date>`GREATEST(
-            COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt}),
-            COALESCE(
-              (
-                SELECT MAX(COALESCE(rpc.updated_at, rpc.created_at))
-                FROM raid_plan_character rpc
-                WHERE rpc.raid_plan_id = ${input.planId}
-              ),
-              COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})
-            ),
-            COALESCE(
-              (
-                SELECT MAX(COALESCE(rpeg.updated_at, rpeg.created_at))
-                FROM raid_plan_encounter_group rpeg
-                WHERE rpeg.raid_plan_id = ${input.planId}
-              ),
-              COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})
-            ),
-            COALESCE(
-              (
-                SELECT MAX(COALESCE(rpe.updated_at, rpe.created_at))
-                FROM raid_plan_encounter rpe
-                WHERE rpe.raid_plan_id = ${input.planId}
-              ),
-              COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})
-            ),
-            COALESCE(
-              (
-                SELECT MAX(COALESCE(rpeas.updated_at, rpeas.created_at))
-                FROM raid_plan_encounter_assignment rpeas
-                INNER JOIN raid_plan_encounter rpe2
-                  ON rpe2.id = rpeas.encounter_id
-                WHERE rpe2.raid_plan_id = ${input.planId}
-              ),
-              COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})
-            ),
-            COALESCE(
-              (
-                SELECT MAX(COALESCE(rpaas.updated_at, rpaas.created_at))
-                FROM raid_plan_encounter_aa_slot rpaas
-                LEFT JOIN raid_plan_encounter rpe3
-                  ON rpe3.id = rpaas.encounter_id
-                WHERE rpaas.raid_plan_id = ${input.planId}
-                  OR rpe3.raid_plan_id = ${input.planId}
-              ),
-              COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})
-            )
-          )`,
+          lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
         })
         .from(raidPlans)
         .where(eq(raidPlans.id, input.planId))
