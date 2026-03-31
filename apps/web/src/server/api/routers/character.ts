@@ -491,7 +491,8 @@ export const character = createTRPCRouter({
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const characterId = input?.characterId ?? ctx.session?.user.characterId;
+      const session = input?.characterId ? null : await ctx.getSession();
+      const characterId = input?.characterId ?? session?.user.characterId;
       if (!characterId) {
         return { weeks: [] };
       }

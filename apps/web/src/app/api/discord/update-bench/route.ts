@@ -3,7 +3,7 @@ import { db } from "~/server/db";
 import { users, accounts, characters } from "~/server/db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { env } from "~/env.js";
-import { createCaller } from "~/server/api/root";
+import { createDiscordRouteCaller } from "~/server/api/discord-trpc-caller";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { compressResponse } from "~/lib/compression";
 
@@ -167,22 +167,7 @@ export async function POST(request: Request) {
     );
 
     // 5. Create tRPC caller with user session
-    const caller = createCaller({
-      db,
-      headers: new Headers(),
-      session: {
-        user: {
-          id: user.id,
-          name: user.name ?? "",
-          email: user.email ?? "",
-          image: user.image ?? "",
-          isRaidManager: user.isRaidManager ?? false,
-          isAdmin: user.isAdmin ?? false,
-          characterId: user.characterId ?? 0,
-        },
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      },
-    });
+    const caller = createDiscordRouteCaller(user);
 
     // 6. Get raid details for response
     const raidDetails = await caller.raid.getRaidById(raidId);

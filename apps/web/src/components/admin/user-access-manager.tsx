@@ -41,7 +41,7 @@ const UserAccessManagerRow = ({
       setIsSending(false);
     },
     onSuccess: async (result) => {
-      await utils.invalidate(undefined, { refetchType: "all" });
+      await utils.user.getUsers.invalidate();
       // toastCharacterSaved(toast, character, localSecondaryCharacters);
       setIsSending(false);
       setIsRaidManager(result[0]?.isRaidManager ?? false);

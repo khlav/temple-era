@@ -10,6 +10,7 @@ import {
   toastRaidSaved,
 } from "~/components/raids/raid-toasts";
 import { useToast } from "~/hooks/use-toast";
+import { invalidateRaidSummaryQueries } from "~/lib/trpc-invalidations";
 
 export function EditRaid({
   raidId,
@@ -31,7 +32,10 @@ export function EditRaid({
       setSendingData(false);
     },
     onSuccess: async (result) => {
-      await utils.invalidate(undefined, { refetchType: "all" });
+      await Promise.all([
+        invalidateRaidSummaryQueries(utils),
+        utils.raid.getRaidById.invalidate(raidId),
+      ]);
       toastRaidSaved(toast, raidData, raidId, false);
       router.push(result.raid ? `/raids/${result.raid.raidId}` : "/raids");
     },
@@ -43,7 +47,10 @@ export function EditRaid({
       setSendingData(false);
     },
     onSuccess: async () => {
-      await utils.invalidate(undefined, { refetchType: "all" });
+      await Promise.all([
+        invalidateRaidSummaryQueries(utils),
+        utils.raid.getRaidById.invalidate(raidId),
+      ]);
       toastRaidDeleted(toast, raidData);
       router.push("/raids");
     },

@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "~/components/ui/tooltip";
+import { invalidateCharacterManagementQueries } from "~/lib/trpc-invalidations";
 
 export function CharacterManagerRow({
   character,
@@ -44,7 +45,7 @@ export function CharacterManagerRow({
       setIsSending(false);
     },
     onSuccess: async () => {
-      await utils.invalidate(undefined, { refetchType: "all" });
+      await invalidateCharacterManagementQueries(utils);
       setIsSending(false);
     },
   });
@@ -56,7 +57,10 @@ export function CharacterManagerRow({
         setIsSending(false);
       },
       onSuccess: async () => {
-        await utils.invalidate(undefined, { refetchType: "all" });
+        await Promise.all([
+          invalidateCharacterManagementQueries(utils),
+          utils.character.getCharacterById.invalidate(character.characterId),
+        ]);
         toastCharacterSaved(toast, character, localSecondaryCharacters);
         setIsSending(false);
         setInEditMode(false);

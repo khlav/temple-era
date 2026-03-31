@@ -86,19 +86,28 @@ interface PostedEvent {
   id: string;
   title: string;
   displayTitle?: string;
-  channelName: string;
+  channelName?: string;
   startTime: number;
   endTime: number;
-  leaderName: string;
-  description: string;
+  leaderName?: string;
+  description?: string;
   imageUrl?: string;
-  signUpCount?: number;
+  signUpCount?: number | string;
   softresId?: string;
   scheduledId?: string;
   channelId: string;
+  color?: string;
+  templateId?: string;
+  leaderId?: string;
+  lastUpdated?: number;
+  closeTime?: number;
 }
 
 interface PostedEventsResponse {
+  pages?: number;
+  eventsOverall?: number;
+  eventsTransmitted?: number;
+  currentPage?: number;
   postedEvents: PostedEvent[];
 }
 
@@ -122,11 +131,36 @@ interface RaidHelperEventResponse {
   time: string;
   startTime: number;
   endTime: number;
-  softresId?: string;
   signUps: RaidHelperSignup[];
   leaderId: string;
   leaderName: string;
   channelName: string;
+  channelId?: string;
+  serverId?: string;
+  softresId?: string;
+  scheduledId?: string;
+  classes?: Array<{
+    name: string;
+    type?: string;
+    effectiveName?: string;
+    limit?: number;
+    emoteId?: string;
+    specs?: Array<{
+      name: string;
+      roleName?: string;
+      roleEmoteId?: string;
+      limit?: number;
+      emoteId?: string;
+      color?: string;
+    }>;
+  }>;
+  roles?: Array<{
+    name: string;
+    limit?: number;
+    emoteId?: string;
+  }>;
+  lastUpdated?: number;
+  closingTime?: number;
 }
 
 interface RaidPlanSlot {
@@ -137,7 +171,7 @@ interface RaidPlanSlot {
   className: string | null;
   specName: string | null;
   color: string | null;
-  isConfirmed: string;
+  isConfirmed?: string;
 }
 
 interface RaidPlanGroup {
@@ -150,6 +184,8 @@ interface RaidHelperPlanResponse {
   groups: RaidPlanGroup[];
   groupCount?: number;
   slotCount?: number;
+  showRoles?: boolean;
+  editPermissions?: string;
 }
 
 // Types for character matching
@@ -238,6 +274,7 @@ export const raidHelperRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      const session = await ctx.getSession();
       const response = await fetch(
         `${RAID_HELPER_API_BASE}/v4/servers/${env.DISCORD_SERVER_ID}/events`,
         {
@@ -262,11 +299,11 @@ export const raidHelperRouter = createTRPCRouter({
 
       // Fetch Discord ID for the current user if authenticated
       let userDiscordId: string | null = null;
-      if (ctx.session?.user?.id) {
+      if (session?.user?.id) {
         const account = await ctx.db.query.accounts.findFirst({
           where: (accounts, { eq, and }) =>
             and(
-              eq(accounts.userId, ctx.session!.user.id),
+              eq(accounts.userId, session.user.id),
               eq(accounts.provider, "discord"),
             ),
           columns: {
@@ -366,10 +403,13 @@ export const raidHelperRouter = createTRPCRouter({
             id: e.id,
             title: e.title,
             displayTitle: resolveEventTitle(e.title, e.startTime),
-            channelName: e.channelName,
+            channelName: e.channelName ?? "",
             startTime: e.startTime,
-            leaderName: e.leaderName,
-            signUpCount: e.signUpCount ?? 0,
+            leaderName: e.leaderName ?? "",
+            signUpCount:
+              typeof e.signUpCount === "string"
+                ? Number(e.signUpCount)
+                : (e.signUpCount ?? 0),
             channelId: e.channelId,
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
@@ -389,7 +429,12 @@ export const raidHelperRouter = createTRPCRouter({
     .query(async ({ input }) => {
       // First, fetch the event/channel to check if we need to resolve lastEventId
       const initialResponse = await fetch(
-        `${RAID_HELPER_API_BASE}/v2/events/${input.eventId}`,
+        `${RAID_HELPER_API_BASE}/v4/events/${input.eventId}`,
+        {
+          headers: {
+            Authorization: env.RAID_HELPER_API_KEY,
+          },
+        },
       );
 
       if (!initialResponse.ok) {
@@ -413,9 +458,17 @@ export const raidHelperRouter = createTRPCRouter({
       // Now fetch both event signups and raidplan with the correct event ID
       const [eventResponse, planResponse] = await Promise.all([
         actualEventId !== input.eventId
-          ? fetch(`${RAID_HELPER_API_BASE}/v2/events/${actualEventId}`)
+          ? fetch(`${RAID_HELPER_API_BASE}/v4/events/${actualEventId}`, {
+              headers: {
+                Authorization: env.RAID_HELPER_API_KEY,
+              },
+            })
           : Promise.resolve(initialResponse),
-        fetch(`${RAID_HELPER_API_BASE}/v3/comps/${actualEventId}`),
+        fetch(`${RAID_HELPER_API_BASE}/v4/comps/${actualEventId}`, {
+          headers: {
+            Authorization: env.RAID_HELPER_API_KEY,
+          },
+        }),
       ]);
 
       // For the resolved event, we may need to re-fetch if we reused initialResponse

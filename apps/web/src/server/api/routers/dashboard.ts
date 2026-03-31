@@ -11,6 +11,8 @@ import { primaryRaidAttendeeAndBenchMap } from "~/server/db/models/views-schema"
 
 export const dashboard = createTRPCRouter({
   getTrackedRaidsL6LockoutWk: publicProcedure.query(async ({ ctx }) => {
+    const session = await ctx.getSession();
+
     const raids = await ctx.db
       .select({
         name: trackedRaidsL6LockoutWk.name,
@@ -33,7 +35,7 @@ export const dashboard = createTRPCRouter({
           ),
           eq(
             primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            ctx.session?.user.characterId ?? -1,
+            session?.user.characterId ?? -1,
           ),
         ),
       )
@@ -50,6 +52,8 @@ export const dashboard = createTRPCRouter({
   }),
 
   getTrackedRaidsCurrentLockout: publicProcedure.query(async ({ ctx }) => {
+    const session = await ctx.getSession();
+
     const raids = await ctx.db
       .select({
         name: trackedRaidsCurrentLockout.name,
@@ -75,7 +79,7 @@ export const dashboard = createTRPCRouter({
           ),
           eq(
             primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            ctx.session?.user.characterId ?? -1,
+            session?.user.characterId ?? -1,
           ),
         ),
       )
@@ -92,6 +96,8 @@ export const dashboard = createTRPCRouter({
   }),
 
   getAllRaidsCurrentLockout: publicProcedure.query(async ({ ctx }) => {
+    const session = await ctx.getSession();
+
     const raids = await ctx.db
       .select({
         name: allRaidsCurrentLockout.name,
@@ -114,7 +120,7 @@ export const dashboard = createTRPCRouter({
           ),
           eq(
             primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            ctx.session?.user.characterId ?? -1,
+            session?.user.characterId ?? -1,
           ),
         ),
       )

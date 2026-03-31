@@ -8,12 +8,20 @@
  */
 
 import { initTRPC, TRPCError } from "@trpc/server";
+import type { Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { env } from "~/env";
+
+export interface TRPCContext {
+  db: typeof db;
+  headers: Headers;
+  session: Session | null | undefined;
+  getSession: () => Promise<Session | null>;
+}
 
 /**
  * 1. CONTEXT
@@ -27,12 +35,26 @@ import { env } from "~/env";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth();
+export const createTRPCContext = async (opts: {
+  headers: Headers;
+}): Promise<TRPCContext> => {
+  let session: Session | null | undefined = undefined;
+  let sessionPromise: Promise<Session | null> | null = null;
+
+  const getSession = async () => {
+    if (session !== undefined) {
+      return session;
+    }
+
+    sessionPromise ??= auth();
+    session = await sessionPromise;
+    return session;
+  };
 
   return {
     db,
     session,
+    getSession,
     ...opts,
   };
 };
@@ -80,7 +102,7 @@ const isLocalDatabase = () => {
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
-const t = initTRPC.context<typeof createTRPCContext>().create({
+const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
     return {
@@ -161,8 +183,10 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
+  .use(async ({ ctx, next }) => {
+    const session = await ctx.getSession();
+
+    if (!session?.user) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: `Unauthorized - Login required`,
@@ -171,7 +195,7 @@ export const protectedProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session,
       },
     });
   });
@@ -186,8 +210,10 @@ export const protectedProcedure = t.procedure
  */
 export const raidManagerProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.session.user || !ctx.session.user.isRaidManager) {
+  .use(async ({ ctx, next }) => {
+    const session = await ctx.getSession();
+
+    if (!session || !session.user || !session.user.isRaidManager) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: `Unauthorized - Raid managers only`,
@@ -196,7 +222,7 @@ export const raidManagerProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session,
       },
     });
   });
@@ -211,8 +237,10 @@ export const raidManagerProcedure = t.procedure
  */
 export const adminProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session || !ctx.session.user || !ctx.session.user.isAdmin) {
+  .use(async ({ ctx, next }) => {
+    const session = await ctx.getSession();
+
+    if (!session || !session.user || !session.user.isAdmin) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: `Unauthorized - Admin only`,
@@ -221,7 +249,7 @@ export const adminProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session,
       },
     });
   });

@@ -19,6 +19,7 @@ import {
 } from "~/components/raids/raid-toasts";
 import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 import { getEasternDate } from "~/lib/raid-formatting";
+import { invalidateRaidSummaryQueries } from "~/lib/trpc-invalidations";
 
 export function CreateRaid() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export function CreateRaid() {
     },
     onSuccess: async (result) => {
       toastRaidSaved(toast, raidData, result.raid?.raidId ?? -1, true);
-      await utils.invalidate(undefined, { refetchType: "all" });
+      await invalidateRaidSummaryQueries(utils);
       router.push("/raids");
     },
   });

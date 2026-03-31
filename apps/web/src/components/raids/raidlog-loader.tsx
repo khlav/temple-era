@@ -22,8 +22,6 @@ export function RaidLogLoader({
 }: RaidLogLoaderProps): React.ReactNode {
   const [internalUrlInput, setInternalUrlInput] = useState<string>("");
   const [raidLogId, setRaidLogId] = useState<string>("");
-  const utils = api.useUtils();
-
   // Use external state if provided, otherwise use internal state
   const urlInput = externalUrlInput ?? internalUrlInput;
   const setUrlInput = externalSetUrlInput ?? setInternalUrlInput;
@@ -50,15 +48,6 @@ export function RaidLogLoader({
     },
     [setUrlInput],
   );
-
-  useEffect(() => {
-    const invalidateResult = async () => {
-      await utils.invalidate(undefined, { refetchType: "all" });
-    };
-    invalidateResult()
-      .then(() => console.log("Cache invalidated successfully"))
-      .catch((error) => console.error("Error invalidating cache:", error));
-  }, [utils]);
 
   useEffect(() => {
     if (isSuccess && raidLog && onDataLoaded) {
