@@ -78,11 +78,16 @@ export function RaidPlanDetail({
     pushDefaultAAMutation,
     isPollingActive,
     startPolling,
+    presence,
+    markPresenceEditing,
   } = mutations;
 
   const utils = api.useUtils();
   const createEncounterMutation = api.raidPlan.createEncounter.useMutation({
-    onSuccess: () => void refetch(),
+    onSuccess: () => {
+      markPresenceEditing();
+      void refetch();
+    },
   });
   const createEncounterGroupMutation =
     api.raidPlan.createEncounterGroup.useMutation({
@@ -113,6 +118,7 @@ export function RaidPlanDetail({
           utils.raidPlan.getById.setData({ planId: pid }, context.prev);
       },
       onSettled: (_data, _err, { planId: pid }) => {
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId: pid });
       },
     });
@@ -145,6 +151,7 @@ export function RaidPlanDetail({
           utils.raidPlan.getById.setData({ planId }, context.prev);
       },
       onSettled: () => {
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -163,6 +170,7 @@ export function RaidPlanDetail({
       }
     },
     onSettled: () => {
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -217,6 +225,7 @@ export function RaidPlanDetail({
           utils.raidPlan.getById.setData({ planId }, context.prev);
       },
       onSettled: () => {
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -315,6 +324,10 @@ export function RaidPlanDetail({
         raidHelperEventId={plan.raidHelperEventId}
         startAt={plan.startAt}
         event={plan.event}
+        creator={plan.creator}
+        lastEditor={plan.lastEditor}
+        lastModifiedAt={plan.lastModifiedAt}
+        presence={presence}
         onNameUpdate={refetch}
         isPublic={plan.isPublic}
         onTogglePublic={(isPublic) =>
@@ -325,6 +338,7 @@ export function RaidPlanDetail({
         isExportingAA={isExportingAA}
         isPollingActive={isPollingActive}
         onRestartPolling={startPolling}
+        onEditActivity={markPresenceEditing}
       />
 
       <Separator className="my-2" />
@@ -340,7 +354,10 @@ export function RaidPlanDetail({
             leftActions={
               <AddEncounterDialog
                 planId={planId}
-                onEncounterCreated={refetch}
+                onEncounterCreated={() => {
+                  markPresenceEditing();
+                  void refetch();
+                }}
               />
             }
             actions={

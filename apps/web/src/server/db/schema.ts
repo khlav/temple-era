@@ -65,6 +65,7 @@ export const {
   raidPlanEncounters,
   raidPlanEncounterAssignments,
   raidPlanEncounterAASlots,
+  raidPlanPresence,
 
   // Relations
   raidPlanTemplatesRelations,
@@ -76,6 +77,7 @@ export const {
   raidPlanEncountersRelations,
   raidPlanEncounterAssignmentsRelations,
   raidPlanEncounterAASlotsRelations,
+  raidPlanPresenceRelations,
 } = RaidPlanSchema;
 
 export const {

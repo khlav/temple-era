@@ -42,6 +42,7 @@ export function useRaidPlanHandlers({
     updateEncounterMutation,
     refreshCharactersMutation,
     assignAASlotMutation,
+    markPresenceEditing,
   } = mutations;
 
   const { toast } = useToast();
@@ -127,13 +128,14 @@ export function useRaidPlanHandlers({
             });
           },
           onSettled: () => {
+            markPresenceEditing();
             // Refetch to ensure consistency
             void utils.raidPlan.getById.invalidate({ planId });
           },
         },
       );
     },
-    [planId, updateCharacterMutation, utils, toast],
+    [markPresenceEditing, planId, updateCharacterMutation, utils, toast],
   );
 
   const handleCharacterUpdate = useCallback(
@@ -252,13 +254,14 @@ export function useRaidPlanHandlers({
             });
           },
           onSettled: () => {
+            markPresenceEditing();
             // Refetch to ensure consistency and get the real ID
             void utils.raidPlan.getById.invalidate({ planId });
           },
         },
       );
     },
-    [planId, addCharacterMutation, utils, toast],
+    [addCharacterMutation, markPresenceEditing, planId, utils, toast],
   );
 
   const handleCharacterDelete = useCallback(
@@ -295,13 +298,14 @@ export function useRaidPlanHandlers({
             });
           },
           onSettled: () => {
+            markPresenceEditing();
             // Refetch to ensure consistency
             void utils.raidPlan.getById.invalidate({ planId });
           },
         },
       );
     },
-    [planId, deleteCharacterMutation, utils, toast],
+    [deleteCharacterMutation, markPresenceEditing, planId, utils, toast],
   );
 
   const exportMRT = useCallback(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import {
   Trash2,
@@ -15,7 +16,11 @@ import {
   Settings,
   Globe,
   GlobeLock,
+  Eye,
+  PencilLine,
+  Users,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -65,6 +70,31 @@ import { PollingIndicator } from "./polling-indicator";
 
 const ZONE_BADGE_CLASSES = ZONE_ACCENT_CLASSES;
 
+interface RaidPlanPerson {
+  id: string | null;
+  name: string | null;
+  image: string | null;
+}
+
+interface RaidPlanPresenceUser {
+  userId: string;
+  name: string;
+  image: string | null;
+  mode: "viewing" | "editing";
+  lastSeenAt: Date;
+  isCurrentUser: boolean;
+}
+
+function getInitials(name: string | null | undefined) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 interface RaidPlanHeaderProps {
   planId: string;
   name: string;
@@ -72,6 +102,10 @@ interface RaidPlanHeaderProps {
   raidHelperEventId: string;
   startAt?: Date | null;
   event: { raidId: number; name: string; date: string } | null;
+  creator?: RaidPlanPerson | null;
+  lastEditor?: RaidPlanPerson | null;
+  lastModifiedAt?: Date | null;
+  presence?: RaidPlanPresenceUser[];
   onNameUpdate?: () => void;
   isPublic?: boolean;
   onTogglePublic?: (isPublic: boolean) => void;
@@ -80,6 +114,7 @@ interface RaidPlanHeaderProps {
   isExportingAA?: boolean;
   isPollingActive?: boolean;
   onRestartPolling?: () => void;
+  onEditActivity?: () => void;
 }
 
 export function RaidPlanHeader({
@@ -89,6 +124,10 @@ export function RaidPlanHeader({
   raidHelperEventId,
   startAt,
   event,
+  creator,
+  lastEditor,
+  lastModifiedAt,
+  presence = [],
   onNameUpdate,
   isPublic,
   onTogglePublic,
@@ -97,6 +136,7 @@ export function RaidPlanHeader({
   isExportingAA,
   isPollingActive = true,
   onRestartPolling,
+  onEditActivity,
 }: RaidPlanHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -171,6 +211,7 @@ export function RaidPlanHeader({
       });
     },
     onSettled: () => {
+      onEditActivity?.();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -224,6 +265,17 @@ export function RaidPlanHeader({
     zoneId === CUSTOM_ZONE_ID
       ? CUSTOM_ZONE_DISPLAY_NAME
       : (INSTANCE_TO_ZONE[zoneId] ?? zoneId);
+  const visiblePresence = presence.slice(0, 4);
+  const overflowPresenceCount = Math.max(
+    0,
+    presence.length - visiblePresence.length,
+  );
+  const lastEditedLabel =
+    lastModifiedAt && lastEditor?.name
+      ? `Last edited by ${lastEditor.name} ${formatDistanceToNow(new Date(lastModifiedAt), { addSuffix: true })}`
+      : lastModifiedAt
+        ? `Last updated ${formatDistanceToNow(new Date(lastModifiedAt), { addSuffix: true })}`
+        : null;
 
   return (
     <div className="flex gap-4">
@@ -331,6 +383,12 @@ export function RaidPlanHeader({
             </div>
           )}
         </div>
+        {!isEditing && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {creator?.name ? <span>Created by {creator.name}</span> : null}
+            {lastEditedLabel ? <span>{lastEditedLabel}</span> : null}
+          </div>
+        )}
       </div>
 
       {/* Right column: buttons */}
@@ -345,9 +403,9 @@ export function RaidPlanHeader({
                   side="left"
                   activeTooltip={
                     <div className="flex w-fit flex-col gap-0.5 whitespace-nowrap">
-                      <span className="font-bold">Live Updates</span>
+                      <span className="font-bold">Sync Active</span>
                       <span className="text-xs">
-                        Syncing near-real-time updates from other users.
+                        This tab is polling for near-real-time planner updates.
                       </span>
                     </div>
                   }
@@ -355,11 +413,86 @@ export function RaidPlanHeader({
                     <div className="flex w-fit flex-col gap-0.5 whitespace-nowrap">
                       <span className="font-bold">Polling Paused</span>
                       <span className="text-xs">
-                        No updates in the last 5 minutes. Click to resume.
+                        This tab stopped polling after 5 minutes of inactivity.
+                        Click to resume.
                       </span>
                     </div>
                   }
                 />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2 py-1">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div className="flex -space-x-2">
+                          {visiblePresence.length > 0 ? (
+                            visiblePresence.map((user) => (
+                              <Avatar
+                                key={user.userId}
+                                className={`h-6 w-6 border-2 ${
+                                  user.mode === "editing"
+                                    ? "border-primary ring-1 ring-primary/30"
+                                    : "border-background"
+                                }`}
+                              >
+                                <AvatarImage src={user.image ?? undefined} />
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(user.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              Just you
+                            </span>
+                          )}
+                          {overflowPresenceCount > 0 ? (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
+                              +{overflowPresenceCount}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="left"
+                      className="dark border-none bg-secondary text-muted-foreground"
+                    >
+                      <div className="space-y-1">
+                        <p className="font-bold text-foreground">
+                          Active on this plan
+                        </p>
+                        {presence.length > 0 ? (
+                          presence.map((user) => (
+                            <div
+                              key={user.userId}
+                              className="flex items-center gap-2 text-xs"
+                            >
+                              {user.mode === "editing" ? (
+                                <PencilLine className="h-3 w-3 text-primary" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                              <span>
+                                {user.name}
+                                {user.isCurrentUser ? " (You)" : ""}
+                              </span>
+                              <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">
+                                {user.mode === "editing"
+                                  ? "Editing now"
+                                  : "Viewing"}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs">
+                            No active viewers right now.
+                          </p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 {onTogglePublic && (
                   <>
                     <TooltipProvider>

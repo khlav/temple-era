@@ -10,8 +10,14 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { IdPkAsUUID, DefaultTimestamps, CreatedBy } from "~/server/db/helpers";
+import {
+  IdPkAsUUID,
+  DefaultTimestamps,
+  CreatedBy,
+  UpdatedBy,
+} from "~/server/db/helpers";
 import { raids, characters } from "~/server/db/models/raid-schema";
+import { users } from "~/server/db/models/auth-schema";
 
 const tableCreator = pgTableCreator((name) => name);
 
@@ -154,6 +160,7 @@ export const raidPlans = tableCreator(
     isPublic: boolean("is_public").notNull().default(false),
     startAt: timestamp("start_at"),
     ...CreatedBy,
+    ...UpdatedBy,
     ...DefaultTimestamps,
   },
   (table) => ({
@@ -173,6 +180,7 @@ export const raidPlansRelations = relations(raidPlans, ({ one, many }) => ({
   encounterGroups: many(raidPlanEncounterGroups),
   encounters: many(raidPlanEncounters),
   defaultAASlots: many(raidPlanEncounterAASlots),
+  presence: many(raidPlanPresence),
 }));
 
 /**
@@ -395,6 +403,58 @@ export const raidPlanEncounterAASlotsRelations = relations(
     planCharacter: one(raidPlanCharacters, {
       fields: [raidPlanEncounterAASlots.planCharacterId],
       references: [raidPlanCharacters.id],
+    }),
+  }),
+);
+
+/**
+ * Ephemeral viewer/editor presence for a raid plan.
+ * One row per client session tab. Presence is considered active based on lastSeenAt.
+ */
+export const raidPlanPresence = tableCreator(
+  "raid_plan_presence",
+  {
+    ...IdPkAsUUID,
+    raidPlanId: uuid("raid_plan_id")
+      .notNull()
+      .references(() => raidPlans.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    clientSessionId: varchar("client_session_id", { length: 128 }).notNull(),
+    mode: varchar("mode", { length: 16 }).notNull().default("viewing"),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    raidPlanIdIdx: index("raid_plan_presence__raid_plan_id_idx").on(
+      table.raidPlanId,
+    ),
+    userIdIdx: index("raid_plan_presence__user_id_idx").on(table.userId),
+    lastSeenAtIdx: index("raid_plan_presence__last_seen_at_idx").on(
+      table.lastSeenAt,
+    ),
+    sessionIdx: uniqueIndex("raid_plan_presence__plan_session_idx").on(
+      table.raidPlanId,
+      table.clientSessionId,
+    ),
+  }),
+);
+
+export const raidPlanPresenceRelations = relations(
+  raidPlanPresence,
+  ({ one }) => ({
+    raidPlan: one(raidPlans, {
+      fields: [raidPlanPresence.raidPlanId],
+      references: [raidPlans.id],
+    }),
+    user: one(users, {
+      fields: [raidPlanPresence.userId],
+      references: [users.id],
     }),
   }),
 );

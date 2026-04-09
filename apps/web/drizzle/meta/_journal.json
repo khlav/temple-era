@@ -134,6 +134,13 @@
       "when": 1774953022078,
       "tag": "0018_touch-raid-plan-updated-at",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775774695817,
+      "tag": "0019_gifted_nextwave",
+      "breakpoints": true
     }
   ]
 }

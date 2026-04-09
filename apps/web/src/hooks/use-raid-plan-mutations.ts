@@ -2,6 +2,13 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 
+const POLLING_INTERVAL = 5000;
+const PRESENCE_POLLING_INTERVAL = 15000;
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
+const PRESENCE_HEARTBEAT_INTERVAL = 30000;
+const PRESENCE_EDITING_WINDOW = 90000;
+const CLIENT_SESSION_STORAGE_KEY = "raid-plan-client-session-id";
+
 interface UseRaidPlanMutationsOptions {
   planId: string;
   onEncounterDeleted?: () => void;
@@ -14,11 +21,10 @@ export function useRaidPlanMutations({
   const { toast } = useToast();
   const utils = api.useUtils();
   const [isPollingActive, setIsPollingActive] = useState(true);
+  const [clientSessionId, setClientSessionId] = useState<string | null>(null);
   const lastActivityRef = useRef(Date.now());
+  const lastEditAtRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const POLLING_INTERVAL = 5000;
-  const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   const startPolling = useCallback(() => {
     lastActivityRef.current = Date.now();
@@ -48,7 +54,23 @@ export function useRaidPlanMutations({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPollingActive, INACTIVITY_TIMEOUT]);
+  }, [isPollingActive]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const existingSessionId = window.sessionStorage.getItem(
+      CLIENT_SESSION_STORAGE_KEY,
+    );
+    if (existingSessionId) {
+      setClientSessionId(existingSessionId);
+      return;
+    }
+
+    const nextSessionId = crypto.randomUUID();
+    window.sessionStorage.setItem(CLIENT_SESSION_STORAGE_KEY, nextSessionId);
+    setClientSessionId(nextSessionId);
+  }, []);
 
   const {
     data: plan,
@@ -62,6 +84,89 @@ export function useRaidPlanMutations({
       refetchIntervalInBackground: false,
     },
   );
+
+  const { data: presence = [] } = api.raidPlan.getPresence.useQuery(
+    { planId },
+    {
+      refetchInterval: isPollingActive ? PRESENCE_POLLING_INTERVAL : false,
+      refetchIntervalInBackground: false,
+      enabled: !!clientSessionId,
+    },
+  );
+
+  const upsertPresenceMutation = api.raidPlan.upsertPresence.useMutation();
+  const clearPresenceMutation = api.raidPlan.clearPresence.useMutation();
+  const upsertPresenceRef = useRef(upsertPresenceMutation);
+  const clearPresenceRef = useRef(clearPresenceMutation);
+
+  useEffect(() => {
+    upsertPresenceRef.current = upsertPresenceMutation;
+    clearPresenceRef.current = clearPresenceMutation;
+  }, [upsertPresenceMutation, clearPresenceMutation]);
+
+  const sendPresenceHeartbeat = useCallback(
+    (mode?: "viewing" | "editing") => {
+      if (!clientSessionId) return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState !== "visible"
+      ) {
+        return;
+      }
+
+      const nextMode =
+        mode ??
+        (Date.now() - lastEditAtRef.current <= PRESENCE_EDITING_WINDOW
+          ? "editing"
+          : "viewing");
+
+      upsertPresenceRef.current.mutate({
+        planId,
+        clientSessionId,
+        mode: nextMode,
+      });
+    },
+    [clientSessionId, planId],
+  );
+
+  const markPresenceEditing = useCallback(() => {
+    lastEditAtRef.current = Date.now();
+    trackActivity();
+    sendPresenceHeartbeat("editing");
+  }, [sendPresenceHeartbeat, trackActivity]);
+
+  useEffect(() => {
+    if (!clientSessionId) return;
+
+    sendPresenceHeartbeat();
+
+    const intervalId = window.setInterval(() => {
+      sendPresenceHeartbeat();
+    }, PRESENCE_HEARTBEAT_INTERVAL);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        sendPresenceHeartbeat();
+      }
+    };
+
+    const clearPresence = () => {
+      clearPresenceRef.current.mutate({
+        planId,
+        clientSessionId,
+      });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", clearPresence);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", clearPresence);
+      clearPresence();
+    };
+  }, [clientSessionId, planId, sendPresenceHeartbeat]);
 
   const lastSeenRevisionRef = useRef<string | null>(null);
   useEffect(() => {
@@ -104,7 +209,7 @@ export function useRaidPlanMutations({
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
     onSettled: () => {
-      trackActivity();
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -138,7 +243,7 @@ export function useRaidPlanMutations({
       });
     },
     onSettled: () => {
-      trackActivity();
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -146,7 +251,7 @@ export function useRaidPlanMutations({
   const resetEncounterMutation =
     api.raidPlan.resetEncounterToDefault.useMutation({
       onSuccess: (data) => {
-        trackActivity();
+        markPresenceEditing();
         toast({
           title: "Reset to default",
           description: `Encounter groups reset to match default (${data.count} assignments)`,
@@ -189,7 +294,7 @@ export function useRaidPlanMutations({
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
     onSettled: () => {
-      trackActivity();
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -232,7 +337,7 @@ export function useRaidPlanMutations({
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
     onSettled: () => {
-      trackActivity();
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -282,7 +387,7 @@ export function useRaidPlanMutations({
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -382,14 +487,14 @@ export function useRaidPlanMutations({
         if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
 
   const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
     onSuccess: (data) => {
-      trackActivity();
+      markPresenceEditing();
       toast({
         title: "Roster refreshed",
         description: `+${data.added} added, ${data.updated} updated, -${data.removed} removed`,
@@ -407,7 +512,7 @@ export function useRaidPlanMutations({
 
   const updatePlanMutation = api.raidPlan.update.useMutation({
     onSuccess: () => {
-      trackActivity();
+      markPresenceEditing();
       void refetch();
     },
     onError: (error) => {
@@ -476,7 +581,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     },
@@ -522,7 +627,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -568,7 +673,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -598,7 +703,7 @@ export function useRaidPlanMutations({
       if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
     },
     onSettled: () => {
-      trackActivity();
+      markPresenceEditing();
       void utils.raidPlan.getById.invalidate({ planId });
     },
   });
@@ -628,7 +733,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -680,7 +785,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -712,7 +817,7 @@ export function useRaidPlanMutations({
         });
       },
       onSettled: () => {
-        trackActivity();
+        markPresenceEditing();
         void utils.raidPlan.getById.invalidate({ planId });
       },
     });
@@ -720,7 +825,7 @@ export function useRaidPlanMutations({
   const pushDefaultAAMutation =
     api.raidPlan.pushDefaultAAAssignments.useMutation({
       onSuccess: (data) => {
-        trackActivity();
+        markPresenceEditing();
         toast({
           title: "Assignments pushed",
           description: `Pushed ${data.totalSlotsPushed} slot${data.totalSlotsPushed !== 1 ? "s" : ""} to ${data.encounters.length} encounter${data.encounters.length !== 1 ? "s" : ""}`,
@@ -762,8 +867,10 @@ export function useRaidPlanMutations({
     benchEncounterAssignmentsMutation,
     reorderEncountersMutation,
     pushDefaultAAMutation,
+    presence,
     isPollingActive,
     startPolling,
     trackActivity,
+    markPresenceEditing,
   };
 }
