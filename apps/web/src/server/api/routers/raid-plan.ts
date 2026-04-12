@@ -137,14 +137,39 @@ export const raidPlanRouter = createTRPCRouter({
         .select({
           id: raidPlans.id,
           raidHelperEventId: raidPlans.raidHelperEventId,
+          lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
+          lastEditor: {
+            id: lastEditorUsers.id,
+            name: lastEditorUsers.name,
+            image: lastEditorUsers.image,
+          },
         })
         .from(raidPlans)
+        .leftJoin(
+          lastEditorUsers,
+          eq(lastEditorUsers.id, raidPlans.updatedById),
+        )
         .where(inArray(raidPlans.raidHelperEventId, input.raidHelperEventIds));
 
-      // Return as a map: raidHelperEventId -> planId
-      const result: Record<string, string> = {};
+      // Return as a map: raidHelperEventId -> existing plan summary
+      const result: Record<
+        string,
+        {
+          id: string;
+          lastModifiedAt: Date;
+          lastEditor: {
+            id: string;
+            name: string | null;
+            image: string | null;
+          } | null;
+        }
+      > = {};
       for (const plan of plans) {
-        result[plan.raidHelperEventId] = plan.id;
+        result[plan.raidHelperEventId] = {
+          id: plan.id,
+          lastModifiedAt: plan.lastModifiedAt,
+          lastEditor: normalizeUserIdentity(plan.lastEditor),
+        };
       }
       return result;
     }),
@@ -175,13 +200,26 @@ export const raidPlanRouter = createTRPCRouter({
           raidHelperEventId: raidPlans.raidHelperEventId,
           createdAt: raidPlans.createdAt,
           startAt: raidPlans.startAt,
+          lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
+          lastEditor: {
+            id: lastEditorUsers.id,
+            name: lastEditorUsers.name,
+            image: lastEditorUsers.image,
+          },
         })
         .from(raidPlans)
+        .leftJoin(
+          lastEditorUsers,
+          eq(lastEditorUsers.id, raidPlans.updatedById),
+        )
         .where(whereClause)
         .orderBy(desc(raidPlans.startAt), desc(raidPlans.createdAt))
         .limit(input.limit);
 
-      return plans;
+      return plans.map((plan) => ({
+        ...plan,
+        lastEditor: normalizeUserIdentity(plan.lastEditor),
+      }));
     }),
 
   /**

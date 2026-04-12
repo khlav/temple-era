@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { ExternalLink, Loader2, Users } from "lucide-react";
@@ -32,7 +33,20 @@ interface ScheduledEvent {
 
 interface ScheduledEventsTableProps {
   events: ScheduledEvent[] | undefined;
-  existingPlans: Record<string, string> | undefined; // map eventId -> planId
+  existingPlans:
+    | Record<
+        string,
+        {
+          id: string;
+          lastModifiedAt: Date;
+          lastEditor: {
+            id: string;
+            name: string | null;
+            image: string | null;
+          } | null;
+        }
+      >
+    | undefined;
   onFindPlayers: (
     eventId: string,
     eventTitle: string,
@@ -61,11 +75,14 @@ export function ScheduledEventsTable({
       <table className="w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
           <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <th
-              colSpan={2}
-              className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground"
-            >
+            <th className="h-10 w-[1px] px-2 text-left align-middle font-medium text-muted-foreground">
+              <span className="sr-only">Action</span>
+            </th>
+            <th className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground">
               Events ({events.length})
+            </th>
+            <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground lg:table-cell lg:w-[220px]">
+              Last Edited
             </th>
             <th className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground">
               Signups
@@ -80,7 +97,7 @@ export function ScheduledEventsTable({
             <EventRow
               key={event.id}
               event={event}
-              existingPlanId={existingPlans?.[event.id]}
+              existingPlan={existingPlans?.[event.id]}
               onFindPlayers={onFindPlayers}
               onSelect={() => onSelectEvent(event.id)}
             />
@@ -93,12 +110,20 @@ export function ScheduledEventsTable({
 
 function EventRow({
   event,
-  existingPlanId,
+  existingPlan,
   onFindPlayers,
   onSelect,
 }: {
   event: ScheduledEvent;
-  existingPlanId?: string;
+  existingPlan?: {
+    id: string;
+    lastModifiedAt: Date;
+    lastEditor: {
+      id: string;
+      name: string | null;
+      image: string | null;
+    } | null;
+  };
   onFindPlayers: (
     eventId: string,
     eventTitle: string,
@@ -157,13 +182,24 @@ function EventRow({
 
   const target = getRaidTarget(event.title, event.channelName);
   const colors = getSignupStatusColor(event.signUpCount ?? 0, target);
+  const lastEditedText = existingPlan
+    ? existingPlan.lastEditor?.name
+      ? `Last edited by ${existingPlan.lastEditor.name} ${formatDistanceToNow(
+          new Date(existingPlan.lastModifiedAt),
+          { addSuffix: true },
+        )}`
+      : `Last updated ${formatDistanceToNow(
+          new Date(existingPlan.lastModifiedAt),
+          { addSuffix: true },
+        )}`
+    : null;
 
   return (
     <tr className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
       <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-        {existingPlanId ? (
+        {existingPlan ? (
           <Button variant="secondary" size="sm" className="w-20" asChild>
-            <Link href={`/raid-manager/raid-planner/${existingPlanId}`}>
+            <Link href={`/raid-manager/raid-planner/${existingPlan.id}`}>
               View Plan
             </Link>
           </Button>
@@ -184,7 +220,19 @@ function EventRow({
           <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
             {formattedDate} {formattedTime ? `• ${formattedTime}` : ""}
           </div>
+          {lastEditedText ? (
+            <div className="truncate text-xs font-normal text-muted-foreground lg:hidden">
+              {lastEditedText}
+            </div>
+          ) : null}
         </div>
+      </td>
+      <td className="hidden p-2 align-middle lg:table-cell">
+        {lastEditedText ? (
+          <div className="truncate text-xs font-normal text-muted-foreground">
+            {lastEditedText}
+          </div>
+        ) : null}
       </td>
       <td className="w-[50%] p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
         <div className="flex items-center justify-start gap-3">

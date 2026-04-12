@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDistanceToNow } from "date-fns";
 import { Button } from "~/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +17,12 @@ interface PastPlan {
   zoneId: string;
   createdAt: Date;
   startAt: Date | null;
+  lastModifiedAt: Date;
+  lastEditor: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
   raidHelperEventId: string;
 }
 
@@ -37,11 +44,14 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
       <table className="w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
           <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <th
-              colSpan={2}
-              className="h-10 px-2 text-left align-middle font-medium text-muted-foreground"
-            >
+            <th className="h-10 w-[1px] px-2 text-left align-middle font-medium text-muted-foreground">
+              <span className="sr-only">Action</span>
+            </th>
+            <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
               Plans ({plans.length})
+            </th>
+            <th className="hidden h-10 px-2 text-left align-middle font-medium text-muted-foreground lg:table-cell lg:w-[220px]">
+              Last Edited
             </th>
             <th className="hidden h-10 px-2 text-center align-middle font-medium text-muted-foreground md:table-cell md:w-[60px]">
               Link
@@ -57,6 +67,16 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
               dateStr = formatRaidDay(plan.startAt);
               timeStr = formatRaidTime(plan.startAt);
             }
+
+            const lastEditedText = plan.lastEditor?.name
+              ? `Last edited by ${plan.lastEditor.name} ${formatDistanceToNow(
+                  new Date(plan.lastModifiedAt),
+                  { addSuffix: true },
+                )}`
+              : `Last updated ${formatDistanceToNow(
+                  new Date(plan.lastModifiedAt),
+                  { addSuffix: true },
+                )}`;
 
             return (
               <tr
@@ -82,6 +102,14 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                       {dateStr}
                       {timeStr ? ` • ${timeStr}` : ""}
                     </div>
+                    <div className="truncate text-xs font-normal text-muted-foreground lg:hidden">
+                      {lastEditedText}
+                    </div>
+                  </div>
+                </td>
+                <td className="hidden p-2 align-middle lg:table-cell">
+                  <div className="truncate text-xs font-normal text-muted-foreground">
+                    {lastEditedText}
                   </div>
                 </td>
                 <td className="hidden p-2 text-center align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
