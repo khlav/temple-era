@@ -23,6 +23,8 @@ import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { ClassIcon } from "~/components/ui/class-icon";
 
 export function CharacterSelector({
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   onSelectAction,
   buttonContent = (
     <div className="flex items-center space-x-2">
@@ -35,6 +37,8 @@ export function CharacterSelector({
   children,
   skeleton,
 }: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSelectAction: (character: RaidParticipant) => void;
   buttonContent?: React.ReactNode;
   characterSet?: "all" | "primary" | "secondary" | "secondaryEligible";
@@ -42,7 +46,13 @@ export function CharacterSelector({
   children?: React.ReactNode;
   skeleton?: React.ReactNode;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen =
+    controlledOnOpenChange !== undefined
+      ? controlledOnOpenChange
+      : setInternalOpen;
 
   const { data: characterCollection, isLoading } =
     api.character.getCharacters.useQuery(characterSet);
@@ -79,9 +89,11 @@ export function CharacterSelector({
     return onSelectAction(characterCollection[characterId]);
   };
 
-  const characterList = Object.values(characterCollection ?? {}).sort((a, b) =>
-    anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
-  );
+  const characterList = React.useMemo(() => {
+    return Object.values(characterCollection ?? {}).sort((a, b) =>
+      anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
+    );
+  }, [characterCollection]);
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -94,6 +106,7 @@ export function CharacterSelector({
             placeholder={isLoading ? "Loading..." : "Search characters..."}
             className="h-9"
             onValueChange={anyAscii}
+            autoFocus
           />
           <CommandList>
             <CommandEmpty>No matches.</CommandEmpty>

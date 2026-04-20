@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Pencil } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
@@ -22,7 +23,7 @@ interface DraggableCharacterCardProps {
   isHighlighted?: boolean;
 }
 
-export function DraggableCharacterCard({
+export const DraggableCharacterCard = memo(function DraggableCharacterCard({
   character,
   compact,
   editable,
@@ -54,7 +55,7 @@ export function DraggableCharacterCard({
       />
     </div>
   );
-}
+});
 
 interface CharacterCardProps {
   character: RaidPlanCharacter;
@@ -69,7 +70,7 @@ interface CharacterCardProps {
   isHighlighted?: boolean;
 }
 
-export function CharacterCard({
+export const CharacterCard = memo(function CharacterCard({
   character,
   compact,
   editable,
@@ -154,4 +155,4 @@ export function CharacterCard({
       )}
     </div>
   );
-}
+});

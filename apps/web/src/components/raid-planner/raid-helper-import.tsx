@@ -23,6 +23,7 @@ import {
   MinusCircle,
   History,
   ChevronDown,
+  ListChecks,
 } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { MRTCodec } from "~/lib/mrt-codec";
@@ -42,6 +43,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { MatchReviewSheet } from "./match-review-sheet";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -237,6 +239,7 @@ function CharacterMatchingDialog({
   const [cloneFromPlanName, setCloneFromPlanName] = useState<string | null>(
     null,
   );
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   // Default home server to user's primary character server
   const characterId = session?.user?.characterId;
@@ -332,6 +335,7 @@ function CharacterMatchingDialog({
       setSelectedZone(null);
       setCloneFromPlanId(null);
       setCloneFromPlanName(null);
+      setIsReviewOpen(false);
     }
   }, [open]);
 
@@ -490,29 +494,40 @@ function CharacterMatchingDialog({
             ) : matchStats ? (
               <div className="space-y-3">
                 {/* Stats row */}
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center gap-1 text-green-600">
-                    <Check className="h-4 w-4" />
-                    {matchStats.matched.length} matched
-                  </span>
-                  {matchStats.ambiguous.length > 0 && (
-                    <span className="flex items-center gap-1 text-yellow-600">
-                      <AlertTriangle className="h-4 w-4" />
-                      {matchStats.ambiguous.length} ambiguous
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Check className="h-4 w-4" />
+                      {matchStats.matched.length} matched
                     </span>
-                  )}
-                  {matchStats.unmatched.length > 0 && (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <HelpCircle className="h-4 w-4" />
-                      {matchStats.unmatched.length} unmatched
-                    </span>
-                  )}
-                  {matchStats.skipped.length > 0 && (
-                    <span className="flex items-center gap-1 text-muted-foreground/60">
-                      <MinusCircle className="h-4 w-4" />
-                      {matchStats.skipped.length} skipped
-                    </span>
-                  )}
+                    {matchStats.ambiguous.length > 0 && (
+                      <span className="flex items-center gap-1 text-yellow-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        {matchStats.ambiguous.length} ambiguous
+                      </span>
+                    )}
+                    {matchStats.unmatched.length > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                        {matchStats.unmatched.length} unmatched
+                      </span>
+                    )}
+                    {matchStats.skipped.length > 0 && (
+                      <span className="flex items-center gap-1 text-muted-foreground/60">
+                        <MinusCircle className="h-4 w-4" />
+                        {matchStats.skipped.length} skipped
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => setIsReviewOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    disabled={!matchResults || matchResults.length === 0}
+                  >
+                    <ListChecks className="mr-2 h-4 w-4" />
+                    Review Matches
+                  </Button>
                 </div>
 
                 {/* All characters grouped by party */}
@@ -697,6 +712,7 @@ function CharacterMatchingDialog({
             </div>
 
             <div className="flex items-center gap-2">
+
               {/* Server selector */}
               <div className="flex items-center gap-2">
                 <label
@@ -807,6 +823,14 @@ function CharacterMatchingDialog({
           </DialogFooter>
         )}
       </DialogContent>
+
+      {matchResults ? (
+        <MatchReviewSheet
+          open={isReviewOpen}
+          onOpenChange={setIsReviewOpen}
+          matchResults={matchResults}
+        />
+      ) : null}
     </Dialog>
   );
 }

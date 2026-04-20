@@ -44,19 +44,33 @@ export function EditCharacterDialog({
 }: EditCharacterDialogProps) {
   const [placeholderName, setPlaceholderName] = useState("");
   const [writeInClass, setWriteInClass] = useState<string>("Paladin");
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-populate name and class when dialog opens for a character.
   useEffect(() => {
-    if (open && editingCharacter) {
-      setPlaceholderName(editingCharacter.characterName);
-      if (editingCharacter.class) {
-        setWriteInClass(editingCharacter.class);
+    let timeoutId: NodeJS.Timeout;
+
+    if (open) {
+      if (editingCharacter) {
+        setPlaceholderName(editingCharacter.characterName);
+        if (editingCharacter.class) {
+          setWriteInClass(editingCharacter.class);
+        }
       }
-    } else if (!open) {
+      // Stagger the auto-open to avoid animation overlap with the main dialog
+      timeoutId = setTimeout(() => {
+        setIsSelectorOpen(true);
+      }, 200);
+    } else {
       // Reset when closing
       setPlaceholderName("");
+      setIsSelectorOpen(false);
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [open, editingCharacter]);
 
   const handlePlaceholderSubmit = () => {
@@ -113,7 +127,12 @@ export function EditCharacterDialog({
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2 py-4">
-          <CharacterSelector onSelectAction={onSelect} characterSet="all">
+          <CharacterSelector
+            open={isSelectorOpen}
+            onOpenChange={setIsSelectorOpen}
+            onSelectAction={onSelect}
+            characterSet="all"
+          >
             <Button
               variant="outline"
               className="w-[150px] justify-start text-left font-normal"

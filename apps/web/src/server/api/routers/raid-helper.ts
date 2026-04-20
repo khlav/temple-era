@@ -208,18 +208,32 @@ export interface SignupMatchResult {
   partyId: number | null;
   slotId: number | null;
   status: MatchStatus;
+  matchSource?:
+    | "saved_override"
+    | "discord_link"
+    | "token_exact"
+    | "token_prefix"
+    | "token_substring"
+    | "manual_review"
+    | "skipped";
+  confidence?: number;
+  explanation?: string;
+  needsManagerReview?: boolean;
+  matchedPrimaryCharacterId?: number | null;
+  matchedPrimaryCharacterName?: string | null;
   matchedCharacter?: MatchedCharacter;
   candidates?: MatchedCharacter[];
 }
 
-/**
- * Extract search term from Discord name by taking the first contiguous run of letters
- */
-function extractSearchTerm(discordName: string): string {
-  // Find the first contiguous sequence of Unicode letters (handles "Kirk123", "Kïrk-Alt", etc.)
-  const match = discordName.match(/\p{L}+/u);
-  return match?.[0] ?? discordName.trim();
-}
+const LOW_SIGNAL_SIGNUP_TOKENS = new Set([
+  "all",
+  "alt",
+  "alts",
+  "bench",
+  "forms",
+  "late",
+  "tentative",
+]);
 
 /**
  * Normalize a name for comparison:
@@ -234,6 +248,102 @@ function normalizeName(name: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
     .replace(/[^a-z0-9]/g, ""); // Keep only alphanumeric
+}
+
+function extractNormalizedTokens(name: string): string[] {
+  const matches = name.match(/\p{L}{3,}/gu) ?? [];
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+
+  for (const match of matches) {
+    const normalized = normalizeName(match);
+    if (
+      normalized.length < 3 ||
+      LOW_SIGNAL_SIGNUP_TOKENS.has(normalized) ||
+      seen.has(normalized)
+    ) {
+      continue;
+    }
+    seen.add(normalized);
+    tokens.push(normalized);
+  }
+
+  return tokens;
+}
+
+type CharacterMatch = {
+  characterId: number;
+  name: string;
+  server: string;
+  class: string;
+  primaryCharacterId: number | null;
+};
+
+type LinkedDiscordFamily = {
+  discordUserId: string;
+  familyId: number;
+  anchorCharacterId: number;
+  anchorCharacterName: string;
+};
+
+type MatchSource = NonNullable<SignupMatchResult["matchSource"]>;
+
+function getEffectivePrimaryId(character: CharacterMatch): number {
+  return character.primaryCharacterId ?? character.characterId;
+}
+
+function toMatchedCharacter(
+  character: CharacterMatch,
+  primaryCharacter: CharacterMatch | undefined,
+): MatchedCharacter {
+  return {
+    characterId: character.characterId,
+    characterName: character.name,
+    characterServer: character.server,
+    characterClass: character.class,
+    primaryCharacterId: character.primaryCharacterId,
+    primaryCharacterName: primaryCharacter?.name ?? null,
+  };
+}
+
+function getOverrideMatches(): Map<string, number> {
+  return new Map();
+}
+
+function chooseFamilyCharacterByClass(
+  family: CharacterMatch[],
+  resolvedClass: string | null,
+): {
+  type: "matched" | "ambiguous" | "missing_class_match";
+  matches: CharacterMatch[];
+} {
+  if (!resolvedClass) {
+    return { type: "missing_class_match", matches: [] };
+  }
+
+  const classMatches = family.filter(
+    (member) => member.class.toLowerCase() === resolvedClass.toLowerCase(),
+  );
+
+  if (classMatches.length === 1) {
+    return { type: "matched", matches: classMatches };
+  }
+
+  if (classMatches.length > 1) {
+    return { type: "ambiguous", matches: classMatches };
+  }
+
+  return { type: "missing_class_match", matches: [] };
+}
+
+function compareFamilyScores(
+  a: { score: number; familyId: number },
+  b: { score: number; familyId: number },
+): number {
+  if (b.score !== a.score) {
+    return b.score - a.score;
+  }
+  return a.familyId - b.familyId;
 }
 
 /**
@@ -587,297 +697,425 @@ export const raidHelperRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { signups } = input;
+      const signupsWithResolved = signups.map((signup) => {
+        const cleanedSpecName = signup.specName?.replace(/[0-9]/g, "") ?? "";
+        return {
+          ...signup,
+          specName: cleanedSpecName,
+          resolvedClass: resolveClassName(signup.className, cleanedSpecName),
+          normalizedDiscordName: normalizeName(signup.discordName),
+          tokens: extractNormalizedTokens(signup.discordName),
+        };
+      });
 
-      // Resolve class names
-      // Clean specName by removing numbers (e.g., "Protection1" -> "Protection")
-      const signupsWithResolved = signups.map((s) => ({
-        ...s,
-        specName: s.specName?.replace(/[0-9]/g, "") ?? "",
-        resolvedClass: resolveClassName(s.className, s.specName),
-        searchTerm: extractSearchTerm(s.discordName),
-      }));
+      const allCharacters = await ctx.db
+        .select({
+          characterId: characters.characterId,
+          name: characters.name,
+          server: characters.server,
+          class: characters.class,
+          primaryCharacterId: characters.primaryCharacterId,
+        })
+        .from(characters)
+        .where(eq(characters.isIgnored, false));
 
-      // Get unique search terms for the prefix query (include ALL signups)
-      const uniqueTerms = [
-        ...new Set(signupsWithResolved.map((s) => normalizeName(s.searchTerm))),
+      const allCharactersById = new Map(
+        allCharacters.map((character) => [character.characterId, character]),
+      );
+      const familyMap = new Map<number, CharacterMatch[]>();
+      const normalizedNameMap = new Map<number, string>();
+
+      for (const character of allCharacters) {
+        const familyId = getEffectivePrimaryId(character);
+        normalizedNameMap.set(
+          character.characterId,
+          normalizeName(character.name),
+        );
+        if (!familyMap.has(familyId)) {
+          familyMap.set(familyId, []);
+        }
+        familyMap.get(familyId)!.push(character);
+      }
+
+      const userIds = [
+        ...new Set(
+          signupsWithResolved.map((signup) => signup.userId).filter(Boolean),
+        ),
       ];
 
-      // Build OR conditions for prefix matching
-      const prefixConditions = uniqueTerms.map(
-        (term) => sql`LOWER(f_unaccent(${characters.name})) LIKE ${term + "%"}`,
-      );
+      const linkedDiscordRows =
+        userIds.length === 0
+          ? []
+          : await ctx.db
+              .select({
+                discordUserId: accounts.providerAccountId,
+                characterId: users.characterId,
+                anchorCharacterId: characters.characterId,
+                anchorCharacterName: characters.name,
+                primaryCharacterId: characters.primaryCharacterId,
+              })
+              .from(accounts)
+              .innerJoin(users, eq(accounts.userId, users.id))
+              .leftJoin(
+                characters,
+                eq(users.characterId, characters.characterId),
+              )
+              .where(
+                and(
+                  eq(accounts.provider, "discord"),
+                  inArray(accounts.providerAccountId, userIds),
+                  isNotNull(users.characterId),
+                ),
+              );
 
-      // Character match type
-      type CharacterMatch = {
-        characterId: number;
-        name: string;
-        server: string;
-        class: string;
-        primaryCharacterId: number | null;
-      };
-
-      // Query all potential matches via prefix search
-      // Note: If uniqueTerms is empty (no signups), we can skip query
-      let allMatches: CharacterMatch[] = [];
-      if (prefixConditions.length > 0) {
-        allMatches = await ctx.db
-          .select({
-            characterId: characters.characterId,
-            name: characters.name,
-            server: characters.server,
-            class: characters.class,
-            primaryCharacterId: characters.primaryCharacterId,
-          })
-          .from(characters)
-          .where(
-            sql`(${or(...prefixConditions)}) AND ${eq(characters.isIgnored, false)}`,
-          );
-      }
-
-      // Get primary character info for matches that have a primary
-      const primaryIds = Array.from(
-        new Set(
-          allMatches
-            .map((m) => m.primaryCharacterId)
-            .filter((id): id is number => id !== null),
-        ),
-      );
-
-      let primaryCharacters: CharacterMatch[] = [];
-
-      if (primaryIds.length > 0) {
-        primaryCharacters = await ctx.db
-          .select({
-            characterId: characters.characterId,
-            name: characters.name,
-            server: characters.server,
-            class: characters.class,
-            primaryCharacterId: characters.primaryCharacterId,
-          })
-          .from(characters)
-          .where(inArray(characters.characterId, primaryIds));
-      }
-
-      const primaryMap = new Map(
-        primaryCharacters.map((c) => [c.characterId, c]),
-      );
-
-      // Also fetch all alts (characters with the same primaryCharacterId)
-      // to get the full "family" of each match
-      const standaloneCharIds = allMatches
-        .filter((m) => m.primaryCharacterId === null)
-        .map((m) => m.characterId);
-      const allPrimaryIds = Array.from(
-        new Set([...primaryIds, ...standaloneCharIds]),
-      );
-
-      let familyMembers: CharacterMatch[] = [];
-
-      if (allPrimaryIds.length > 0) {
-        familyMembers = await ctx.db
-          .select({
-            characterId: characters.characterId,
-            name: characters.name,
-            server: characters.server,
-            class: characters.class,
-            primaryCharacterId: characters.primaryCharacterId,
-          })
-          .from(characters)
-          .where(
-            sql`(${inArray(characters.primaryCharacterId, allPrimaryIds)} OR ${inArray(characters.characterId, allPrimaryIds)}) AND ${eq(characters.isIgnored, false)}`,
-          );
-      }
-
-      // Group characters by their effective primary ID
-      const familyMap = new Map<number, CharacterMatch[]>();
-
-      for (const member of familyMembers) {
-        const effectivePrimaryId =
-          member.primaryCharacterId ?? member.characterId;
-        if (!familyMap.has(effectivePrimaryId)) {
-          familyMap.set(effectivePrimaryId, []);
+      const linkedFamiliesByUserId = new Map<string, LinkedDiscordFamily[]>();
+      for (const row of linkedDiscordRows) {
+        if (
+          !row.characterId ||
+          !row.anchorCharacterId ||
+          !row.anchorCharacterName
+        ) {
+          continue;
         }
-        familyMap.get(effectivePrimaryId)!.push(member);
-      }
 
-      // Create a map for prefix matching: normalized prefix -> all matches
-      const matchesByPrefix = new Map<string, CharacterMatch[]>();
+        const anchorCharacter =
+          allCharactersById.get(row.anchorCharacterId) ??
+          allCharactersById.get(row.characterId);
+        if (!anchorCharacter) {
+          continue;
+        }
 
-      for (const match of allMatches) {
-        const normalizedName = normalizeName(match.name);
-        // Check against each unique term if it's a prefix
-        for (const term of uniqueTerms) {
-          if (normalizedName.startsWith(term)) {
-            if (!matchesByPrefix.has(term)) {
-              matchesByPrefix.set(term, []);
-            }
-            matchesByPrefix.get(term)!.push(match);
-          }
+        const familyId = getEffectivePrimaryId(anchorCharacter);
+        if (!linkedFamiliesByUserId.has(row.discordUserId)) {
+          linkedFamiliesByUserId.set(row.discordUserId, []);
+        }
+
+        const existing = linkedFamiliesByUserId.get(row.discordUserId)!;
+        if (!existing.some((family) => family.familyId === familyId)) {
+          existing.push({
+            discordUserId: row.discordUserId,
+            familyId,
+            anchorCharacterId: anchorCharacter.characterId,
+            anchorCharacterName: anchorCharacter.name,
+          });
         }
       }
 
-      // Process each signup
+      const overrideMatches = getOverrideMatches();
+
       const results: SignupMatchResult[] = [];
 
       for (const signup of signupsWithResolved) {
-        const normalizedTerm = normalizeName(signup.searchTerm);
-        const prefixMatches = matchesByPrefix.get(normalizedTerm) ?? [];
-
-        // Common result props
         const baseResult = {
           userId: signup.userId,
           discordName: signup.discordName,
           className: signup.className,
-          specName: signup.specName ?? "",
+          specName: signup.specName,
           partyId: signup.partyId ?? null,
           slotId: signup.slotId ?? null,
         };
 
-        if (prefixMatches.length === 0) {
+        const overrideFamilyId = overrideMatches.get(
+          `${signup.userId}:${signup.normalizedDiscordName}`,
+        );
+
+        const resolveFamily = (
+          familyId: number,
+          source: MatchSource,
+          confidence: number,
+          explanation: string,
+        ): SignupMatchResult => {
+          const family = familyMap.get(familyId) ?? [];
+          const primaryCharacter = allCharactersById.get(familyId);
+
+          if (!signup.resolvedClass) {
+            if (primaryCharacter) {
+              return {
+                ...baseResult,
+                status: "skipped",
+                matchSource: source === "saved_override" ? source : "skipped",
+                confidence,
+                explanation,
+                needsManagerReview: false,
+                matchedPrimaryCharacterId: primaryCharacter.characterId,
+                matchedPrimaryCharacterName: primaryCharacter.name,
+                matchedCharacter: toMatchedCharacter(
+                  primaryCharacter,
+                  primaryCharacter,
+                ),
+              };
+            }
+
+            return {
+              ...baseResult,
+              status: "skipped",
+              matchSource: "skipped",
+              confidence,
+              explanation,
+              needsManagerReview: false,
+            };
+          }
+
+          const familyChoice = chooseFamilyCharacterByClass(
+            family,
+            signup.resolvedClass,
+          );
+
+          if (familyChoice.type === "matched") {
+            const selected = familyChoice.matches[0]!;
+            return {
+              ...baseResult,
+              status: "matched",
+              matchSource: source,
+              confidence,
+              explanation,
+              needsManagerReview: false,
+              matchedPrimaryCharacterId: familyId,
+              matchedPrimaryCharacterName: primaryCharacter?.name ?? null,
+              matchedCharacter: toMatchedCharacter(selected, primaryCharacter),
+            };
+          }
+
+          if (familyChoice.type === "ambiguous") {
+            return {
+              ...baseResult,
+              status: "ambiguous",
+              matchSource: source,
+              confidence,
+              explanation: `${explanation} Family found, but ${familyChoice.matches.length} ${signup.resolvedClass} characters remain.`,
+              needsManagerReview: true,
+              matchedPrimaryCharacterId: familyId,
+              matchedPrimaryCharacterName: primaryCharacter?.name ?? null,
+              candidates: familyChoice.matches.map((match) =>
+                toMatchedCharacter(match, primaryCharacter),
+              ),
+            };
+          }
+
+          return {
+            ...baseResult,
+            status: signup.resolvedClass ? "unmatched" : "skipped",
+            matchSource: source,
+            confidence,
+            explanation: `${explanation} Family found, but no ${signup.resolvedClass} character matched.`,
+            needsManagerReview: true,
+            matchedPrimaryCharacterId: familyId,
+            matchedPrimaryCharacterName: primaryCharacter?.name ?? null,
+            candidates: family
+              .slice(0, 6)
+              .map((member) => toMatchedCharacter(member, primaryCharacter)),
+          };
+        };
+
+        if (overrideFamilyId && familyMap.has(overrideFamilyId)) {
+          results.push(
+            resolveFamily(
+              overrideFamilyId,
+              "saved_override",
+              1,
+              "Saved manager override matched this signup.",
+            ),
+          );
+          continue;
+        }
+
+        const linkedFamilies = linkedFamiliesByUserId.get(signup.userId) ?? [];
+        const uniqueLinkedFamilyIds = [
+          ...new Set(linkedFamilies.map((family) => family.familyId)),
+        ];
+
+        if (uniqueLinkedFamilyIds.length === 1) {
+          results.push(
+            resolveFamily(
+              uniqueLinkedFamilyIds[0]!,
+              "discord_link",
+              0.99,
+              "Discord account link identified this family.",
+            ),
+          );
+          continue;
+        }
+
+        const familyScores = new Map<
+          number,
+          {
+            score: number;
+            source: MatchSource;
+            exactTokens: string[];
+            prefixTokens: string[];
+            substringTokens: string[];
+          }
+        >();
+
+        const applyScore = (
+          familyId: number,
+          source: MatchSource,
+          score: number,
+          token: string,
+        ) => {
+          const existing = familyScores.get(familyId) ?? {
+            score: 0,
+            source,
+            exactTokens: [],
+            prefixTokens: [],
+            substringTokens: [],
+          };
+
+          existing.score += score;
+
+          if (
+            source === "token_exact" &&
+            !existing.exactTokens.includes(token)
+          ) {
+            existing.exactTokens.push(token);
+          }
+          if (
+            source === "token_prefix" &&
+            !existing.prefixTokens.includes(token)
+          ) {
+            existing.prefixTokens.push(token);
+          }
+          if (
+            source === "token_substring" &&
+            !existing.substringTokens.includes(token)
+          ) {
+            existing.substringTokens.push(token);
+          }
+
+          if (
+            source === "token_exact" ||
+            (source === "token_prefix" && existing.source !== "token_exact") ||
+            (source === "token_substring" &&
+              existing.source !== "token_exact" &&
+              existing.source !== "token_prefix")
+          ) {
+            existing.source = source;
+          }
+
+          familyScores.set(familyId, existing);
+        };
+
+        for (const token of signup.tokens) {
+          for (const character of allCharacters) {
+            const normalizedCharacterName =
+              normalizedNameMap.get(character.characterId) ?? "";
+            const familyId = getEffectivePrimaryId(character);
+
+            if (normalizedCharacterName === token) {
+              applyScore(familyId, "token_exact", 120, token);
+              continue;
+            }
+
+            if (normalizedCharacterName.startsWith(token)) {
+              applyScore(familyId, "token_prefix", 80, token);
+              continue;
+            }
+
+            if (
+              token.length >= 4 &&
+              normalizedCharacterName.includes(token) &&
+              !signup.discordName.includes(" ")
+            ) {
+              applyScore(familyId, "token_substring", 30, token);
+            }
+          }
+        }
+
+        const rankedFamilies = Array.from(familyScores.entries())
+          .map(([familyId, meta]) => ({
+            familyId,
+            score: meta.score,
+            source: meta.source,
+            meta,
+          }))
+          .sort(compareFamilyScores);
+
+        if (rankedFamilies.length === 0) {
           results.push({
             ...baseResult,
             status: signup.resolvedClass ? "unmatched" : "skipped",
+            matchSource: signup.resolvedClass ? "manual_review" : "skipped",
+            confidence: 0,
+            explanation: "No strong token or family match was found.",
+            needsManagerReview: !!signup.resolvedClass,
           });
           continue;
         }
 
-        // CASE 1: SKIPPED SIGNUP (No resolved class)
-        // We want to try to find a match anyway, but status remains 'skipped'
-        if (!signup.resolvedClass) {
-          // Candidates: prefer exact matches, fallback to all prefix matches
-          const exactMatches = prefixMatches.filter(
-            (m) => normalizeName(m.name) === normalizedTerm,
-          );
-          const candidates =
-            exactMatches.length > 0 ? exactMatches : prefixMatches;
+        const topFamily = rankedFamilies[0]!;
+        const secondFamily = rankedFamilies[1];
 
-          // For skipped signups, we want to identify the PRIMARY character
-          // Resolve each candidate to its Primary Character
-          const uniquePrimaryIds = new Set<number>();
-          const primaryCharacterMap = new Map<number, CharacterMatch>();
-
-          for (const cand of candidates) {
-            const pid = cand.primaryCharacterId ?? cand.characterId;
-            uniquePrimaryIds.add(pid);
-            if (!primaryCharacterMap.has(pid)) {
-              // Find the actual primary character object
-              const family = familyMap.get(pid) ?? [];
-              const primary =
-                primaryMap.get(pid) ??
-                family.find(
-                  (m) => m.primaryCharacterId === null || m.characterId === pid,
-                );
-              if (primary) {
-                primaryCharacterMap.set(pid, primary);
-              }
-            }
-          }
-
-          if (uniquePrimaryIds.size === 1) {
-            // Unambiguous match to a single person
-            const primary = primaryCharacterMap.get(
-              uniquePrimaryIds.values().next().value!,
+        if (
+          secondFamily &&
+          topFamily.score - secondFamily.score < 25 &&
+          topFamily.score < 150
+        ) {
+          const topCandidates = rankedFamilies.slice(0, 4).flatMap((entry) => {
+            const family = familyMap.get(entry.familyId) ?? [];
+            const primaryCharacter = allCharactersById.get(entry.familyId);
+            const familyChoice = chooseFamilyCharacterByClass(
+              family,
+              signup.resolvedClass,
             );
-            if (primary) {
-              results.push({
-                ...baseResult,
-                status: "skipped",
-                matchedCharacter: {
-                  characterId: primary.characterId,
-                  characterName: primary.name,
-                  characterServer: primary.server,
-                  characterClass: primary.class,
-                  primaryCharacterId: primary.primaryCharacterId,
-                  primaryCharacterName: primary.name, // It is the primary
-                },
-              });
-            } else {
-              // Should not happen if data integrity is good
-              results.push({ ...baseResult, status: "skipped" });
+
+            if (
+              familyChoice.type === "matched" ||
+              familyChoice.type === "ambiguous"
+            ) {
+              return familyChoice.matches.map((match) =>
+                toMatchedCharacter(match, primaryCharacter),
+              );
             }
-          } else {
-            // Ambiguous (matches multiple different people) or no primary found
-            // For now, leave matchedCharacter empty to avoid confusion
-            results.push({ ...baseResult, status: "skipped" });
-          }
+
+            return family
+              .slice(0, 2)
+              .map((member) => toMatchedCharacter(member, primaryCharacter));
+          });
+
+          results.push({
+            ...baseResult,
+            status: signup.resolvedClass ? "ambiguous" : "skipped",
+            matchSource: topFamily.source,
+            confidence: topFamily.score / 200,
+            explanation:
+              "Multiple families scored similarly, so this signup needs manager review.",
+            needsManagerReview: !!signup.resolvedClass,
+            candidates: topCandidates.slice(0, 6),
+          });
           continue;
         }
 
-        // CASE 2: STANDARD MATCH (Has resolved class)
-        // Logic remains similar to before: filter families by class
-
-        // Get unique families from prefix matches
-        const familyIds = new Set<number>();
-        for (const match of prefixMatches) {
-          familyIds.add(match.primaryCharacterId ?? match.characterId);
-        }
-
-        // For each family, find member matching the signup's resolved class
-        const matchingCandidates: MatchedCharacter[] = [];
-
-        for (const familyId of familyIds) {
-          const family = familyMap.get(familyId) ?? [];
-          const primaryChar =
-            primaryMap.get(familyId) ??
-            family.find(
-              (m) =>
-                m.primaryCharacterId === null || m.characterId === familyId,
-            );
-
-          // Find family member matching the resolved class
-          const classMatch = family.find(
-            (m) =>
-              m.class.toLowerCase() === signup.resolvedClass!.toLowerCase(),
+        const explanationParts: string[] = [];
+        if (topFamily.meta.exactTokens.length > 0) {
+          explanationParts.push(
+            `Exact token ${topFamily.meta.exactTokens.map((token) => `'${token}'`).join(", ")} identified this family.`,
           );
-
-          if (classMatch) {
-            matchingCandidates.push({
-              characterId: classMatch.characterId,
-              characterName: classMatch.name,
-              characterServer: classMatch.server,
-              characterClass: classMatch.class,
-              primaryCharacterId: classMatch.primaryCharacterId,
-              primaryCharacterName: primaryChar?.name ?? null,
-            });
-          }
+        } else if (topFamily.meta.prefixTokens.length > 0) {
+          explanationParts.push(
+            `Prefix token ${topFamily.meta.prefixTokens.map((token) => `'${token}'`).join(", ")} identified this family.`,
+          );
+        } else if (topFamily.meta.substringTokens.length > 0) {
+          explanationParts.push(
+            `Substring token ${topFamily.meta.substringTokens.map((token) => `'${token}'`).join(", ")} identified this family.`,
+          );
         }
 
-        if (matchingCandidates.length === 0) {
-          // No class match found - return all prefix matches as candidates
-          const allCandidates = prefixMatches.map((m) => {
-            const primaryChar = primaryMap.get(
-              m.primaryCharacterId ?? m.characterId,
-            );
-            return {
-              characterId: m.characterId,
-              characterName: m.name,
-              characterServer: m.server,
-              characterClass: m.class,
-              primaryCharacterId: m.primaryCharacterId,
-              primaryCharacterName: primaryChar?.name ?? null,
-            };
-          });
+        const confidence =
+          topFamily.source === "token_exact"
+            ? 0.92
+            : topFamily.source === "token_prefix"
+              ? 0.78
+              : 0.62;
 
-          results.push({
-            ...baseResult,
-            status: "unmatched",
-            candidates: allCandidates,
-          });
-        } else if (matchingCandidates.length === 1) {
-          // Single match found
-          results.push({
-            ...baseResult,
-            status: "matched",
-            matchedCharacter: matchingCandidates[0],
-          });
-        } else {
-          // Multiple matches - ambiguous
-          results.push({
-            ...baseResult,
-            status: "ambiguous",
-            candidates: matchingCandidates,
-          });
-        }
+        results.push(
+          resolveFamily(
+            topFamily.familyId,
+            topFamily.source,
+            confidence,
+            explanationParts[0] ??
+              "Name tokens identified a likely family for this signup.",
+          ),
+        );
       }
 
       return results;

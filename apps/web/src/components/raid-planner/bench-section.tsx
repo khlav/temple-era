@@ -34,6 +34,9 @@ export function BenchSection({
     id: "bench-droppable",
   });
 
+  const matchedCharacters = characters.filter((c) => c.characterId !== null);
+  const unmatchedCharacters = characters.filter((c) => c.characterId === null);
+
   if (!showAlways && characters.length === 0) {
     return null;
   }
@@ -51,7 +54,7 @@ export function BenchSection({
           characters.length === 0 && !isOver && "border-muted-foreground/30",
         )}
       >
-        {characters.map((char) => (
+        {matchedCharacters.map((char) => (
           <DraggableCharacterCard
             key={char.id}
             character={char}
@@ -63,19 +66,42 @@ export function BenchSection({
             onEditClick={onEditClick}
           />
         ))}
+
+        {unmatchedCharacters.length > 0 && (
+          <>
+            <div className="mt-2 w-full border-b border-muted-foreground/20 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Signups with unmatched characters
+            </div>
+            {unmatchedCharacters.map((char) => (
+              <DraggableCharacterCard
+                key={char.id}
+                character={char}
+                compact
+                editable={editable}
+                dragOnly={dragOnly}
+                showEditControls={showEditControls}
+                isEditing={editingCharacterId === char.id}
+                onEditClick={onEditClick}
+              />
+            ))}
+          </>
+        )}
+
         {editable && showEditControls && onAddClick && (
-          <button
-            type="button"
-            onClick={onAddClick}
-            className={cn(
-              "flex h-[26px] items-center justify-center rounded border border-dashed px-2 text-xs transition-colors",
-              "border-muted-foreground/30 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 hover:text-muted-foreground",
-              editingBench &&
-                "border-primary bg-primary/10 ring-1 ring-primary/50",
-            )}
-          >
-            + Add
-          </button>
+          <div className="mt-2 w-full">
+            <button
+              type="button"
+              onClick={onAddClick}
+              className={cn(
+                "flex h-[26px] items-center justify-center rounded border border-dashed px-2 text-xs transition-colors",
+                "border-muted-foreground/30 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 hover:text-muted-foreground",
+                editingBench &&
+                  "border-primary bg-primary/10 ring-1 ring-primary/50",
+              )}
+            >
+              + Add
+            </button>
+          </div>
         )}
         {characters.length === 0 && !editable && (
           <div className="flex w-full items-center justify-center py-2 text-xs text-muted-foreground/60">

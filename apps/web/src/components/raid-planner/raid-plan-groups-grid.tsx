@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { cn } from "~/lib/utils";
+import { api } from "~/trpc/react";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import type {
   RaidPlanCharacter,
@@ -84,6 +85,9 @@ export function RaidPlanGroupsGrid({
       },
     }),
   );
+
+  // Background fetch all characters to warm up the cache for the edit dialog
+  api.character.getCharacters.useQuery("all");
 
   // Create a map of group -> position -> character for O(1) lookup
   const characterMap = new Map<string, RaidPlanCharacter>();
