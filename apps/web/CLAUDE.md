@@ -419,6 +419,24 @@ The website provides REST API endpoints for the Discord bot (separate repo):
 - All require `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header
 - Helper functions in `src/server/api/discord-helpers.ts`
 
+## External REST API
+
+The website provides a versioned public REST API at `/api/v1/`:
+
+- `GET /api/v1/openapi.json` - OpenAPI 3.0 spec (no auth)
+- `GET /api/v1/me` - Authenticated user identity and linked character
+- `GET /api/v1/characters` - Search/list characters (query params: `q`, `type`)
+- `GET /api/v1/characters/:id` - Character detail with family
+- `GET /api/v1/characters/:id/attendance` - 6-week rolling attendance
+
+**Auth:** Personal API tokens (`tera_<32-hex>`), generated from the profile page by raid managers and admins. Passed as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes in the DB.
+
+**Key files:**
+
+- `src/server/api/v1-auth.ts` - `validateApiToken()` helper used by all routes
+- `src/lib/openapi-registry.ts` - Zod-to-OpenAPI registry and `buildOpenApiSpec()`
+- `src/app/api/v1/` - Route handlers
+
 ## GitHub Automation
 
 - **PR Template**: `.github/pull_request_template.md` structures PR descriptions

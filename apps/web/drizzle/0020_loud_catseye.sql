@@ -1,0 +1,1 @@
+ALTER TABLE "auth_user" ADD COLUMN IF NOT EXISTS "api_token" text;

@@ -46,6 +46,7 @@ yarn-error.log*
 
 # planning md files
 plans
+!docs/superpowers/plans
 
 # wow_addons_for_reference
 wow_addons_for_reference
@@ -56,4 +57,4 @@ bfg-replacements.txt
 
 # claude/llm local settings and testing
 .claude/settings*
-/scripts/*.ts*
+/scripts/*.ts*.worktrees/

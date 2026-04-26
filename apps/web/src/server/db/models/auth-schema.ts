@@ -34,9 +34,12 @@ export const users = tableCreator(
     isRaidManager: boolean("is_raid_manager").default(false),
     isAdmin: boolean("is_admin").default(false),
     characterId: integer("character_id"),
+    // Nullable: users without a token have NULL. Unique index allows multiple NULLs (PG B-tree behavior).
+    apiToken: text("api_token"),
   },
   (user) => ({
     idIdx: uniqueIndex("user__id_idx").on(user.id),
+    apiTokenIdx: uniqueIndex("user__api_token_idx").on(user.apiToken),
   }),
 );
 

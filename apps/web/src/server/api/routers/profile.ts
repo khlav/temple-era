@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -12,6 +14,8 @@ export const profile = createTRPCRouter({
         characterId: true,
         image: true,
         isRaidManager: true,
+        isAdmin: true,
+        apiToken: true,
       },
       with: {
         character: {
@@ -50,6 +54,9 @@ export const profile = createTRPCRouter({
         name: "",
         characterId: -1,
         image: "",
+        isRaidManager: false,
+        isAdmin: false,
+        hasApiToken: false,
         character: { name: "", characterId: -1, class: "" },
         userCharacterIds: [],
       };
@@ -77,6 +84,8 @@ export const profile = createTRPCRouter({
 
     return {
       ...user,
+      apiToken: undefined,
+      hasApiToken: user.apiToken !== null,
       userCharacterIds: Array.from(userCharacterIds),
     };
   }),
@@ -102,4 +111,52 @@ export const profile = createTRPCRouter({
           characterId: users.characterId,
         });
     }),
+
+  generateApiToken: protectedProcedure.mutation(async ({ ctx }) => {
+    const { isRaidManager, isAdmin } = ctx.session.user;
+    // Uses protectedProcedure + manual guard (not raidManagerProcedure) because token
+    // generation should be available to both raid managers and admins, and no existing
+    // middleware covers that union.
+    if (!isRaidManager && !isAdmin) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only raid managers and admins can generate API tokens.",
+      });
+    }
+
+    // Check if user already had a token (so UI can warn about invalidating it)
+    const existing = await ctx.db.query.users.findFirst({
+      columns: { apiToken: true },
+      where: eq(users.id, ctx.session.user.id),
+    });
+    const replaced =
+      existing?.apiToken !== null && existing?.apiToken !== undefined;
+
+    const token = `tera_${crypto.randomBytes(16).toString("hex")}`;
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await ctx.db
+      .update(users)
+      .set({ apiToken: tokenHash })
+      .where(eq(users.id, ctx.session.user.id));
+
+    return { token, replaced };
+  }),
+
+  revokeApiToken: protectedProcedure.mutation(async ({ ctx }) => {
+    const { isRaidManager, isAdmin } = ctx.session.user;
+    if (!isRaidManager && !isAdmin) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Only raid managers and admins can manage API tokens.",
+      });
+    }
+
+    await ctx.db
+      .update(users)
+      .set({ apiToken: null })
+      .where(eq(users.id, ctx.session.user.id));
+
+    return { success: true };
+  }),
 });

@@ -1,10 +1,11 @@
 import { auth } from "~/server/auth";
 import React from "react";
-import { Separator } from "~/components/ui/separator";
 import { ProfileEditor } from "~/components/profile/profile-editor";
+import { ApiAccessCard } from "~/components/profile/api-access-card";
 import { redirect } from "next/navigation";
 import { type Metadata } from "next";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { Separator } from "~/components/ui/separator";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -33,7 +34,14 @@ export default async function ProfileIndex() {
     <main className="w-full px-4">
       <div className="mb-2 text-3xl font-bold tracking-tight">Profile</div>
       <Separator className="my-2" />
-      <ProfileEditor />
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+        <div className="w-full lg:w-1/2">
+          <ProfileEditor />
+        </div>
+        <div className="w-full lg:w-1/2">
+          <ApiAccessCard />
+        </div>
+      </div>
     </main>
   );
 }
