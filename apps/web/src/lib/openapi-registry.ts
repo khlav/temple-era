@@ -614,6 +614,65 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: "patch",
+  path: "/api/v1/raid-plans/{id}",
+  operationId: "patchRaidPlan",
+  tags: ["Raid Planning"],
+  summary: "Update plan AA template",
+  description:
+    "Updates the plan-level default AA template and/or the useDefaultAA flag. All fields are optional — only provided fields are updated. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({
+      id: z
+        .string()
+        .uuid()
+        .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+    }),
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            defaultAATemplate: z
+              .string()
+              .nullable()
+              .optional()
+              .openapi({ example: "{tank}Tank1\n{healer}Healer1" }),
+            useDefaultAA: z.boolean().optional().openapi({ example: true }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated AA template fields",
+      content: {
+        "application/json": {
+          schema: z.object({
+            id: z
+              .string()
+              .uuid()
+              .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+            defaultAATemplate: z
+              .string()
+              .nullable()
+              .openapi({ example: "{tank}Tank1" }),
+            useDefaultAA: z.boolean().nullable().openapi({ example: true }),
+            availableSlots: z.array(z.string()).openapi({ example: ["tank"] }),
+          }),
+        },
+      },
+    },
+    400: { description: "Invalid plan ID or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Plan not found" },
+  },
+});
+
+registry.registerPath({
   method: "delete",
   path: "/api/v1/raid-plans/{id}",
   operationId: "deleteRaidPlan",
@@ -945,6 +1004,477 @@ registry.registerPath({
     401: { description: "Invalid or missing API token" },
     403: { description: "Not a raid manager" },
     404: { description: "Plan not found" },
+  },
+});
+
+// ─── Zone Templates ───────────────────────────────────────────────────────────
+
+const ZoneTemplateEncounterSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+  encounterKey: z.string().openapi({ example: "patchwerk" }),
+  encounterName: z.string().openapi({ example: "Patchwerk" }),
+  sortOrder: z.number().int().openapi({ example: 0 }),
+  groupId: z.string().uuid().nullable().openapi({ example: null }),
+  aaTemplate: z
+    .string()
+    .nullable()
+    .openapi({ example: "{tank}MT\n{healer}H1" }),
+});
+
+const ZoneTemplateGroupSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+  groupName: z.string().openapi({ example: "Spider Wing" }),
+  sortOrder: z.number().int().openapi({ example: 0 }),
+});
+
+const ZoneTemplateDetailSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+  isActive: z.boolean().openapi({ example: true }),
+  defaultAATemplate: z.string().nullable().openapi({ example: "{tank}MT" }),
+  availableSlots: z.array(z.string()).openapi({ example: ["tank", "healer"] }),
+  encounters: z.array(ZoneTemplateEncounterSchema),
+  encounterGroups: z.array(ZoneTemplateGroupSchema),
+});
+
+const ZoneRowSchema = z.object({
+  zoneId: z.string().openapi({ example: "naxxramas" }),
+  zoneName: z.string().openapi({ example: "Naxxramas" }),
+  defaultGroupCount: z.number().int().openapi({ example: 8 }),
+  template: ZoneTemplateDetailSchema.nullable(),
+});
+
+const ZoneIdParam = z.object({
+  zoneId: z.string().openapi({ example: "naxxramas" }),
+});
+
+const EncounterIdParam = z.object({
+  zoneId: z.string().openapi({ example: "naxxramas" }),
+  encounterId: z
+    .string()
+    .uuid()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+});
+
+const GroupIdParam = z.object({
+  zoneId: z.string().openapi({ example: "naxxramas" }),
+  groupId: z
+    .string()
+    .uuid()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/zone-templates",
+  operationId: "listZoneTemplates",
+  tags: ["Zone Templates"],
+  summary: "List all zone templates",
+  description:
+    "Returns all hardcoded raid zones with their template configuration. Zones without a configured template return template: null. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  responses: {
+    200: {
+      description: "Zone template list",
+      content: {
+        "application/json": { schema: z.array(ZoneRowSchema) },
+      },
+    },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/zone-templates/{zoneId}",
+  operationId: "getZoneTemplate",
+  tags: ["Zone Templates"],
+  summary: "Get zone template detail",
+  description:
+    "Returns full zone template detail including encounters and encounter groups. Returns template: null if zone exists but has no template yet. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: { params: ZoneIdParam },
+  responses: {
+    200: {
+      description: "Zone template detail",
+      content: {
+        "application/json": { schema: ZoneRowSchema },
+      },
+    },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone not found" },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/zone-templates/{zoneId}",
+  operationId: "patchZoneTemplate",
+  tags: ["Zone Templates"],
+  summary: "Update zone template",
+  description:
+    "Updates isActive and/or defaultAATemplate. Auto-creates the template record if it does not exist. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: ZoneIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            isActive: z.boolean().optional().openapi({ example: true }),
+            defaultAATemplate: z
+              .string()
+              .max(10000)
+              .nullable()
+              .optional()
+              .openapi({ example: "{tank}MT\n{healer}H1" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated template fields",
+      content: {
+        "application/json": {
+          schema: z.object({
+            id: z
+              .string()
+              .uuid()
+              .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+            isActive: z.boolean().openapi({ example: true }),
+            defaultAATemplate: z
+              .string()
+              .nullable()
+              .openapi({ example: "{tank}MT" }),
+            availableSlots: z.array(z.string()).openapi({ example: ["tank"] }),
+          }),
+        },
+      },
+    },
+    400: { description: "Invalid zone or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/zone-templates/{zoneId}/encounters",
+  operationId: "addZoneTemplateEncounter",
+  tags: ["Zone Templates"],
+  summary: "Add encounter to zone template",
+  description:
+    "Adds a new encounter preset. Auto-creates the zone template record if needed. sortOrder is appended after the current max. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: ZoneIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            encounterName: z
+              .string()
+              .min(1)
+              .max(256)
+              .openapi({ example: "Patchwerk" }),
+            groupId: z
+              .string()
+              .uuid()
+              .nullable()
+              .optional()
+              .openapi({ example: null }),
+            aaTemplate: z
+              .string()
+              .optional()
+              .openapi({ example: "{tank}MT\n{healer}H1 H2 H3" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Created encounter",
+      content: {
+        "application/json": { schema: ZoneTemplateEncounterSchema },
+      },
+    },
+    400: { description: "Invalid zone or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone or group not found" },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/v1/zone-templates/{zoneId}/encounters/{encounterId}",
+  operationId: "updateZoneTemplateEncounter",
+  tags: ["Zone Templates"],
+  summary: "Update zone template encounter",
+  description:
+    "Updates any combination of encounterName, aaTemplate, sortOrder, groupId. Regenerates encounterKey when encounterName changes. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: EncounterIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            encounterName: z
+              .string()
+              .min(1)
+              .max(256)
+              .optional()
+              .openapi({ example: "Patchwerk" }),
+            aaTemplate: z
+              .string()
+              .max(10000)
+              .nullable()
+              .optional()
+              .openapi({ example: "{tank}MT" }),
+            sortOrder: z.number().int().optional().openapi({ example: 3 }),
+            groupId: z
+              .string()
+              .uuid()
+              .nullable()
+              .optional()
+              .openapi({ example: null }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid IDs or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone or encounter not found" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/zone-templates/{zoneId}/encounters/{encounterId}",
+  operationId: "deleteZoneTemplateEncounter",
+  tags: ["Zone Templates"],
+  summary: "Delete zone template encounter",
+  description:
+    "Permanently deletes the encounter preset. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: { params: EncounterIdParam },
+  responses: {
+    200: {
+      description: "Deleted",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid IDs" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone or encounter not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/zone-templates/{zoneId}/encounters/reorder",
+  operationId: "reorderZoneTemplateEncounters",
+  tags: ["Zone Templates"],
+  summary: "Bulk reorder encounters and groups",
+  description:
+    "Atomically updates sort orders for groups and encounters, and reassigns encounter groupId values. Both arrays are optional but at least one item must be provided. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: ZoneIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            groups: z.array(
+              z.object({
+                id: z
+                  .string()
+                  .uuid()
+                  .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+                sortOrder: z.number().int().openapi({ example: 0 }),
+              }),
+            ),
+            encounters: z.array(
+              z.object({
+                id: z
+                  .string()
+                  .uuid()
+                  .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
+                sortOrder: z.number().int().openapi({ example: 1 }),
+                groupId: z
+                  .string()
+                  .uuid()
+                  .nullable()
+                  .openapi({ example: null }),
+              }),
+            ),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Reordered",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid zone or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone template not configured" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/zone-templates/{zoneId}/groups",
+  operationId: "createZoneTemplateGroup",
+  tags: ["Zone Templates"],
+  summary: "Create encounter group in zone template",
+  description:
+    "Creates a new encounter group. sortOrder is appended after the current max across both encounters and groups. Auto-creates the zone template record if needed. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: ZoneIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            groupName: z
+              .string()
+              .min(1)
+              .max(256)
+              .openapi({ example: "Spider Wing" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Created group",
+      content: {
+        "application/json": { schema: ZoneTemplateGroupSchema },
+      },
+    },
+    400: { description: "Invalid zone or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone not found" },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/v1/zone-templates/{zoneId}/groups/{groupId}",
+  operationId: "updateZoneTemplateGroup",
+  tags: ["Zone Templates"],
+  summary: "Rename encounter group",
+  description: "Updates the group name. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: GroupIdParam,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            groupName: z
+              .string()
+              .min(1)
+              .max(256)
+              .openapi({ example: "Spider Wing" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid IDs or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone or group not found" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/zone-templates/{zoneId}/groups/{groupId}",
+  operationId: "deleteZoneTemplateGroup",
+  tags: ["Zone Templates"],
+  summary: "Delete encounter group",
+  description:
+    "Deletes a group. mode=promote (default) moves child encounters to top-level; mode=deleteChildren deletes them. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: GroupIdParam,
+    query: z.object({
+      mode: z
+        .enum(["promote", "deleteChildren"])
+        .optional()
+        .openapi({ example: "promote" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Deleted",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid IDs or mode" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Zone or group not found" },
   },
 });
 

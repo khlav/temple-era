@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { RAID_ZONE_CONFIG } from "~/lib/raid-zones";
@@ -8,14 +9,13 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from "~/components/ui/accordion";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
-import { FolderOpen } from "lucide-react";
+import { ChevronDown, FolderOpen } from "lucide-react";
 import { AATemplateEditorDialog } from "./aa-template-editor-dialog";
 import { ManageEncountersDialog } from "./manage-encounters-dialog";
 import { getGroupCount } from "./constants";
@@ -533,8 +533,8 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
   return (
     <>
       <AccordionItem value={zone.instance}>
-        <AccordionTrigger className="hover:no-underline">
-          <div className="flex flex-1 items-center gap-3">
+        <AccordionPrimitive.Header className="flex items-center">
+          <AccordionPrimitive.Trigger className="flex flex-1 items-center gap-3 py-4 text-left text-sm font-medium transition-all hover:no-underline [&[data-state=open]>svg]:rotate-180">
             <span className="text-base font-semibold">{zone.name}</span>
             <span className="text-xs text-muted-foreground">
               {defaultGroupCount} groups, {is20Man ? "20" : "40"}-man
@@ -550,29 +550,25 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
                 Not configured
               </Badge>
             )}
-            <div className="ml-auto mr-2 flex items-center gap-2">
-              {zone.template && (
-                <div
-                  className="flex items-center gap-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Label
-                    htmlFor={`active-${zone.instance}`}
-                    className="text-xs text-muted-foreground"
-                  >
-                    Active
-                  </Label>
-                  <Switch
-                    id={`active-${zone.instance}`}
-                    checked={zone.template.isActive}
-                    onCheckedChange={handleToggleActive}
-                    disabled={updateTemplate.isPending}
-                  />
-                </div>
-              )}
+            <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+          </AccordionPrimitive.Trigger>
+          {zone.template && (
+            <div className="mr-1 flex items-center gap-2 py-4">
+              <Label
+                htmlFor={`active-${zone.instance}`}
+                className="text-xs text-muted-foreground"
+              >
+                Active
+              </Label>
+              <Switch
+                id={`active-${zone.instance}`}
+                checked={zone.template.isActive}
+                onCheckedChange={handleToggleActive}
+                disabled={updateTemplate.isPending}
+              />
             </div>
-          </div>
-        </AccordionTrigger>
+          )}
+        </AccordionPrimitive.Header>
         <AccordionContent>
           <div className="space-y-4">
             {/* Encounters section */}

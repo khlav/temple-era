@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
 import { db } from "~/server/db";
@@ -12,6 +13,11 @@ import {
   characters,
 } from "~/server/db/schema";
 import { eq, inArray, or, sql } from "drizzle-orm";
+
+const PatchPlanSchema = z.object({
+  defaultAATemplate: z.string().nullable().optional(),
+  useDefaultAA: z.boolean().optional(),
+});
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -175,6 +181,88 @@ export async function GET(
       })),
       encounterAssignments,
       aaSlotAssignments,
+    });
+  } catch (error) {
+    console.error("v1 API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const authResult = await validateApiToken(request);
+    if ("error" in authResult) return authResult.error;
+    const { user } = authResult;
+
+    if (!user.isRaidManager) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    if (!UUID_RE.test(id)) {
+      return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = PatchPlanSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation error", issues: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const input = parsed.data;
+
+    if (Object.keys(input).length === 0) {
+      return NextResponse.json(
+        { error: "No fields provided" },
+        { status: 400 },
+      );
+    }
+
+    const updates: Partial<{
+      defaultAATemplate: string | null;
+      useDefaultAA: boolean;
+    }> = {};
+    if (input.defaultAATemplate !== undefined)
+      updates.defaultAATemplate = input.defaultAATemplate;
+    if (input.useDefaultAA !== undefined)
+      updates.useDefaultAA = input.useDefaultAA;
+
+    const result = await db
+      .update(raidPlans)
+      .set({ ...updates, updatedById: user.id })
+      .where(eq(raidPlans.id, id))
+      .returning({
+        id: raidPlans.id,
+        defaultAATemplate: raidPlans.defaultAATemplate,
+        useDefaultAA: raidPlans.useDefaultAA,
+      });
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
+    const updated = result[0]!;
+    return NextResponse.json({
+      id: updated.id,
+      defaultAATemplate: updated.defaultAATemplate,
+      useDefaultAA: updated.useDefaultAA,
+      availableSlots: getSlotNames(updated.defaultAATemplate ?? ""),
     });
   } catch (error) {
     console.error("v1 API error:", error);
