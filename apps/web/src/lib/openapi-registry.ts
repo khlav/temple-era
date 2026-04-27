@@ -26,7 +26,7 @@ export const CharacterSchema = registry.register(
     name: z.string().openapi({ example: "Khlav" }),
     class: z.string().openapi({ example: "Warrior" }),
     server: z.string().openapi({ example: "Ashkandi" }),
-    slug: z.string().openapi({ example: "khlav" }),
+    slug: z.string().openapi({ example: "khlav-ashkandi-12345" }),
     classDetail: z.string().openapi({ example: "Warrior - Arms" }),
     isPrimary: z.boolean().nullable().openapi({ example: true }),
     primaryCharacterId: z.number().nullable().openapi({ example: null }),
@@ -43,7 +43,7 @@ export const CharacterDetailSchema = registry.register(
         name: z.string().openapi({ example: "Althlav" }),
         class: z.string().openapi({ example: "Rogue" }),
         server: z.string().openapi({ example: "Ashkandi" }),
-        slug: z.string().openapi({ example: "althlav" }),
+        slug: z.string().openapi({ example: "althlav-ashkandi-99" }),
         classDetail: z.string().openapi({ example: "Rogue - Combat" }),
       }),
     ),
@@ -94,7 +94,7 @@ export const MeSchema = registry.register(
         name: z.string().openapi({ example: "Khlav" }),
         class: z.string().openapi({ example: "Warrior" }),
         primaryCharacterId: z.number().nullable().openapi({ example: null }),
-        slug: z.string().openapi({ example: "khlav" }),
+        slug: z.string().openapi({ example: "khlav-ashkandi-12345" }),
         classDetail: z.string().openapi({ example: "Warrior - Arms" }),
       })
       .nullable()
@@ -180,7 +180,7 @@ export const RaidPlanSummarySchema = registry.register(
       .uuid()
       .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
     name: z.string().openapi({ example: "MC Tuesday" }),
-    zoneId: z.string().openapi({ example: "moltencore" }),
+    zoneId: z.string().openapi({ example: "mc" }),
     raidHelperEventId: z.string().nullable().openapi({ example: "1234567890" }),
     startAt: z
       .string()
@@ -192,7 +192,10 @@ export const RaidPlanSummarySchema = registry.register(
 );
 
 const PlanCharacterSchema = z.object({
-  id: z.string().uuid().openapi({ example: "char-plan-uuid" }),
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
   characterId: z.number().nullable().openapi({ example: 12345 }),
   characterName: z.string().openapi({ example: "Khlav" }),
   class: z.string().nullable().openapi({ example: "Warrior" }),
@@ -201,42 +204,66 @@ const PlanCharacterSchema = z.object({
 });
 
 const EncounterGroupSchema = z.object({
-  id: z.string().uuid().openapi({ example: "group-uuid" }),
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "d4e5f6a7-b8c9-0123-def0-234567890123" }),
   groupName: z.string().openapi({ example: "Core Hounds" }),
   sortOrder: z.number().nullable().openapi({ example: 0 }),
 });
 
 const EncounterSchema = z.object({
-  id: z.string().uuid().openapi({ example: "encounter-uuid" }),
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
   encounterKey: z.string().nullable().openapi({ example: "lucifron" }),
   encounterName: z.string().openapi({ example: "Lucifron" }),
   sortOrder: z.number().nullable().openapi({ example: 0 }),
   groupId: z.string().uuid().nullable().openapi({ example: null }),
   useDefaultGroups: z.boolean().nullable().openapi({ example: true }),
-  aaTemplate: z.string().nullable().openapi({ example: null }),
+  aaTemplate: z
+    .string()
+    .nullable()
+    .openapi({
+      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+    }),
   useCustomAA: z.boolean().nullable().openapi({ example: false }),
   availableSlots: z
     .array(z.string())
-    .openapi({ example: ["Main Tank", "Tranq 1"] }),
+    .openapi({ example: ["MainTank", "MainTankHeals"] }),
 });
 
 const EncounterAssignmentSchema = z.object({
-  encounterId: z.string().uuid().openapi({ example: "encounter-uuid" }),
-  planCharacterId: z.string().uuid().openapi({ example: "char-plan-uuid" }),
+  encounterId: z
+    .string()
+    .uuid()
+    .openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
+  planCharacterId: z
+    .string()
+    .uuid()
+    .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
   groupNumber: z.number().nullable().openapi({ example: 1 }),
   position: z.number().nullable().openapi({ example: 2 }),
 });
 
 const AASlotAssignmentSchema = z.object({
-  id: z.string().uuid().openapi({ example: "slot-uuid" }),
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "e5f6a7b8-c9d0-1234-ef01-345678901234" }),
   encounterId: z.string().uuid().nullable().openapi({ example: null }),
-  raidPlanId: z.string().uuid().nullable().openapi({ example: "plan-uuid" }),
+  raidPlanId: z
+    .string()
+    .uuid()
+    .nullable()
+    .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   planCharacterId: z
     .string()
     .uuid()
     .nullable()
-    .openapi({ example: "char-plan-uuid" }),
-  slotName: z.string().openapi({ example: "Main Tank" }),
+    .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
+  slotName: z.string().openapi({ example: "MainTank" }),
 });
 
 export const RaidPlanDetailSchema = registry.register(
@@ -246,7 +273,7 @@ export const RaidPlanDetailSchema = registry.register(
     useDefaultAA: z.boolean().nullable().openapi({ example: true }),
     availableSlots: z
       .array(z.string())
-      .openapi({ example: ["Main Tank", "Tranq 1"] }),
+      .openapi({ example: ["MainTank", "TranqShot1", "Healer1"] }),
     characters: z.array(PlanCharacterSchema),
     encounterGroups: z.array(EncounterGroupSchema),
     encounters: z.array(EncounterSchema),
@@ -260,7 +287,7 @@ export const CreatePlanSchema = registry.register(
   z.object({
     raidHelperEventId: z.string().min(1).openapi({ example: "1234567890" }),
     name: z.string().min(1).max(256).openapi({ example: "MC Tuesday" }),
-    zoneId: z.string().min(1).max(64).openapi({ example: "moltencore" }),
+    zoneId: z.string().min(1).max(64).openapi({ example: "mc" }),
     startAt: z
       .string()
       .nullable()
@@ -563,9 +590,12 @@ registry.registerPath({
       content: {
         "application/json": {
           schema: z.object({
-            id: z.string().uuid().openapi({ example: "plan-uuid" }),
+            id: z
+              .string()
+              .uuid()
+              .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
             name: z.string().openapi({ example: "MC Tuesday" }),
-            zoneId: z.string().openapi({ example: "moltencore" }),
+            zoneId: z.string().openapi({ example: "mc" }),
             raidHelperEventId: z.string().openapi({ example: "1234567890" }),
             startAt: z
               .string()
@@ -638,7 +668,10 @@ registry.registerPath({
               .string()
               .nullable()
               .optional()
-              .openapi({ example: "{tank}Tank1\n{healer}Healer1" }),
+              .openapi({
+                example:
+                  "{skull} {assign:MainTank} :: {assign:MainTankHeals}\n{assign:TranqShot1} {assign:TranqShot2} Tranq",
+              }),
             useDefaultAA: z.boolean().optional().openapi({ example: true }),
           }),
         },
@@ -658,9 +691,13 @@ registry.registerPath({
             defaultAATemplate: z
               .string()
               .nullable()
-              .openapi({ example: "{tank}Tank1" }),
+              .openapi({
+                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+              }),
             useDefaultAA: z.boolean().nullable().openapi({ example: true }),
-            availableSlots: z.array(z.string()).openapi({ example: ["tank"] }),
+            availableSlots: z
+              .array(z.string())
+              .openapi({ example: ["MainTank", "MainTankHeals"] }),
           }),
         },
       },
@@ -755,7 +792,10 @@ export const RosterPatchSchema = registry.register(
   "RosterPatch",
   z.array(
     z.object({
-      planCharacterId: z.string().uuid().openapi({ example: "char-plan-uuid" }),
+      planCharacterId: z
+        .string()
+        .uuid()
+        .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
       group: z.number().int().min(0).max(7).nullable().openapi({ example: 0 }),
       position: z
         .number()
@@ -830,7 +870,10 @@ registry.registerPath({
         .string()
         .uuid()
         .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
-      planCharacterId: z.string().uuid().openapi({ example: "char-plan-uuid" }),
+      planCharacterId: z
+        .string()
+        .uuid()
+        .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
     }),
     body: {
       content: {
@@ -869,7 +912,10 @@ registry.registerPath({
         .string()
         .uuid()
         .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
-      encounterId: z.string().uuid().openapi({ example: "encounter-uuid" }),
+      encounterId: z
+        .string()
+        .uuid()
+        .openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
     }),
     body: {
       content: {
@@ -925,7 +971,10 @@ registry.registerPath({
         .string()
         .uuid()
         .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
-      encounterId: z.string().uuid().openapi({ example: "encounter-uuid" }),
+      encounterId: z
+        .string()
+        .uuid()
+        .openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
     }),
     body: {
       content: {
@@ -955,8 +1004,11 @@ export const AASlotAssignRequestSchema = registry.register(
   "AASlotAssignRequest",
   z.array(
     z.object({
-      slotName: z.string().min(1).max(128).openapi({ example: "Main Tank" }),
-      planCharacterId: z.string().uuid().openapi({ example: "char-plan-uuid" }),
+      slotName: z.string().min(1).max(128).openapi({ example: "MainTank" }),
+      planCharacterId: z
+        .string()
+        .uuid()
+        .openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
       encounterId: z.string().uuid().nullable().openapi({
         example: null,
         description:
@@ -1021,7 +1073,9 @@ const ZoneTemplateEncounterSchema = z.object({
   aaTemplate: z
     .string()
     .nullable()
-    .openapi({ example: "{tank}MT\n{healer}H1" }),
+    .openapi({
+      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+    }),
 });
 
 const ZoneTemplateGroupSchema = z.object({
@@ -1039,8 +1093,15 @@ const ZoneTemplateDetailSchema = z.object({
     .uuid()
     .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   isActive: z.boolean().openapi({ example: true }),
-  defaultAATemplate: z.string().nullable().openapi({ example: "{tank}MT" }),
-  availableSlots: z.array(z.string()).openapi({ example: ["tank", "healer"] }),
+  defaultAATemplate: z
+    .string()
+    .nullable()
+    .openapi({
+      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+    }),
+  availableSlots: z
+    .array(z.string())
+    .openapi({ example: ["MainTank", "MainTankHeals"] }),
   encounters: z.array(ZoneTemplateEncounterSchema),
   encounterGroups: z.array(ZoneTemplateGroupSchema),
 });
@@ -1138,7 +1199,10 @@ registry.registerPath({
               .max(10000)
               .nullable()
               .optional()
-              .openapi({ example: "{tank}MT\n{healer}H1" }),
+              .openapi({
+                example:
+                  "{skull} {assign:MainTank} :: {assign:MainTankHeals}\n{assign:TranqShot1} {assign:TranqShot2} Tranq",
+              }),
           }),
         },
       },
@@ -1158,8 +1222,12 @@ registry.registerPath({
             defaultAATemplate: z
               .string()
               .nullable()
-              .openapi({ example: "{tank}MT" }),
-            availableSlots: z.array(z.string()).openapi({ example: ["tank"] }),
+              .openapi({
+                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+              }),
+            availableSlots: z
+              .array(z.string())
+              .openapi({ example: ["MainTank", "MainTankHeals"] }),
           }),
         },
       },
@@ -1201,7 +1269,9 @@ registry.registerPath({
             aaTemplate: z
               .string()
               .optional()
-              .openapi({ example: "{tank}MT\n{healer}H1 H2 H3" }),
+              .openapi({
+                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+              }),
           }),
         },
       },
@@ -1248,7 +1318,9 @@ registry.registerPath({
               .max(10000)
               .nullable()
               .optional()
-              .openapi({ example: "{tank}MT" }),
+              .openapi({
+                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+              }),
             sortOrder: z.number().int().optional().openapi({ example: 3 }),
             groupId: z
               .string()
