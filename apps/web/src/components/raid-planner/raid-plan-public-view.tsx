@@ -21,6 +21,11 @@ import { EncounterSidebar } from "./encounter-sidebar";
 import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { buildEncounterCharacters, type RaidPlanCharacter } from "./types";
 import { getGroupCount } from "./constants";
+import { extractCharacterLines } from "~/lib/aa-template";
+import {
+  CharacterSummaryPanel,
+  type CharacterEncounterSummary,
+} from "./character-summary-panel";
 
 import { signIn } from "next-auth/react";
 import { Badge } from "~/components/ui/badge";
@@ -143,6 +148,63 @@ export function RaidPlanPublicView({
 
     return labelsMap;
   }, [userCharacterIds, plan?.characters, plan?.aaSlotAssignments]);
+
+  const encounterSummaries = useMemo((): CharacterEncounterSummary[] => {
+    if (!plan || assignmentLabelsMap.size === 0) return [];
+
+    const summaries: CharacterEncounterSummary[] = [];
+
+    // Default/Trash
+    const defaultSlotNames = assignmentLabelsMap.get("default");
+    if (
+      defaultSlotNames?.length &&
+      plan.useDefaultAA &&
+      plan.defaultAATemplate
+    ) {
+      const lines = extractCharacterLines(
+        plan.defaultAATemplate,
+        defaultSlotNames,
+      );
+      if (lines.length > 0) {
+        summaries.push({
+          encounterId: "default",
+          encounterName: "Default/Trash",
+          slotNames: defaultSlotNames,
+          template: lines.join("\n"),
+          slotAssignments: plan.aaSlotAssignments.filter(
+            (a) => a.encounterId === null,
+          ),
+          contextId: planId,
+        });
+      }
+    }
+
+    // Encounters sorted by sortOrder
+    const sortedEncounters = [...plan.encounters].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
+    for (const encounter of sortedEncounters) {
+      const slotNames = assignmentLabelsMap.get(encounter.id);
+      if (!slotNames?.length || !encounter.useCustomAA || !encounter.aaTemplate)
+        continue;
+
+      const lines = extractCharacterLines(encounter.aaTemplate, slotNames);
+      if (lines.length === 0) continue;
+
+      summaries.push({
+        encounterId: encounter.id,
+        encounterName: encounter.encounterName,
+        slotNames,
+        template: lines.join("\n"),
+        slotAssignments: plan.aaSlotAssignments.filter(
+          (a) => a.encounterId === encounter.id,
+        ),
+        contextId: encounter.id,
+      });
+    }
+
+    return summaries;
+  }, [plan, planId, assignmentLabelsMap]);
 
   // Update breadcrumb to show plan name instead of UUID
   useEffect(() => {
@@ -286,6 +348,17 @@ export function RaidPlanPublicView({
         </div>
 
         <Separator className="my-2" />
+
+        {viewAsCharacterId !== null &&
+          viewAsCharacter &&
+          encounterSummaries.length > 0 && (
+            <CharacterSummaryPanel
+              viewAsCharacter={viewAsCharacter}
+              encounterSummaries={encounterSummaries}
+              allCharacters={plan.characters as RaidPlanCharacter[]}
+              onEncounterClick={setActiveTab}
+            />
+          )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,_1fr)]">

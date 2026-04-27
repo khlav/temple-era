@@ -288,3 +288,57 @@ export function getSlotDefinitions(template: string): AASlotDefinition[] {
 
   return definitions;
 }
+
+/**
+ * Extract template lines that contain an {assign:} or {ref:} tag for any of
+ * the given slot names. Used to build the per-character assignment summary.
+ */
+export function extractCharacterLines(
+  template: string,
+  slotNames: string[],
+): string[] {
+  if (!template || slotNames.length === 0) return [];
+
+  const lowerNames = slotNames.map((n) => n.toLowerCase());
+  const lines = template.split("\n");
+
+  // First pass: lines that directly reference the character's slots.
+  const matched = new Set(
+    lines.filter((line) => {
+      const lower = line.toLowerCase();
+      return lowerNames.some(
+        (name) =>
+          lower.includes(`{assign:${name}}`) ||
+          lower.includes(`{assign:${name}:`) ||
+          lower.includes(`{ref:${name}}`) ||
+          lower.includes(`{ref:${name}:`),
+      );
+    }),
+  );
+
+  // Second pass: if any matched line contains a {ref:SlotX}, also include the
+  // line(s) that define SlotX via {assign:SlotX} so the renderer can resolve it.
+  const referencedSlots = new Set<string>();
+  for (const line of matched) {
+    for (const m of line.toLowerCase().matchAll(/\{ref:([^}:]+)/g)) {
+      referencedSlots.add(m[1]!);
+    }
+  }
+  if (referencedSlots.size > 0) {
+    for (const line of lines) {
+      if (matched.has(line)) continue;
+      const lower = line.toLowerCase();
+      for (const slot of referencedSlots) {
+        if (
+          lower.includes(`{assign:${slot}}`) ||
+          lower.includes(`{assign:${slot}:`)
+        ) {
+          matched.add(line);
+          break;
+        }
+      }
+    }
+  }
+
+  return lines.filter((line) => matched.has(line));
+}
