@@ -16,10 +16,7 @@ const globalForDb = globalThis as unknown as {
 const conn =
   globalForDb.conn ??
   postgres(env.DATABASE_URL, {
-    // Keep the serverless footprint small so warm Vercel instances do not
-    // each hold multiple idle Neon connections.
     max: 1,
-    idle_timeout: 20,
     connect_timeout: 10,
     max_lifetime: 60 * 5,
   });
