@@ -8,7 +8,8 @@ import type { SoftResRule, RuleEvaluationContext } from "./softres-rule-types";
  * Restricted Naxx items requiring 50%+ raid attendance
  */
 const RESTRICTED_NAXX_ITEMS = new Set([
-  22807, // Wraith Blade
+  // // Removed 4/29/2026
+  // 22807, // Wraith Blade
   22954, // Kiss of the Spider
   23046, // The Restrained Essence of Sapphiron
   23047, // Eye of the Dead
