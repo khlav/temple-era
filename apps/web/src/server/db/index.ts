@@ -19,6 +19,7 @@ const conn =
     max: 3,
     connect_timeout: 10,
     max_lifetime: 60 * 5,
+    idle_timeout: 20,
   });
 if (env.NODE_ENV !== "production") globalForDb.conn = conn;
 
