@@ -30,6 +30,7 @@ export async function GET(request: Request) {
       image: user.image,
       isRaidManager: user.isRaidManager,
       isAdmin: user.isAdmin,
+      templarEnabled: user.templarEnabled ?? false,
       character: character ?? null,
     });
   } catch (error) {

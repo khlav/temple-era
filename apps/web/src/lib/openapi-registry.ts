@@ -88,6 +88,7 @@ export const MeSchema = registry.register(
       .openapi({ example: "https://cdn.discordapp.com/avatars/..." }),
     isRaidManager: z.boolean().nullable().openapi({ example: false }),
     isAdmin: z.boolean().nullable().openapi({ example: false }),
+    templarEnabled: z.boolean().openapi({ example: false }),
     character: z
       .object({
         characterId: z.number().openapi({ example: 12345 }),
@@ -222,12 +223,9 @@ const EncounterSchema = z.object({
   sortOrder: z.number().nullable().openapi({ example: 0 }),
   groupId: z.string().uuid().nullable().openapi({ example: null }),
   useDefaultGroups: z.boolean().nullable().openapi({ example: true }),
-  aaTemplate: z
-    .string()
-    .nullable()
-    .openapi({
-      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-    }),
+  aaTemplate: z.string().nullable().openapi({
+    example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+  }),
   useCustomAA: z.boolean().nullable().openapi({ example: false }),
   availableSlots: z
     .array(z.string())
@@ -416,6 +414,35 @@ registry.registerPath({
       },
     },
     401: { description: "Invalid or missing API token" },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/me/templar",
+  operationId: "patchMeTemplar",
+  tags: ["User"],
+  summary: "Toggle Templar bot access",
+  description:
+    "Enable or disable the Templar Discord bot from acting on your behalf via the admin proxy.",
+  security: [{ BearerToken: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ enabled: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated Me object",
+      content: { "application/json": { schema: MeSchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Unauthorized" },
+    403: { description: "Forbidden — requires raid manager or admin role" },
   },
 });
 
@@ -664,14 +691,10 @@ registry.registerPath({
       content: {
         "application/json": {
           schema: z.object({
-            defaultAATemplate: z
-              .string()
-              .nullable()
-              .optional()
-              .openapi({
-                example:
-                  "{skull} {assign:MainTank} :: {assign:MainTankHeals}\n{assign:TranqShot1} {assign:TranqShot2} Tranq",
-              }),
+            defaultAATemplate: z.string().nullable().optional().openapi({
+              example:
+                "{skull} {assign:MainTank} :: {assign:MainTankHeals}\n{assign:TranqShot1} {assign:TranqShot2} Tranq",
+            }),
             useDefaultAA: z.boolean().optional().openapi({ example: true }),
           }),
         },
@@ -688,12 +711,9 @@ registry.registerPath({
               .string()
               .uuid()
               .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
-            defaultAATemplate: z
-              .string()
-              .nullable()
-              .openapi({
-                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-              }),
+            defaultAATemplate: z.string().nullable().openapi({
+              example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+            }),
             useDefaultAA: z.boolean().nullable().openapi({ example: true }),
             availableSlots: z
               .array(z.string())
@@ -1070,12 +1090,9 @@ const ZoneTemplateEncounterSchema = z.object({
   encounterName: z.string().openapi({ example: "Patchwerk" }),
   sortOrder: z.number().int().openapi({ example: 0 }),
   groupId: z.string().uuid().nullable().openapi({ example: null }),
-  aaTemplate: z
-    .string()
-    .nullable()
-    .openapi({
-      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-    }),
+  aaTemplate: z.string().nullable().openapi({
+    example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+  }),
 });
 
 const ZoneTemplateGroupSchema = z.object({
@@ -1093,12 +1110,9 @@ const ZoneTemplateDetailSchema = z.object({
     .uuid()
     .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   isActive: z.boolean().openapi({ example: true }),
-  defaultAATemplate: z
-    .string()
-    .nullable()
-    .openapi({
-      example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-    }),
+  defaultAATemplate: z.string().nullable().openapi({
+    example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+  }),
   availableSlots: z
     .array(z.string())
     .openapi({ example: ["MainTank", "MainTankHeals"] }),
@@ -1219,12 +1233,9 @@ registry.registerPath({
               .uuid()
               .openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
             isActive: z.boolean().openapi({ example: true }),
-            defaultAATemplate: z
-              .string()
-              .nullable()
-              .openapi({
-                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-              }),
+            defaultAATemplate: z.string().nullable().openapi({
+              example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+            }),
             availableSlots: z
               .array(z.string())
               .openapi({ example: ["MainTank", "MainTankHeals"] }),
@@ -1266,12 +1277,9 @@ registry.registerPath({
               .nullable()
               .optional()
               .openapi({ example: null }),
-            aaTemplate: z
-              .string()
-              .optional()
-              .openapi({
-                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-              }),
+            aaTemplate: z.string().optional().openapi({
+              example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+            }),
           }),
         },
       },
@@ -1313,14 +1321,9 @@ registry.registerPath({
               .max(256)
               .optional()
               .openapi({ example: "Patchwerk" }),
-            aaTemplate: z
-              .string()
-              .max(10000)
-              .nullable()
-              .optional()
-              .openapi({
-                example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
-              }),
+            aaTemplate: z.string().max(10000).nullable().optional().openapi({
+              example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
+            }),
             sortOrder: z.number().int().optional().openapi({ example: 3 }),
             groupId: z
               .string()

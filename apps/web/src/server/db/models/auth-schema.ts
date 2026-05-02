@@ -36,6 +36,8 @@ export const users = tableCreator(
     characterId: integer("character_id"),
     // Nullable: users without a token have NULL. Unique index allows multiple NULLs (PG B-tree behavior).
     apiToken: text("api_token"),
+    apiTokenEncrypted: text("api_token_encrypted"),
+    templarEnabled: boolean("templar_enabled").notNull().default(false),
   },
   (user) => ({
     idIdx: uniqueIndex("user__id_idx").on(user.id),

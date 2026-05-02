@@ -247,6 +247,8 @@ src/
 - **Character Mapping**: Characters can be linked to a "primary" character for consolidated attendance
 - **Database Views**: Complex queries are materialized as views (e.g., `primary_raid_attendance_l6_lockout_wk`)
 - **Attendance Calculation**: 6-week rolling window based on raid dates and attendance weights
+- `templar_enabled` on `auth_user` — user opt-in for the Templar Discord bot proxy
+- `api_token_encrypted` on `auth_user` — AES-256-GCM encrypted copy of the API token, used exclusively by the proxy
 
 #### External API Integration
 
@@ -416,6 +418,7 @@ The website provides REST API endpoints for the Discord bot (separate repo):
 - `POST /api/discord/check-permissions` - Checks user permissions
 - `POST /api/discord/update-raid` - Updates existing raid data
 - `POST /api/discord/update-bench` - Updates raid bench assignments
+- `POST /api/discord/proxy/{discordId}` - Proxies a v1 API call on behalf of an opted-in user (requires `templarEnabled = true` on target user)
 - All require `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header
 - Helper functions in `src/server/api/discord-helpers.ts`
 
@@ -428,6 +431,7 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `GET /api/v1/characters` - Search/list characters (query params: `q`, `type`)
 - `GET /api/v1/characters/:id` - Character detail with family
 - `GET /api/v1/characters/:id/attendance` - 6-week rolling attendance
+- `PATCH /api/v1/me/templar` - Toggle Templar bot opt-in for the authenticated user (raid managers/admins only)
 
 **Auth:** Personal API tokens (`tera_<32-hex>`), generated from the profile page by raid managers and admins. Passed as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes in the DB.
 

@@ -34,6 +34,7 @@ export const env = createEnv({
     DISCORD_SERVER_ID: z.string(),
     RAID_HELPER_API_KEY: z.string(),
     TEMPLE_WEB_API_TOKEN: z.string(),
+    API_TOKEN_ENCRYPTION_KEY: z.string().min(1),
 
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -81,6 +82,7 @@ export const env = createEnv({
     DISCORD_SERVER_ID: process.env.DISCORD_SERVER_ID,
     RAID_HELPER_API_KEY: process.env.RAID_HELPER_API_KEY,
     TEMPLE_WEB_API_TOKEN: process.env.TEMPLE_WEB_API_TOKEN,
+    API_TOKEN_ENCRYPTION_KEY: process.env.API_TOKEN_ENCRYPTION_KEY,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

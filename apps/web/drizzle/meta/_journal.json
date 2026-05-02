@@ -162,6 +162,13 @@
       "when": 1777343397698,
       "tag": "0022_fix-lockout-views-et-timezone",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777717392281,
+      "tag": "0023_tough_namorita",
+      "breakpoints": true
     }
   ]
 }

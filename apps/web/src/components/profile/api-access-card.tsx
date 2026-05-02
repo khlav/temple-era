@@ -4,6 +4,8 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Switch } from "~/components/ui/switch";
+import { Label } from "~/components/ui/label";
 import { Copy, KeyRound, Trash2 } from "lucide-react";
 import { useToast } from "~/hooks/use-toast";
 
@@ -53,6 +55,24 @@ export function ApiAccessCard() {
     },
   });
 
+  const setTemplarEnabled = api.profile.setTemplarEnabled.useMutation({
+    onSuccess: (data) => {
+      void utils.profile.getMyProfile.invalidate();
+      toast({
+        title: data.templarEnabled
+          ? "Templar access enabled"
+          : "Templar access disabled",
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: "Failed to update Templar access",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCopy = async () => {
     if (!newToken) return;
     try {
@@ -71,15 +91,16 @@ export function ApiAccessCard() {
     setNewToken(null);
   };
 
-  // Don't render until we know the user's role
   if (isLoading || !profile) return null;
 
-  const { isRaidManager, isAdmin, hasApiToken } = profile;
+  const { isRaidManager, isAdmin, hasApiToken, templarEnabled } = profile;
 
-  // Only show for raid managers and admins
   if (!isRaidManager && !isAdmin) return null;
 
-  const isPending = generateToken.isPending || revokeToken.isPending;
+  const isPending =
+    generateToken.isPending ||
+    revokeToken.isPending ||
+    setTemplarEnabled.isPending;
 
   return (
     <Card>
@@ -109,7 +130,6 @@ export function ApiAccessCard() {
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-2">
           {!hasApiToken && !newToken ? (
-            // No token — show Generate
             <Button
               size="sm"
               onClick={() => generateToken.mutate()}
@@ -119,7 +139,6 @@ export function ApiAccessCard() {
             </Button>
           ) : (
             <>
-              {/* Regenerate */}
               {confirmAction === "regenerate" ? (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
@@ -218,6 +237,29 @@ export function ApiAccessCard() {
             >
               Dismiss
             </Button>
+          </div>
+        )}
+
+        {/* Templar toggle — only shown when a token exists */}
+        {(hasApiToken || newToken) && (
+          <div className="flex flex-col gap-1 border-t pt-4">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="templar-enabled"
+                checked={templarEnabled ?? false}
+                disabled={isPending}
+                onCheckedChange={(checked) =>
+                  setTemplarEnabled.mutate({ enabled: checked })
+                }
+              />
+              <Label htmlFor="templar-enabled" className="text-sm">
+                Allow Templar (Discord bot) to act when you ask it to
+              </Label>
+            </div>
+            <p className="pl-10 text-xs text-muted-foreground">
+              Templar is available to Raid Managers only. When disabled, Templar
+              will ignore your requests.
+            </p>
           </div>
         )}
       </CardContent>

@@ -13,6 +13,7 @@ type ValidateApiTokenResult =
         isRaidManager: boolean | null;
         isAdmin: boolean | null;
         characterId: number | null;
+        templarEnabled: boolean | null;
       };
     }
   | { error: NextResponse };
@@ -73,6 +74,7 @@ export async function validateApiToken(
       isRaidManager: users.isRaidManager,
       isAdmin: users.isAdmin,
       characterId: users.characterId,
+      templarEnabled: users.templarEnabled,
     })
     .from(users)
     .where(eq(users.apiToken, tokenHash))
