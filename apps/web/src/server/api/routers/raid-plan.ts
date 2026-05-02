@@ -12,6 +12,7 @@ import {
   gte,
   lt,
   sql,
+  isNotNull,
 } from "drizzle-orm";
 import {
   createTRPCRouter,
@@ -2379,6 +2380,228 @@ export const raidPlanRouter = createTRPCRouter({
           0,
         ),
       };
+    }),
+
+  /**
+   * Preview how many AA slot assignments would carry forward when cloning.
+   * Matches characters by characterId (write-ins are excluded).
+   * Matches encounters by encounterName.
+   */
+  previewAACarryForward: raidManagerProcedure
+    .input(
+      z.object({
+        sourcePlanId: z.string().uuid(),
+        targetPlanId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Pre-fetch source encounters for ID list (consistent with applyAACarryForward)
+      const sourceEncounters = await ctx.db
+        .select({ id: raidPlanEncounters.id })
+        .from(raidPlanEncounters)
+        .where(eq(raidPlanEncounters.raidPlanId, input.sourcePlanId));
+
+      // Fetch source plan's AA slots with characterId
+      const sourceSlots = await ctx.db
+        .select({
+          characterId: raidPlanCharacters.characterId,
+          slotName: raidPlanEncounterAASlots.slotName,
+          encounterId: raidPlanEncounterAASlots.encounterId,
+        })
+        .from(raidPlanEncounterAASlots)
+        .innerJoin(
+          raidPlanCharacters,
+          eq(raidPlanEncounterAASlots.planCharacterId, raidPlanCharacters.id),
+        )
+        .where(
+          and(
+            or(
+              eq(raidPlanEncounterAASlots.raidPlanId, input.sourcePlanId),
+              sourceEncounters.length > 0
+                ? inArray(
+                    raidPlanEncounterAASlots.encounterId,
+                    sourceEncounters.map((e) => e.id),
+                  )
+                : sql`false`,
+            ),
+            isNotNull(raidPlanCharacters.characterId),
+          ),
+        );
+
+      if (sourceSlots.length === 0) {
+        return { matchedCharacters: 0, slotsToFill: 0 };
+      }
+
+      // Fetch target plan's named characters
+      const targetChars = await ctx.db
+        .select({
+          id: raidPlanCharacters.id,
+          characterId: raidPlanCharacters.characterId,
+        })
+        .from(raidPlanCharacters)
+        .where(
+          and(
+            eq(raidPlanCharacters.raidPlanId, input.targetPlanId),
+            isNotNull(raidPlanCharacters.characterId),
+          ),
+        );
+
+      const targetCharIds = new Set(
+        targetChars.map((c) => c.characterId).filter((id) => id !== null),
+      );
+
+      const matchedCharacterIds = new Set<number>();
+      let slotsToFill = 0;
+      for (const slot of sourceSlots) {
+        if (slot.characterId !== null && targetCharIds.has(slot.characterId)) {
+          matchedCharacterIds.add(slot.characterId);
+          slotsToFill++;
+        }
+      }
+
+      return {
+        matchedCharacters: matchedCharacterIds.size,
+        slotsToFill,
+      };
+    }),
+
+  /**
+   * Copy AA slot assignments from a source plan to a target plan for returning raiders.
+   * Characters matched by characterId; encounters matched by encounterName.
+   * Write-in characters (no characterId) are skipped.
+   */
+  applyAACarryForward: raidManagerProcedure
+    .input(
+      z.object({
+        sourcePlanId: z.string().uuid(),
+        targetPlanId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 1. Fetch source encounters for name lookup
+      const sourceEncounters = await ctx.db
+        .select({
+          id: raidPlanEncounters.id,
+          encounterName: raidPlanEncounters.encounterName,
+        })
+        .from(raidPlanEncounters)
+        .where(eq(raidPlanEncounters.raidPlanId, input.sourcePlanId));
+
+      const sourceEncounterNames = new Map<string, string>(); // encounterId -> name
+      for (const enc of sourceEncounters) {
+        sourceEncounterNames.set(enc.id, enc.encounterName);
+      }
+
+      // 2. Fetch source AA slots with characterId
+      const sourceSlots = await ctx.db
+        .select({
+          characterId: raidPlanCharacters.characterId,
+          slotName: raidPlanEncounterAASlots.slotName,
+          sortOrder: raidPlanEncounterAASlots.sortOrder,
+          encounterId: raidPlanEncounterAASlots.encounterId,
+          raidPlanId: raidPlanEncounterAASlots.raidPlanId,
+        })
+        .from(raidPlanEncounterAASlots)
+        .innerJoin(
+          raidPlanCharacters,
+          eq(raidPlanEncounterAASlots.planCharacterId, raidPlanCharacters.id),
+        )
+        .where(
+          and(
+            or(
+              eq(raidPlanEncounterAASlots.raidPlanId, input.sourcePlanId),
+              sourceEncounters.length > 0
+                ? inArray(
+                    raidPlanEncounterAASlots.encounterId,
+                    sourceEncounters.map((e) => e.id),
+                  )
+                : sql`false`,
+            ),
+            isNotNull(raidPlanCharacters.characterId),
+          ),
+        );
+
+      if (sourceSlots.length === 0) return { slotsCreated: 0 };
+
+      // 3. Build target character map: characterId -> planCharacterId
+      const targetChars = await ctx.db
+        .select({
+          id: raidPlanCharacters.id,
+          characterId: raidPlanCharacters.characterId,
+        })
+        .from(raidPlanCharacters)
+        .where(
+          and(
+            eq(raidPlanCharacters.raidPlanId, input.targetPlanId),
+            isNotNull(raidPlanCharacters.characterId),
+          ),
+        );
+
+      const targetCharMap = new Map<number, string>(); // characterId -> planCharacterId
+      for (const char of targetChars) {
+        if (char.characterId !== null) {
+          targetCharMap.set(char.characterId, char.id);
+        }
+      }
+
+      // 4. Build target encounter map: encounterName -> encounterId
+      const targetEncounters = await ctx.db
+        .select({
+          id: raidPlanEncounters.id,
+          encounterName: raidPlanEncounters.encounterName,
+        })
+        .from(raidPlanEncounters)
+        .where(eq(raidPlanEncounters.raidPlanId, input.targetPlanId));
+
+      const targetEncounterMap = new Map<string, string>(); // name -> encounterId
+      for (const enc of targetEncounters) {
+        targetEncounterMap.set(enc.encounterName, enc.id);
+      }
+
+      // 5. Resolve slots to insert
+      const slotsToInsert: Array<{
+        encounterId: string | null;
+        raidPlanId: string | null;
+        planCharacterId: string;
+        slotName: string;
+        sortOrder: number;
+      }> = [];
+
+      for (const slot of sourceSlots) {
+        if (slot.characterId === null) continue;
+        const newPlanCharId = targetCharMap.get(slot.characterId);
+        if (!newPlanCharId) continue;
+
+        let targetEncounterId: string | null = null;
+        let targetRaidPlanId: string | null = null;
+
+        if (slot.encounterId !== null) {
+          const sourceName = sourceEncounterNames.get(slot.encounterId);
+          if (!sourceName) continue;
+          const targetEncId = targetEncounterMap.get(sourceName);
+          if (!targetEncId) continue;
+          targetEncounterId = targetEncId;
+        } else {
+          targetRaidPlanId = input.targetPlanId;
+        }
+
+        slotsToInsert.push({
+          encounterId: targetEncounterId,
+          raidPlanId: targetRaidPlanId,
+          planCharacterId: newPlanCharId,
+          slotName: slot.slotName,
+          sortOrder: slot.sortOrder,
+        });
+      }
+
+      if (slotsToInsert.length > 0) {
+        await ctx.db.transaction(async (tx) => {
+          await tx.insert(raidPlanEncounterAASlots).values(slotsToInsert);
+          await touchRaidPlanActor(tx, input.targetPlanId, ctx.session.user.id);
+        });
+      }
+
+      return { slotsCreated: slotsToInsert.length };
     }),
 
   /**

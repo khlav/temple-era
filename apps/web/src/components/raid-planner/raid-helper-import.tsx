@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { MatchReviewSheet } from "./match-review-sheet";
+import { AACarryForwardDialog } from "./aa-carry-forward-dialog";
 
 // Detect zone from event title
 function detectZoneFromTitle(title: string): string | null {
@@ -240,6 +241,11 @@ function CharacterMatchingDialog({
     null,
   );
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [pendingCarryForward, setPendingCarryForward] = useState<{
+    sourcePlanId: string;
+    targetPlanId: string;
+    sourcePlanName: string;
+  } | null>(null);
 
   // Default home server to user's primary character server
   const characterId = session?.user?.characterId;
@@ -344,7 +350,15 @@ function CharacterMatchingDialog({
   const createPlanMutation = api.raidPlan.create.useMutation({
     onSuccess: (data) => {
       onOpenChange(false);
-      router.push(`/raid-manager/raid-planner/${data.id}`);
+      if (cloneFromPlanId) {
+        setPendingCarryForward({
+          sourcePlanId: cloneFromPlanId,
+          targetPlanId: data.id,
+          sourcePlanName: cloneFromPlanName ?? "Previous Plan",
+        });
+      } else {
+        router.push(`/raid-manager/raid-planner/${data.id}`);
+      }
     },
     onError: (error) => {
       toast({
@@ -712,7 +726,6 @@ function CharacterMatchingDialog({
             </div>
 
             <div className="flex items-center gap-2">
-
               {/* Server selector */}
               <div className="flex items-center gap-2">
                 <label
@@ -831,6 +844,18 @@ function CharacterMatchingDialog({
           matchResults={matchResults}
         />
       ) : null}
+      {pendingCarryForward && (
+        <AACarryForwardDialog
+          open={true}
+          sourcePlanId={pendingCarryForward.sourcePlanId}
+          targetPlanId={pendingCarryForward.targetPlanId}
+          sourcePlanName={pendingCarryForward.sourcePlanName}
+          onComplete={(id) => {
+            setPendingCarryForward(null);
+            router.push(`/raid-manager/raid-planner/${id}`);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
