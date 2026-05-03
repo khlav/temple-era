@@ -18,10 +18,7 @@ export function CharacterManagerRowSkeleton({ rows = 12 }: { rows?: number }) {
                 key={cellIndex}
                 className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]"
               >
-                <Skeleton
-                  className="my-1 h-7 px-4"
-                  style={{ width: `${pseudoRandomWidth}%` }}
-                />
+                <Skeleton className="my-1 h-7 px-4" style={{ width: `${pseudoRandomWidth}%` }} />
               </td>
             );
           })}

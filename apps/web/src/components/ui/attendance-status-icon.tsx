@@ -1,11 +1,7 @@
 "use client";
 
 import { Swords, Armchair } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 interface AttendanceStatusIconProps {
   status: "attendee" | "bench" | null;

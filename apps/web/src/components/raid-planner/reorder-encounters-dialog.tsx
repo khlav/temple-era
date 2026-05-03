@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useId } from "react";
-import {
-  ArrowUpDown,
-  ChevronDown,
-  ChevronUp,
-  GripVertical,
-  Loader2,
-} from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronUp, GripVertical, Loader2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -68,14 +62,9 @@ function SortableRow({
   onMoveDown: () => void;
   isPending: boolean;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: encounter.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: encounter.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -203,9 +192,7 @@ export function ReorderEncountersDialog({
           <DialogPrimitive.Content className="relative z-50 flex max-h-[85vh] w-full max-w-md flex-col gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Reorder Encounters</DialogTitle>
-              <DialogDescription>
-                Drag or use arrows to reorder encounter tabs.
-              </DialogDescription>
+              <DialogDescription>Drag or use arrows to reorder encounter tabs.</DialogDescription>
             </DialogHeader>
             <div className="grid min-h-0 gap-2 overflow-y-auto">
               <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 opacity-50">
@@ -239,9 +226,7 @@ export function ReorderEncountersDialog({
                   {activeDragEncounter && (
                     <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 shadow-lg ring-2 ring-primary/50">
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <span className="flex-1 text-sm">
-                        {activeDragEncounter.encounterName}
-                      </span>
+                      <span className="flex-1 text-sm">{activeDragEncounter.encounterName}</span>
                     </div>
                   )}
                 </DragOverlay>
@@ -256,11 +241,7 @@ export function ReorderEncountersDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="button"
-                disabled={orderUnchanged || isPending}
-                onClick={handleSave}
-              >
+              <Button type="button" disabled={orderUnchanged || isPending} onClick={handleSave}>
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

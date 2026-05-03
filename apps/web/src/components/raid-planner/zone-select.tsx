@@ -10,11 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import {
-  RAID_ZONE_CONFIG,
-  CUSTOM_ZONE_ID,
-  CUSTOM_ZONE_DISPLAY_NAME,
-} from "~/lib/raid-zones";
+import { RAID_ZONE_CONFIG, CUSTOM_ZONE_ID, CUSTOM_ZONE_DISPLAY_NAME } from "~/lib/raid-zones";
 import { TWENTY_MAN_INSTANCES } from "./constants";
 import { cn } from "~/lib/utils";
 
@@ -24,11 +20,7 @@ interface ZoneSelectProps {
   className?: string; // Allow overriding trigger width/className
 }
 
-export function ZoneSelect({
-  value,
-  onValueChange,
-  className,
-}: ZoneSelectProps) {
+export function ZoneSelect({ value, onValueChange, className }: ZoneSelectProps) {
   const itemClassName = "text-xs py-1 cursor-pointer";
 
   return (
@@ -42,15 +34,9 @@ export function ZoneSelect({
             40-Man Raids
           </SelectLabel>
           {(["mc", "bwl", "aq40", "naxxramas"] as const).map((instance) => {
-            const config = RAID_ZONE_CONFIG.find(
-              (z) => z.instance === instance,
-            );
+            const config = RAID_ZONE_CONFIG.find((z) => z.instance === instance);
             return config ? (
-              <SelectItem
-                key={instance}
-                value={instance}
-                className={itemClassName}
-              >
+              <SelectItem key={instance} value={instance} className={itemClassName}>
                 {config.name}
               </SelectItem>
             ) : null;
@@ -62,15 +48,9 @@ export function ZoneSelect({
             20-Man Raids
           </SelectLabel>
           {TWENTY_MAN_INSTANCES.map((instance) => {
-            const config = RAID_ZONE_CONFIG.find(
-              (z) => z.instance === instance,
-            );
+            const config = RAID_ZONE_CONFIG.find((z) => z.instance === instance);
             return config ? (
-              <SelectItem
-                key={instance}
-                value={instance}
-                className={itemClassName}
-              >
+              <SelectItem key={instance} value={instance} className={itemClassName}>
                 {config.name}
               </SelectItem>
             ) : null;

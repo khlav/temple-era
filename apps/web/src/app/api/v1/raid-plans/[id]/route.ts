@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
 import { db } from "~/server/db";
@@ -19,13 +20,9 @@ const PatchPlanSchema = z.object({
   useDefaultAA: z.boolean().optional(),
 });
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -74,10 +71,7 @@ export async function GET(
           >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
         })
         .from(raidPlanCharacters)
-        .leftJoin(
-          characters,
-          eq(raidPlanCharacters.characterId, characters.characterId),
-        )
+        .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
         .where(eq(raidPlanCharacters.raidPlanId, id))
         .orderBy(
           raidPlanCharacters.defaultGroup,
@@ -110,9 +104,7 @@ export async function GET(
         .orderBy(raidPlanEncounterGroups.sortOrder),
     ]);
 
-    const customEncounterIds = encounters
-      .filter((e) => !e.useDefaultGroups)
-      .map((e) => e.id);
+    const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
 
     let encounterAssignments: {
       encounterId: string;
@@ -130,9 +122,7 @@ export async function GET(
           position: raidPlanEncounterAssignments.position,
         })
         .from(raidPlanEncounterAssignments)
-        .where(
-          inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds),
-        )
+        .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds))
         .orderBy(
           raidPlanEncounterAssignments.encounterId,
           raidPlanEncounterAssignments.groupNumber,
@@ -183,18 +173,12 @@ export async function GET(
       aaSlotAssignments,
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -228,20 +212,15 @@ export async function PATCH(
     const input = parsed.data;
 
     if (Object.keys(input).length === 0) {
-      return NextResponse.json(
-        { error: "No fields provided" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "No fields provided" }, { status: 400 });
     }
 
     const updates: Partial<{
       defaultAATemplate: string | null;
       useDefaultAA: boolean;
     }> = {};
-    if (input.defaultAATemplate !== undefined)
-      updates.defaultAATemplate = input.defaultAATemplate;
-    if (input.useDefaultAA !== undefined)
-      updates.useDefaultAA = input.useDefaultAA;
+    if (input.defaultAATemplate !== undefined) updates.defaultAATemplate = input.defaultAATemplate;
+    if (input.useDefaultAA !== undefined) updates.useDefaultAA = input.useDefaultAA;
 
     const result = await db
       .update(raidPlans)
@@ -265,18 +244,12 @@ export async function PATCH(
       availableSlots: getSlotNames(updated.defaultAATemplate ?? ""),
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -303,10 +276,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

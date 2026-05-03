@@ -59,9 +59,7 @@ export const accounts = tableCreator(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
-    type: varchar("type", { length: 255 })
-      .$type<AdapterAccount["type"]>()
-      .notNull(),
+    type: varchar("type", { length: 255 }).$type<AdapterAccount["type"]>().notNull(),
     provider: varchar("provider", { length: 255 }).notNull(),
     providerAccountId: varchar("provider_account_id", {
       length: 255,
@@ -92,9 +90,7 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const sessions = tableCreator(
   "session",
   {
-    sessionToken: varchar("session_token", { length: 255 })
-      .notNull()
-      .primaryKey(),
+    sessionToken: varchar("session_token", { length: 255 }).notNull().primaryKey(),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id),

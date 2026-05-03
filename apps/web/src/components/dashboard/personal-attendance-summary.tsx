@@ -26,15 +26,13 @@ export function PersonalAttendanceSummary({
 
   const activeCharacterId = userProfile?.characterId ?? currentUserCharacterId;
 
-  const { data: attendanceData } =
-    api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery(
-      { characterId: activeCharacterId ?? -1 },
-      { enabled: !!activeCharacterId },
-    );
-  const { data: characterData } = api.character.getCharacterById.useQuery(
-    activeCharacterId ?? -1,
+  const { data: attendanceData } = api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery(
+    { characterId: activeCharacterId ?? -1 },
     { enabled: !!activeCharacterId },
   );
+  const { data: characterData } = api.character.getCharacterById.useQuery(activeCharacterId ?? -1, {
+    enabled: !!activeCharacterId,
+  });
 
   const utils = api.useUtils();
   const saveProfileMutation = api.profile.saveMyProfile.useMutation({
@@ -171,10 +169,7 @@ export function PersonalAttendanceSummary({
     }
 
     // Sort weeks by date ascending (oldest first) as expected by heatmap
-    weeks.sort(
-      (a, b) =>
-        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime(),
-    );
+    weeks.sort((a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime());
 
     return {
       heatmap: { weeks },
@@ -210,9 +205,7 @@ export function PersonalAttendanceSummary({
                   Select primary character
                 </Button>
               </CharacterSelector>
-              <p className="text-sm text-muted-foreground">
-                to view your attendance.
-              </p>
+              <p className="text-sm text-muted-foreground">to view your attendance.</p>
             </div>
           </div>
         </CardContent>
@@ -265,9 +258,7 @@ export function PersonalAttendanceSummary({
                 href={`/characters/${activeCharacterId}`}
                 className="flex items-center gap-1 transition-all hover:text-primary"
               >
-                {titleClass && (
-                  <ClassIcon characterClass={titleClass} px={20} />
-                )}
+                {titleClass && <ClassIcon characterClass={titleClass} px={20} />}
                 <span className="font-bold">{titleData.characterName}</span>
               </Link>
               <span>— Raid Attendance, Last 6 lockouts</span>

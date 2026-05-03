@@ -3,12 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -16,12 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
   Table,
@@ -31,11 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { ChevronDown, ChevronRight, Copy, Loader2, Users } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
@@ -80,21 +66,9 @@ function RoleIcon({
 }
 
 // Discord icon SVG component
-function DiscordIcon({
-  size = 16,
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) {
+function DiscordIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      className={className}
-      fill="currentColor"
-    >
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
       <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
     </svg>
   );
@@ -111,18 +85,14 @@ export function FindGamersDialog({
 }: FindGamersDialogProps) {
   const { toast } = useToast();
   const [registeredOpen, setRegisteredOpen] = useState(false);
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(
-    new Set(),
-  );
-  const [selectedZone, setSelectedZone] = useState<string>(
-    detectedZone ?? CUSTOM_ZONE_ID,
-  );
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
+  const [selectedZone, setSelectedZone] = useState<string>(detectedZone ?? CUSTOM_ZONE_ID);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<string>(
     new Date(eventStartTime * 1000).getDay().toString(),
   );
-  const [roleFilter, setRoleFilter] = useState<
-    "all" | "tank" | "healer" | "melee" | "ranged"
-  >("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "tank" | "healer" | "melee" | "ranged">(
+    "all",
+  );
 
   // Track if we've checked the initial load results for potential fallback
   const hasCheckedInitialLoad = useRef(false);
@@ -130,75 +100,69 @@ export function FindGamersDialog({
   // ... (omitted helper functions) ...
 
   // Process current signups to get role distribution and primary character IDs
-  const {
-    roleDistribution,
-    registeredPrimaryCharacterIds,
-    statusMap,
-    charIdStatusMap,
-  } = useMemo(() => {
-    const roles: Record<TalentRole, Array<{ name: string; class: string }>> = {
-      Tank: [],
-      Healer: [],
-      Melee: [],
-      Ranged: [],
-    };
-    const primaryIds = new Set<number>();
-    // Map DiscordUserID -> Status (e.g. "Bench", "Late")
-    const statusMap = new Map<string, string>();
-    // Map PrimaryCharacterID -> Status
-    const charIdStatusMap = new Map<number, string>();
+  const { roleDistribution, registeredPrimaryCharacterIds, statusMap, charIdStatusMap } =
+    useMemo(() => {
+      const roles: Record<TalentRole, Array<{ name: string; class: string }>> = {
+        Tank: [],
+        Healer: [],
+        Melee: [],
+        Ranged: [],
+      };
+      const primaryIds = new Set<number>();
+      // Map DiscordUserID -> Status (e.g. "Bench", "Late")
+      const statusMap = new Map<string, string>();
+      // Map PrimaryCharacterID -> Status
+      const charIdStatusMap = new Map<number, string>();
 
-    for (const signup of currentSignups) {
-      if (signup.status === "skipped") {
-        // Use userId (Discord ID) for mapping
-        statusMap.set(signup.userId, signup.className);
+      for (const signup of currentSignups) {
+        if (signup.status === "skipped") {
+          // Use userId (Discord ID) for mapping
+          statusMap.set(signup.userId, signup.className);
 
-        if (signup.matchedCharacter) {
-          const pid =
-            signup.matchedCharacter.primaryCharacterId ??
-            signup.matchedCharacter.characterId;
-          charIdStatusMap.set(pid, signup.className);
+          if (signup.matchedCharacter) {
+            const pid =
+              signup.matchedCharacter.primaryCharacterId ?? signup.matchedCharacter.characterId;
+            charIdStatusMap.set(pid, signup.className);
+          }
+          continue;
         }
-        continue;
+
+        const characterName =
+          signup.status === "matched" && signup.matchedCharacter
+            ? signup.matchedCharacter.characterName
+            : signup.discordName;
+
+        // Raid Helper allows signups as either a role (Tank/Healer/Melee/Ranged) or a class (Warrior/Druid/etc)
+        // If className is already a role, use it directly; otherwise infer from class + spec
+        const validRoles: TalentRole[] = ["Tank", "Healer", "Melee", "Ranged"];
+        const role = validRoles.includes(signup.className as TalentRole)
+          ? (signup.className as TalentRole)
+          : inferTalentRole(signup.className, signup.specName);
+
+        // For display, use matched character's class if available, otherwise signup class
+        // This ensures we show the correct class icon (e.g., Warrior/Druid instead of "Tank")
+        const displayClass =
+          signup.status === "matched" && signup.matchedCharacter
+            ? signup.matchedCharacter.characterClass
+            : signup.className;
+
+        roles[role].push({ name: characterName, class: displayClass });
+
+        // Track primary character ID for exclusion
+        if (signup.status === "matched" && signup.matchedCharacter) {
+          const primaryId =
+            signup.matchedCharacter.primaryCharacterId ?? signup.matchedCharacter.characterId;
+          primaryIds.add(primaryId);
+        }
       }
 
-      const characterName =
-        signup.status === "matched" && signup.matchedCharacter
-          ? signup.matchedCharacter.characterName
-          : signup.discordName;
-
-      // Raid Helper allows signups as either a role (Tank/Healer/Melee/Ranged) or a class (Warrior/Druid/etc)
-      // If className is already a role, use it directly; otherwise infer from class + spec
-      const validRoles: TalentRole[] = ["Tank", "Healer", "Melee", "Ranged"];
-      const role = validRoles.includes(signup.className as TalentRole)
-        ? (signup.className as TalentRole)
-        : inferTalentRole(signup.className, signup.specName);
-
-      // For display, use matched character's class if available, otherwise signup class
-      // This ensures we show the correct class icon (e.g., Warrior/Druid instead of "Tank")
-      const displayClass =
-        signup.status === "matched" && signup.matchedCharacter
-          ? signup.matchedCharacter.characterClass
-          : signup.className;
-
-      roles[role].push({ name: characterName, class: displayClass });
-
-      // Track primary character ID for exclusion
-      if (signup.status === "matched" && signup.matchedCharacter) {
-        const primaryId =
-          signup.matchedCharacter.primaryCharacterId ??
-          signup.matchedCharacter.characterId;
-        primaryIds.add(primaryId);
-      }
-    }
-
-    return {
-      roleDistribution: roles,
-      registeredPrimaryCharacterIds: Array.from(primaryIds),
-      statusMap,
-      charIdStatusMap,
-    };
-  }, [currentSignups]);
+      return {
+        roleDistribution: roles,
+        registeredPrimaryCharacterIds: Array.from(primaryIds),
+        statusMap,
+        charIdStatusMap,
+      };
+    }, [currentSignups]);
 
   // Fetch potential players
   const {
@@ -208,10 +172,8 @@ export function FindGamersDialog({
   } = api.raidHelper.findPotentialPlayers.useQuery(
     {
       registeredPrimaryCharacterIds,
-      filterZone:
-        selectedZone === CUSTOM_ZONE_ID || !selectedZone ? null : selectedZone,
-      filterDayOfWeek:
-        selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
+      filterZone: selectedZone === CUSTOM_ZONE_ID || !selectedZone ? null : selectedZone,
+      filterDayOfWeek: selectedDayOfWeek !== "any" ? parseInt(selectedDayOfWeek) : null,
       roleFilter: "all", // Always fetch all, filter on client
     },
     { enabled: open },
@@ -235,10 +197,7 @@ export function FindGamersDialog({
       open
     ) {
       hasCheckedInitialLoad.current = true;
-      if (
-        potentialPlayersData.potentialPlayers.length === 0 &&
-        selectedZone !== CUSTOM_ZONE_ID
-      ) {
+      if (potentialPlayersData.potentialPlayers.length === 0 && selectedZone !== CUSTOM_ZONE_ID) {
         setSelectedZone(CUSTOM_ZONE_ID);
         toast({
           title: "No players found in zone",
@@ -252,9 +211,7 @@ export function FindGamersDialog({
     let players = potentialPlayersData?.potentialPlayers ?? [];
 
     if (roleFilter !== "all") {
-      players = players.filter((p) =>
-        p.familyRoles.some((r) => r.toLowerCase() === roleFilter),
-      );
+      players = players.filter((p) => p.familyRoles.some((r) => r.toLowerCase() === roleFilter));
     }
 
     const deduped = new Map<number | string, (typeof players)[number]>();
@@ -303,12 +260,7 @@ export function FindGamersDialog({
       // 4. Name (A-Z)
       return a.characterName.localeCompare(b.characterName);
     });
-  }, [
-    potentialPlayersData?.potentialPlayers,
-    roleFilter,
-    statusMap,
-    charIdStatusMap,
-  ]);
+  }, [potentialPlayersData?.potentialPlayers, roleFilter, statusMap, charIdStatusMap]);
 
   // Handle player selection
   const togglePlayerSelection = useCallback((playerId: number) => {
@@ -330,23 +282,18 @@ export function FindGamersDialog({
     );
 
     const playersWithDiscord = selectedPlayers.filter((p) => p.discordUserId);
-    const playersWithoutDiscord = selectedPlayers.filter(
-      (p) => !p.discordUserId,
-    );
+    const playersWithoutDiscord = selectedPlayers.filter((p) => !p.discordUserId);
 
     if (playersWithDiscord.length === 0) {
       toast({
         title: "No Discord links",
-        description:
-          "None of the selected players have Discord accounts linked.",
+        description: "None of the selected players have Discord accounts linked.",
         variant: "destructive",
       });
       return;
     }
 
-    const pings = playersWithDiscord
-      .map((p) => `<@${p.discordUserId}>`)
-      .join(" ");
+    const pings = playersWithDiscord.map((p) => `<@${p.discordUserId}>`).join(" ");
     const message = `Looking for more for ${eventTitle}: ${pings}`;
 
     void navigator.clipboard.writeText(message).then(() => {
@@ -362,9 +309,7 @@ export function FindGamersDialog({
   }, [potentialPlayers, selectedPlayerIds, eventTitle, toast]);
 
   const selectedCount = selectedPlayerIds.size;
-  const totalRegistered = currentSignups.filter(
-    (s) => s.status !== "skipped",
-  ).length;
+  const totalRegistered = currentSignups.filter((s) => s.status !== "skipped").length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -385,9 +330,7 @@ export function FindGamersDialog({
               ) : (
                 <ChevronRight className="h-4 w-4" />
               )}
-              <span className="font-medium">
-                Currently Registered ({totalRegistered})
-              </span>
+              <span className="font-medium">Currently Registered ({totalRegistered})</span>
               <div className="ml-auto flex gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <RoleIcon role="Tank" size={14} />
@@ -409,57 +352,47 @@ export function FindGamersDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">
               <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/20 p-3 text-sm sm:grid-cols-4">
-                {(["Tank", "Melee", "Ranged", "Healer"] as TalentRole[]).map(
-                  (role) => (
-                    <div key={role}>
-                      <div className="mb-1 flex items-center gap-1.5 font-medium text-muted-foreground">
-                        <RoleIcon role={role} size={14} />
-                        {role}
-                        {["Tank", "Healer"].indexOf(role) >= 0 ? "s" : ""} (
-                        {roleDistribution[role].length})
-                      </div>
-                      <ul className="space-y-0.5">
-                        {roleDistribution[role]
-                          .sort((a, b) => {
-                            // Sort by Class then Name
-                            const classCompare = a.class.localeCompare(b.class);
-                            if (classCompare !== 0) return classCompare;
-                            return a.name.localeCompare(b.name);
-                          })
-                          .map((player, i) => {
-                            const textColor =
-                              CLASS_TEXT_COLORS[player.class] ??
-                              "text-muted-foreground";
-                            const StatusIcon =
-                              RAIDHELPER_STATUS_ICONS[player.class];
-
-                            return (
-                              <li
-                                key={i}
-                                className={cn(
-                                  "flex items-center gap-1.5 truncate",
-                                  textColor,
-                                )}
-                              >
-                                {StatusIcon ? (
-                                  <StatusIcon className="h-3.5 w-3.5 opacity-70" />
-                                ) : (
-                                  <ClassIcon
-                                    characterClass={player.class}
-                                    px={14}
-                                  />
-                                )}
-                                {player.name}
-                              </li>
-                            );
-                          })}
-                        {roleDistribution[role].length === 0 && (
-                          <li className="text-muted-foreground/60">None</li>
-                        )}
-                      </ul>
+                {(["Tank", "Melee", "Ranged", "Healer"] as TalentRole[]).map((role) => (
+                  <div key={role}>
+                    <div className="mb-1 flex items-center gap-1.5 font-medium text-muted-foreground">
+                      <RoleIcon role={role} size={14} />
+                      {role}
+                      {["Tank", "Healer"].indexOf(role) >= 0 ? "s" : ""} (
+                      {roleDistribution[role].length})
                     </div>
-                  ),
-                )}
+                    <ul className="space-y-0.5">
+                      {roleDistribution[role]
+                        .sort((a, b) => {
+                          // Sort by Class then Name
+                          const classCompare = a.class.localeCompare(b.class);
+                          if (classCompare !== 0) return classCompare;
+                          return a.name.localeCompare(b.name);
+                        })
+                        .map((player, i) => {
+                          const textColor =
+                            CLASS_TEXT_COLORS[player.class] ?? "text-muted-foreground";
+                          const StatusIcon = RAIDHELPER_STATUS_ICONS[player.class];
+
+                          return (
+                            <li
+                              key={i}
+                              className={cn("flex items-center gap-1.5 truncate", textColor)}
+                            >
+                              {StatusIcon ? (
+                                <StatusIcon className="h-3.5 w-3.5 opacity-70" />
+                              ) : (
+                                <ClassIcon characterClass={player.class} px={14} />
+                              )}
+                              {player.name}
+                            </li>
+                          );
+                        })}
+                      {roleDistribution[role].length === 0 && (
+                        <li className="text-muted-foreground/60">None</li>
+                      )}
+                    </ul>
+                  </div>
+                ))}
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -468,19 +401,12 @@ export function FindGamersDialog({
           <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-muted/20 p-3">
             <div className="flex items-center gap-2 text-sm">
               <span>Zone:</span>
-              <ZoneSelect
-                value={selectedZone}
-                onValueChange={setSelectedZone}
-                className="w-60"
-              />
+              <ZoneSelect value={selectedZone} onValueChange={setSelectedZone} className="w-60" />
             </div>
 
             <div className="flex items-center gap-2 text-sm">
               <span>Day:</span>
-              <Select
-                value={selectedDayOfWeek}
-                onValueChange={setSelectedDayOfWeek}
-              >
+              <Select value={selectedDayOfWeek} onValueChange={setSelectedDayOfWeek}>
                 <SelectTrigger className="h-9 w-[140px]">
                   <SelectValue placeholder="Any Day" />
                 </SelectTrigger>
@@ -518,9 +444,7 @@ export function FindGamersDialog({
               <Select
                 value={roleFilter}
                 onValueChange={(value) =>
-                  setRoleFilter(
-                    value as "all" | "tank" | "healer" | "melee" | "ranged",
-                  )
+                  setRoleFilter(value as "all" | "tank" | "healer" | "melee" | "ranged")
                 }
               >
                 <SelectTrigger className="h-9 w-[140px]">
@@ -566,14 +490,8 @@ export function FindGamersDialog({
                 Potential Players ({potentialPlayers.length})
               </span>
 
-              <span className="text-sm text-muted-foreground">
-                {selectedCount} selected
-              </span>
-              <Button
-                onClick={handleCopyPings}
-                disabled={selectedCount === 0}
-                size="sm"
-              >
+              <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
+              <Button onClick={handleCopyPings} disabled={selectedCount === 0} size="sm">
                 <Copy className="mr-1.5 h-3.5 w-3.5" />
                 Copy Discord Ping
               </Button>
@@ -651,30 +569,21 @@ export function FindGamersDialog({
                       key={player.primaryCharacterId}
                       className={cn(
                         "cursor-pointer",
-                        selectedPlayerIds.has(player.primaryCharacterId) &&
-                          "bg-primary/10",
+                        selectedPlayerIds.has(player.primaryCharacterId) && "bg-primary/10",
                         ["absence", "absent"].includes(
                           (
                             charIdStatusMap.get(player.primaryCharacterId) ??
-                            (player.discordUserId
-                              ? statusMap.get(player.discordUserId)
-                              : "") ??
+                            (player.discordUserId ? statusMap.get(player.discordUserId) : "") ??
                             ""
                           ).toLowerCase(),
                         ) && "opacity-60 grayscale",
                       )}
-                      onClick={() =>
-                        togglePlayerSelection(player.primaryCharacterId)
-                      }
+                      onClick={() => togglePlayerSelection(player.primaryCharacterId)}
                     >
                       <TableCell>
                         <Checkbox
-                          checked={selectedPlayerIds.has(
-                            player.primaryCharacterId,
-                          )}
-                          onCheckedChange={() =>
-                            togglePlayerSelection(player.primaryCharacterId)
-                          }
+                          checked={selectedPlayerIds.has(player.primaryCharacterId)}
+                          onCheckedChange={() => togglePlayerSelection(player.primaryCharacterId)}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
@@ -684,9 +593,7 @@ export function FindGamersDialog({
                           {(() => {
                             const status =
                               charIdStatusMap.get(player.primaryCharacterId) ??
-                              (player.discordUserId
-                                ? statusMap.get(player.discordUserId)
-                                : null);
+                              (player.discordUserId ? statusMap.get(player.discordUserId) : null);
 
                             if (!status) return null;
 
@@ -697,12 +604,8 @@ export function FindGamersDialog({
                                 <Tooltip delayDuration={0}>
                                   <TooltipTrigger asChild>
                                     <div className="flex cursor-help items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-                                      {StatusIcon && (
-                                        <StatusIcon className="h-3 w-3" />
-                                      )}
-                                      <span className="font-semibold">
-                                        {status}
-                                      </span>
+                                      {StatusIcon && <StatusIcon className="h-3 w-3" />}
+                                      <span className="font-semibold">{status}</span>
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="bg-secondary text-secondary-foreground">
@@ -718,12 +621,8 @@ export function FindGamersDialog({
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-nowrap justify-center gap-1">
-                          {(
-                            player.familyClasses ?? [player.characterClass]
-                          ).map((cls) => {
-                            const names =
-                              player.familyClassNames?.[cls]?.join(", ") ??
-                              "Unknown";
+                          {(player.familyClasses ?? [player.characterClass]).map((cls) => {
+                            const names = player.familyClassNames?.[cls]?.join(", ") ?? "Unknown";
                             return (
                               <TooltipProvider key={cls}>
                                 <Tooltip delayDuration={0}>
@@ -743,31 +642,27 @@ export function FindGamersDialog({
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-nowrap justify-center gap-1">
-                          {(player.familyRoles ?? [player.talentRole]).map(
-                            (role) => (
-                              <RoleIcon
-                                key={role}
-                                role={role as TalentRole}
-                                size={20}
-                                className="inline-block"
-                              />
-                            ),
-                          )}
+                          {(player.familyRoles ?? [player.talentRole]).map((role) => (
+                            <RoleIcon
+                              key={role}
+                              role={role as TalentRole}
+                              size={20}
+                              className="inline-block"
+                            />
+                          ))}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-0.5">
-                          {player.recentAttendance.map(
-                            (attended: boolean, i: number) => (
-                              <div
-                                key={i}
-                                className={cn(
-                                  "h-2 w-2 rounded-[1px]",
-                                  attended ? "bg-primary" : "bg-muted",
-                                )}
-                              />
-                            ),
-                          )}
+                          {player.recentAttendance.map((attended: boolean, i: number) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "h-2 w-2 rounded-[1px]",
+                                attended ? "bg-primary" : "bg-muted",
+                              )}
+                            />
+                          ))}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

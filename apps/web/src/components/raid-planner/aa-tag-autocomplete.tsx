@@ -14,11 +14,7 @@ interface AATagAutocompleteProps {
 
 const MAX_VISIBLE = 6;
 
-export function useAATagAutocomplete({
-  textareaRef,
-  value,
-  onInsert,
-}: AATagAutocompleteProps) {
+export function useAATagAutocomplete({ textareaRef, value, onInsert }: AATagAutocompleteProps) {
   const [active, setActive] = useState(false);
   const [trigger, setTrigger] = useState<"{" | "|c">("{");
   const [query, setQuery] = useState("");
@@ -42,10 +38,7 @@ export function useAATagAutocomplete({
 
         if (!q) return true;
 
-        return (
-          t.tag.toLowerCase().includes(q) ||
-          t.displayName.toLowerCase().includes(q)
-        );
+        return t.tag.toLowerCase().includes(q) || t.displayName.toLowerCase().includes(q);
       })
       .slice(0, 20);
   }, [active, query, allTags, trigger]);
@@ -130,9 +123,7 @@ export function useAATagAutocomplete({
   // Scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
-    const selected = listRef.current.children[selectedIndex] as
-      | HTMLElement
-      | undefined;
+    const selected = listRef.current.children[selectedIndex] as HTMLElement | undefined;
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
@@ -199,10 +190,7 @@ export function useAATagAutocomplete({
         left: `${coords.left}px`,
       }}
     >
-      <div
-        className="overflow-y-auto"
-        style={{ maxHeight: `${MAX_VISIBLE * 28}px` }}
-      >
+      <div className="overflow-y-auto" style={{ maxHeight: `${MAX_VISIBLE * 28}px` }}>
         {filteredTags.map((entry, idx) => (
           <button
             key={`${entry.category}-${entry.tag}`}
@@ -242,9 +230,7 @@ export function useAATagAutocomplete({
             <code className="shrink-0 text-[11px]">
               {trigger === "{" ? `{${entry.tag}}` : `|c${entry.tag}`}
             </code>
-            <span className="truncate text-[10px] text-muted-foreground">
-              {entry.displayName}
-            </span>
+            <span className="truncate text-[10px] text-muted-foreground">{entry.displayName}</span>
           </button>
         ))}
       </div>

@@ -29,9 +29,7 @@ async function CharactersListContent({ session }: { session: Session | null }) {
   const caller = createCaller(ctx);
   const characters = await caller.character.getCharacters(undefined);
 
-  return (
-    <AllCharacters characters={characters} session={session ?? undefined} />
-  );
+  return <AllCharacters characters={characters} session={session ?? undefined} />;
 }
 
 export default async function PlayersIndex() {

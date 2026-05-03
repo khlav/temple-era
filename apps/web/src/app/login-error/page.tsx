@@ -1,12 +1,6 @@
 import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 
 const errorMessages = {
@@ -39,8 +33,7 @@ export default async function LoginErrorPage({
 }) {
   const { error } = await searchParams;
   const content = error
-    ? (errorMessages[error as keyof typeof errorMessages] ??
-      errorMessages.Default)
+    ? (errorMessages[error as keyof typeof errorMessages] ?? errorMessages.Default)
     : errorMessages.Default;
 
   return (

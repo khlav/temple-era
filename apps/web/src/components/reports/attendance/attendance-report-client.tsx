@@ -24,23 +24,16 @@ interface ReportFilters {
 }
 
 // Helper to parse URL params into filter state
-function parseUrlParams(
-  searchParams: URLSearchParams,
-  defaultCharacterId?: number,
-): ReportFilters {
+function parseUrlParams(searchParams: URLSearchParams, defaultCharacterId?: number): ReportFilters {
   const urlStartDate = searchParams.get("startDate") || undefined;
   const urlEndDate = searchParams.get("endDate") || undefined;
-  const urlZones =
-    searchParams.get("zones")?.split(",").filter(Boolean) || DEFAULT_ZONES;
+  const urlZones = searchParams.get("zones")?.split(",").filter(Boolean) || DEFAULT_ZONES;
   const urlDays = searchParams.get("days")?.split(",").filter(Boolean) || [];
   const urlCharacters =
-    searchParams.get("characters")?.split(",").map(Number).filter(Boolean) ||
-    [];
+    searchParams.get("characters")?.split(",").map(Number).filter(Boolean) || [];
   const urlDisplayMode = searchParams.get("displayMode");
   const displayMode =
-    urlDisplayMode === "names" || urlDisplayMode === "icons"
-      ? urlDisplayMode
-      : "names";
+    urlDisplayMode === "names" || urlDisplayMode === "icons" ? urlDisplayMode : "names";
 
   return {
     startDate: urlStartDate,
@@ -48,11 +41,7 @@ function parseUrlParams(
     zones: urlZones,
     daysOfWeek: urlDays,
     characterIds:
-      urlCharacters.length > 0
-        ? urlCharacters
-        : defaultCharacterId
-          ? [defaultCharacterId]
-          : [],
+      urlCharacters.length > 0 ? urlCharacters : defaultCharacterId ? [defaultCharacterId] : [],
     displayMode,
   };
 }
@@ -63,12 +52,9 @@ function buildUrlParams(filters: ReportFilters): URLSearchParams {
   if (filters.startDate) params.set("startDate", filters.startDate);
   if (filters.endDate) params.set("endDate", filters.endDate);
   if (filters.zones.length > 0) params.set("zones", filters.zones.join(","));
-  if (filters.daysOfWeek.length > 0)
-    params.set("days", filters.daysOfWeek.join(","));
-  if (filters.characterIds.length > 0)
-    params.set("characters", filters.characterIds.join(","));
-  if (filters.displayMode !== "names")
-    params.set("displayMode", filters.displayMode);
+  if (filters.daysOfWeek.length > 0) params.set("days", filters.daysOfWeek.join(","));
+  if (filters.characterIds.length > 0) params.set("characters", filters.characterIds.join(","));
+  if (filters.displayMode !== "names") params.set("displayMode", filters.displayMode);
   return params;
 }
 
@@ -146,10 +132,8 @@ export function AttendanceReportClient({
       startDate: filters.startDate,
       endDate: filters.endDate,
       zones: filters.zones,
-      daysOfWeek:
-        filters.daysOfWeek.length > 0 ? filters.daysOfWeek : undefined,
-      primaryCharacterIds:
-        filters.characterIds.length > 0 ? filters.characterIds : undefined,
+      daysOfWeek: filters.daysOfWeek.length > 0 ? filters.daysOfWeek : undefined,
+      primaryCharacterIds: filters.characterIds.length > 0 ? filters.characterIds : undefined,
     },
     {
       initialData: isInitialized ? undefined : initialData,
@@ -217,27 +201,19 @@ export function AttendanceReportClient({
           <DateRangeFilter
             startDate={filters.startDate}
             endDate={filters.endDate}
-            onStartDateChange={(date) =>
-              setFilters((prev) => ({ ...prev, startDate: date }))
-            }
-            onEndDateChange={(date) =>
-              setFilters((prev) => ({ ...prev, endDate: date }))
-            }
+            onStartDateChange={(date) => setFilters((prev) => ({ ...prev, startDate: date }))}
+            onEndDateChange={(date) => setFilters((prev) => ({ ...prev, endDate: date }))}
             defaultDateRange={data?.dateRange}
           />
 
           <ZoneFilter
             selectedZones={filters.zones}
-            onZonesChange={(zones) =>
-              setFilters((prev) => ({ ...prev, zones }))
-            }
+            onZonesChange={(zones) => setFilters((prev) => ({ ...prev, zones }))}
           />
 
           <DayOfWeekFilter
             selectedDays={filters.daysOfWeek}
-            onDaysChange={(days) =>
-              setFilters((prev) => ({ ...prev, daysOfWeek: days }))
-            }
+            onDaysChange={(days) => setFilters((prev) => ({ ...prev, daysOfWeek: days }))}
           />
 
           <div className="ml-auto flex items-center gap-2">
@@ -250,13 +226,9 @@ export function AttendanceReportClient({
                 variant="ghost"
                 size="sm"
                 className={`h-7 px-3 text-xs ${
-                  filters.displayMode === "names"
-                    ? "bg-chart-2/10 text-chart-2"
-                    : ""
+                  filters.displayMode === "names" ? "bg-chart-2/10 text-chart-2" : ""
                 }`}
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, displayMode: "names" }))
-                }
+                onClick={() => setFilters((prev) => ({ ...prev, displayMode: "names" }))}
               >
                 Names
               </Button>
@@ -264,19 +236,13 @@ export function AttendanceReportClient({
                 variant="ghost"
                 size="sm"
                 className={`h-7 px-3 text-xs ${
-                  filters.displayMode === "icons"
-                    ? "bg-chart-2/10 text-chart-2"
-                    : ""
+                  filters.displayMode === "icons" ? "bg-chart-2/10 text-chart-2" : ""
                 }`}
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, displayMode: "icons" }))
-                }
+                onClick={() => setFilters((prev) => ({ ...prev, displayMode: "icons" }))}
               >
                 <Swords
                   className={`h-3.5 w-3.5 ${
-                    filters.displayMode === "icons"
-                      ? "text-chart-2"
-                      : "text-muted-foreground"
+                    filters.displayMode === "icons" ? "text-chart-2" : "text-muted-foreground"
                   }`}
                 />
               </Button>
@@ -288,9 +254,8 @@ export function AttendanceReportClient({
           <CardContent className="space-y-2 p-4">
             <p className="text-sm font-medium">Mobile note</p>
             <p className="text-sm text-muted-foreground">
-              This report is still a dense attendance matrix. It now scrolls
-              more safely on small screens, but comparing many characters at
-              once is still easiest on tablet or desktop.
+              This report is still a dense attendance matrix. It now scrolls more safely on small
+              screens, but comparing many characters at once is still easiest on tablet or desktop.
             </p>
           </CardContent>
         </Card>

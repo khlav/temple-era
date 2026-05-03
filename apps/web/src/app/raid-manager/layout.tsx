@@ -28,9 +28,7 @@ export default async function RaidManagerLayout({
 
     // Match /raid-manager/raid-planner/[uuid]
     // [AGENT_NOTE]: If the ID format changes from UUID, this regex will need updating.
-    const planMatch = pathname.match(
-      /\/raid-manager\/raid-planner\/([0-9a-f-]{36})/i,
-    );
+    const planMatch = pathname.match(/\/raid-manager\/raid-planner\/([0-9a-f-]{36})/i);
 
     if (planMatch?.[1]) {
       const planId = planMatch[1];

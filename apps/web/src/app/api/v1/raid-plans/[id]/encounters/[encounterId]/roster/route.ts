@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
-import {
-  raidPlans,
-  raidPlanEncounters,
-  raidPlanEncounterAssignments,
-} from "~/server/db/schema";
+import { raidPlans, raidPlanEncounters, raidPlanEncounterAssignments } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const EncounterRosterPatchSchema = z
   .array(
@@ -61,19 +57,11 @@ export async function PUT(
     const encounter = await db
       .select({ id: raidPlanEncounters.id })
       .from(raidPlanEncounters)
-      .where(
-        and(
-          eq(raidPlanEncounters.id, encounterId),
-          eq(raidPlanEncounters.raidPlanId, id),
-        ),
-      )
+      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, id)))
       .limit(1);
 
     if (encounter.length === 0) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
     const items = parsed.data;
@@ -91,10 +79,7 @@ export async function PUT(
           .where(
             and(
               eq(raidPlanEncounterAssignments.encounterId, encounterId),
-              eq(
-                raidPlanEncounterAssignments.planCharacterId,
-                item.planCharacterId,
-              ),
+              eq(raidPlanEncounterAssignments.planCharacterId, item.planCharacterId),
             ),
           )
           .returning({ id: raidPlanEncounterAssignments.id });
@@ -111,17 +96,11 @@ export async function PUT(
       }
     });
 
-    await db
-      .update(raidPlans)
-      .set({ updatedById: user.id })
-      .where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
 
     return NextResponse.json({ updated });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

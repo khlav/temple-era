@@ -2,10 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
-import {
-  renderAATemplate,
-  type AACharacterAssignment,
-} from "~/lib/aa-template";
+import { renderAATemplate, type AACharacterAssignment } from "~/lib/aa-template";
 import { MRTCodec } from "~/lib/mrt-codec";
 import { AACodec } from "~/lib/aa-codec";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -25,10 +22,7 @@ interface UseRaidPlanHandlersOptions {
   mutations: Mutations;
 }
 
-export function useRaidPlanHandlers({
-  planId,
-  mutations,
-}: UseRaidPlanHandlersOptions) {
+export function useRaidPlanHandlers({ planId, mutations }: UseRaidPlanHandlersOptions) {
   const {
     plan,
     utils,
@@ -69,10 +63,9 @@ export function useRaidPlanHandlers({
 
   // Default home server to the logged-in user's primary character server
   const characterId = session?.user?.characterId;
-  const { data: userCharacter } = api.character.getCharacterById.useQuery(
-    characterId ?? -1,
-    { enabled: !!characterId },
-  );
+  const { data: userCharacter } = api.character.getCharacterById.useQuery(characterId ?? -1, {
+    enabled: !!characterId,
+  });
 
   useEffect(() => {
     if (userCharacter?.server && !homeServer) {
@@ -147,9 +140,7 @@ export function useRaidPlanHandlers({
 
       if (aaAssignments && aaAssignments.length > 0) {
         // Build the list of assignments for the dialog
-        const encounterMap = new Map(
-          plan?.encounters.map((e) => [e.id, e.encounterName]) ?? [],
-        );
+        const encounterMap = new Map(plan?.encounters.map((e) => [e.id, e.encounterName]) ?? []);
         const assignmentDetails = aaAssignments.map((a) => ({
           type: "aa" as const,
           encounterName: a.encounterId
@@ -159,9 +150,7 @@ export function useRaidPlanHandlers({
         }));
 
         // Show confirmation dialog
-        const existingChar = plan?.characters.find(
-          (c) => c.id === planCharacterId,
-        );
+        const existingChar = plan?.characters.find((c) => c.id === planCharacterId);
         setPendingCharacterUpdate({
           planCharacterId,
           newCharacter: character,
@@ -274,9 +263,7 @@ export function useRaidPlanHandlers({
 
         return {
           ...old,
-          characters: old.characters.filter(
-            (char) => char.id !== event.planCharacterId,
-          ),
+          characters: old.characters.filter((char) => char.id !== event.planCharacterId),
         };
       });
 
@@ -314,8 +301,7 @@ export function useRaidPlanHandlers({
       const raidData: Record<number, string> = {};
 
       for (const char of chars) {
-        if (char.defaultGroup === null || char.defaultPosition === null)
-          continue;
+        if (char.defaultGroup === null || char.defaultPosition === null) continue;
         if (char.defaultGroup > 7) continue; // Only groups 0-7
 
         // Calculate position: group * 5 + position + 1 (MRT is 1-indexed)
@@ -365,10 +351,7 @@ export function useRaidPlanHandlers({
         });
 
         // 2. Build signups for matching (same transform as raid-helper-import)
-        const allSignups = [
-          ...eventDetails.signups.assigned,
-          ...eventDetails.signups.unassigned,
-        ];
+        const allSignups = [...eventDetails.signups.assigned, ...eventDetails.signups.unassigned];
         const signupsForMatching = allSignups.map((s) => ({
           userId: s.userId,
           discordName: s.name,
@@ -379,10 +362,9 @@ export function useRaidPlanHandlers({
         }));
 
         // 3. Match signups to database characters
-        const matchResults =
-          await utils.raidHelper.matchSignupsToCharacters.fetch({
-            signups: signupsForMatching,
-          });
+        const matchResults = await utils.raidHelper.matchSignupsToCharacters.fetch({
+          signups: signupsForMatching,
+        });
 
         // 4. Transform match results to characters array (same as handleCreatePlan)
         const characters = matchResults
@@ -391,8 +373,7 @@ export function useRaidPlanHandlers({
             return lowerClass !== "absent" && lowerClass !== "absence";
           })
           .map((r) => {
-            const defaultGroup =
-              r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
+            const defaultGroup = r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
             const defaultPosition =
               defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
             const characterName =
@@ -400,17 +381,12 @@ export function useRaidPlanHandlers({
                 ? r.matchedCharacter.characterName
                 : r.discordName;
             const characterId =
-              r.status === "matched" && r.matchedCharacter
-                ? r.matchedCharacter.characterId
-                : null;
+              r.status === "matched" && r.matchedCharacter ? r.matchedCharacter.characterId : null;
             const normalizedClass = r.className
-              ? r.className.charAt(0).toUpperCase() +
-                r.className.slice(1).toLowerCase()
+              ? r.className.charAt(0).toUpperCase() + r.className.slice(1).toLowerCase()
               : null;
             const writeInClass =
-              !characterId &&
-              normalizedClass &&
-              VALID_WRITE_IN_CLASSES.has(normalizedClass)
+              !characterId && normalizedClass && VALID_WRITE_IN_CLASSES.has(normalizedClass)
                 ? normalizedClass
                 : null;
             return {
@@ -431,23 +407,14 @@ export function useRaidPlanHandlers({
       } catch (err) {
         toast({
           title: "Refresh failed",
-          description:
-            err instanceof Error
-              ? err.message
-              : "Failed to fetch from Raidhelper",
+          description: err instanceof Error ? err.message : "Failed to fetch from Raidhelper",
           variant: "destructive",
         });
       } finally {
         setIsRefreshing(false);
       }
     },
-    [
-      plan?.raidHelperEventId,
-      plan?.id,
-      utils,
-      refreshCharactersMutation,
-      toast,
-    ],
+    [plan?.raidHelperEventId, plan?.id, utils, refreshCharactersMutation, toast],
   );
 
   const handleCopyAA = useCallback(
@@ -460,13 +427,9 @@ export function useRaidPlanHandlers({
 
       // Build the assignment map for rendering
       const assignmentMap = new Map<string, AACharacterAssignment[]>();
-      const sorted = [...slotAssignments].sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
+      const sorted = [...slotAssignments].sort((a, b) => a.sortOrder - b.sortOrder);
       for (const assignment of sorted) {
-        const char = characters.find(
-          (c) => c.id === assignment.planCharacterId,
-        );
+        const char = characters.find((c) => c.id === assignment.planCharacterId);
         if (!char) continue;
 
         const existing = assignmentMap.get(assignment.slotName) ?? [];
@@ -569,9 +532,7 @@ export function useRaidPlanHandlers({
 
           const assignmentMap = new Map<string, AACharacterAssignment[]>();
           for (const assignment of defaultAssignments) {
-            const char = raidPlanCharacters.find(
-              (c) => c.id === assignment.planCharacterId,
-            );
+            const char = raidPlanCharacters.find((c) => c.id === assignment.planCharacterId);
             if (!char) continue;
 
             const existing = assignmentMap.get(assignment.slotName) ?? [];
@@ -579,10 +540,7 @@ export function useRaidPlanHandlers({
             assignmentMap.set(assignment.slotName, existing);
           }
 
-          const renderedContents = renderAATemplate(
-            plan.defaultAATemplate,
-            assignmentMap,
-          );
+          const renderedContents = renderAATemplate(plan.defaultAATemplate, assignmentMap);
           children.push({
             Type: "Page",
             Name: "Default/Trash",
@@ -603,9 +561,7 @@ export function useRaidPlanHandlers({
 
           const assignmentMap = new Map<string, AACharacterAssignment[]>();
           for (const assignment of encounterAssignments) {
-            const char = raidPlanCharacters.find(
-              (c) => c.id === assignment.planCharacterId,
-            );
+            const char = raidPlanCharacters.find((c) => c.id === assignment.planCharacterId);
             if (!char) continue;
 
             const existing = assignmentMap.get(assignment.slotName) ?? [];
@@ -636,9 +592,7 @@ export function useRaidPlanHandlers({
         }
 
         // Add groups as nested categories
-        const sortedGroups = [...plan.encounterGroups].sort(
-          (a, b) => a.sortOrder - b.sortOrder,
-        );
+        const sortedGroups = [...plan.encounterGroups].sort((a, b) => a.sortOrder - b.sortOrder);
         for (const group of sortedGroups) {
           const childrenInGroup = groupPagesMap.get(group.id);
           if (childrenInGroup && childrenInGroup.length > 0) {
@@ -702,8 +656,7 @@ export function useRaidPlanHandlers({
       } catch (err) {
         toast({
           title: "Export failed",
-          description:
-            err instanceof Error ? err.message : "Failed to export AAs",
+          description: err instanceof Error ? err.message : "Failed to export AAs",
           variant: "destructive",
         });
       } finally {

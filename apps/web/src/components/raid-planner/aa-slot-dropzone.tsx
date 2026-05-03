@@ -1,11 +1,7 @@
 "use client";
 
 import { useDndContext, useDroppable } from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { X } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
@@ -37,14 +33,11 @@ export function AASlotDropzone({
   const droppableId = `aa-slot:${encounterId}:${slotName}`;
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
-    disabled:
-      disabled || (maxCharacters ? characters.length >= maxCharacters : false),
+    disabled: disabled || (maxCharacters ? characters.length >= maxCharacters : false),
   });
 
   const isFull = maxCharacters ? characters.length >= maxCharacters : false;
-  const sortedCharacters = [...characters].sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
+  const sortedCharacters = [...characters].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <div
@@ -54,9 +47,7 @@ export function AASlotDropzone({
         "transition-colors",
         isOver && !isFull && "border-primary bg-primary/10",
         isFull && "border-muted-foreground/30 bg-muted/30",
-        !isOver &&
-          !isFull &&
-          "border-muted-foreground/40 hover:border-muted-foreground/60",
+        !isOver && !isFull && "border-muted-foreground/40 hover:border-muted-foreground/60",
         isDropTarget && "ring-1 ring-primary/50",
         disabled && "opacity-50",
       )}
@@ -82,8 +73,7 @@ export function AASlotDropzone({
                 "group relative inline-flex items-center gap-0.5 rounded px-1 py-0.5",
                 "text-sm font-medium",
                 !noColor && char.characterClass
-                  ? (CLASS_TEXT_COLORS[char.characterClass] ??
-                      "text-foreground")
+                  ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
                   : "text-foreground",
               )}
             >
@@ -107,9 +97,7 @@ export function AASlotDropzone({
           ))}
         </span>
       ) : (
-        <span className="text-xs italic text-muted-foreground/60">
-          Drop here
-        </span>
+        <span className="text-xs italic text-muted-foreground/60">Drop here</span>
       )}
     </div>
   );
@@ -137,14 +125,7 @@ function DraggableSlotCharacter({
   disabled?: boolean;
 }) {
   const sortableId = `aa-assigned:${encounterId}:${slotName}:${char.planCharacterId}`;
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sortableId,
     disabled,
   });
@@ -216,8 +197,7 @@ export function AASlotInline({
   const droppableId = `aa-slot:${encounterId}:${slotName}`;
   const { setNodeRef, isOver } = useDroppable({
     id: droppableId,
-    disabled:
-      disabled || (maxCharacters ? characters.length >= maxCharacters : false),
+    disabled: disabled || (maxCharacters ? characters.length >= maxCharacters : false),
   });
 
   // When dragging something that isn't from this exact slot, skip the
@@ -226,14 +206,11 @@ export function AASlotInline({
   const { active } = useDndContext();
   const activeId = active?.id as string | undefined;
   const isFromThisSlot =
-    !!activeId &&
-    activeId.startsWith(`aa-assigned:${encounterId}:${slotName}:`);
+    !!activeId && activeId.startsWith(`aa-assigned:${encounterId}:${slotName}:`);
   const useSortableRendering = !activeId || isFromThisSlot;
 
   const isFull = maxCharacters ? characters.length >= maxCharacters : false;
-  const sortedCharacters = [...characters].sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
+  const sortedCharacters = [...characters].sort((a, b) => a.sortOrder - b.sortOrder);
 
   const hasHighlight = sortedCharacters.some((c) => c.isHighlighted);
   const isFilled = sortedCharacters.length > 0;
@@ -256,8 +233,7 @@ export function AASlotInline({
       ) : useSortableRendering ? (
         <SortableContext
           items={sortedCharacters.map(
-            (c) =>
-              `aa-assigned:${encounterId}:${slotName}:${c.planCharacterId}`,
+            (c) => `aa-assigned:${encounterId}:${slotName}:${c.planCharacterId}`,
           )}
           strategy={horizontalListSortingStrategy}
         >
@@ -306,21 +282,13 @@ interface AARefInlineProps {
   noColor?: boolean;
 }
 
-export function AARefInline({
-  slotName,
-  characters,
-  noColor,
-}: AARefInlineProps) {
-  const sortedCharacters = [...characters].sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
+export function AARefInline({ slotName, characters, noColor }: AARefInlineProps) {
+  const sortedCharacters = [...characters].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <span className="inline rounded border border-dotted border-muted-foreground/30 px-1 py-0.5">
       {sortedCharacters.length === 0 ? (
-        <span className="text-xs text-muted-foreground/60">
-          (ref:{slotName})
-        </span>
+        <span className="text-xs text-muted-foreground/60">(ref:{slotName})</span>
       ) : (
         sortedCharacters.map((char, index) => (
           <span
@@ -331,8 +299,7 @@ export function AARefInline({
               !noColor && char.characterClass
                 ? (CLASS_TEXT_COLORS[char.characterClass] ?? "text-foreground")
                 : "text-foreground",
-              char.isHighlighted &&
-                "rounded ring-1 ring-yellow-400 dark:ring-yellow-500",
+              char.isHighlighted && "rounded ring-1 ring-yellow-400 dark:ring-yellow-500",
             )}
           >
             <span>{char.characterName}</span>

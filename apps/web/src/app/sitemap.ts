@@ -3,19 +3,14 @@ import { db } from "~/server/db";
 import { raids } from "~/server/db/schema";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
 
   // Fetch all raids for dynamic sitemap
-  const allRaids = await db
-    .select({ id: raids.raidId, date: raids.date })
-    .from(raids);
+  const allRaids = await db.select({ id: raids.raidId, date: raids.date }).from(raids);
 
   // Filter to only include raids from the last 6 months
   const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
-  const recentRaids = allRaids.filter(
-    (raid) => raid.date && new Date(raid.date) > sixMonthsAgo,
-  );
+  const recentRaids = allRaids.filter((raid) => raid.date && new Date(raid.date) > sixMonthsAgo);
 
   const staticPages = [
     {

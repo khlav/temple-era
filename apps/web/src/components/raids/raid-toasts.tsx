@@ -11,10 +11,7 @@ import {
   TRACKED_RAID_LABEL__NO_CREDIT,
 } from "~/constants";
 
-export const toastRaidLogLoaded = (
-  toast: typeof toastType,
-  raidLog: RaidLog,
-) => {
+export const toastRaidLogLoaded = (toast: typeof toastType, raidLog: RaidLog) => {
   toast({
     title: (
       <>
@@ -26,8 +23,7 @@ export const toastRaidLogLoaded = (
       <>
         <div className="font-bold text-primary">{raidLog.name}</div>
         <div>
-          {Object.keys(raidLog.participants).length} attendees,{" "}
-          {raidLog.kills.length} kills
+          {Object.keys(raidLog.participants).length} attendees, {raidLog.kills.length} kills
         </div>
         <div className="text-muted-foreground">ID : {raidLog.raidLogId}</div>
       </>
@@ -35,10 +31,7 @@ export const toastRaidLogLoaded = (
   });
 };
 
-export const toastRaidLogInUse = (
-  toast: typeof toastType,
-  raidLog: RaidLog,
-) => {
+export const toastRaidLogInUse = (toast: typeof toastType, raidLog: RaidLog) => {
   toast({
     title: (
       <>
@@ -50,8 +43,7 @@ export const toastRaidLogInUse = (
       <>
         <div className="font-bold text-primary">{raidLog.name}</div>
         <div>
-          {Object.keys(raidLog.participants).length} attendees,{" "}
-          {raidLog.kills.length} kills
+          {Object.keys(raidLog.participants).length} attendees, {raidLog.kills.length} kills
         </div>
         <div className="text-muted-foreground">ID : {raidLog.raidLogId}</div>
       </>
@@ -110,10 +102,7 @@ export const toastRaidSaved = (
   });
 };
 
-export const toastRaidDataCleared = (
-  toast: typeof toastType,
-  raidData: Raid,
-) => {
+export const toastRaidDataCleared = (toast: typeof toastType, raidData: Raid) => {
   toast({
     title: (
       <>

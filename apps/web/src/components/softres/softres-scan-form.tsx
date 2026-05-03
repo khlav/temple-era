@@ -30,9 +30,7 @@ export function SoftResScanForm() {
 
     const raidId = extractRaidId(url);
     if (!raidId) {
-      setError(
-        "Invalid SoftRes URL. Expected format: https://softres.it/raid/[id]",
-      );
+      setError("Invalid SoftRes URL. Expected format: https://softres.it/raid/[id]");
       return;
     }
 

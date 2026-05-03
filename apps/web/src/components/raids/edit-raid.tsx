@@ -5,10 +5,7 @@ import { api } from "~/trpc/react";
 import { RaidEditor } from "~/components/raids/raid-editor";
 import type { Raid } from "~/server/api/interfaces/raid";
 import { useRouter } from "next/navigation";
-import {
-  toastRaidDeleted,
-  toastRaidSaved,
-} from "~/components/raids/raid-toasts";
+import { toastRaidDeleted, toastRaidSaved } from "~/components/raids/raid-toasts";
 import { useToast } from "~/hooks/use-toast";
 import { invalidateRaidSummaryQueries } from "~/lib/trpc-invalidations";
 

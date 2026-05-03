@@ -1,12 +1,7 @@
 import React from "react";
 import { Wifi, WifiOff } from "lucide-react";
 import { cn } from "~/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 
 interface PollingIndicatorProps {
   isPollingActive: boolean;
@@ -38,9 +33,7 @@ export function PollingIndicator({
                   ? "cursor-default text-primary"
                   : "cursor-pointer text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
-              aria-label={
-                isPollingActive ? "Live Updates Active" : "Polling Suspended"
-              }
+              aria-label={isPollingActive ? "Live Updates Active" : "Polling Suspended"}
             >
               {isPollingActive ? (
                 <div className="relative">

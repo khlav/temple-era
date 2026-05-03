@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
-import {
-  raidPlanTemplateEncounters,
-  raidPlanTemplateEncounterGroups,
-} from "~/server/db/schema";
+import { raidPlanTemplateEncounters, raidPlanTemplateEncounterGroups } from "~/server/db/schema";
 import {
   UUID_RE,
   getZoneConfig,
@@ -73,11 +71,8 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -140,10 +135,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

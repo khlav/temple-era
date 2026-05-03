@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq, inArray } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { characters } from "~/server/db/schema";
@@ -10,10 +11,7 @@ const BodySchema = z.object({
   mode: z.enum(["replace", "append"]).default("replace"),
 });
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -26,10 +24,7 @@ export async function PUT(
     const { id } = await params;
     const primaryId = parseInt(id, 10);
     if (isNaN(primaryId)) {
-      return NextResponse.json(
-        { error: "Invalid character ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid character ID" }, { status: 400 });
     }
 
     let body: unknown;
@@ -62,17 +57,13 @@ export async function PUT(
     });
 
     if (!primary) {
-      return NextResponse.json(
-        { error: "Character not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Character not found" }, { status: 404 });
     }
 
     if (!primary.isPrimary) {
       return NextResponse.json(
         {
-          error:
-            "Character is not a primary (it may be a secondary of another character)",
+          error: "Character is not a primary (it may be a secondary of another character)",
         },
         { status: 400 },
       );
@@ -117,10 +108,7 @@ export async function PUT(
       secondaryCharacters: updated,
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

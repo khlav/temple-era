@@ -39,10 +39,7 @@ interface RaidPlanGroupsGridProps {
   skipDndContext?: boolean;
   /** Hide bench section (for read-only views) */
   hideBench?: boolean;
-  onCharacterUpdate?: (
-    planCharacterId: string,
-    character: RaidParticipant,
-  ) => void;
+  onCharacterUpdate?: (planCharacterId: string, character: RaidParticipant) => void;
   onCharacterMove?: (event: CharacterMoveEvent) => void;
   onCharacterSwap?: (event: CharacterSwapEvent) => void;
   onSlotFill?: (event: SlotFillEvent) => void;
@@ -67,16 +64,13 @@ export function RaidPlanGroupsGrid({
   onCharacterDelete,
   userCharacterIds = [],
 }: RaidPlanGroupsGridProps) {
-  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
-    null,
-  );
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingSlot, setEditingSlot] = useState<{
     group: number;
     position: number;
   } | null>(null);
   const [editingBench, setEditingBench] = useState(false);
-  const [activeCharacter, setActiveCharacter] =
-    useState<RaidPlanCharacter | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState<RaidPlanCharacter | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -117,10 +111,7 @@ export function RaidPlanGroupsGrid({
     });
   });
 
-  const getCharacterAtSlot = (
-    group: number,
-    position: number,
-  ): RaidPlanCharacter | null => {
+  const getCharacterAtSlot = (group: number, position: number): RaidPlanCharacter | null => {
     return characterMap.get(`${group}-${position}`) ?? null;
   };
 
@@ -302,9 +293,7 @@ export function RaidPlanGroupsGrid({
       <div
         className={cn(
           "grid gap-3",
-          groupCount <= 4
-            ? "grid-cols-2 md:grid-cols-4"
-            : "grid-cols-2 md:grid-cols-4",
+          groupCount <= 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-4",
         )}
       >
         {Array.from({ length: groupCount }).map((_, groupIndex) => (
@@ -366,17 +355,11 @@ export function RaidPlanGroupsGrid({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {content}
 
       <DragOverlay dropAnimation={null}>
-        {activeCharacter && (
-          <CharacterCard character={activeCharacter} isDragOverlay />
-        )}
+        {activeCharacter && <CharacterCard character={activeCharacter} isDragOverlay />}
       </DragOverlay>
     </DndContext>
   );

@@ -39,11 +39,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 
@@ -191,11 +187,7 @@ export const AppHeader = () => {
           {utilityLinks.length > 0 ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hidden md:inline-flex"
-                >
+                <Button variant="ghost" size="sm" className="hidden md:inline-flex">
                   <Settings2 className="h-4 w-4" />
                   Guild Tools
                 </Button>
@@ -208,9 +200,7 @@ export const AppHeader = () => {
                   <SheetTitle className="font-display text-2xl tracking-tight">
                     Guild Tools
                   </SheetTitle>
-                  <SheetDescription>
-                    Manager and Site Admin tools.
-                  </SheetDescription>
+                  <SheetDescription>Manager and Site Admin tools.</SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-6">
                   {session?.user?.isRaidManager ? (
@@ -266,14 +256,9 @@ export const AppHeader = () => {
                 <span className="sr-only">Open navigation</span>
               </Button>
             </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="w-full border-r-border/70 bg-card/95 sm:max-w-sm"
-            >
+            <SheetContent side="left" className="w-full border-r-border/70 bg-card/95 sm:max-w-sm">
               <SheetHeader>
-                <SheetTitle className="font-display text-2xl tracking-tight">
-                  Temple
-                </SheetTitle>
+                <SheetTitle className="font-display text-2xl tracking-tight">Temple</SheetTitle>
                 <SheetDescription>Classic Era</SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
@@ -337,9 +322,7 @@ export const AppHeader = () => {
                       src={session.user.image ?? undefined}
                       alt={session.user.name ?? "Temple user"}
                     />
-                    <AvatarFallback>
-                      {session.user.name?.[0] ?? "T"}
-                    </AvatarFallback>
+                    <AvatarFallback>{session.user.name?.[0] ?? "T"}</AvatarFallback>
                   </Avatar>
                   <span className="hidden max-w-[120px] truncate sm:inline-block">
                     {session.user.name}
@@ -367,16 +350,8 @@ export const AppHeader = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              onClick={handleSignIn}
-              className="bg-[#5865F2] text-white hover:bg-[#6f79f7]"
-            >
-              <Image
-                src="/img/discord-mark-white.svg"
-                alt="Discord"
-                width={16}
-                height={16}
-              />
+            <Button onClick={handleSignIn} className="bg-[#5865F2] text-white hover:bg-[#6f79f7]">
+              <Image src="/img/discord-mark-white.svg" alt="Discord" width={16} height={16} />
               Sign in
             </Button>
           )}

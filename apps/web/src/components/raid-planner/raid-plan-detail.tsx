@@ -44,14 +44,9 @@ interface RaidPlanDetailProps {
   initialBreadcrumbData?: { [key: string]: string };
 }
 
-export function RaidPlanDetail({
-  planId,
-  initialBreadcrumbData,
-}: RaidPlanDetailProps) {
+export function RaidPlanDetail({ planId, initialBreadcrumbData }: RaidPlanDetailProps) {
   const [activeTab, setActiveTab] = useState("default");
-  const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(
-    null,
-  );
+  const [deleteEncounterId, setDeleteEncounterId] = useState<string | null>(null);
   const [showPushDialog, setShowPushDialog] = useState(false);
   const [showDefaultAARef, setShowDefaultAARef] = useState(false);
   const { updateBreadcrumbSegment } = useBreadcrumb();
@@ -89,72 +84,64 @@ export function RaidPlanDetail({
       void refetch();
     },
   });
-  const createEncounterGroupMutation =
-    api.raidPlan.createEncounterGroup.useMutation({
-      onMutate: async ({ planId: pid, groupName }) => {
-        await utils.raidPlan.getById.cancel({ planId: pid });
-        const prev = utils.raidPlan.getById.getData({ planId: pid });
-        if (prev) {
-          const maxSort = Math.max(
-            -1,
-            ...prev.encounterGroups.map((g) => g.sortOrder),
-            ...prev.encounters.map((e) => e.sortOrder),
-          );
-          utils.raidPlan.getById.setData(
-            { planId: pid },
-            {
-              ...prev,
-              encounterGroups: [
-                ...prev.encounterGroups,
-                { id: crypto.randomUUID(), groupName, sortOrder: maxSort + 1 },
-              ],
-            },
-          );
-        }
-        return { prev };
-      },
-      onError: (_err, { planId: pid }, context) => {
-        if (context?.prev)
-          utils.raidPlan.getById.setData({ planId: pid }, context.prev);
-      },
-      onSettled: (_data, _err, { planId: pid }) => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId: pid });
-      },
-    });
-  const deleteEncounterGroupMutation =
-    api.raidPlan.deleteEncounterGroup.useMutation({
-      onMutate: async ({ groupId, mode }) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        if (prev) {
-          utils.raidPlan.getById.setData(
-            { planId },
-            {
-              ...prev,
-              encounterGroups: prev.encounterGroups.filter(
-                (g) => g.id !== groupId,
-              ),
-              encounters:
-                mode === "deleteChildren"
-                  ? prev.encounters.filter((e) => e.groupId !== groupId)
-                  : prev.encounters.map((e) =>
-                      e.groupId === groupId ? { ...e, groupId: null } : e,
-                    ),
-            },
-          );
-        }
-        return { prev };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.prev)
-          utils.raidPlan.getById.setData({ planId }, context.prev);
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+  const createEncounterGroupMutation = api.raidPlan.createEncounterGroup.useMutation({
+    onMutate: async ({ planId: pid, groupName }) => {
+      await utils.raidPlan.getById.cancel({ planId: pid });
+      const prev = utils.raidPlan.getById.getData({ planId: pid });
+      if (prev) {
+        const maxSort = Math.max(
+          -1,
+          ...prev.encounterGroups.map((g) => g.sortOrder),
+          ...prev.encounters.map((e) => e.sortOrder),
+        );
+        utils.raidPlan.getById.setData(
+          { planId: pid },
+          {
+            ...prev,
+            encounterGroups: [
+              ...prev.encounterGroups,
+              { id: crypto.randomUUID(), groupName, sortOrder: maxSort + 1 },
+            ],
+          },
+        );
+      }
+      return { prev };
+    },
+    onError: (_err, { planId: pid }, context) => {
+      if (context?.prev) utils.raidPlan.getById.setData({ planId: pid }, context.prev);
+    },
+    onSettled: (_data, _err, { planId: pid }) => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId: pid });
+    },
+  });
+  const deleteEncounterGroupMutation = api.raidPlan.deleteEncounterGroup.useMutation({
+    onMutate: async ({ groupId, mode }) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      if (prev) {
+        utils.raidPlan.getById.setData(
+          { planId },
+          {
+            ...prev,
+            encounterGroups: prev.encounterGroups.filter((g) => g.id !== groupId),
+            encounters:
+              mode === "deleteChildren"
+                ? prev.encounters.filter((e) => e.groupId !== groupId)
+                : prev.encounters.map((e) => (e.groupId === groupId ? { ...e, groupId: null } : e)),
+          },
+        );
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) utils.raidPlan.getById.setData({ planId }, context.prev);
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
   const togglePublicMutation = api.raidPlan.togglePublic.useMutation({
     onMutate: async ({ isPublic }) => {
       await utils.raidPlan.getById.cancel({ planId });
@@ -175,60 +162,52 @@ export function RaidPlanDetail({
     },
   });
 
-  const saveEncounterStructureMutation =
-    api.raidPlan.saveEncounterStructure.useMutation({
-      onMutate: async (payload) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        if (prev) {
-          const groupMap = new Map(payload.groups.map((g) => [g.id, g]));
-          const encounterMap = new Map(
-            payload.encounters.map((e) => [e.id, e]),
-          );
+  const saveEncounterStructureMutation = api.raidPlan.saveEncounterStructure.useMutation({
+    onMutate: async (payload) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      if (prev) {
+        const groupMap = new Map(payload.groups.map((g) => [g.id, g]));
+        const encounterMap = new Map(payload.encounters.map((e) => [e.id, e]));
 
-          utils.raidPlan.getById.setData(
-            { planId },
-            {
-              ...prev,
-              encounterGroups: prev.encounterGroups.map((g) => {
-                const update = groupMap.get(g.id);
-                return update
-                  ? {
-                      ...g,
-                      sortOrder: update.sortOrder,
-                      ...(update.groupName
-                        ? { groupName: update.groupName }
-                        : {}),
-                    }
-                  : g;
-              }),
-              encounters: prev.encounters.map((e) => {
-                const update = encounterMap.get(e.id);
-                return update
-                  ? {
-                      ...e,
-                      sortOrder: update.sortOrder,
-                      groupId: update.groupId,
-                      ...(update.encounterName
-                        ? { encounterName: update.encounterName }
-                        : {}),
-                    }
-                  : e;
-              }),
-            },
-          );
-        }
-        return { prev };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.prev)
-          utils.raidPlan.getById.setData({ planId }, context.prev);
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+        utils.raidPlan.getById.setData(
+          { planId },
+          {
+            ...prev,
+            encounterGroups: prev.encounterGroups.map((g) => {
+              const update = groupMap.get(g.id);
+              return update
+                ? {
+                    ...g,
+                    sortOrder: update.sortOrder,
+                    ...(update.groupName ? { groupName: update.groupName } : {}),
+                  }
+                : g;
+            }),
+            encounters: prev.encounters.map((e) => {
+              const update = encounterMap.get(e.id);
+              return update
+                ? {
+                    ...e,
+                    sortOrder: update.sortOrder,
+                    groupId: update.groupId,
+                    ...(update.encounterName ? { encounterName: update.encounterName } : {}),
+                  }
+                : e;
+            }),
+          },
+        );
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) utils.raidPlan.getById.setData({ planId }, context.prev);
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
 
   // Fetch the zone template for "Reset to Default" functionality (skip for custom zones)
   const { data: zoneTemplate } = api.raidPlanTemplate.getByZoneId.useQuery(
@@ -306,14 +285,10 @@ export function RaidPlanDetail({
     );
   }
 
-  const encounterToDelete = plan.encounters.find(
-    (e) => e.id === deleteEncounterId,
-  );
+  const encounterToDelete = plan.encounters.find((e) => e.id === deleteEncounterId);
 
   const groupCount = getGroupCount(plan.zoneId);
-  const zoneName =
-    RAID_ZONE_CONFIG.find((z) => z.instance === plan.zoneId)?.name ??
-    plan.zoneId;
+  const zoneName = RAID_ZONE_CONFIG.find((z) => z.instance === plan.zoneId)?.name ?? plan.zoneId;
 
   return (
     <div className="space-y-2">
@@ -330,9 +305,7 @@ export function RaidPlanDetail({
         presence={presence}
         onNameUpdate={refetch}
         isPublic={plan.isPublic}
-        onTogglePublic={(isPublic) =>
-          togglePublicMutation.mutate({ planId, isPublic })
-        }
+        onTogglePublic={(isPublic) => togglePublicMutation.mutate({ planId, isPublic })}
         onZoneUpdate={refetch}
         onExportAllAA={handleExportAllAA}
         isExportingAA={isExportingAA}
@@ -386,9 +359,7 @@ export function RaidPlanDetail({
                   });
                 }}
                 onDelete={(encounterId) => setDeleteEncounterId(encounterId)}
-                onAdd={(encounterName) =>
-                  createEncounterMutation.mutate({ planId, encounterName })
-                }
+                onAdd={(encounterName) => createEncounterMutation.mutate({ planId, encounterName })}
                 onCreateGroup={(groupName) =>
                   createEncounterGroupMutation.mutate({ planId, groupName })
                 }
@@ -399,25 +370,19 @@ export function RaidPlanDetail({
                 isDeletePending={deleteEncounterMutation.isPending}
                 isAddPending={createEncounterMutation.isPending}
                 isGroupPending={
-                  createEncounterGroupMutation.isPending ||
-                  deleteEncounterGroupMutation.isPending
+                  createEncounterGroupMutation.isPending || deleteEncounterGroupMutation.isPending
                 }
               />
             }
           />
 
           {/* Content column */}
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="relative">
               <p className="mb-2 text-lg font-semibold">
                 {activeTab === "default"
                   ? "Default/Trash"
-                  : (plan.encounters.find((e) => e.id === activeTab)
-                      ?.encounterName ?? "Encounter")}
+                  : (plan.encounters.find((e) => e.id === activeTab)?.encounterName ?? "Encounter")}
               </p>
               <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
                 {/* Groups Column (order 2 on mobile, 1 on desktop) */}
@@ -430,13 +395,10 @@ export function RaidPlanDetail({
                           variant="outline"
                           size="sm"
                           className="h-7 border-destructive text-xs"
-                          disabled={
-                            isRefreshing || refreshCharactersMutation.isPending
-                          }
+                          disabled={isRefreshing || refreshCharactersMutation.isPending}
                           onClick={() => setShowRefreshDialog(true)}
                         >
-                          {isRefreshing ||
-                          refreshCharactersMutation.isPending ? (
+                          {isRefreshing || refreshCharactersMutation.isPending ? (
                             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                           ) : (
                             <RefreshCw className="mr-1 h-3 w-3" />
@@ -464,11 +426,7 @@ export function RaidPlanDetail({
 
                   {/* Encounter Tabs */}
                   {plan.encounters.map((encounter) => (
-                    <TabsContent
-                      key={encounter.id}
-                      value={encounter.id}
-                      className="mt-0 space-y-3"
-                    >
+                    <TabsContent key={encounter.id} value={encounter.id} className="mt-0 space-y-3">
                       <div className="flex h-7 items-center gap-2">
                         <div className="flex items-center gap-1.5">
                           <Checkbox
@@ -591,9 +549,7 @@ export function RaidPlanDetail({
                             onClick={() =>
                               handleCopyAA(
                                 plan.defaultAATemplate,
-                                plan.aaSlotAssignments.filter(
-                                  (a) => a.raidPlanId === planId,
-                                ),
+                                plan.aaSlotAssignments.filter((a) => a.raidPlanId === planId),
                                 plan.characters as RaidPlanCharacter[],
                               )
                             }
@@ -639,9 +595,7 @@ export function RaidPlanDetail({
                         defaultTemplate={zoneTemplate?.defaultAATemplate}
                         onResetToDefault={() => {
                           if (zoneTemplate?.defaultAATemplate) {
-                            handleDefaultAATemplateSave(
-                              zoneTemplate.defaultAATemplate,
-                            );
+                            handleDefaultAATemplateSave(zoneTemplate.defaultAATemplate);
                           }
                         }}
                         isResetting={updatePlanMutation.isPending}
@@ -649,8 +603,7 @@ export function RaidPlanDetail({
                     ) : (
                       <div className="rounded-lg border border-dashed p-6">
                         <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                          Check &quot;Include AngryEra&quot; to enable AA
-                          assignments
+                          Check &quot;Include AngryEra&quot; to enable AA assignments
                         </div>
                       </div>
                     )}
@@ -658,11 +611,7 @@ export function RaidPlanDetail({
 
                   {/* Encounter Tab AA */}
                   {plan.encounters.map((encounter) => (
-                    <TabsContent
-                      key={encounter.id}
-                      value={encounter.id}
-                      className="mt-0 space-y-3"
-                    >
+                    <TabsContent key={encounter.id} value={encounter.id} className="mt-0 space-y-3">
                       <div className="flex h-7 items-center gap-2">
                         <Checkbox
                           id={`include-aa-${encounter.id}`}
@@ -737,10 +686,7 @@ export function RaidPlanDetail({
                         <AAPanel
                           template={encounter.aaTemplate}
                           onSaveTemplate={(template) =>
-                            handleEncounterAATemplateSave(
-                              encounter.id,
-                              template,
-                            )
+                            handleEncounterAATemplateSave(encounter.id, template)
                           }
                           characters={plan.characters as RaidPlanCharacter[]}
                           slotAssignments={plan.aaSlotAssignments.filter(
@@ -771,11 +717,9 @@ export function RaidPlanDetail({
                             )?.aaTemplate
                           }
                           onResetToDefault={() => {
-                            const templateEncounter =
-                              zoneTemplate?.encounters.find(
-                                (e) =>
-                                  e.encounterKey === encounter.encounterKey,
-                              );
+                            const templateEncounter = zoneTemplate?.encounters.find(
+                              (e) => e.encounterKey === encounter.encounterKey,
+                            );
                             if (templateEncounter?.aaTemplate) {
                               handleEncounterAATemplateSave(
                                 encounter.id,
@@ -788,8 +732,7 @@ export function RaidPlanDetail({
                       ) : (
                         <div className="rounded-lg border border-dashed p-6">
                           <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                            Check &quot;Include AngryEra&quot; to enable AA
-                            assignments
+                            Check &quot;Include AngryEra&quot; to enable AA assignments
                           </div>
                         </div>
                       )}

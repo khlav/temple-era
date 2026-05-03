@@ -13,13 +13,7 @@ import { useIsMobile } from "~/hooks/use-mobile";
 import { VirtualizedList } from "~/components/ui/virtualized-list";
 import { cn } from "~/lib/utils";
 
-export function RaidsTable({
-  raids,
-  session,
-}: {
-  raids: Raid[] | undefined;
-  session?: Session;
-}) {
+export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; session?: Session }) {
   const isMobile = useIsMobile();
   const mobileRaids = raids ?? [];
   const desktopGridClass = session?.user?.isRaidManager
@@ -49,9 +43,7 @@ export function RaidsTable({
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{r.zone}</Badge>
-                        <RaidAttendenceWeightBadge
-                          attendanceWeight={r.attendanceWeight}
-                        />
+                        <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                       </div>
                       <Link
                         className="block text-base font-semibold text-secondary-foreground transition-all hover:text-primary"
@@ -79,10 +71,7 @@ export function RaidsTable({
                     <div className="flex min-w-0 items-center gap-2">
                       {r.creator?.name ? (
                         <>
-                          <UserAvatar
-                            name={r.creator.name}
-                            image={r.creator.image}
-                          />
+                          <UserAvatar name={r.creator.name} image={r.creator.image} />
                           <span className="truncate">{r.creator.name}</span>
                         </>
                       ) : (
@@ -91,18 +80,13 @@ export function RaidsTable({
                     </div>
                     {(r.raidLogIds ?? []).length > 0 ? (
                       <Link
-                        href={GenerateWCLReportUrl(
-                          (r.raidLogIds ?? [])[0] ?? "",
-                        )}
+                        href={GenerateWCLReportUrl((r.raidLogIds ?? [])[0] ?? "")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-sm transition-all hover:text-primary"
                       >
                         <span>WCL</span>
-                        <Badge
-                          variant="outline"
-                          className="px-1.5 py-0 text-[10px]"
-                        >
+                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
                           {(r.raidLogIds ?? []).length}
                         </Badge>
                         <ExternalLinkIcon size={14} />
@@ -179,13 +163,9 @@ export function RaidsTable({
                   ) : null}
                 </div>
                 <div className="truncate">{r.zone}</div>
-                <div className="truncate">
-                  {PrettyPrintDate(new Date(r.date), true)}
-                </div>
+                <div className="truncate">{PrettyPrintDate(new Date(r.date), true)}</div>
                 <div>
-                  <RaidAttendenceWeightBadge
-                    attendanceWeight={r.attendanceWeight}
-                  />
+                  <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                 </div>
                 <div className="min-w-0">
                   {r.creator?.name ? (
@@ -205,10 +185,7 @@ export function RaidsTable({
                         rel="noopener noreferrer"
                         className="group text-sm transition-all hover:text-primary hover:underline"
                       >
-                        <ExternalLinkIcon
-                          className="ml-1 inline-block align-text-top"
-                          size={15}
-                        />
+                        <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
                       </Link>
                     );
                   })}

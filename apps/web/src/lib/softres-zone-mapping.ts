@@ -12,9 +12,7 @@ import { INSTANCE_TO_ZONE, type RaidZone } from "./raid-zones";
  * The API returns instance identifiers like "aq40", "bwl", "mc", "naxxramas"
  * Returns undefined if no mapping found or if instance is null/undefined
  */
-export function mapSoftResInstanceToDb(
-  instance: string | null | undefined,
-): RaidZone | undefined {
+export function mapSoftResInstanceToDb(instance: string | null | undefined): RaidZone | undefined {
   if (!instance) {
     return undefined;
   }

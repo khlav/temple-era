@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanCharacters, characters } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const PatchRosterSlotSchema = z.object({
   characterId: z.number().int(),
@@ -63,19 +63,11 @@ export async function PATCH(
     const slot = await db
       .select({ id: raidPlanCharacters.id })
       .from(raidPlanCharacters)
-      .where(
-        and(
-          eq(raidPlanCharacters.id, planCharacterId),
-          eq(raidPlanCharacters.raidPlanId, id),
-        ),
-      )
+      .where(and(eq(raidPlanCharacters.id, planCharacterId), eq(raidPlanCharacters.raidPlanId, id)))
       .limit(1);
 
     if (slot.length === 0) {
-      return NextResponse.json(
-        { error: "Roster slot not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Roster slot not found" }, { status: 404 });
     }
 
     // Verify characterId exists in the characters table
@@ -86,10 +78,7 @@ export async function PATCH(
       .limit(1);
 
     if (character.length === 0) {
-      return NextResponse.json(
-        { error: "Character not found" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Character not found" }, { status: 400 });
     }
 
     await db
@@ -100,17 +89,11 @@ export async function PATCH(
       })
       .where(eq(raidPlanCharacters.id, planCharacterId));
 
-    await db
-      .update(raidPlans)
-      .set({ updatedById: user.id })
-      .where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

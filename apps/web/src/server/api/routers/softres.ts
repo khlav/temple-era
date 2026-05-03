@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import type { SoftResRaidData } from "~/server/api/interfaces/softres";
@@ -106,10 +107,7 @@ export const softres = createTRPCRouter({
               raidDate: softResData.raidDate,
             };
           } catch (error) {
-            console.error(
-              `Failed to fetch raid info for ${link.softResRaidId}:`,
-              error,
-            );
+            logger.error({ err: error }, `Failed to fetch raid info for ${link.softResRaidId}`);
             // Return link without enrichment if API call fails
             return link;
           }
@@ -118,7 +116,7 @@ export const softres = createTRPCRouter({
 
       return enrichedLinks;
     } catch (error) {
-      console.error("Failed to fetch SoftRes links from Discord:", error);
+      logger.error({ err: error }, "Failed to fetch SoftRes links from Discord");
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to fetch SoftRes links from Discord",
@@ -150,15 +148,10 @@ export const softres = createTRPCRouter({
       }
 
       // Pre-load item mappings - use all items if zone is unknown
-      const zoneItems = zone
-        ? await getAllItemsForZone(zone)
-        : await getAllItems();
+      const zoneItems = zone ? await getAllItemsForZone(zone) : await getAllItems();
 
       // Step 1: Match all characters in batch (1 query)
-      const characterMatches = await matchCharactersBatch(
-        ctx.db,
-        softresData.reserved,
-      );
+      const characterMatches = await matchCharactersBatch(ctx.db, softresData.reserved);
 
       // Separate matched and unmatched characters
       const matchedCharacterIds: number[] = [];
@@ -259,9 +252,7 @@ export const softres = createTRPCRouter({
           srItemNames: new Map(
             data.srItems
               .map((item) => [item.itemId, item.itemName ?? undefined])
-              .filter(([_, name]) => name !== undefined) as Array<
-              [number, string]
-            >,
+              .filter(([_, name]) => name !== undefined) as Array<[number, string]>,
           ),
           zone: zone ?? null,
         };
@@ -325,9 +316,7 @@ export const softres = createTRPCRouter({
           srItemNames: new Map(
             unmatchedChar.srItems
               .map((item) => [item.itemId, item.itemName ?? undefined])
-              .filter(([_, name]) => name !== undefined) as Array<
-              [number, string]
-            >,
+              .filter(([_, name]) => name !== undefined) as Array<[number, string]>,
           ),
           zone: zone ?? null,
         };
@@ -414,9 +403,7 @@ export const softres = createTRPCRouter({
         }
 
         // Finally, sort alphabetically by character name (case-insensitive)
-        return a.characterName
-          .toLowerCase()
-          .localeCompare(b.characterName.toLowerCase());
+        return a.characterName.toLowerCase().localeCompare(b.characterName.toLowerCase());
       });
 
       return {

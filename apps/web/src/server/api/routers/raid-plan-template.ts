@@ -52,9 +52,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
             sortOrder: raidPlanTemplateEncounterGroups.sortOrder,
           })
           .from(raidPlanTemplateEncounterGroups)
-          .where(
-            eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id),
-          )
+          .where(eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id))
           .orderBy(raidPlanTemplateEncounterGroups.sortOrder),
       ]);
 
@@ -221,9 +219,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   deleteTemplate: raidManagerProcedure
     .input(z.object({ templateId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .delete(raidPlanTemplates)
-        .where(eq(raidPlanTemplates.id, input.templateId));
+      await ctx.db.delete(raidPlanTemplates).where(eq(raidPlanTemplates.id, input.templateId));
 
       return { success: true };
     }),
@@ -428,9 +424,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
         ctx.db
           .select({ maxSort: max(raidPlanTemplateEncounterGroups.sortOrder) })
           .from(raidPlanTemplateEncounterGroups)
-          .where(
-            eq(raidPlanTemplateEncounterGroups.templateId, input.templateId),
-          ),
+          .where(eq(raidPlanTemplateEncounterGroups.templateId, input.templateId)),
       ]);
 
       const maxEncounter = encounterMaxResult[0]?.maxSort ?? -1;

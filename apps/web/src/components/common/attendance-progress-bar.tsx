@@ -2,11 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { Progress } from "~/components/ui/progress";
 import { cn } from "~/lib/utils";
 import { env } from "~/env";
@@ -30,24 +26,18 @@ export function AttendanceProgressBar({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="flex cursor-help items-center gap-2 pt-2">
-            <span className="text-2xl font-bold leading-none">
-              {attendancePercent}%
-            </span>
+            <span className="text-2xl font-bold leading-none">{attendancePercent}%</span>
             <div className="relative flex-1">
               <Progress
                 value={attendancePercent}
                 className="h-4 bg-muted"
-                indicatorClassName={cn(
-                  isAboveThreshold ? "bg-primary" : "bg-gray-500",
-                )}
+                indicatorClassName={cn(isAboveThreshold ? "bg-primary" : "bg-gray-500")}
               />
               {/* 50% dotted line */}
               <div
                 className={cn(
                   "pointer-events-none absolute top-0 h-4 border-l-2 border-dotted",
-                  isAboveThreshold
-                    ? "border-background"
-                    : "border-muted-foreground",
+                  isAboveThreshold ? "border-background" : "border-muted-foreground",
                 )}
                 style={{ left: "50%" }}
               />

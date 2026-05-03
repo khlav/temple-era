@@ -68,11 +68,7 @@ export const CraftersSummaryMessage = ({
   }, [filteredRecipes, searchPerformed]);
 
   // Only show if conditions are met
-  if (
-    !searchPerformed ||
-    filteredRecipes.length === 0 ||
-    completeCrafters.length === 0
-  ) {
+  if (!searchPerformed || filteredRecipes.length === 0 || completeCrafters.length === 0) {
     return null;
   }
 
@@ -87,8 +83,7 @@ export const CraftersSummaryMessage = ({
     } else if (completeCrafters.length === 2) {
       return (
         <>
-          {boldName(completeCrafters[0] ?? "")} and{" "}
-          {boldName(completeCrafters[1] ?? "")}
+          {boldName(completeCrafters[0] ?? "")} and {boldName(completeCrafters[1] ?? "")}
         </>
       );
     } else {
@@ -112,8 +107,7 @@ export const CraftersSummaryMessage = ({
       <div className="flex gap-2">
         <AlertCircle className="h-4 w-4 text-chart-2" />
         <AlertDescription className="text-muted-foreground">
-          <span>{formatCraftersList()}</span> can help with all items in your
-          search.
+          <span>{formatCraftersList()}</span> can help with all items in your search.
         </AlertDescription>
       </div>
     </Alert>

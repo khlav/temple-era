@@ -34,9 +34,7 @@ export function RaidEditorCoreControls({
   raidData: Raid;
   isSendingData: boolean;
   editingMode: "new" | "existing";
-  handleInputChangeAction?: (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => void;
+  handleInputChangeAction?: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   handleWeightChangeAction?: (e: FormEvent<HTMLButtonElement>) => void;
   handleSubmitAction: () => void;
   handleDeleteAction: () => void;
@@ -93,11 +91,7 @@ export function RaidEditorCoreControls({
           </div>
         </div>
         <div className="w-full text-center md:my-auto md:w-28 md:grow-0">
-          <Button
-            className="mb-2 w-full"
-            onClick={handleSubmitAction}
-            disabled={isSendingData}
-          >
+          <Button className="mb-2 w-full" onClick={handleSubmitAction} disabled={isSendingData}>
             {isSendingData ? (
               <Loader className="animate-spin" />
             ) : editingMode === "existing" ? (
@@ -118,8 +112,7 @@ export function RaidEditorCoreControls({
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Raid info will be lost. <br />
-                  Logs and characters will be hidden until they are used
-                  elsewhere.
+                  Logs and characters will be hidden until they are used elsewhere.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -146,31 +139,19 @@ export function RaidEditorCoreControls({
           >
             <div className="flex text-sm">Attendance Tracking:</div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                id="option-one"
-                value="1"
-                onClick={handleWeightChangeAction}
-              />
+              <RadioGroupItem id="option-one" value="1" onClick={handleWeightChangeAction} />
               <Label htmlFor="option-one">
                 <RaidAttendenceWeightBadge attendanceWeight={1} />
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                id="option-half"
-                value="0.5"
-                onClick={handleWeightChangeAction}
-              />
+              <RadioGroupItem id="option-half" value="0.5" onClick={handleWeightChangeAction} />
               <Label htmlFor="option-half">
                 <RaidAttendenceWeightBadge attendanceWeight={0.5} />
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem
-                id="option-zero"
-                value="0"
-                onClick={handleWeightChangeAction}
-              />
+              <RadioGroupItem id="option-zero" value="0" onClick={handleWeightChangeAction} />
               <Label htmlFor="option-zero">
                 <RaidAttendenceWeightBadge attendanceWeight={0} />
               </Label>

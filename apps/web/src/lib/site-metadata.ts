@@ -4,8 +4,7 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
 
 export const siteConfig = {
   name: "Temple",
-  description:
-    "Raid attendance, raid planning, and roster tools for Temple on WoW Classic Era.",
+  description: "Raid attendance, raid planning, and roster tools for Temple on WoW Classic Era.",
   url: siteUrl,
   ogImage: "/img/temple_512.jpeg",
 };
@@ -36,14 +35,11 @@ export function createPageMetadata({
 }: CreatePageMetadataOptions = {}): Metadata {
   const pageTitle = title ?? siteConfig.name;
   const socialTitle =
-    pageTitle === siteConfig.name
-      ? pageTitle
-      : `${siteConfig.name} | ${pageTitle}`;
+    pageTitle === siteConfig.name ? pageTitle : `${siteConfig.name} | ${pageTitle}`;
   const url = path ? `${siteConfig.url}${path}` : siteConfig.url;
 
   return {
-    title:
-      pageTitle === siteConfig.name ? { absolute: siteConfig.name } : pageTitle,
+    title: pageTitle === siteConfig.name ? { absolute: siteConfig.name } : pageTitle,
     description,
     ...(path
       ? {

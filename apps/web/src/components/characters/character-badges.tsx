@@ -2,18 +2,9 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-import {
-  BADGE_DEFINITIONS,
-  type BadgeDefinition,
-  type BadgeRarity,
-} from "~/lib/badge-definitions";
+import { BADGE_DEFINITIONS, type BadgeDefinition, type BadgeRarity } from "~/lib/badge-definitions";
 import { evaluateAllBadges } from "~/lib/badge-evaluator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 
@@ -22,12 +13,10 @@ import { cn } from "~/lib/utils";
  */
 const RARITY_COLORS: Record<BadgeRarity, string> = {
   common: "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20",
-  uncommon:
-    "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  uncommon: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   rare: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   epic: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
-  legendary:
-    "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  legendary: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
 };
 
 const RARITY_LABELS: Record<BadgeRarity, string> = {
@@ -41,13 +30,7 @@ const RARITY_LABELS: Record<BadgeRarity, string> = {
 /**
  * Individual badge item component
  */
-function BadgeItem({
-  badge,
-  earned,
-}: {
-  badge: BadgeDefinition;
-  earned: boolean;
-}) {
+function BadgeItem({ badge, earned }: { badge: BadgeDefinition; earned: boolean }) {
   const Icon = badge.icon;
   const colorClasses = RARITY_COLORS[badge.rarity];
 
@@ -100,21 +83,12 @@ function BadgeGroup({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div
-        className={cn(
-          "text-center text-sm font-semibold",
-          RARITY_TEXT_COLORS[rarity],
-        )}
-      >
+      <div className={cn("text-center text-sm font-semibold", RARITY_TEXT_COLORS[rarity])}>
         {RARITY_LABELS[rarity]}
       </div>
       <div className="flex flex-col gap-2">
         {badges.map((badge) => (
-          <BadgeItem
-            key={badge.id}
-            badge={badge}
-            earned={badgeResults.get(badge.id) ?? false}
-          />
+          <BadgeItem key={badge.id} badge={badge} earned={badgeResults.get(badge.id) ?? false} />
         ))}
       </div>
     </div>
@@ -174,11 +148,7 @@ export function CharacterBadges({ characterId }: { characterId: number }) {
   }
 
   if (!weeklyData || !attendanceData) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        Unable to load badge data.
-      </div>
-    );
+    return <div className="text-sm text-muted-foreground">Unable to load badge data.</div>;
   }
 
   // Get attendance stats
@@ -206,19 +176,12 @@ export function CharacterBadges({ characterId }: { characterId: number }) {
     badgesByRarity[badge.rarity].push(badge);
   }
 
-  const rarityOrder: BadgeRarity[] = [
-    "common",
-    "uncommon",
-    "rare",
-    "epic",
-    "legendary",
-  ];
+  const rarityOrder: BadgeRarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
 
   return (
     <div className="w-full">
       <div className="mb-3 text-sm text-muted-foreground">
-        <span className="font-semibold">Achievements</span> – Based on last 6
-        lockouts
+        <span className="font-semibold">Achievements</span> – Based on last 6 lockouts
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {rarityOrder.map((rarity) => (

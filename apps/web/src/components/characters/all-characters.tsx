@@ -16,22 +16,22 @@ export function AllCharacters({
   session?: Session;
   characters?: RaidParticipantCollection | null;
 }) {
-  const { data: fetchedCharacters } = api.character.getCharacters.useQuery(
-    undefined,
-    {
-      enabled: !initialCharacters,
-    },
-  );
+  const { data: fetchedCharacters } = api.character.getCharacters.useQuery(undefined, {
+    enabled: !initialCharacters,
+  });
   const players = initialCharacters ?? fetchedCharacters;
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Function to normalize text (remove non-ASCII characters and convert to lowercase)
   const normalizeText = (text: string) => {
-    return text
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove accents
-      .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
-      .toLowerCase(); // Convert to lowercase
+    return (
+      text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        // eslint-disable-next-line no-control-regex
+        .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+        .toLowerCase()
+    ); // Convert to lowercase
   };
 
   // Filter characters based on search term
@@ -52,18 +52,12 @@ export function AllCharacters({
               player.classDetail,
               player.slug,
               player.primaryCharacterName,
-              player.raidAttendanceByZone?.["Molten Core"]?.attendee
-                ? "Molten Core mc"
-                : "",
-              player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee
-                ? "Blackwing Lair bwl"
-                : "",
+              player.raidAttendanceByZone?.["Molten Core"]?.attendee ? "Molten Core mc" : "",
+              player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee ? "Blackwing Lair bwl" : "",
               player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee
                 ? "Temple of Ahn'Qiraj aq40"
                 : "",
-              player.raidAttendanceByZone?.Naxxramas?.attendee
-                ? "Naxxramas"
-                : "",
+              player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : "",
             ]
               .filter(Boolean)
               .join(" "),
@@ -92,9 +86,7 @@ export function AllCharacters({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
-              <Badge variant="secondary">
-                {Object.keys(filteredPlayers).length} characters
-              </Badge>
+              <Badge variant="secondary">{Object.keys(filteredPlayers).length} characters</Badge>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>
                 <ul className="list-disc space-y-1 pl-4">

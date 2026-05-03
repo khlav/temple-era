@@ -4,11 +4,7 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import Link from "next/link";
 import React from "react";
 import type { Session } from "next-auth";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { ChevronDown, InfoIcon } from "lucide-react";
 import { env } from "~/env";
 
@@ -24,11 +20,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
   return (
     <div className="pb-2">
       <Card className="overflow-hidden text-sm">
-        <Collapsible
-          open={isOpen}
-          onOpenChange={setIsOpen}
-          defaultOpen={defaultOpen}
-        >
+        <Collapsible open={isOpen} onOpenChange={setIsOpen} defaultOpen={defaultOpen}>
           <CollapsibleTrigger asChild>
             <CardHeader
               className={`cursor-pointer p-4 transition-colors hover:bg-accent/40 ${
@@ -37,13 +29,9 @@ export default function DashboardBanner({ session }: { session?: Session }) {
             >
               <div className="flex flex-row items-center gap-2">
                 <div className="flex grow-0 items-center gap-2 font-bold text-primary">
-                  <span className="font-display uppercase tracking-[0.18em]">
-                    Please Read
-                  </span>
+                  <span className="font-display uppercase tracking-[0.18em]">Please Read</span>
                   <InfoIcon className="h-4 w-4" />
-                  <span className="text-foreground">
-                    Temple Raid Attendance & Loot Policy
-                  </span>
+                  <span className="text-foreground">Temple Raid Attendance & Loot Policy</span>
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
@@ -57,8 +45,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
             <CardContent>
               <div className="space-y-3 text-muted-foreground">
                 <div>
-                  Raiders must maintain 50%+ large raid attendance over 6
-                  lockout weeks to roll on{" "}
+                  Raiders must maintain 50%+ large raid attendance over 6 lockout weeks to roll on{" "}
                   <Link
                     href={env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL}
                     target="_blank"
@@ -66,20 +53,18 @@ export default function DashboardBanner({ session }: { session?: Session }) {
                   >
                     specific Naxx gear
                   </Link>
-                  . In practice, this means raiders must participate in ~1.5
-                  different 40-player raids (in different zones) on average each
-                  week to stay eligible.
+                  . In practice, this means raiders must participate in ~1.5 different 40-player
+                  raids (in different zones) on average each week to stay eligible.
                 </div>
                 <div>
-                  Note: If a raid is full, you can earn credit by being
-                  ready/available at raid time and contacting an officer.{" "}
+                  Note: If a raid is full, you can earn credit by being ready/available at raid time
+                  and contacting an officer.{" "}
                   <Link
                     className="text-blue-500 hover:text-secondary-foreground hover:underline"
                     href={raid_policy_channel_url}
                     target="_blank"
                   >
-                    Learn more in Discord:{" "}
-                    <strong>Temple &gt; #raid-policies</strong>
+                    Learn more in Discord: <strong>Temple &gt; #raid-policies</strong>
                   </Link>
                 </div>
                 {/*<div className="pt-2">*/}

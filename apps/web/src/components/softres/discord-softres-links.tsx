@@ -23,9 +23,7 @@ export function DiscordSoftResLinks() {
     return (
       <div className="mt-8">
         <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-muted-foreground">
-            Loading Discord SoftRes links...
-          </div>
+          <div className="text-sm text-muted-foreground">Loading Discord SoftRes links...</div>
         </div>
       </div>
     );
@@ -47,9 +45,7 @@ export function DiscordSoftResLinks() {
     return (
       <div className="mt-8">
         <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-muted-foreground">
-            No SoftRes links found in Discord
-          </div>
+          <div className="text-sm text-muted-foreground">No SoftRes links found in Discord</div>
         </div>
       </div>
     );
@@ -61,9 +57,7 @@ export function DiscordSoftResLinks() {
         <h3 className="text-lg font-semibold">
           Found {softResLinks.length} RaidHelper post
           {softResLinks.length !== 1 ? "s" : ""} with SoftRes links{" "}
-          <span className="text-xs font-normal italic text-muted-foreground">
-            Last 7 days
-          </span>
+          <span className="text-xs font-normal italic text-muted-foreground">Last 7 days</span>
         </h3>
       </div>
 
@@ -94,9 +88,7 @@ export function DiscordSoftResLinks() {
           });
 
           // Format raid date/time for display in Eastern Time (without timezone abbreviation)
-          const raidDateTime = link.raidDateTime
-            ? new Date(link.raidDateTime)
-            : null;
+          const raidDateTime = link.raidDateTime ? new Date(link.raidDateTime) : null;
           const raidDateDisplay = raidDateTime
             ? formatEasternDateTime(raidDateTime, "EEE, MMM d 'at' h:mm a")
             : null;
@@ -120,10 +112,7 @@ export function DiscordSoftResLinks() {
 
               {/* Zone Indicator + Raid Name */}
               <div className="flex items-center gap-2">
-                <ZoneIndicator
-                  raidTitle={raidTitle}
-                  instance={link.raidInstance}
-                />
+                <ZoneIndicator raidTitle={raidTitle} instance={link.raidInstance} />
                 <span className="font-medium">{raidTitle}</span>
               </div>
 

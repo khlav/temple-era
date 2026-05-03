@@ -22,21 +22,13 @@ import { useBreadcrumb } from "~/components/nav/breadcrumb-context";
 import { buildEncounterCharacters, type RaidPlanCharacter } from "./types";
 import { getGroupCount } from "./constants";
 import { extractCharacterLines } from "~/lib/aa-template";
-import {
-  CharacterSummaryPanel,
-  type CharacterEncounterSummary,
-} from "./character-summary-panel";
+import { CharacterSummaryPanel, type CharacterEncounterSummary } from "./character-summary-panel";
 
 import { signIn } from "next-auth/react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { CharacterSelector } from "~/components/characters/character-selector";
 import { ClassIcon } from "~/components/ui/class-icon";
 
@@ -56,9 +48,7 @@ export function RaidPlanPublicView({
   isRaidManager = false,
 }: RaidPlanPublicViewProps) {
   const [activeTab, setActiveTab] = useState("default");
-  const [viewAsCharacterId, setViewAsCharacterId] = useState<number | null>(
-    null,
-  );
+  const [viewAsCharacterId, setViewAsCharacterId] = useState<number | null>(null);
   const { updateBreadcrumbSegment } = useBreadcrumb();
   const utils = api.useUtils();
 
@@ -79,6 +69,7 @@ export function RaidPlanPublicView({
       await utils.profile.getMyProfile.invalidate();
     },
     onError: (error) => {
+      // eslint-disable-next-line no-console
       console.error(error);
     },
   });
@@ -94,9 +85,7 @@ export function RaidPlanPublicView({
     if (!viewAsCharacter) return [];
     const ids = [viewAsCharacter.characterId];
     if (viewAsCharacter.secondaryCharacters) {
-      ids.push(
-        ...viewAsCharacter.secondaryCharacters.map((c) => c.characterId),
-      );
+      ids.push(...viewAsCharacter.secondaryCharacters.map((c) => c.characterId));
     }
     return ids;
   }, [viewAsCharacter]);
@@ -110,22 +99,14 @@ export function RaidPlanPublicView({
 
   // Identify encounters where the "view as" character has an AA assignment
   const assignmentLabelsMap = useMemo(() => {
-    if (
-      !userCharacterIds.length ||
-      !plan?.characters.length ||
-      !plan?.aaSlotAssignments
-    ) {
+    if (!userCharacterIds.length || !plan?.characters.length || !plan?.aaSlotAssignments) {
       return new Map<string, string[]>();
     }
 
     // Find the planCharacterIds for the "view as" character's characters
     const viewerPlanCharacterIds = new Set(
       plan.characters
-        .filter(
-          (char) =>
-            char.characterId !== null &&
-            userCharacterIds.includes(char.characterId),
-        )
+        .filter((char) => char.characterId !== null && userCharacterIds.includes(char.characterId))
         .map((char) => char.id),
     );
 
@@ -156,37 +137,25 @@ export function RaidPlanPublicView({
 
     // Default/Trash
     const defaultSlotNames = assignmentLabelsMap.get("default");
-    if (
-      defaultSlotNames?.length &&
-      plan.useDefaultAA &&
-      plan.defaultAATemplate
-    ) {
-      const lines = extractCharacterLines(
-        plan.defaultAATemplate,
-        defaultSlotNames,
-      );
+    if (defaultSlotNames?.length && plan.useDefaultAA && plan.defaultAATemplate) {
+      const lines = extractCharacterLines(plan.defaultAATemplate, defaultSlotNames);
       if (lines.length > 0) {
         summaries.push({
           encounterId: "default",
           encounterName: "Default/Trash",
           slotNames: defaultSlotNames,
           template: lines.join("\n"),
-          slotAssignments: plan.aaSlotAssignments.filter(
-            (a) => a.encounterId === null,
-          ),
+          slotAssignments: plan.aaSlotAssignments.filter((a) => a.encounterId === null),
           contextId: planId,
         });
       }
     }
 
     // Encounters sorted by sortOrder
-    const sortedEncounters = [...plan.encounters].sort(
-      (a, b) => a.sortOrder - b.sortOrder,
-    );
+    const sortedEncounters = [...plan.encounters].sort((a, b) => a.sortOrder - b.sortOrder);
     for (const encounter of sortedEncounters) {
       const slotNames = assignmentLabelsMap.get(encounter.id);
-      if (!slotNames?.length || !encounter.useCustomAA || !encounter.aaTemplate)
-        continue;
+      if (!slotNames?.length || !encounter.useCustomAA || !encounter.aaTemplate) continue;
 
       const lines = extractCharacterLines(encounter.aaTemplate, slotNames);
       if (lines.length === 0) continue;
@@ -196,9 +165,7 @@ export function RaidPlanPublicView({
         encounterName: encounter.encounterName,
         slotNames,
         template: lines.join("\n"),
-        slotAssignments: plan.aaSlotAssignments.filter(
-          (a) => a.encounterId === encounter.id,
-        ),
+        slotAssignments: plan.aaSlotAssignments.filter((a) => a.encounterId === encounter.id),
         contextId: encounter.id,
       });
     }
@@ -238,9 +205,7 @@ export function RaidPlanPublicView({
   }
 
   const groupCount = getGroupCount(plan.zoneId);
-  const zoneName =
-    RAID_ZONE_CONFIG.find((z) => z.instance === plan.zoneId)?.name ??
-    plan.zoneId;
+  const zoneName = RAID_ZONE_CONFIG.find((z) => z.instance === plan.zoneId)?.name ?? plan.zoneId;
 
   // Get display name for zone
   const zoneDisplayName =
@@ -283,10 +248,7 @@ export function RaidPlanPublicView({
                     {plan.startAt ? (
                       <p>{formatRaidDate(plan.startAt)}</p>
                     ) : plan.event ? (
-                      <a
-                        href={`/raids/${plan.event.raidId}`}
-                        className="hover:underline"
-                      >
+                      <a href={`/raids/${plan.event.raidId}`} className="hover:underline">
                         Event: {plan.event.name} ({plan.event.date})
                       </a>
                     ) : null}
@@ -300,21 +262,12 @@ export function RaidPlanPublicView({
                 <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <CharacterSelector
                   characterSet="primary"
-                  onSelectAction={(char) =>
-                    setViewAsCharacterId(char.characterId)
-                  }
+                  onSelectAction={(char) => setViewAsCharacterId(char.characterId)}
                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 px-2 text-sm"
-                  >
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-sm">
                     {viewAsCharacter ? (
                       <>
-                        <ClassIcon
-                          characterClass={viewAsCharacter.class}
-                          px={14}
-                        />
+                        <ClassIcon characterClass={viewAsCharacter.class} px={14} />
                         <span>{viewAsCharacter.name}</span>
                       </>
                     ) : (
@@ -349,16 +302,14 @@ export function RaidPlanPublicView({
 
         <Separator className="my-2" />
 
-        {viewAsCharacterId !== null &&
-          viewAsCharacter &&
-          encounterSummaries.length > 0 && (
-            <CharacterSummaryPanel
-              viewAsCharacter={viewAsCharacter}
-              encounterSummaries={encounterSummaries}
-              allCharacters={plan.characters as RaidPlanCharacter[]}
-              onEncounterClick={setActiveTab}
-            />
-          )}
+        {viewAsCharacterId !== null && viewAsCharacter && encounterSummaries.length > 0 && (
+          <CharacterSummaryPanel
+            viewAsCharacter={viewAsCharacter}
+            encounterSummaries={encounterSummaries}
+            allCharacters={plan.characters as RaidPlanCharacter[]}
+            onEncounterClick={setActiveTab}
+          />
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,_1fr)]">
@@ -395,9 +346,7 @@ export function RaidPlanPublicView({
                       />
                       Sign in with Discord
                     </Button>
-                    <span>
-                      and select your primary character to see your assignments.
-                    </span>
+                    <span>and select your primary character to see your assignments.</span>
                   </div>
                 </div>
               )}
@@ -415,11 +364,7 @@ export function RaidPlanPublicView({
                       }}
                       characterSet="primary"
                     >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                      >
+                      <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
                         Select primary character
                       </Button>
                     </CharacterSelector>
@@ -436,8 +381,8 @@ export function RaidPlanPublicView({
                 <p className="mb-2 text-lg font-semibold">
                   {activeTab === "default"
                     ? "Default/Trash"
-                    : (plan.encounters.find((e) => e.id === activeTab)
-                        ?.encounterName ?? "Encounter")}
+                    : (plan.encounters.find((e) => e.id === activeTab)?.encounterName ??
+                      "Encounter")}
                 </p>
                 <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
                   {/* Groups column (order 2 on mobile, right on desktop) */}

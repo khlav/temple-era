@@ -8,12 +8,7 @@ import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-we
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon, RefreshCw } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React, { useState } from "react";
@@ -32,23 +27,21 @@ export function RaidDetailBase({
   const utils = api.useUtils();
 
   const { data: raidParticipants, isLoading: isLoadingParticipants } =
-    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-      raidData.raidLogIds ?? [],
-      { enabled: !!raidData },
-    );
-
-  const refreshRaidLogMutation =
-    api.raidLog.refreshRaidLogByRaidLogId.useMutation({
-      onSuccess: async () => {
-        // Invalidate relevant queries to refresh the UI
-        await utils.raid.getRaidById.invalidate();
-        await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
-        setIsRefreshing(false);
-      },
-      onError: () => {
-        setIsRefreshing(false);
-      },
+    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
+      enabled: !!raidData,
     });
+
+  const refreshRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
+    onSuccess: async () => {
+      // Invalidate relevant queries to refresh the UI
+      await utils.raid.getRaidById.invalidate();
+      await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
+      setIsRefreshing(false);
+    },
+    onError: () => {
+      setIsRefreshing(false);
+    },
+  });
 
   const handleRefresh = async (raidLogId: string) => {
     setIsRefreshing(true);
@@ -75,13 +68,9 @@ export function RaidDetailBase({
         <div className="grow" />
         <div className="align-right grow-0 text-muted-foreground">
           <div className="nowrap text-right">
-            <RaidAttendenceWeightBadge
-              attendanceWeight={raidData.attendanceWeight}
-            />
+            <RaidAttendenceWeightBadge attendanceWeight={raidData.attendanceWeight} />
           </div>
-          <div className="md:text-md whitespace-nowrap text-sm">
-            {raidData.zone}
-          </div>
+          <div className="md:text-md whitespace-nowrap text-sm">{raidData.zone}</div>
         </div>
         {showEditButton && (
           <div className="grow-0 align-text-top">
@@ -115,10 +104,7 @@ export function RaidDetailBase({
                       {reportUrl.replace("https://", "")}
                     </span>
                     <span className="inline-block md:hidden">{raidLogId}</span>
-                    <ExternalLinkIcon
-                      className="ml-1 inline-block align-text-top"
-                      size={15}
-                    />
+                    <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
                   </Link>
                   {showEditButton && (
                     <Tooltip>
@@ -130,9 +116,7 @@ export function RaidDetailBase({
                           onClick={() => handleRefresh(raidLogId)}
                           disabled={isRefreshing}
                         >
-                          <RefreshCw
-                            className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
-                          />
+                          <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="bg-secondary text-muted-foreground">
@@ -186,9 +170,7 @@ export function RaidDetailBase({
             <div className="my-1 flex justify-center">
               <CharacterSummaryGrid
                 characters={raidParticipants ?? {}}
-                numRows={
-                  Object.keys(raidParticipants ?? []).length > 25 ? 3 : 2
-                }
+                numRows={Object.keys(raidParticipants ?? []).length > 25 ? 3 : 2}
               />
             </div>
 
@@ -199,22 +181,17 @@ export function RaidDetailBase({
             />
             <div className="text-center text-sm text-muted-foreground">
               List of characters appearing in WCL logs. <br />
-              Alts are mapped to primary characters when calc&apos;ing
-              attendance.
+              Alts are mapped to primary characters when calc&apos;ing attendance.
             </div>
           </div>
         </div>
         <div className="w-full xl:w-1/2">
           <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
             <div className="text-xl">Bench:</div>
-            <CharactersTable
-              characters={raidData.bench}
-              showRaidColumns={false}
-            />
+            <CharactersTable characters={raidData.bench} showRaidColumns={false} />
             <Separator className="m-auto my-3" />
             <div className="text-center text-sm text-muted-foreground">
-              Characters available for raid but not appearing in logs (e.g. raid
-              was full).
+              Characters available for raid but not appearing in logs (e.g. raid was full).
             </div>
           </div>
         </div>

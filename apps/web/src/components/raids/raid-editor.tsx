@@ -5,11 +5,7 @@ import type { Raid, RaidParticipant } from "~/server/api/interfaces/raid";
 import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 import { Separator } from "~/components/ui/separator";
 import { RaidBenchManager } from "~/components/raids/raid-bench-manager";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
 import React, { type Dispatch, type SetStateAction, useState } from "react";
@@ -41,9 +37,7 @@ export function RaidEditor({
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const handleInputChangeAction = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChangeAction = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setRaidDataAction((raidData) => ({
       ...raidData,
       [e.target.name]: e.target.value,
@@ -80,10 +74,9 @@ export function RaidEditor({
   };
 
   const { data: raidParticipants, isLoading: isLoadingParticipants } =
-    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(
-      raidData.raidLogIds ?? [],
-      { enabled: (raidData?.raidLogIds ?? []).length > 0 },
-    );
+    api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
+      enabled: (raidData?.raidLogIds ?? []).length > 0,
+    });
 
   return (
     <>
@@ -118,13 +111,8 @@ export function RaidEditor({
                       <span className="hidden md:inline-block">
                         {reportUrl.replace("https://", "")}
                       </span>
-                      <span className="inline-block md:hidden">
-                        {raidLogId}
-                      </span>
-                      <ExternalLinkIcon
-                        className="ml-1 inline-block align-text-top"
-                        size={15}
-                      />
+                      <span className="inline-block md:hidden">{raidLogId}</span>
+                      <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
                     </Link>
                   </div>
                 );
@@ -161,8 +149,7 @@ export function RaidEditor({
               />
               <div className="text-center text-sm text-muted-foreground">
                 List of characters appearing in WCL logs. <br />
-                Alts are mapped to primary characters when calc&apos;ing
-                attendance.
+                Alts are mapped to primary characters when calc&apos;ing attendance.
               </div>
             </div>
 

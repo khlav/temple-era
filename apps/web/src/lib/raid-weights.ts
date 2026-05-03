@@ -10,8 +10,5 @@ export const getDefaultAttendanceWeight = (zoneName: string): number => {
     "Molten Core": 0.5,
   } as const; // Make the object immutable
 
-  return (
-    attendanceWeightedZones[zoneName as keyof typeof attendanceWeightedZones] ??
-    0
-  );
+  return attendanceWeightedZones[zoneName as keyof typeof attendanceWeightedZones] ?? 0;
 };

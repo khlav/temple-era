@@ -10,8 +10,7 @@ import { createPageMetadata } from "~/lib/site-metadata";
 export const metadata: Metadata = {
   ...createPageMetadata({
     title: "SoftRes Scan",
-    description:
-      "Analyze soft reserves against attendance and raid requirements.",
+    description: "Analyze soft reserves against attendance and raid requirements.",
     path: "/softres",
     noIndex: true,
   }),
@@ -27,9 +26,7 @@ export default async function SoftResScanPage() {
 
   return (
     <main className="w-full px-4">
-      <div className="mb-2 text-3xl font-bold tracking-tight">
-        [Beta] SoftRes Scan
-      </div>
+      <div className="mb-2 text-3xl font-bold tracking-tight">[Beta] SoftRes Scan</div>
       <div className="mb-6 text-sm text-muted-foreground">
         Analyze soft reserves against attendance and raid requirements.
       </div>

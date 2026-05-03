@@ -339,21 +339,15 @@ export const CLASS_DEFAULT_ROLE: Record<string, TalentRole> = {
 /**
  * Infer talent role from class and optional spec name
  */
-export function inferTalentRole(
-  className: string,
-  specName?: string,
-): TalentRole {
+export function inferTalentRole(className: string, specName?: string): TalentRole {
   // Try to get from spec first
   if (specName) {
     // Normalize class name for lookup
-    const normalizedClass =
-      className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
+    const normalizedClass = className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
     const specs = CLASS_SPECS[normalizedClass as keyof typeof CLASS_SPECS];
 
     if (specs) {
-      const spec = specs.find(
-        (s) => s.name.toLowerCase() === specName.toLowerCase(),
-      );
+      const spec = specs.find((s) => s.name.toLowerCase() === specName.toLowerCase());
       if (spec?.talentRole) {
         return spec.talentRole;
       }

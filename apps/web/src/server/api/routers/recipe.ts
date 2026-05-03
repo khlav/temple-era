@@ -6,11 +6,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
-import {
-  recipes,
-  characterRecipeMap,
-  primaryRaidAttendanceL6LockoutWk,
-} from "~/server/db/schema";
+import { recipes, characterRecipeMap, primaryRaidAttendanceL6LockoutWk } from "~/server/db/schema";
 import { characters } from "~/server/db/models/raid-schema";
 import { and, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -41,9 +37,7 @@ export const recipe = createTRPCRouter({
         })
         .from(primaryRaidAttendanceL6LockoutWk);
 
-      const activeCharacterIds = new Set(
-        activeCharacters.map((ac) => ac.characterId),
-      );
+      const activeCharacterIds = new Set(activeCharacters.map((ac) => ac.characterId));
 
       // Fetch all recipes with their related characters
       const allRecipes = await ctx.db.query.recipes.findMany({
@@ -106,15 +100,9 @@ export const recipe = createTRPCRouter({
           updatedAt: recipes.updatedAt,
         })
         .from(recipes)
-        .innerJoin(
-          characterRecipeMap,
-          eq(recipes.recipeSpellId, characterRecipeMap.recipeSpellId),
-        )
+        .innerJoin(characterRecipeMap, eq(recipes.recipeSpellId, characterRecipeMap.recipeSpellId))
         .where(eq(characterRecipeMap.characterId, input))
-        .orderBy(
-          sql<string>`CAST(${recipes.profession} as TEXT)`,
-          recipes.recipe,
-        );
+        .orderBy(sql<string>`CAST(${recipes.profession} as TEXT)`, recipes.recipe);
 
       return characterRecipesResult;
     }),
@@ -192,9 +180,7 @@ export const recipe = createTRPCRouter({
       }
 
       // Delete related character recipe mappings first to maintain referential integrity
-      await ctx.db
-        .delete(characterRecipeMap)
-        .where(eq(characterRecipeMap.recipeSpellId, input));
+      await ctx.db.delete(characterRecipeMap).where(eq(characterRecipeMap.recipeSpellId, input));
 
       // Delete the recipe
       const result = await ctx.db
@@ -216,70 +202,66 @@ export const recipe = createTRPCRouter({
         characterId: z.number(),
       }),
     )
-    .mutation(
-      async ({ ctx, input }): Promise<CharacterRecipeMappingResponse> => {
-        const session = ctx.session;
+    .mutation(async ({ ctx, input }): Promise<CharacterRecipeMappingResponse> => {
+      const session = ctx.session;
 
-        // Verify the recipe exists
-        const recipeExists = await ctx.db.query.recipes.findFirst({
-          where: eq(recipes.recipeSpellId, input.recipeSpellId),
+      // Verify the recipe exists
+      const recipeExists = await ctx.db.query.recipes.findFirst({
+        where: eq(recipes.recipeSpellId, input.recipeSpellId),
+      });
+
+      if (!recipeExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Recipe not found",
         });
+      }
 
-        if (!recipeExists) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Recipe not found",
-          });
-        }
+      // Verify the character exists
+      const characterExists = await ctx.db.query.characters.findFirst({
+        where: eq(characters.characterId, input.characterId),
+      });
 
-        // Verify the character exists
-        const characterExists = await ctx.db.query.characters.findFirst({
-          where: eq(characters.characterId, input.characterId),
+      if (!characterExists) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Character not found",
         });
+      }
 
-        if (!characterExists) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Character not found",
-          });
-        }
+      // Check if mapping already exists
+      const existingMapping = await ctx.db.query.characterRecipeMap.findFirst({
+        where: and(
+          eq(characterRecipeMap.recipeSpellId, input.recipeSpellId),
+          eq(characterRecipeMap.characterId, input.characterId),
+        ),
+      });
 
-        // Check if mapping already exists
-        const existingMapping = await ctx.db.query.characterRecipeMap.findFirst(
-          {
-            where: and(
-              eq(characterRecipeMap.recipeSpellId, input.recipeSpellId),
-              eq(characterRecipeMap.characterId, input.characterId),
-            ),
-          },
-        );
-
-        if (existingMapping) {
-          return {
-            success: true,
-            message: "Recipe already assigned to character",
-            data: existingMapping,
-          };
-        }
-
-        // Insert the new mapping
-        const result = await ctx.db
-          .insert(characterRecipeMap)
-          .values({
-            characterId: input.characterId,
-            recipeSpellId: input.recipeSpellId,
-            createdById: session.user.id,
-            updatedById: session.user.id,
-          })
-          .returning();
-
+      if (existingMapping) {
         return {
           success: true,
-          message: "Recipe added to character successfully",
-          data: result[0],
+          message: "Recipe already assigned to character",
+          data: existingMapping,
         };
-      },
-    ),
+      }
+
+      // Insert the new mapping
+      const result = await ctx.db
+        .insert(characterRecipeMap)
+        .values({
+          characterId: input.characterId,
+          recipeSpellId: input.recipeSpellId,
+          createdById: session.user.id,
+          updatedById: session.user.id,
+        })
+        .returning();
+
+      return {
+        success: true,
+        message: "Recipe added to character successfully",
+        data: result[0],
+      };
+    }),
 
   removeRecipeFromCharacter: protectedProcedure
     .input(
@@ -288,31 +270,29 @@ export const recipe = createTRPCRouter({
         characterId: z.number(),
       }),
     )
-    .mutation(
-      async ({ ctx, input }): Promise<CharacterRecipeMappingResponse> => {
-        // Delete the mapping
-        const result = await ctx.db
-          .delete(characterRecipeMap)
-          .where(
-            and(
-              eq(characterRecipeMap.recipeSpellId, input.recipeSpellId),
-              eq(characterRecipeMap.characterId, input.characterId),
-            ),
-          )
-          .returning();
+    .mutation(async ({ ctx, input }): Promise<CharacterRecipeMappingResponse> => {
+      // Delete the mapping
+      const result = await ctx.db
+        .delete(characterRecipeMap)
+        .where(
+          and(
+            eq(characterRecipeMap.recipeSpellId, input.recipeSpellId),
+            eq(characterRecipeMap.characterId, input.characterId),
+          ),
+        )
+        .returning();
 
-        if (result.length === 0) {
-          return {
-            success: false,
-            message: "Recipe mapping not found",
-          };
-        }
-
+      if (result.length === 0) {
         return {
-          success: true,
-          message: "Recipe removed from character successfully",
-          data: result[0],
+          success: false,
+          message: "Recipe mapping not found",
         };
-      },
-    ),
+      }
+
+      return {
+        success: true,
+        message: "Recipe removed from character successfully",
+        data: result[0],
+      };
+    }),
 });

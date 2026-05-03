@@ -1,13 +1,6 @@
 // src/db/schema/recipes.ts
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  integer,
-  pgEnum,
-  pgTable,
-  primaryKey,
-  text,
-} from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 import { characters } from "~/server/db/models/raid-schema";
 import { CreatedBy, DefaultTimestamps, UpdatedBy } from "~/server/db/helpers";
 
@@ -63,16 +56,13 @@ export const characterRecipeMap = pgTable(
 );
 
 // Relations for character spells
-export const characterRecipeMapRelations = relations(
-  characterRecipeMap,
-  ({ one }) => ({
-    character: one(characters, {
-      fields: [characterRecipeMap.characterId],
-      references: [characters.characterId],
-    }),
-    recipe: one(recipes, {
-      fields: [characterRecipeMap.recipeSpellId],
-      references: [recipes.recipeSpellId],
-    }),
+export const characterRecipeMapRelations = relations(characterRecipeMap, ({ one }) => ({
+  character: one(characters, {
+    fields: [characterRecipeMap.characterId],
+    references: [characters.characterId],
   }),
-);
+  recipe: one(recipes, {
+    fields: [characterRecipeMap.recipeSpellId],
+    references: [recipes.recipeSpellId],
+  }),
+}));

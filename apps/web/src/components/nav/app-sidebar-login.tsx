@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,24 +41,15 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
             <ChevronDown className="ml-auto" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="bottom"
-          className="w-[--radix-popper-anchor-width]"
-        >
+        <DropdownMenuContent side="bottom" className="w-[--radix-popper-anchor-width]">
           <DropdownMenuItem asChild>
-            <Link
-              href="/profile"
-              className="flex w-full cursor-pointer flex-row"
-            >
+            <Link href="/profile" className="flex w-full cursor-pointer flex-row">
               <User />
               <div className="shrink">Profile</div>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <button
-              onClick={handleSignOut}
-              className="flex w-full cursor-pointer flex-row"
-            >
+            <button onClick={handleSignOut} className="flex w-full cursor-pointer flex-row">
               <LogOut />
               Sign out
             </button>
@@ -81,15 +68,8 @@ export function AppSidebarLogin({ session }: { session: Session | null }) {
         >
           {/* Uncomment and use this icon if needed */}
           {/* <PowerIcon className="w-6" /> */}
-          <Image
-            src="/img/discord-mark-white.svg"
-            alt="Discord"
-            height={24}
-            width={24}
-          />
-          <span className="text-secondary-foreground">
-            Sign in with Discord
-          </span>
+          <Image src="/img/discord-mark-white.svg" alt="Discord" height={24} width={24} />
+          <span className="text-secondary-foreground">Sign in with Discord</span>
         </button>
       </SidebarMenuButton>
     </SidebarMenuItem>

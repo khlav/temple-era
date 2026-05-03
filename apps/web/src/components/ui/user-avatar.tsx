@@ -1,11 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export default function UserAvatar({
   name,
@@ -43,11 +39,7 @@ export default function UserAvatar({
       {showLabel && (
         <div className="hidden text-nowrap pl-0.5 pt-0.5 font-normal sm:block">
           {name}
-          {extraInfo ? (
-            <span className="pl-1 text-xs text-gray-400">{extraInfo}</span>
-          ) : (
-            ""
-          )}
+          {extraInfo ? <span className="pl-1 text-xs text-gray-400">{extraInfo}</span> : ""}
         </div>
       )}
     </div>

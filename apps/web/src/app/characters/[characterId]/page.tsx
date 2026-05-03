@@ -71,18 +71,12 @@ async function CharacterPageContent({
       characterData={characterData}
       showEditButton={session?.user?.isRaidManager}
       showRecipeEdit={!!session?.user}
-      initialBreadcrumbData={
-        characterName ? { [characterId.toString()]: characterName } : {}
-      }
+      initialBreadcrumbData={characterName ? { [characterId.toString()]: characterName } : {}}
     />
   );
 }
 
-export default async function PlayerPage({
-  params,
-}: {
-  params: Promise<{ characterId: number }>;
-}) {
+export default async function PlayerPage({ params }: { params: Promise<{ characterId: number }> }) {
   const p = await params;
   const session = await auth();
   const characterId = parseInt(String(p.characterId));

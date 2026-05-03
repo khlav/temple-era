@@ -7,8 +7,7 @@ import { createPageMetadata } from "~/lib/site-metadata";
 export const metadata: Metadata = {
   ...createPageMetadata({
     title: "Refresh Raid Log",
-    description:
-      "Refresh a Warcraft Logs report without creating a new raid event.",
+    description: "Refresh a Warcraft Logs report without creating a new raid event.",
     path: "/raid-manager/log-refresh",
     noIndex: true,
   }),

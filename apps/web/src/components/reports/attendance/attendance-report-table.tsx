@@ -6,11 +6,7 @@ import { XIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { PrettyPrintDate } from "~/lib/helpers";
 import Link from "next/link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { Button } from "~/components/ui/button";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { TableAddCharacterHeader } from "./table-add-character-header";
@@ -122,10 +118,7 @@ export function AttendanceReportTable({
 
   // Group raids by lockout week and calculate rowspans
   const raidsWithLockout = useMemo(() => {
-    const grouped = new Map<
-      string,
-      Array<{ raid: (typeof raids)[0]; index: number }>
-    >();
+    const grouped = new Map<string, Array<{ raid: (typeof raids)[0]; index: number }>>();
 
     raids.forEach((raid, index) => {
       const raidDate = new Date(raid.date);
@@ -216,13 +209,7 @@ export function AttendanceReportTable({
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
                 {raidsWithLockout.map(
-                  ({
-                    raid,
-                    lockoutWeek,
-                    lockoutKey,
-                    rowspan,
-                    isFirstInWeek,
-                  }) => {
+                  ({ raid, lockoutWeek, lockoutKey, rowspan, isFirstInWeek }) => {
                     // Create a unique group name for this lockout week
                     const lockoutGroup = `lockout-${lockoutKey}`;
                     return (
@@ -231,17 +218,13 @@ export function AttendanceReportTable({
                         className={`${lockoutGroup} group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted`}
                         onMouseEnter={() => {
                           // Highlight lockout cell when any row in this lockout week is hovered
-                          const lockoutCell = document.querySelector(
-                            `.lockout-cell-${lockoutKey}`,
-                          );
+                          const lockoutCell = document.querySelector(`.lockout-cell-${lockoutKey}`);
                           if (lockoutCell) {
                             lockoutCell.classList.add("bg-muted/50");
                           }
                         }}
                         onMouseLeave={() => {
-                          const lockoutCell = document.querySelector(
-                            `.lockout-cell-${lockoutKey}`,
-                          );
+                          const lockoutCell = document.querySelector(`.lockout-cell-${lockoutKey}`);
                           if (lockoutCell) {
                             lockoutCell.classList.remove("bg-muted/50");
                           }
@@ -272,10 +255,7 @@ export function AttendanceReportTable({
                           </Link>
                         </td>
                         {characters.map((char) => {
-                          const attendanceData = getAttendanceData(
-                            raid.raidId,
-                            char.characterId,
-                          );
+                          const attendanceData = getAttendanceData(raid.raidId, char.characterId);
                           const status = attendanceData.status;
                           const allCharacters = attendanceData.allCharacters;
                           // Add background color based on status
@@ -309,59 +289,46 @@ export function AttendanceReportTable({
                                     }
                                   />
                                 </div>
-                                {status &&
-                                  allCharacters &&
-                                  allCharacters.length > 0 && (
-                                    <div
-                                      className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-sm transition-all duration-300 ${
-                                        displayMode === "names"
-                                          ? "translate-y-0 opacity-100"
-                                          : "absolute inset-0 translate-y-2 opacity-0"
-                                      } ${
-                                        status === "attendee"
-                                          ? "text-chart-2"
-                                          : "text-muted-foreground"
-                                      }`}
-                                    >
-                                      {allCharacters.map(
-                                        (attendingChar, index) => {
-                                          const tooltipContent =
-                                            status === "attendee"
-                                              ? "Attended"
-                                              : "Bench";
-                                          return (
-                                            <span
-                                              key={attendingChar.characterId}
-                                              className="flex items-center gap-1"
-                                            >
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <span className="flex cursor-default items-center gap-1">
-                                                    <ClassIcon
-                                                      characterClass={
-                                                        attendingChar.class
-                                                      }
-                                                      px={14}
-                                                    />
-                                                    <span>
-                                                      {attendingChar.name}
-                                                    </span>
-                                                  </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-secondary text-muted-foreground">
-                                                  {tooltipContent}
-                                                </TooltipContent>
-                                              </Tooltip>
-                                              {index <
-                                                allCharacters.length - 1 && (
-                                                <span>,</span>
-                                              )}
-                                            </span>
-                                          );
-                                        },
-                                      )}
-                                    </div>
-                                  )}
+                                {status && allCharacters && allCharacters.length > 0 && (
+                                  <div
+                                    className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-sm transition-all duration-300 ${
+                                      displayMode === "names"
+                                        ? "translate-y-0 opacity-100"
+                                        : "absolute inset-0 translate-y-2 opacity-0"
+                                    } ${
+                                      status === "attendee"
+                                        ? "text-chart-2"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    {allCharacters.map((attendingChar, index) => {
+                                      const tooltipContent =
+                                        status === "attendee" ? "Attended" : "Bench";
+                                      return (
+                                        <span
+                                          key={attendingChar.characterId}
+                                          className="flex items-center gap-1"
+                                        >
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="flex cursor-default items-center gap-1">
+                                                <ClassIcon
+                                                  characterClass={attendingChar.class}
+                                                  px={14}
+                                                />
+                                                <span>{attendingChar.name}</span>
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-secondary text-muted-foreground">
+                                              {tooltipContent}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                          {index < allCharacters.length - 1 && <span>,</span>}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           );

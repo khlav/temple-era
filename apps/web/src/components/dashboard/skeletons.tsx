@@ -2,11 +2,7 @@ import { TableCell, TableRow } from "~/components/ui/table";
 import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
 
-export function RecentTrackedRaidsTableRowSkeleton({
-  rows = 10,
-}: {
-  rows?: number;
-}) {
+export function RecentTrackedRaidsTableRowSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
@@ -17,10 +13,7 @@ export function RecentTrackedRaidsTableRowSkeleton({
             const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%
             return (
               <TableCell key={cellIndex}>
-                <Skeleton
-                  className="my-1 h-7 px-4"
-                  style={{ width: `${pseudoRandomWidth}%` }}
-                />
+                <Skeleton className="my-1 h-7 px-4" style={{ width: `${pseudoRandomWidth}%` }} />
               </TableCell>
             );
           })}

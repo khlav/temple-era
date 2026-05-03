@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import { db } from "~/server/db";
@@ -46,9 +47,7 @@ export async function GET(request: Request) {
         lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
       })
       .from(raidPlans)
-      .orderBy(
-        desc(sql`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`),
-      )
+      .orderBy(desc(sql`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`))
       .limit(limit);
 
     return NextResponse.json(
@@ -63,11 +62,8 @@ export async function GET(request: Request) {
       })),
     );
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -161,9 +157,7 @@ export async function POST(request: Request) {
               sortOrder: raidPlanEncounterGroups.sortOrder,
             })
             .from(raidPlanEncounterGroups)
-            .where(
-              eq(raidPlanEncounterGroups.raidPlanId, input.cloneFromPlanId),
-            )
+            .where(eq(raidPlanEncounterGroups.raidPlanId, input.cloneFromPlanId))
             .orderBy(raidPlanEncounterGroups.sortOrder);
 
           const cloneGroupIdMap = new Map<string, string>();
@@ -209,9 +203,7 @@ export async function POST(request: Request) {
                 encounterName: enc.encounterName,
                 sortOrder: enc.sortOrder,
                 useDefaultGroups: true,
-                groupId: enc.groupId
-                  ? (cloneGroupIdMap.get(enc.groupId) ?? null)
-                  : null,
+                groupId: enc.groupId ? (cloneGroupIdMap.get(enc.groupId) ?? null) : null,
                 aaTemplate: enc.aaTemplate,
                 useCustomAA: enc.useCustomAA,
               })),
@@ -226,10 +218,7 @@ export async function POST(request: Request) {
           })
           .from(raidPlanTemplates)
           .where(
-            and(
-              eq(raidPlanTemplates.zoneId, input.zoneId),
-              eq(raidPlanTemplates.isActive, true),
-            ),
+            and(eq(raidPlanTemplates.zoneId, input.zoneId), eq(raidPlanTemplates.isActive, true)),
           )
           .limit(1);
 
@@ -252,9 +241,7 @@ export async function POST(request: Request) {
                 sortOrder: raidPlanTemplateEncounterGroups.sortOrder,
               })
               .from(raidPlanTemplateEncounterGroups)
-              .where(
-                eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id),
-              )
+              .where(eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id))
               .orderBy(raidPlanTemplateEncounterGroups.sortOrder),
             tx
               .select({
@@ -299,9 +286,7 @@ export async function POST(request: Request) {
                 encounterName: enc.encounterName,
                 sortOrder: enc.sortOrder,
                 useDefaultGroups: true,
-                groupId: enc.groupId
-                  ? (templateGroupIdMap.get(enc.groupId) ?? null)
-                  : null,
+                groupId: enc.groupId ? (templateGroupIdMap.get(enc.groupId) ?? null) : null,
                 aaTemplate: enc.aaTemplate,
                 useCustomAA: !!enc.aaTemplate,
               })),
@@ -324,10 +309,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

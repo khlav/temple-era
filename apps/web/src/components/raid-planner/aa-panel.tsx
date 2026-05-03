@@ -61,9 +61,9 @@ export function AAPanel({
     return (
       <div className="space-y-4 rounded-lg border p-4">
         <div className="text-sm text-muted-foreground">
-          Create an AA template with <code>{"{assign:SlotName}"}</code>{" "}
-          placeholders, then drag characters from the groups to assign them. Use{" "}
-          <code>{"{ref:SlotName}"}</code> to mirror a slot in multiple places.
+          Create an AA template with <code>{"{assign:SlotName}"}</code> placeholders, then drag
+          characters from the groups to assign them. Use <code>{"{ref:SlotName}"}</code> to mirror a
+          slot in multiple places.
         </div>
         <div className="flex flex-col gap-2">
           <Button

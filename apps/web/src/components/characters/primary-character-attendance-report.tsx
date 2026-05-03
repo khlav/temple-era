@@ -6,11 +6,7 @@ import React from "react";
 import { api } from "~/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { appRouter } from "~/server/api/root";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip"; // Import Tooltip from ShadCN UI
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"; // Import Tooltip from ShadCN UI
 import clsx from "clsx";
 import { PrettyPrintDate } from "~/lib/helpers";
 import Link from "next/link";
@@ -32,9 +28,7 @@ export const PrimaryCharacterAttendanceReport = ({
   const { characterId } = character;
 
   const { data: attendanceData, isSuccess } =
-    api.character.getRaidAttendanceReportForPrimaryCharacterId.useQuery(
-      characterId,
-    );
+    api.character.getRaidAttendanceReportForPrimaryCharacterId.useQuery(characterId);
 
   const attendanceDataByWeek = (attendanceData ?? []).reduce(
     (acc, rel) => {
@@ -53,20 +47,15 @@ export const PrimaryCharacterAttendanceReport = ({
             {Object.keys(attendanceDataByWeek)
               .sort()
               .map((week) => (
-                <div
-                  key={`wk_${week}`}
-                  className="flex grow-0 flex-col gap-0.5"
-                >
+                <div key={`wk_${week}`} className="flex grow-0 flex-col gap-0.5">
                   {(attendanceDataByWeek[week] ?? [])
                     .sort((r1, r2) => (r1.date > r2.date ? 1 : -1))
                     .map((r) => {
                       // Define the background color and border color classes based on the participant status
                       const squareBgClass = clsx({
                         "bg-secondary": !r.isParticipant,
-                        "bg-primary":
-                          r.isParticipant && r.attendeeOrBench === "attendee",
-                        "bg-muted-foreground":
-                          r.isParticipant && r.attendeeOrBench === "bench",
+                        "bg-primary": r.isParticipant && r.attendeeOrBench === "attendee",
+                        "bg-muted-foreground": r.isParticipant && r.attendeeOrBench === "bench",
                       });
 
                       const borderClass = clsx({
@@ -78,8 +67,7 @@ export const PrimaryCharacterAttendanceReport = ({
                         "text-muted-foreground": !r.isParticipant,
                         "text-primary-foreground":
                           r.isParticipant && r.attendeeOrBench === "attendee",
-                        "text-muted":
-                          r.isParticipant && r.attendeeOrBench === "bench",
+                        "text-muted": r.isParticipant && r.attendeeOrBench === "bench",
                       });
 
                       return (
@@ -88,11 +76,7 @@ export const PrimaryCharacterAttendanceReport = ({
                             <Link href={`/raids/${r.raidId}`}>
                               <div
                                 key={`r_${r.raidId}`}
-                                className={clsx(
-                                  "h-3 w-3 rounded-sm",
-                                  squareBgClass,
-                                  borderClass,
-                                )}
+                                className={clsx("h-3 w-3 rounded-sm", squareBgClass, borderClass)}
                               />
                             </Link>
                           </TooltipTrigger>

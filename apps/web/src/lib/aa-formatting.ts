@@ -318,19 +318,11 @@ export const AA_ARROW_ICONS: Record<string, string> = {
 // All known color/class names sorted by length descending for prefix matching.
 // This ensures e.g. "deathknight" matches before "death" and "warrior" matches
 // before consuming trailing text like "|cwarriorReck|r" -> color "warrior", text "Reck".
-const KNOWN_COLOR_NAMES = [
-  ...Object.keys(AA_CLASS_COLORS),
-  ...Object.keys(AA_COLORS),
-].sort((a, b) => b.length - a.length);
+const KNOWN_COLOR_NAMES = [...Object.keys(AA_CLASS_COLORS), ...Object.keys(AA_COLORS)].sort(
+  (a, b) => b.length - a.length,
+);
 
-export type AAIconType =
-  | "marker"
-  | "role"
-  | "class"
-  | "ability"
-  | "spell"
-  | "texture"
-  | "color";
+export type AAIconType = "marker" | "role" | "class" | "ability" | "spell" | "texture" | "color";
 
 export interface AASegment {
   type: "text" | "colored-text" | "icon" | "slot" | "ref";
@@ -559,10 +551,7 @@ export function parseAAFormatting(
       // Don't trigger inside braces (texture names like spell_holy_renew)
       !textBuffer.includes("{") &&
       // Check it looks like a markdown delimiter (preceded by space/start or followed by space/end)
-      (i === 0 ||
-        template[i - 1] === " " ||
-        template[i - 1] === "\n" ||
-        markdownItalic)
+      (i === 0 || template[i - 1] === " " || template[i - 1] === "\n" || markdownItalic)
     ) {
       flushText();
       markdownItalic = !markdownItalic;

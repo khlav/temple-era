@@ -33,8 +33,8 @@ export function DeleteEncounterDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Encounter</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete &quot;{encounterName}&quot;? Any
-            custom assignments for this encounter will be lost.
+            Are you sure you want to delete &quot;{encounterName}&quot;? Any custom assignments for
+            this encounter will be lost.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

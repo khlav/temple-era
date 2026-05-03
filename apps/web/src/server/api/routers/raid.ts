@@ -1,15 +1,7 @@
 import { z } from "zod";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  raidManagerProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
 import { raidLogs, raids, raidBenchMap, users } from "~/server/db/schema";
-import {
-  EmptyRaid,
-  type Raid,
-  type RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import { EmptyRaid, type Raid, type RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
 import type { Session } from "next-auth";
@@ -21,12 +13,7 @@ const isEmptyObj = (obj: object) => {
   return true;
 };
 
-const updateRaidLogRaidIds = async (
-  db: DB,
-  session: Session,
-  raidId: number,
-  raidData: Raid,
-) => {
+const updateRaidLogRaidIds = async (db: DB, session: Session, raidId: number, raidData: Raid) => {
   if (raidData.raidLogIds?.length ?? 0 > 0) {
     return db
       .update(raidLogs)
@@ -37,12 +24,7 @@ const updateRaidLogRaidIds = async (
   return undefined;
 };
 
-const updateRaidBench = async (
-  db: DB,
-  session: Session,
-  raidId: number,
-  raidData: Raid,
-) => {
+const updateRaidBench = async (db: DB, session: Session, raidId: number, raidData: Raid) => {
   const benchDeleteResult = await db
     .delete(raidBenchMap)
     .where(eq(raidBenchMap.raidId, raidId))
@@ -109,82 +91,80 @@ export const raid = createTRPCRouter({
     return raidsWithRaidLogIds ?? null;
   }),
 
-  getRaidById: publicProcedure
-    .input(z.number())
-    .query(async ({ ctx, input }) => {
-      const initialRaidResult = await ctx.db
-        .select({
-          raidId: raids.raidId,
-          name: raids.name,
-          date: raids.date,
-          zone: raids.zone,
-          attendanceWeight: raids.attendanceWeight,
-          creator: {
-            name: users.name,
-            image: users.image,
-          },
-        })
-        .from(raids)
-        .leftJoin(users, eq(users.id, raids.createdById))
-        .where(eq(raids.raidId, input))
-        .limit(1);
-
-      const raidLogsResult = await ctx.db
-        .select({
-          raidLogId: raidLogs.raidLogId,
-          kills: raidLogs.kills,
-        })
-        .from(raidLogs)
-        .where(eq(raidLogs.raidId, input));
-
-      const raidBenchResult = await ctx.db.query.raidBenchMap.findMany({
-        columns: {
-          raidId: true,
+  getRaidById: publicProcedure.input(z.number()).query(async ({ ctx, input }) => {
+    const initialRaidResult = await ctx.db
+      .select({
+        raidId: raids.raidId,
+        name: raids.name,
+        date: raids.date,
+        zone: raids.zone,
+        attendanceWeight: raids.attendanceWeight,
+        creator: {
+          name: users.name,
+          image: users.image,
         },
-        with: {
-          character: {
-            columns: {
-              characterId: true,
-              name: true,
-              class: true,
-              classDetail: true,
-              server: true,
-              slug: true,
-              isPrimary: true,
-              primaryCharacterId: true,
-              isIgnored: true,
-            },
-            with: {
-              primaryCharacter: {
-                columns: {
-                  name: true,
-                },
+      })
+      .from(raids)
+      .leftJoin(users, eq(users.id, raids.createdById))
+      .where(eq(raids.raidId, input))
+      .limit(1);
+
+    const raidLogsResult = await ctx.db
+      .select({
+        raidLogId: raidLogs.raidLogId,
+        kills: raidLogs.kills,
+      })
+      .from(raidLogs)
+      .where(eq(raidLogs.raidId, input));
+
+    const raidBenchResult = await ctx.db.query.raidBenchMap.findMany({
+      columns: {
+        raidId: true,
+      },
+      with: {
+        character: {
+          columns: {
+            characterId: true,
+            name: true,
+            class: true,
+            classDetail: true,
+            server: true,
+            slug: true,
+            isPrimary: true,
+            primaryCharacterId: true,
+            isIgnored: true,
+          },
+          with: {
+            primaryCharacter: {
+              columns: {
+                name: true,
               },
             },
           },
         },
-        where: eq(raidBenchMap.raidId, input),
-      });
+      },
+      where: eq(raidBenchMap.raidId, input),
+    });
 
-      const raidBench = raidBenchResult.reduce((acc, rel) => {
-        const benched = {
-          ...rel.character,
-          primaryCharacterName: rel.character?.primaryCharacter?.name,
-        };
-        acc[benched.characterId] = benched;
-        return acc;
-      }, {} as RaidParticipantCollection);
+    const raidBench = raidBenchResult.reduce((acc, rel) => {
+      const benched = {
+        ...rel.character,
+        primaryCharacterName: rel.character?.primaryCharacter?.name,
+      };
+      acc[benched.characterId] = benched;
+      return acc;
+    }, {} as RaidParticipantCollection);
 
-      return {
-        ...(initialRaidResult[0] ?? EmptyRaid()),
-        raidLogIds: raidLogsResult.map((raidLog) => raidLog.raidLogId),
-        kills: raidLogsResult.reduce((acc, rel) => {
-          const combinedKillSet = [...acc, ...rel.kills];
-          return [...new Set(combinedKillSet)];
-        }, [] as string[]),
-        bench: raidBench,
-      } as Raid;
-    }),
+    return {
+      ...(initialRaidResult[0] ?? EmptyRaid()),
+      raidLogIds: raidLogsResult.map((raidLog) => raidLog.raidLogId),
+      kills: raidLogsResult.reduce((acc, rel) => {
+        const combinedKillSet = [...acc, ...rel.kills];
+        return [...new Set(combinedKillSet)];
+      }, [] as string[]),
+      bench: raidBench,
+    } as Raid;
+  }),
 
   insertRaid: raidManagerProcedure
     .input(
@@ -314,14 +294,12 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  delete: raidManagerProcedure
-    .input(z.number())
-    .mutation(async ({ ctx, input }) => {
-      return await ctx.db
-        .delete(raids)
-        .where(eq(raids.raidId, input))
-        .returning({ raidId: raids.raidId, name: raids.name });
-    }),
+  delete: raidManagerProcedure.input(z.number()).mutation(async ({ ctx, input }) => {
+    return await ctx.db
+      .delete(raids)
+      .where(eq(raids.raidId, input))
+      .returning({ raidId: raids.raidId, name: raids.name });
+  }),
 
   addBenchCharacters: raidManagerProcedure
     .input(
@@ -340,9 +318,7 @@ export const raid = createTRPCRouter({
       const existingIds = new Set(existingBench.map((b) => b.characterId));
 
       // Filter to only NEW characters (additive only)
-      const newCharacterIds = input.characterIds.filter(
-        (id) => !existingIds.has(id),
-      );
+      const newCharacterIds = input.characterIds.filter((id) => !existingIds.has(id));
 
       // Insert only new bench entries
       if (newCharacterIds.length > 0) {

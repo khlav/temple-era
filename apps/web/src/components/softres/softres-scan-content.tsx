@@ -9,9 +9,7 @@ export function SoftResScanContent({ data }: { data: SoftResScanResponse }) {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>No Data</AlertTitle>
-        <AlertDescription>
-          No data available for this SoftRes raid.
-        </AlertDescription>
+        <AlertDescription>No data available for this SoftRes raid.</AlertDescription>
       </Alert>
     );
   }
@@ -31,9 +29,7 @@ export function SoftResScanContent({ data }: { data: SoftResScanResponse }) {
         </div>
         <div className="text-sm text-muted-foreground">
           {data.zone ?? data.instance}{" "}
-          {data.raidDate && (
-            <>— {new Date(data.raidDate).toLocaleDateString()}</>
-          )}
+          {data.raidDate && <>— {new Date(data.raidDate).toLocaleDateString()}</>}
         </div>
       </div>
 

@@ -1,0 +1,48 @@
+pre-commit:
+  parallel: true
+  commands:
+    migrations:
+      run: |
+        if [ -d "drizzle" ] && [ "$(git status --porcelain drizzle/ | wc -l)" -gt 0 ]; then
+          echo "⚠️  Warning: Uncommitted database migrations detected"
+          echo "   Consider running 'pnpm db:generate' and committing migrations"
+        fi
+    lint:
+      glob: "src/**/*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true
+    format:
+      glob: "src/**/*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    typecheck:
+      run: pnpm typecheck
+
+pre-push:
+  parallel: true
+  commands:
+    branch-name:
+      run: |
+        current_branch=$(git branch --show-current)
+        if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev)/.+'; then
+          echo "✅ Branch name follows convention: $current_branch"
+        else
+          echo "❌ Branch name does not follow convention: $current_branch"
+          echo "   Expected format: {type}/{description}"
+          echo "   Types: feature, fix, chore, refactor, hotfix, dev"
+          exit 1
+        fi
+    lint:
+      run: pnpm lint
+    build:
+      run: pnpm build
+
+commit-msg:
+  scripts:
+    "commit-msg.sh":
+      runner: sh
+
+prepare-commit-msg:
+  scripts:
+    "prepare-commit-msg.sh":
+      runner: sh

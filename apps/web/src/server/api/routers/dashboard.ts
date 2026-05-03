@@ -29,14 +29,8 @@ export const dashboard = createTRPCRouter({
       .leftJoin(
         primaryRaidAttendeeAndBenchMap,
         and(
-          eq(
-            trackedRaidsL6LockoutWk.raidId,
-            primaryRaidAttendeeAndBenchMap.raidId,
-          ),
-          eq(
-            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            session?.user.characterId ?? -1,
-          ),
+          eq(trackedRaidsL6LockoutWk.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+          eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, session?.user.characterId ?? -1),
         ),
       )
       .groupBy((trackedRaidsL6LockoutWk) => [
@@ -66,21 +60,12 @@ export const dashboard = createTRPCRouter({
             (${raidLogs.raidLogId})`,
       })
       .from(trackedRaidsCurrentLockout)
-      .leftJoin(
-        raidLogs,
-        eq(raidLogs.raidId, trackedRaidsCurrentLockout.raidId),
-      )
+      .leftJoin(raidLogs, eq(raidLogs.raidId, trackedRaidsCurrentLockout.raidId))
       .leftJoin(
         primaryRaidAttendeeAndBenchMap,
         and(
-          eq(
-            trackedRaidsCurrentLockout.raidId,
-            primaryRaidAttendeeAndBenchMap.raidId,
-          ),
-          eq(
-            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            session?.user.characterId ?? -1,
-          ),
+          eq(trackedRaidsCurrentLockout.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+          eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, session?.user.characterId ?? -1),
         ),
       )
       .groupBy((trackedRaidsL6LockoutWk) => [
@@ -114,14 +99,8 @@ export const dashboard = createTRPCRouter({
       .leftJoin(
         primaryRaidAttendeeAndBenchMap,
         and(
-          eq(
-            allRaidsCurrentLockout.raidId,
-            primaryRaidAttendeeAndBenchMap.raidId,
-          ),
-          eq(
-            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            session?.user.characterId ?? -1,
-          ),
+          eq(allRaidsCurrentLockout.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+          eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, session?.user.characterId ?? -1),
         ),
       )
       .groupBy((allRaidsCurrentLockout) => [

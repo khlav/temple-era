@@ -23,11 +23,7 @@ function readBooleanCookie(cookieName: string, defaultValue: boolean) {
   return defaultValue;
 }
 
-function writeBooleanCookie(
-  cookieName: string,
-  value: boolean,
-  maxAge: number,
-) {
+function writeBooleanCookie(cookieName: string, value: boolean, maxAge: number) {
   if (typeof document === "undefined") return;
 
   document.cookie = `${cookieName}=${value}; path=/; max-age=${maxAge}; samesite=lax`;
@@ -47,8 +43,7 @@ export function usePersistedBooleanPreference({
   const setValue = useCallback(
     (nextValue: SetBooleanPreference) => {
       setValueState((currentValue) => {
-        const resolvedValue =
-          typeof nextValue === "function" ? nextValue(currentValue) : nextValue;
+        const resolvedValue = typeof nextValue === "function" ? nextValue(currentValue) : nextValue;
 
         writeBooleanCookie(cookieName, resolvedValue, maxAge);
         return resolvedValue;

@@ -1,27 +1,17 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
 interface GlobalQuickLauncherContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
 }
 
-const GlobalQuickLauncherContext = createContext<
-  GlobalQuickLauncherContextType | undefined
->(undefined);
+const GlobalQuickLauncherContext = createContext<GlobalQuickLauncherContextType | undefined>(
+  undefined,
+);
 
-export function GlobalQuickLauncherProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function GlobalQuickLauncherProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,9 +36,7 @@ export function GlobalQuickLauncherProvider({
 export function useGlobalQuickLauncher() {
   const context = useContext(GlobalQuickLauncherContext);
   if (context === undefined) {
-    throw new Error(
-      "useGlobalQuickLauncher must be used within a GlobalQuickLauncherProvider",
-    );
+    throw new Error("useGlobalQuickLauncher must be used within a GlobalQuickLauncherProvider");
   }
   return context;
 }

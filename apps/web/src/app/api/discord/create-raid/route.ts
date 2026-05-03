@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
-import {
-  users,
-  accounts,
-  raidLogs,
-  raidLogAttendeeMap,
-} from "~/server/db/schema";
+import { users, accounts, raidLogs, raidLogAttendeeMap } from "~/server/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { env } from "~/env.js";
 import { createDiscordRouteCaller } from "~/server/api/discord-trpc-caller";
@@ -20,11 +16,8 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization");
 
     if (!env.TEMPLE_WEB_API_TOKEN) {
-      console.error("TEMPLE_WEB_API_TOKEN environment variable not set");
-      const response = await compressResponse(
-        { error: "Server configuration error" },
-        request,
-      );
+      logger.error("TEMPLE_WEB_API_TOKEN environment variable not set");
+      const response = await compressResponse({ error: "Server configuration error" }, request);
       return new NextResponse(response.body, {
         status: 500,
         headers: response.headers,
@@ -32,15 +25,15 @@ export async function POST(request: Request) {
     }
 
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
-      console.error("Unauthorized API access attempt", {
-        ip: request.headers.get("x-forwarded-for"),
-        userAgent: request.headers.get("user-agent"),
-        timestamp: new Date().toISOString(),
-      });
-      const response = await compressResponse(
-        { error: "Unauthorized" },
-        request,
+      logger.error(
+        {
+          ip: request.headers.get("x-forwarded-for"),
+          userAgent: request.headers.get("user-agent"),
+          timestamp: new Date().toISOString(),
+        },
+        "Unauthorized API access attempt",
       );
+      const response = await compressResponse({ error: "Unauthorized" }, request);
       return new NextResponse(response.body, {
         status: 401,
         headers: response.headers,
@@ -51,10 +44,7 @@ export async function POST(request: Request) {
     const { discordUserId, wclUrl, discordMessageId } = await request.json();
 
     if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse(
-        { error: "Invalid Discord user ID" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -62,10 +52,7 @@ export async function POST(request: Request) {
     }
 
     if (!wclUrl || !wclUrl.includes("warcraftlogs.com/reports/")) {
-      const response = await compressResponse(
-        { error: "Invalid WarcraftLogs URL" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid WarcraftLogs URL" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -73,10 +60,7 @@ export async function POST(request: Request) {
     }
 
     if (discordMessageId && !/^\d{17,19}$/.test(discordMessageId)) {
-      const response = await compressResponse(
-        { error: "Invalid Discord message ID" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid Discord message ID" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -96,12 +80,7 @@ export async function POST(request: Request) {
       })
       .from(users)
       .innerJoin(accounts, eq(users.id, accounts.userId))
-      .where(
-        and(
-          eq(accounts.provider, "discord"),
-          eq(accounts.providerAccountId, discordUserId),
-        ),
-      )
+      .where(and(eq(accounts.provider, "discord"), eq(accounts.providerAccountId, discordUserId)))
       .limit(1);
 
     if (userResult.length === 0) {
@@ -211,8 +190,7 @@ export async function POST(request: Request) {
     }
 
     // 6. Import WCL log (fetches from WCL API, imports attendees)
-    const raidLog =
-      await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
+    const raidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
 
     if (!raidLog) {
       return await compressResponse(
@@ -254,10 +232,7 @@ export async function POST(request: Request) {
         .where(eq(raidLogs.raidLogId, reportId));
     } else if (discordMessageId) {
       // If raid log was newly created, update it with the discord message ID
-      await db
-        .update(raidLogs)
-        .set({ discordMessageId })
-        .where(eq(raidLogs.raidLogId, reportId));
+      await db.update(raidLogs).set({ discordMessageId }).where(eq(raidLogs.raidLogId, reportId));
     }
 
     // Get participant count from raidLog
@@ -282,7 +257,7 @@ export async function POST(request: Request) {
       request,
     );
   } catch (error) {
-    console.error("Error creating raid:", error);
+    logger.error({ err: error }, "Error creating raid");
     const response = await compressResponse(
       { success: false, error: "Internal server error" },
       request,

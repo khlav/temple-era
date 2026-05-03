@@ -12,11 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "~/trpc/react";
 import anyAscii from "any-ascii";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -49,10 +45,7 @@ export function CharacterSelector({
   const [internalOpen, setInternalOpen] = React.useState(false);
 
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen =
-    controlledOnOpenChange !== undefined
-      ? controlledOnOpenChange
-      : setInternalOpen;
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen;
 
   const { data: characterCollection, isLoading } =
     api.character.getCharacters.useQuery(characterSet);
@@ -97,9 +90,7 @@ export function CharacterSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
-      <PopoverTrigger asChild>
-        {isLoading ? skeletonOrDefault : childrenOrDefault}
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{isLoading ? skeletonOrDefault : childrenOrDefault}</PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
         <Command>
           <CommandInput
@@ -115,10 +106,7 @@ export function CharacterSelector({
                 <CommandItem
                   key={c.characterId}
                   value={c.characterId.toString()}
-                  keywords={[
-                    anyAscii(c.name),
-                    anyAscii(c.primaryCharacterName ?? ""),
-                  ]}
+                  keywords={[anyAscii(c.name), anyAscii(c.primaryCharacterName ?? "")]}
                   onSelect={(currentValue) => {
                     handleSelect(currentValue);
                     setOpen(false);

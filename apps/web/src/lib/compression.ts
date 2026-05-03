@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { gzip } from "zlib";
+import { logger } from "~/lib/logger";
 import { promisify } from "util";
 
 const gzipAsync = promisify(gzip);
@@ -12,10 +13,7 @@ const gzipAsync = promisify(gzip);
  * @param request - The incoming request to check for Accept-Encoding header
  * @returns A NextResponse with compressed or uncompressed JSON
  */
-export async function compressResponse(
-  data: unknown,
-  request: Request,
-): Promise<NextResponse> {
+export async function compressResponse(data: unknown, request: Request): Promise<NextResponse> {
   const acceptEncoding = request.headers.get("accept-encoding") || "";
   const supportsGzip = acceptEncoding.includes("gzip");
 
@@ -37,7 +35,7 @@ export async function compressResponse(
     });
   } catch (error) {
     // If compression fails, fall back to uncompressed
-    console.error("Compression error, falling back to uncompressed:", error);
+    logger.error({ err: error }, "Compression error, falling back to uncompressed");
     return NextResponse.json(data);
   }
 }

@@ -10,8 +10,7 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("x-pathname", pathname);
 
   // Block all crawling on non-production domains (Vercel previews, dev, etc.)
-  const isProduction =
-    host === "www.temple-era.com" || host === "temple-era.com";
+  const isProduction = host === "www.temple-era.com" || host === "temple-era.com";
 
   if (!isProduction) {
     const response = NextResponse.next({
@@ -19,10 +18,7 @@ export function middleware(request: NextRequest) {
         headers: requestHeaders,
       },
     });
-    response.headers.set(
-      "X-Robots-Tag",
-      "noindex, nofollow, noarchive, nosnippet",
-    );
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
     return response;
   }
 
@@ -40,10 +36,7 @@ export function middleware(request: NextRequest) {
     });
 
     // Add noindex headers
-    response.headers.set(
-      "X-Robots-Tag",
-      "noindex, nofollow, noarchive, nosnippet",
-    );
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
 
     return response;
   }

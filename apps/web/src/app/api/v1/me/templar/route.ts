@@ -4,6 +4,7 @@ import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 
 const PatchSchema = z.object({
   enabled: z.boolean(),
@@ -60,10 +61,7 @@ export async function PATCH(request: Request) {
       templarEnabled: u.templarEnabled ?? false,
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

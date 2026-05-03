@@ -14,11 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { usePersistedBooleanPreference } from "~/hooks/use-persisted-boolean-preference";
 import { useToast } from "~/hooks/use-toast";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -103,12 +99,8 @@ export const CharacterRecipes = ({
 
       // Find recipe name based on spellId
       const recipe =
-        allRecipesWithCharacters?.find(
-          (r) => r.recipeSpellId === variables.recipeSpellId,
-        ) ??
-        characterRecipes?.find(
-          (r) => r.recipeSpellId === variables.recipeSpellId,
-        );
+        allRecipesWithCharacters?.find((r) => r.recipeSpellId === variables.recipeSpellId) ??
+        characterRecipes?.find((r) => r.recipeSpellId === variables.recipeSpellId);
       const recipeName = recipe?.recipe ?? "Recipe";
 
       const characterName = character.name;
@@ -127,38 +119,33 @@ export const CharacterRecipes = ({
     },
   });
 
-  const removeRecipeFromCharacter =
-    api.recipe.removeRecipeFromCharacter.useMutation({
-      onSuccess: async (data, variables) => {
-        // Invalidate both recipe queries to refresh data
-        await utils.recipe.getAllRecipesWithCharacters.invalidate();
-        await utils.recipe.getRecipesForCharacter.invalidate(characterId);
+  const removeRecipeFromCharacter = api.recipe.removeRecipeFromCharacter.useMutation({
+    onSuccess: async (data, variables) => {
+      // Invalidate both recipe queries to refresh data
+      await utils.recipe.getAllRecipesWithCharacters.invalidate();
+      await utils.recipe.getRecipesForCharacter.invalidate(characterId);
 
-        // Find recipe name based on spellId
-        const recipe =
-          allRecipesWithCharacters?.find(
-            (r) => r.recipeSpellId === variables.recipeSpellId,
-          ) ??
-          characterRecipes?.find(
-            (r) => r.recipeSpellId === variables.recipeSpellId,
-          );
-        const recipeName = recipe?.recipe ?? "Recipe";
+      // Find recipe name based on spellId
+      const recipe =
+        allRecipesWithCharacters?.find((r) => r.recipeSpellId === variables.recipeSpellId) ??
+        characterRecipes?.find((r) => r.recipeSpellId === variables.recipeSpellId);
+      const recipeName = recipe?.recipe ?? "Recipe";
 
-        const characterName = character.name;
+      const characterName = character.name;
 
-        toast({
-          title: "Recipe removed",
-          description: `Removed ${recipeName} from ${characterName}`,
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Failed to remove recipe",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+      toast({
+        title: "Recipe removed",
+        description: `Removed ${recipeName} from ${characterName}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to remove recipe",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
@@ -171,9 +158,7 @@ export const CharacterRecipes = ({
       );
     } else {
       // In view mode, check against character-specific recipes
-      return characterRecipes?.some(
-        (recipe) => recipe.recipeSpellId === recipeSpellId,
-      );
+      return characterRecipes?.some((recipe) => recipe.recipeSpellId === recipeSpellId);
     }
   };
 
@@ -193,10 +178,7 @@ export const CharacterRecipes = ({
   };
 
   // Handle clicking on recipe name in edit mode
-  const handleRecipeClick = (
-    recipeSpellId: number,
-    event: React.MouseEvent,
-  ) => {
+  const handleRecipeClick = (recipeSpellId: number, event: React.MouseEvent) => {
     if (isEditMode) {
       event.preventDefault(); // Prevent navigation
       const isCurrentlyChecked = characterKnowsRecipe(recipeSpellId);
@@ -204,9 +186,7 @@ export const CharacterRecipes = ({
     }
   };
 
-  const isLoading =
-    (isEditMode && allRecipesLoading) ||
-    (!isEditMode && characterRecipesLoading);
+  const isLoading = (isEditMode && allRecipesLoading) || (!isEditMode && characterRecipesLoading);
 
   if (isLoading) {
     return <div className="py-8 text-center">Loading recipes...</div>;
@@ -263,103 +243,81 @@ export const CharacterRecipes = ({
             <CardContent className={cn("pt-0")}>
               {isEditMode ? (
                 <Accordion type="multiple" className="w-full">
-                  {Object.entries(recipesByProfession ?? {}).map(
-                    ([profession, recipes]) => (
-                      <AccordionItem key={profession} value={profession}>
-                        <AccordionTrigger className="text-sm">
-                          {profession}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
-                            {sortRecipesByDisplayName(recipes).map((recipe) => {
-                              const isKnown = characterKnowsRecipe(
-                                recipe.recipeSpellId,
-                              );
-                              return (
-                                <div
-                                  key={recipe.recipeSpellId}
-                                  className="flex items-start gap-2"
+                  {Object.entries(recipesByProfession ?? {}).map(([profession, recipes]) => (
+                    <AccordionItem key={profession} value={profession}>
+                      <AccordionTrigger className="text-sm">{profession}</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+                          {sortRecipesByDisplayName(recipes).map((recipe) => {
+                            const isKnown = characterKnowsRecipe(recipe.recipeSpellId);
+                            return (
+                              <div key={recipe.recipeSpellId} className="flex items-start gap-2">
+                                <Checkbox
+                                  id={`recipe-${recipe.recipeSpellId}`}
+                                  checked={isKnown}
+                                  onCheckedChange={(checked) =>
+                                    handleRecipeToggle(recipe.recipeSpellId, checked as boolean)
+                                  }
+                                  disabled={
+                                    addRecipeToCharacter.isPending ||
+                                    removeRecipeFromCharacter.isPending
+                                  }
+                                />
+                                <label
+                                  htmlFor={`recipe-${recipe.recipeSpellId}`}
+                                  className="min-w-0 flex-1 cursor-pointer text-sm leading-5"
                                 >
-                                  <Checkbox
-                                    id={`recipe-${recipe.recipeSpellId}`}
-                                    checked={isKnown}
-                                    onCheckedChange={(checked) =>
-                                      handleRecipeToggle(
-                                        recipe.recipeSpellId,
-                                        checked as boolean,
-                                      )
-                                    }
-                                    disabled={
-                                      addRecipeToCharacter.isPending ||
-                                      removeRecipeFromCharacter.isPending
-                                    }
-                                  />
-                                  <label
-                                    htmlFor={`recipe-${recipe.recipeSpellId}`}
-                                    className="min-w-0 flex-1 cursor-pointer text-sm leading-5"
+                                  <Link
+                                    href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                    target="_blank"
+                                    className="hover:underline"
+                                    onClick={(e) => handleRecipeClick(recipe.recipeSpellId, e)}
                                   >
-                                    <Link
-                                      href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                      target="_blank"
-                                      className="hover:underline"
-                                      onClick={(e) =>
-                                        handleRecipeClick(
-                                          recipe.recipeSpellId,
-                                          e,
-                                        )
-                                      }
-                                    >
-                                      {formatRecipeName(recipe.recipe)}
-                                    </Link>
-                                    {recipe.isCommon && (
-                                      <span className="ml-1 text-xs italic text-muted-foreground">
-                                        Common
-                                      </span>
-                                    )}
-                                  </label>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ),
-                  )}
+                                    {formatRecipeName(recipe.recipe)}
+                                  </Link>
+                                  {recipe.isCommon && (
+                                    <span className="ml-1 text-xs italic text-muted-foreground">
+                                      Common
+                                    </span>
+                                  )}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
                 </Accordion>
               ) : (
                 <div className="space-y-4">
                   {characterRecipesByProfession &&
                   Object.entries(characterRecipesByProfession).length > 0 ? (
-                    Object.entries(characterRecipesByProfession).map(
-                      ([profession, recipes]) => (
-                        <section key={profession} className="space-y-2">
-                          <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            {profession}
-                          </div>
-                          <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2 xl:grid-cols-3">
-                            {sortRecipesByDisplayName(recipes).map((recipe) => (
-                              <div
-                                key={recipe.recipeSpellId}
-                                className="min-w-0 text-sm leading-5"
+                    Object.entries(characterRecipesByProfession).map(([profession, recipes]) => (
+                      <section key={profession} className="space-y-2">
+                        <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          {profession}
+                        </div>
+                        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2 xl:grid-cols-3">
+                          {sortRecipesByDisplayName(recipes).map((recipe) => (
+                            <div key={recipe.recipeSpellId} className="min-w-0 text-sm leading-5">
+                              <Link
+                                href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                target="_blank"
+                                className="hover:underline"
                               >
-                                <Link
-                                  href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                  target="_blank"
-                                  className="hover:underline"
-                                >
-                                  {formatRecipeName(recipe.recipe)}
-                                </Link>
-                                {recipe.isCommon && (
-                                  <span className="ml-1 text-xs italic text-muted-foreground">
-                                    Common
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      ),
-                    )
+                                {formatRecipeName(recipe.recipe)}
+                              </Link>
+                              {recipe.isCommon && (
+                                <span className="ml-1 text-xs italic text-muted-foreground">
+                                  Common
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))
                   ) : (
                     <div className="py-4 text-center text-muted-foreground">
                       No crafting recipes found for this character.

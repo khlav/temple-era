@@ -151,9 +151,7 @@ function hasBothSizesInSameWeek(weeks: WeeklyAttendanceWeek[]): boolean {
       week.zones.mc?.attended;
 
     const has20Man =
-      week.zones.onyxia?.attended ||
-      week.zones.aq20?.attended ||
-      week.zones.zg?.attended;
+      week.zones.onyxia?.attended || week.zones.aq20?.attended || week.zones.zg?.attended;
 
     if (has40Man && has20Man) {
       return true;
@@ -190,12 +188,9 @@ function hasAllInstancesInSameWeek(weeks: WeeklyAttendanceWeek[]): boolean {
  */
 function hasFullBenchWeek(weeks: WeeklyAttendanceWeek[]): boolean {
   for (const week of weeks) {
-    const zones = [
-      week.zones.naxxramas,
-      week.zones.aq40,
-      week.zones.bwl,
-      week.zones.mc,
-    ].filter((z) => z !== undefined);
+    const zones = [week.zones.naxxramas, week.zones.aq40, week.zones.bwl, week.zones.mc].filter(
+      (z) => z !== undefined,
+    );
 
     if (zones.length === 0) continue;
 
@@ -204,15 +199,10 @@ function hasFullBenchWeek(weeks: WeeklyAttendanceWeek[]): boolean {
     if (!hasRaids) continue;
 
     // Check if all raids across all zones are bench status
-    const allBench = zones.every((zone) =>
-      zone.raids.every((raid) => raid.status === "bench"),
-    );
+    const allBench = zones.every((zone) => zone.raids.every((raid) => raid.status === "bench"));
 
     // Calculate total attendance weight from bench raids
-    const totalWeight = zones.reduce(
-      (sum, zone) => sum + (zone.attendanceWeight ?? 0),
-      0,
-    );
+    const totalWeight = zones.reduce((sum, zone) => sum + (zone.attendanceWeight ?? 0), 0);
 
     // Full week credit = 3.0
     if (allBench && totalWeight >= 3.0) {
@@ -226,9 +216,7 @@ function hasFullBenchWeek(weeks: WeeklyAttendanceWeek[]): boolean {
 /**
  * Check if character used multiple characters in the same week
  */
-function hasMultipleCharactersInSameWeek(
-  weeks: WeeklyAttendanceWeek[],
-): boolean {
+function hasMultipleCharactersInSameWeek(weeks: WeeklyAttendanceWeek[]): boolean {
   for (const week of weeks) {
     const allCharacterNames = new Set<string>();
 
@@ -300,10 +288,7 @@ function isFreshFace(weeks: WeeklyAttendanceWeek[]): boolean {
 /**
  * Evaluate a single badge
  */
-export function evaluateBadge(
-  badgeId: string,
-  context: BadgeEvaluationContext,
-): boolean {
+export function evaluateBadge(badgeId: string, context: BadgeEvaluationContext): boolean {
   // Only use the 6 scoring weeks (filter out historical and current week if present)
   const scoringWeeks = context.weeks.filter((w) => !w.isHistorical);
 
@@ -330,35 +315,19 @@ export function evaluateBadge(
 
     // Rare badges (consecutive attendance)
     case "fire-walker":
-      return (
-        findLongestConsecutive(
-          scoringWeeks,
-          (week) => week.zones.mc?.attended ?? false,
-        ) >= 4
-      );
+      return findLongestConsecutive(scoringWeeks, (week) => week.zones.mc?.attended ?? false) >= 4;
 
     case "dragon-slayer":
-      return (
-        findLongestConsecutive(
-          scoringWeeks,
-          (week) => week.zones.bwl?.attended ?? false,
-        ) >= 4
-      );
+      return findLongestConsecutive(scoringWeeks, (week) => week.zones.bwl?.attended ?? false) >= 4;
 
     case "bug-whisperer":
       return (
-        findLongestConsecutive(
-          scoringWeeks,
-          (week) => week.zones.aq40?.attended ?? false,
-        ) >= 4
+        findLongestConsecutive(scoringWeeks, (week) => week.zones.aq40?.attended ?? false) >= 4
       );
 
     case "necromancer":
       return (
-        findLongestConsecutive(
-          scoringWeeks,
-          (week) => week.zones.naxxramas?.attended ?? false,
-        ) >= 4
+        findLongestConsecutive(scoringWeeks, (week) => week.zones.naxxramas?.attended ?? false) >= 4
       );
 
     // Epic badges
@@ -406,9 +375,7 @@ export function evaluateBadge(
 /**
  * Evaluate all badges for a character
  */
-export function evaluateAllBadges(
-  context: BadgeEvaluationContext,
-): Map<string, boolean> {
+export function evaluateAllBadges(context: BadgeEvaluationContext): Map<string, boolean> {
   const results = new Map<string, boolean>();
 
   // List of all badge IDs

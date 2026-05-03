@@ -16,6 +16,7 @@ export class AACodec {
    * so they must be escaped using ~ with an offset.
    */
   private escapeString(str: string): string {
+    // eslint-disable-next-line no-control-regex
     return str.replace(/[\x00-\x20\x5E\x7E\x7F]/g, (ch) => {
       const n = ch.charCodeAt(0);
       if (n === 30) return "~\x7A"; // Record Separator escapes to ~z

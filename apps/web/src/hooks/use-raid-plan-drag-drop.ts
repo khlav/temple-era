@@ -7,10 +7,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import {
-  buildEncounterCharacters,
-  type RaidPlanCharacter,
-} from "~/components/raid-planner/types";
+import { buildEncounterCharacters, type RaidPlanCharacter } from "~/components/raid-planner/types";
 import type { useRaidPlanMutations } from "./use-raid-plan-mutations";
 
 type Mutations = ReturnType<typeof useRaidPlanMutations>;
@@ -54,10 +51,7 @@ function parseAssignedDragId(id: string) {
   return { charId, contextId, slotName };
 }
 
-export function useRaidPlanDragDrop({
-  mutations,
-  activeTab,
-}: UseRaidPlanDragDropOptions) {
+export function useRaidPlanDragDrop({ mutations, activeTab }: UseRaidPlanDragDropOptions) {
   const {
     plan,
     assignAASlotMutation,
@@ -72,11 +66,11 @@ export function useRaidPlanDragDrop({
     benchEncounterAssignmentsMutation,
   } = mutations;
 
-  const [activeCharacter, setActiveCharacter] =
-    useState<RaidPlanCharacter | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState<RaidPlanCharacter | null>(null);
 
-  const [pendingDragOperation, setPendingDragOperation] =
-    useState<PendingDragOperation | null>(null);
+  const [pendingDragOperation, setPendingDragOperation] = useState<PendingDragOperation | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -94,9 +88,7 @@ export function useRaidPlanDragDrop({
     (planCharacterId: string): AssignmentDetail[] | null => {
       if (!plan) return null;
 
-      const encounterMap = new Map(
-        plan.encounters.map((e) => [e.id, e.encounterName]),
-      );
+      const encounterMap = new Map(plan.encounters.map((e) => [e.id, e.encounterName]));
 
       const details: AssignmentDetail[] = [];
 
@@ -140,12 +132,8 @@ export function useRaidPlanDragDrop({
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const rawId = event.active.id as string;
-      const charId = rawId.startsWith("aa-assigned:")
-        ? parseAssignedDragId(rawId).charId
-        : rawId;
-      const char = plan?.characters.find((c) => c.id === charId) as
-        | RaidPlanCharacter
-        | undefined;
+      const charId = rawId.startsWith("aa-assigned:") ? parseAssignedDragId(rawId).charId : rawId;
+      const char = plan?.characters.find((c) => c.id === charId) as RaidPlanCharacter | undefined;
       setActiveCharacter(char ?? null);
     },
     [plan?.characters],
@@ -186,12 +174,8 @@ export function useRaidPlanDragDrop({
         return;
       }
 
-      const hasAAAssignments = op.existingAssignments.some(
-        (a) => a.type === "aa",
-      );
-      const hasEncounterGroups = op.existingAssignments.some(
-        (a) => a.type === "encounter-group",
-      );
+      const hasAAAssignments = op.existingAssignments.some((a) => a.type === "aa");
+      const hasEncounterGroups = op.existingAssignments.some((a) => a.type === "encounter-group");
 
       if (action === "clear") {
         // Fire all mutations in parallel — each has optimistic updates
@@ -262,11 +246,7 @@ export function useRaidPlanDragDrop({
 
       // Handle dragging an already-assigned slot character
       if (isSlotCharDrag) {
-        const {
-          charId,
-          contextId,
-          slotName: sourceSlot,
-        } = parseAssignedDragId(activeId);
+        const { charId, contextId, slotName: sourceSlot } = parseAssignedDragId(activeId);
         const isDefaultView = contextId === plan.id;
 
         if (over) {
@@ -365,8 +345,7 @@ export function useRaidPlanDragDrop({
       const isDefaultTab = activeTab === "default";
       const currentEncounter = plan.encounters.find((e) => e.id === activeTab);
       const allowGroupDrops =
-        isDefaultTab ||
-        (currentEncounter && !currentEncounter.useDefaultGroups);
+        isDefaultTab || (currentEncounter && !currentEncounter.useDefaultGroups);
 
       if (!allowGroupDrops) {
         // Don't process group drops when using default groups
@@ -392,9 +371,7 @@ export function useRaidPlanDragDrop({
             plan.encounterAssignments,
             activeTab,
           );
-          return chars.find(
-            (c) => c.defaultGroup === group && c.defaultPosition === position,
-          );
+          return chars.find((c) => c.defaultGroup === group && c.defaultPosition === position);
         }
       };
 
@@ -410,10 +387,8 @@ export function useRaidPlanDragDrop({
               targetGroup: null,
               targetPosition: null,
               affectedCharacterId: activeId,
-              affectedCharacterName:
-                (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
-              affectedCharacterClass:
-                (activeChar as RaidPlanCharacter).class ?? undefined,
+              affectedCharacterName: (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
+              affectedCharacterClass: (activeChar as RaidPlanCharacter).class ?? undefined,
               existingAssignments: assignments,
             });
             return;
@@ -447,8 +422,7 @@ export function useRaidPlanDragDrop({
           if (isDefaultTab) {
             // Only check AA assignments when bench is involved
             // (bench → group displaces occupant to bench)
-            const activeIsOnBench =
-              (activeChar as RaidPlanCharacter).defaultGroup === null;
+            const activeIsOnBench = (activeChar as RaidPlanCharacter).defaultGroup === null;
             if (activeIsOnBench) {
               const assignments = getAssignmentDetails(targetChar.id);
               if (assignments) {
@@ -461,11 +435,8 @@ export function useRaidPlanDragDrop({
                   affectedCharacterId: targetChar.id,
                   affectedCharacterName: targetChar.characterName ?? "Unknown",
                   affectedCharacterClass: targetChar.class ?? undefined,
-                  transferTargetName:
-                    (activeChar as RaidPlanCharacter).characterName ??
-                    "Unknown",
-                  transferTargetClass:
-                    (activeChar as RaidPlanCharacter).class ?? undefined,
+                  transferTargetName: (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
+                  transferTargetClass: (activeChar as RaidPlanCharacter).class ?? undefined,
                   existingAssignments: assignments,
                 });
                 return;
@@ -507,8 +478,7 @@ export function useRaidPlanDragDrop({
       if (targetChar) {
         if (isDefaultTab) {
           // Only check AA assignments when a group character is going to bench
-          const activeIsInGroup =
-            (activeChar as RaidPlanCharacter).defaultGroup !== null;
+          const activeIsInGroup = (activeChar as RaidPlanCharacter).defaultGroup !== null;
           if (activeIsInGroup) {
             const assignments = getAssignmentDetails(activeId);
             if (assignments) {
@@ -519,14 +489,10 @@ export function useRaidPlanDragDrop({
                 targetPosition: null,
                 targetCharacterId: targetChar.id,
                 affectedCharacterId: activeId,
-                affectedCharacterName:
-                  (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
-                affectedCharacterClass:
-                  (activeChar as RaidPlanCharacter).class ?? undefined,
-                transferTargetName:
-                  (targetChar as RaidPlanCharacter).characterName ?? "Unknown",
-                transferTargetClass:
-                  (targetChar as RaidPlanCharacter).class ?? undefined,
+                affectedCharacterName: (activeChar as RaidPlanCharacter).characterName ?? "Unknown",
+                affectedCharacterClass: (activeChar as RaidPlanCharacter).class ?? undefined,
+                transferTargetName: (targetChar as RaidPlanCharacter).characterName ?? "Unknown",
+                transferTargetClass: (targetChar as RaidPlanCharacter).class ?? undefined,
                 existingAssignments: assignments,
               });
               return;

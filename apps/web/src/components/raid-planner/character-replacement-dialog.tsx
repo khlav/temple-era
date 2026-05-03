@@ -50,8 +50,7 @@ export function CharacterReplacementDialog({
             <span
               className={
                 affectedCharacterClass
-                  ? (CLASS_TEXT_COLORS[affectedCharacterClass] ??
-                    "text-foreground")
+                  ? (CLASS_TEXT_COLORS[affectedCharacterClass] ?? "text-foreground")
                   : "text-foreground"
               }
             >
@@ -64,8 +63,7 @@ export function CharacterReplacementDialog({
                 <span
                   className={
                     newCharacterClass
-                      ? (CLASS_TEXT_COLORS[newCharacterClass] ??
-                        "text-foreground")
+                      ? (CLASS_TEXT_COLORS[newCharacterClass] ?? "text-foreground")
                       : "text-foreground"
                   }
                 >
@@ -89,11 +87,8 @@ export function CharacterReplacementDialog({
                 const groupAssignments = existingAssignments?.filter(
                   (a) => a.type === "encounter-group",
                 );
-                const aaAssignments = existingAssignments?.filter(
-                  (a) => a.type === "aa",
-                );
-                const hasGroups =
-                  groupAssignments && groupAssignments.length > 0;
+                const aaAssignments = existingAssignments?.filter((a) => a.type === "aa");
+                const hasGroups = groupAssignments && groupAssignments.length > 0;
                 const hasAA = aaAssignments && aaAssignments.length > 0;
 
                 if (hasGroups && hasAA) {

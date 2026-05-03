@@ -3,11 +3,7 @@
 import React from "react";
 import { Armchair } from "lucide-react";
 import { api } from "~/trpc/react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { Skeleton } from "~/components/ui/skeleton";
 
 // Format date as mm/dd
@@ -174,12 +170,7 @@ export function AttendanceHeatmapGrid({
       const radius = 2; // Corner radius (matches filled triangle)
       return (
         <div className={`relative h-4 w-4 ${isHistorical ? "opacity-30" : ""}`}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            className="absolute inset-0"
-          >
+          <svg width="16" height="16" viewBox="0 0 16 16" className="absolute inset-0">
             <path
               d={`M ${radius} 0 Q 0 0 0 ${radius} L 0 16 L 16 0 Z`}
               fill="none"
@@ -207,9 +198,7 @@ export function AttendanceHeatmapGrid({
     const isGrayed = weekData.isGrayed ?? false;
 
     // Check if any raid was attended (prioritize attendee over bench)
-    const hasAttendee = weekData.raids.some(
-      (raid) => raid.status === "attendee",
-    );
+    const hasAttendee = weekData.raids.some((raid) => raid.status === "attendee");
     // Only show bench icon if all raids were bench (no attendee raids)
     const allBench = !hasAttendee && weekData.raids.length > 0;
 
@@ -238,9 +227,7 @@ export function AttendanceHeatmapGrid({
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className={`relative h-4 w-4 overflow-hidden ${
-                  isHistorical ? "opacity-30" : ""
-                }`}
+                className={`relative h-4 w-4 overflow-hidden ${isHistorical ? "opacity-30" : ""}`}
                 style={{
                   clipPath: "polygon(0 0, 0 100%, 100% 0)",
                 }}
@@ -248,11 +235,7 @@ export function AttendanceHeatmapGrid({
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Armchair
                     size={16}
-                    className={
-                      isGrayed
-                        ? "text-gray-700 dark:text-gray-500"
-                        : zoneTextColor
-                    }
+                    className={isGrayed ? "text-gray-700 dark:text-gray-500" : zoneTextColor}
                   />
                 </div>
               </div>
@@ -273,10 +256,7 @@ export function AttendanceHeatmapGrid({
                 isHistorical ? "opacity-30" : ""
               }`}
             >
-              <Armchair
-                size={16}
-                className={isGrayed ? "text-gray-600" : zoneTextColor}
-              />
+              <Armchair size={16} className={isGrayed ? "text-gray-600" : zoneTextColor} />
             </div>
           </TooltipTrigger>
           <TooltipContent className="bg-secondary text-muted-foreground">
@@ -293,15 +273,8 @@ export function AttendanceHeatmapGrid({
       return (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div
-              className={`relative h-4 w-4 ${isHistorical ? "opacity-30" : ""}`}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                className="absolute inset-0"
-              >
+            <div className={`relative h-4 w-4 ${isHistorical ? "opacity-30" : ""}`}>
+              <svg width="16" height="16" viewBox="0 0 16 16" className="absolute inset-0">
                 <path
                   d={`M ${radius} 0 Q 0 0 0 ${radius} L 0 16 L 16 0 Z`}
                   fill={
@@ -342,23 +315,16 @@ export function AttendanceHeatmapGrid({
   }
 
   if (!heatmapData?.weeks || heatmapData.weeks.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No attendance data available
-      </div>
-    );
+    return <div className="text-sm text-muted-foreground">No attendance data available</div>;
   }
 
   // Determine which week is the current week (last week if includeCurrentWeek is true)
   const currentWeekIndex =
-    includeCurrentWeek && heatmapData.weeks.length > 0
-      ? heatmapData.weeks.length - 1
-      : -1;
+    includeCurrentWeek && heatmapData.weeks.length > 0 ? heatmapData.weeks.length - 1 : -1;
 
   // Calculate the first scoring week index (6 most recent complete weeks, excluding current week)
   // Scoring weeks are the 6 weeks before the current week (if current week exists)
-  const firstScoringWeekIndex =
-    heatmapData.weeks.length - (includeCurrentWeek ? 7 : 6);
+  const firstScoringWeekIndex = heatmapData.weeks.length - (includeCurrentWeek ? 7 : 6);
   const hasHistoricalWeeks = firstScoringWeekIndex > 0;
 
   return (
@@ -378,18 +344,13 @@ export function AttendanceHeatmapGrid({
               {heatmapData.weeks.map((week, idx) => {
                 const isCurrentWeek = idx === currentWeekIndex;
                 const isFirstScoringWeek = idx === firstScoringWeekIndex;
-                const showSeparatorBeforeCurrent =
-                  showThisWeek && isCurrentWeek;
-                const showSeparatorBeforeScoring =
-                  hasHistoricalWeeks && isFirstScoringWeek;
+                const showSeparatorBeforeCurrent = showThisWeek && isCurrentWeek;
+                const showSeparatorBeforeScoring = hasHistoricalWeeks && isFirstScoringWeek;
                 const isHistorical = week.isHistorical ?? false;
                 return (
                   <React.Fragment key={`col-group-${week.weekStart}-${idx}`}>
-                    {(showSeparatorBeforeCurrent ||
-                      showSeparatorBeforeScoring) && (
-                      <col
-                        className={`${compact ? "w-1" : "w-2"} hidden md:table-column`}
-                      />
+                    {(showSeparatorBeforeCurrent || showSeparatorBeforeScoring) && (
+                      <col className={`${compact ? "w-1" : "w-2"} hidden md:table-column`} />
                     )}
                     <col
                       key={`col-${week.weekStart}-${idx}`}
@@ -404,21 +365,16 @@ export function AttendanceHeatmapGrid({
             {!compact && (
               <thead>
                 <tr>
-                  <th className="pr-3 text-left text-xs font-medium text-muted-foreground">
-                    Zone
-                  </th>
+                  <th className="pr-3 text-left text-xs font-medium text-muted-foreground">Zone</th>
                   {heatmapData.weeks.map((week, idx) => {
                     const isCurrentWeek = idx === currentWeekIndex;
                     const isFirstScoringWeek = idx === firstScoringWeekIndex;
-                    const showSeparatorBeforeCurrent =
-                      showThisWeek && isCurrentWeek;
-                    const showSeparatorBeforeScoring =
-                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const showSeparatorBeforeCurrent = showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring = hasHistoricalWeeks && isFirstScoringWeek;
                     const isHistorical = week.isHistorical ?? false;
                     return (
                       <React.Fragment key={`header-${week.weekStart}-${idx}`}>
-                        {(showSeparatorBeforeCurrent ||
-                          showSeparatorBeforeScoring) && (
+                        {(showSeparatorBeforeCurrent || showSeparatorBeforeScoring) && (
                           <th className="hidden px-1 md:table-cell"></th>
                         )}
                         <th
@@ -427,9 +383,7 @@ export function AttendanceHeatmapGrid({
                             isHistorical ? "hidden md:table-cell" : ""
                           }`}
                         >
-                          {isCurrentWeek
-                            ? "This Week"
-                            : formatDateMMDD(week.weekStart)}
+                          {isCurrentWeek ? "This Week" : formatDateMMDD(week.weekStart)}
                         </th>
                       </React.Fragment>
                     );
@@ -441,22 +395,17 @@ export function AttendanceHeatmapGrid({
               {(["naxxramas", "aq40", "bwl", "mc"] as const).map((zone) => (
                 <tr key={zone}>
                   {!compact && (
-                    <td className="py-1 pr-3 text-xs font-medium">
-                      {ZONE_LABELS[zone]}
-                    </td>
+                    <td className="py-1 pr-3 text-xs font-medium">{ZONE_LABELS[zone]}</td>
                   )}
                   {heatmapData.weeks.map((week, idx) => {
                     const isCurrentWeek = idx === currentWeekIndex;
                     const isFirstScoringWeek = idx === firstScoringWeekIndex;
-                    const showSeparatorBeforeCurrent =
-                      showThisWeek && isCurrentWeek;
-                    const showSeparatorBeforeScoring =
-                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const showSeparatorBeforeCurrent = showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring = hasHistoricalWeeks && isFirstScoringWeek;
                     const isHistorical = week.isHistorical ?? false;
                     return (
                       <React.Fragment key={`cell-${week.weekStart}-${idx}`}>
-                        {(showSeparatorBeforeCurrent ||
-                          showSeparatorBeforeScoring) && (
+                        {(showSeparatorBeforeCurrent || showSeparatorBeforeScoring) && (
                           <td
                             className={`${
                               compact ? "px-0.5 py-0.5" : "px-1 py-1"
@@ -469,16 +418,10 @@ export function AttendanceHeatmapGrid({
                           key={`td-${week.weekStart}-${idx}`}
                           className={`${
                             compact ? "px-0.5 py-0.5" : "px-1 py-1"
-                          } text-center align-middle ${
-                            isHistorical ? "hidden md:table-cell" : ""
-                          }`}
+                          } text-center align-middle ${isHistorical ? "hidden md:table-cell" : ""}`}
                         >
                           <div className="flex items-center justify-center">
-                            {renderHeatmapCell(
-                              zone,
-                              week.zones[zone],
-                              isHistorical,
-                            )}
+                            {renderHeatmapCell(zone, week.zones[zone], isHistorical)}
                           </div>
                         </td>
                       </React.Fragment>
@@ -492,23 +435,17 @@ export function AttendanceHeatmapGrid({
                   {heatmapData.weeks.map((week, idx) => {
                     const isCurrentWeek = idx === currentWeekIndex;
                     const isFirstScoringWeek = idx === firstScoringWeekIndex;
-                    const showSeparatorBeforeCurrent =
-                      showThisWeek && isCurrentWeek;
-                    const showSeparatorBeforeScoring =
-                      hasHistoricalWeeks && isFirstScoringWeek;
+                    const showSeparatorBeforeCurrent = showThisWeek && isCurrentWeek;
+                    const showSeparatorBeforeScoring = hasHistoricalWeeks && isFirstScoringWeek;
                     const isHistorical = week.isHistorical ?? false;
                     // Only show credits for the 6 scoring weeks (not historical, not current week)
                     const isScoringWeek =
-                      idx >= firstScoringWeekIndex &&
-                      idx < firstScoringWeekIndex + 6;
+                      idx >= firstScoringWeekIndex && idx < firstScoringWeekIndex + 6;
                     if (!isScoringWeek) {
                       // For non-scoring weeks, show empty cell or separator
                       return (
-                        <React.Fragment
-                          key={`credits-${week.weekStart}-${idx}`}
-                        >
-                          {(showSeparatorBeforeCurrent ||
-                            showSeparatorBeforeScoring) && (
+                        <React.Fragment key={`credits-${week.weekStart}-${idx}`}>
+                          {(showSeparatorBeforeCurrent || showSeparatorBeforeScoring) && (
                             <td className="hidden px-1 py-1 md:table-cell"></td>
                           )}
                           <td
@@ -542,8 +479,7 @@ export function AttendanceHeatmapGrid({
 
                     return (
                       <React.Fragment key={`credits-${week.weekStart}-${idx}`}>
-                        {(showSeparatorBeforeCurrent ||
-                          showSeparatorBeforeScoring) && (
+                        {(showSeparatorBeforeCurrent || showSeparatorBeforeScoring) && (
                           <td className="hidden px-1 py-1 md:table-cell"></td>
                         )}
                         <td

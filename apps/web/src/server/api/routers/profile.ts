@@ -80,9 +80,7 @@ export const profile = createTRPCRouter({
       }
 
       // If this IS a primary, add all its secondaries (children)
-      user.character.secondaryCharacters.forEach((char) =>
-        userCharacterIds.add(char.characterId),
-      );
+      user.character.secondaryCharacters.forEach((char) => userCharacterIds.add(char.characterId));
     }
 
     return {
@@ -133,8 +131,7 @@ export const profile = createTRPCRouter({
       columns: { apiToken: true },
       where: eq(users.id, ctx.session.user.id),
     });
-    const replaced =
-      existing?.apiToken !== null && existing?.apiToken !== undefined;
+    const replaced = existing?.apiToken !== null && existing?.apiToken !== undefined;
 
     const token = `tera_${crypto.randomBytes(16).toString("hex")}`;
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");

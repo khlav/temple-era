@@ -49,32 +49,27 @@ export const BADGE_CATEGORIES: Record<BadgeRarity, BadgeCategory> = {
   common: {
     rarity: "common",
     label: "Common",
-    colorClasses:
-      "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20",
+    colorClasses: "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20",
   },
   uncommon: {
     rarity: "uncommon",
     label: "Uncommon",
-    colorClasses:
-      "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+    colorClasses: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   },
   rare: {
     rarity: "rare",
     label: "Rare",
-    colorClasses:
-      "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    colorClasses: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   },
   epic: {
     rarity: "epic",
     label: "Epic",
-    colorClasses:
-      "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+    colorClasses: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
   },
   legendary: {
     rarity: "legendary",
     label: "Legendary",
-    colorClasses:
-      "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+    colorClasses: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
   },
 };
 
@@ -94,8 +89,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "bench-warmer",
     name: "Bench Warmer",
-    description:
-      "Earned full week attendance credit through bench support in at least one week.",
+    description: "Earned full week attendance credit through bench support in at least one week.",
     rarity: "common",
     icon: Armchair,
     order: 2,
@@ -103,8 +97,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "shapeshifter",
     name: "Shapeshifter",
-    description:
-      "Flexed between multiple characters during raids in the same week.",
+    description: "Flexed between multiple characters during raids in the same week.",
     rarity: "common",
     icon: Shuffle,
     order: 3,
@@ -114,8 +107,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "dungeon-crawler",
     name: "Dungeon Crawler",
-    description:
-      "Explored all 4 main raid zones in the last 6 weeks (Naxx, AQ40, BWL, MC).",
+    description: "Explored all 4 main raid zones in the last 6 weeks (Naxx, AQ40, BWL, MC).",
     rarity: "uncommon",
     icon: Compass,
     order: 4,
@@ -123,8 +115,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "tight-squad",
     name: "Tight Squad",
-    description:
-      "Joined 3+ different 20-man raids in the last 6 weeks (Onyxia, AQ20, ZG).",
+    description: "Joined 3+ different 20-man raids in the last 6 weeks (Onyxia, AQ20, ZG).",
     rarity: "uncommon",
     icon: Users,
     order: 5,
@@ -132,8 +123,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "big-and-small",
     name: "Big and Small",
-    description:
-      "Participated in both 40-man and 20-man raids during the same week.",
+    description: "Participated in both 40-man and 20-man raids during the same week.",
     rarity: "uncommon",
     icon: Scale,
     order: 6,
@@ -186,8 +176,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "dedicated",
     name: "Dedicated",
-    description:
-      "Demonstrated dedication by attending 2+ 40-man raids in 4+ consecutive weeks.",
+    description: "Demonstrated dedication by attending 2+ 40-man raids in 4+ consecutive weeks.",
     rarity: "epic",
     icon: Target,
     order: 12,
@@ -206,8 +195,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     id: "perfect-attendance",
     name: "Perfect Attendance",
-    description:
-      "Achieved perfect attendance with 18/18 credits over the last 6 weeks.",
+    description: "Achieved perfect attendance with 18/18 credits over the last 6 weeks.",
     rarity: "legendary",
     icon: Trophy,
     order: 14,

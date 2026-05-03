@@ -4,12 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { AATemplateRenderer } from "./aa-template-renderer";
 import type { RaidPlanCharacter, AASlotAssignment } from "./types";
 
@@ -38,9 +33,7 @@ export function CharacterSummaryPanel({
   const [showDetails, setShowDetails] = useState(true);
 
   const classColor = viewAsCharacter.class
-    ? (AA_CLASS_COLORS[
-        viewAsCharacter.class.toLowerCase().replace(/\s+/g, "")
-      ] ?? undefined)
+    ? (AA_CLASS_COLORS[viewAsCharacter.class.toLowerCase().replace(/\s+/g, "")] ?? undefined)
     : undefined;
 
   const MAX_SUMMARY = 3;
@@ -59,18 +52,13 @@ export function CharacterSummaryPanel({
               className="mr-1 inline-block align-middle"
             />
           )}
-          <span
-            className="font-bold"
-            style={classColor ? { color: classColor } : undefined}
-          >
+          <span className="font-bold" style={classColor ? { color: classColor } : undefined}>
             {viewAsCharacter.name}
           </span>{" "}
           has assignments in{" "}
           {summaryEncounters.map((s, i) => (
             <span key={s.encounterId}>
-              <span className="font-semibold text-foreground">
-                {s.encounterName}
-              </span>
+              <span className="font-semibold text-foreground">{s.encounterName}</span>
               {i < summaryEncounters.length - 1 ? ", " : ""}
             </span>
           ))}
@@ -82,11 +70,7 @@ export function CharacterSummaryPanel({
           onClick={() => setShowDetails((v) => !v)}
           className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:border-muted-foreground hover:text-foreground"
         >
-          {showDetails ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )}
+          {showDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           {showDetails ? "Hide details" : "Show details"}
         </button>
       </div>
@@ -127,15 +111,9 @@ export function CharacterSummaryPanel({
                     <AATemplateRenderer
                       template={summary.template}
                       encounterId={
-                        summary.encounterId !== "default"
-                          ? summary.contextId
-                          : undefined
+                        summary.encounterId !== "default" ? summary.contextId : undefined
                       }
-                      raidPlanId={
-                        summary.encounterId === "default"
-                          ? summary.contextId
-                          : undefined
-                      }
+                      raidPlanId={summary.encounterId === "default" ? summary.contextId : undefined}
                       characters={allCharacters}
                       slotAssignments={summary.slotAssignments}
                       disabled

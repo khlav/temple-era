@@ -19,8 +19,7 @@ export function ZoneFilter({
   onZonesChange: (zones: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [localSelectedZones, setLocalSelectedZones] =
-    useState<string[]>(selectedZones);
+  const [localSelectedZones, setLocalSelectedZones] = useState<string[]>(selectedZones);
 
   // Sync local state when selectedZones prop changes (from outside)
   useEffect(() => {
@@ -59,10 +58,7 @@ export function ZoneFilter({
           Zones ({selectedZones.length})
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
+      <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
         {RAID_ZONE_CONFIG.map(({ instance, name }) => (
           <DropdownMenuCheckboxItem
             key={instance}

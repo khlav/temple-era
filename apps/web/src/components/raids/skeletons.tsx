@@ -22,25 +22,16 @@ export function RaidsTableSkeleton({ rows = 30 }: { rows?: number }) {
         <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
           <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
             <TableCaption className="text-wrap">
-              Note: Only Tracked raids are considered for attendance
-              restrictions.
+              Note: Only Tracked raids are considered for attendance restrictions.
             </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-1/2 md:w-4/12">Raids</TableHead>
-                <TableHead className="hidden md:table-cell md:w-2/12">
-                  Zone
-                </TableHead>
-                <TableHead className="hidden md:table-cell md:w-2/12">
-                  Date
-                </TableHead>
+                <TableHead className="hidden md:table-cell md:w-2/12">Zone</TableHead>
+                <TableHead className="hidden md:table-cell md:w-2/12">Date</TableHead>
                 <TableHead className="w-1/4 md:w-2/12">Attendance</TableHead>
-                <TableHead className="hidden md:table-cell md:w-1/12">
-                  Created By
-                </TableHead>
-                <TableHead className="w-1/4 text-center md:w-1/12">
-                  WCL
-                </TableHead>
+                <TableHead className="hidden md:table-cell md:w-1/12">Created By</TableHead>
+                <TableHead className="w-1/4 text-center md:w-1/12">WCL</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

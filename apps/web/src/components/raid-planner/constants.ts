@@ -56,13 +56,7 @@ export const VALID_WRITE_IN_CLASSES = new Set<string>([
   ...Object.keys(RAIDHELPER_STATUS_ICONS),
 ]);
 
-export const WOW_SERVERS = [
-  "Ashkandi",
-  "Mankrik",
-  "Pagle",
-  "Westfall",
-  "Windseeker",
-] as const;
+export const WOW_SERVERS = ["Ashkandi", "Mankrik", "Pagle", "Westfall", "Windseeker"] as const;
 
 /** Instance IDs for 20-man raids */
 export const TWENTY_MAN_INSTANCES = ["aq20", "zg", "onyxia"] as const;

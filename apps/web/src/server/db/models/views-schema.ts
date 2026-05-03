@@ -1,17 +1,5 @@
-import {
-  pgSchema,
-  integer,
-  varchar,
-  real,
-  text,
-  json,
-  date,
-} from "drizzle-orm/pg-core";
-import {
-  characters,
-  raids,
-  raidsColumns,
-} from "~/server/db/models/raid-schema";
+import { pgSchema, integer, varchar, real, text, json, date } from "drizzle-orm/pg-core";
+import { characters, raids, raidsColumns } from "~/server/db/models/raid-schema";
 
 // Note: Views kept in a separate file to remain reference-able
 //       in different contexts without causing drizzle-kit errors
@@ -22,9 +10,7 @@ const viewSchema = pgSchema("views");
 export const primaryRaidAttendeeMap = viewSchema
   .view("primary_raid_attendee_map", {
     raidId: integer("raid_id").references(() => raids.raidId),
-    primaryCharacterId: integer("primary_character_id").references(
-      () => characters.characterId,
-    ),
+    primaryCharacterId: integer("primary_character_id").references(() => characters.characterId),
     attendingCharacterIds: integer("attending_character_ids")
       .references(() => characters.characterId)
       .array(),
@@ -34,9 +20,7 @@ export const primaryRaidAttendeeMap = viewSchema
 export const primaryRaidBenchMap = viewSchema
   .view("primary_raid_bench_map", {
     raidId: integer("raid_id").references(() => raids.raidId),
-    primaryCharacterId: integer("primary_character_id").references(
-      () => characters.characterId,
-    ),
+    primaryCharacterId: integer("primary_character_id").references(() => characters.characterId),
     benchCharacterIds: integer("bench_character_ids")
       .references(() => characters.characterId)
       .array(),
@@ -46,9 +30,7 @@ export const primaryRaidBenchMap = viewSchema
 export const primaryRaidAttendeeAndBenchMap = viewSchema
   .view("primary_raid_attendee_and_bench_map", {
     raidId: integer("raid_id").references(() => raids.raidId),
-    primaryCharacterId: integer("primary_character_id").references(
-      () => characters.characterId,
-    ),
+    primaryCharacterId: integer("primary_character_id").references(() => characters.characterId),
     allCharacterIds: integer("all_character_ids")
       .references(() => characters.characterId)
       .array(),
@@ -84,9 +66,7 @@ export const allRaidsCurrentLockout = viewSchema
 
 export const primaryRaidAttendanceL6LockoutWk = viewSchema
   .view("primary_raid_attendance_l6lockoutwk", {
-    characterId: integer("character_id").references(
-      () => characters.characterId,
-    ),
+    characterId: integer("character_id").references(() => characters.characterId),
     name: varchar("name"),
     weightedAttendance: real("weighted_attendance"),
     weightedRaidTotal: real("weighted_raid_total"),

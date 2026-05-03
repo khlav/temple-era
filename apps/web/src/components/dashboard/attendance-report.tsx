@@ -5,19 +5,11 @@ import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Progress } from "~/components/ui/progress";
 import { useRouter } from "next/navigation";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 
-export function AttendanceReport({
-  currentUserCharacterId,
-}: {
-  currentUserCharacterId?: number;
-}) {
+export function AttendanceReport({ currentUserCharacterId }: { currentUserCharacterId?: number }) {
   const attendanceThreshold = 9; // 50% threshold (9 of 18 points)
   const minDisplayThreshold = 2; // Minimum attendance to display
   const maxAttendance = 18; // Maximum possible attendance
@@ -29,15 +21,11 @@ export function AttendanceReport({
   const raiders = React.useMemo(() => {
     if (!attendanceData) return [];
     return attendanceData
-      .filter(
-        (raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold,
-      )
+      .filter((raider) => (raider.weightedAttendance ?? 0) >= minDisplayThreshold)
       .map((raider) => ({
         ...raider,
         weightedAttendance: raider.weightedAttendance ?? 0,
-        attendancePercent: Math.round(
-          ((raider.weightedAttendance ?? 0) / maxAttendance) * 100,
-        ),
+        attendancePercent: Math.round(((raider.weightedAttendance ?? 0) / maxAttendance) * 100),
         isEligible: (raider.weightedAttendance ?? 0) >= attendanceThreshold,
         isCurrentUser: currentUserCharacterId === raider.characterId,
       }));
@@ -68,9 +56,7 @@ export function AttendanceReport({
                   - Naxx, AQ40, BWL : +1
                   <br />- Molten Core : +0.5
                 </div>
-                <div className="italic">
-                  Note: Points are only earned once per zone+week.
-                </div>
+                <div className="italic">Note: Points are only earned once per zone+week.</div>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -83,10 +69,7 @@ export function AttendanceReport({
         {isSuccess ? (
           <div className="mx-auto min-h-[600px] pr-4">
             {/* Raider List - using table for consistent row spacing */}
-            <table
-              className="w-full border-separate"
-              style={{ borderSpacing: "0 2px" }}
-            >
+            <table className="w-full border-separate" style={{ borderSpacing: "0 2px" }}>
               <tbody>
                 {raiders.map((raider, index) => {
                   const isHighlighted = raider.isCurrentUser;
@@ -114,9 +97,7 @@ export function AttendanceReport({
                         <div
                           className={cn(
                             "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none",
-                            isHighlighted
-                              ? "font-bold text-cyan-200"
-                              : "text-muted-foreground",
+                            isHighlighted ? "font-bold text-cyan-200" : "text-muted-foreground",
                           )}
                           style={{ minHeight: "1rem", height: "1rem" }}
                         >
@@ -138,10 +119,7 @@ export function AttendanceReport({
                               <Progress
                                 value={raider.attendancePercent}
                                 className="h-4 bg-muted"
-                                indicatorClassName={cn(
-                                  "rounded-full",
-                                  barColor,
-                                )}
+                                indicatorClassName={cn("rounded-full", barColor)}
                               />
 
                               {/* 50% Reference Line - always displayed */}
@@ -178,9 +156,7 @@ export function AttendanceReport({
                             </div>
                           </TooltipTrigger>
                           <TooltipContent className="bg-secondary text-muted-foreground">
-                            <div className="text-xs">
-                              {raider.weightedAttendance} of 18
-                            </div>
+                            <div className="text-xs">{raider.weightedAttendance} of 18</div>
                           </TooltipContent>
                         </Tooltip>
                       </td>

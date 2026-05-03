@@ -44,17 +44,14 @@ export function RefreshConfirmDialog({
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {showFullConfirm
-              ? "Are you absolutely sure?"
-              : "Update Raid Roster"}
+            {showFullConfirm ? "Are you absolutely sure?" : "Update Raid Roster"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4 pt-2">
               {!showFullConfirm ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Choose how you want to update the character list from
-                    Raidhelper signups.
+                    Choose how you want to update the character list from Raidhelper signups.
                   </p>
 
                   <div className="grid gap-3">
@@ -68,12 +65,10 @@ export function RefreshConfirmDialog({
                         <UserPlus className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold">
-                          Add New Signups to Bench
-                        </div>
+                        <div className="text-sm font-semibold">Add New Signups to Bench</div>
                         <p className="text-xs text-muted-foreground">
-                          Only adds missing players. Preserves all current
-                          groups, assignments, and AA assignments.
+                          Only adds missing players. Preserves all current groups, assignments, and
+                          AA assignments.
                         </p>
                       </div>
                     </button>
@@ -88,12 +83,10 @@ export function RefreshConfirmDialog({
                         <RefreshCcw className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-destructive">
-                          Full Reimport
-                        </div>
+                        <div className="text-sm font-semibold text-destructive">Full Reimport</div>
                         <p className="text-xs text-muted-foreground">
-                          Resets the entire roster to match RaidHelper.
-                          Destructive to all custom groups and assignments.
+                          Resets the entire roster to match RaidHelper. Destructive to all custom
+                          groups and assignments.
                         </p>
                       </div>
                     </button>

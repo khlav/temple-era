@@ -4,12 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, CircleHelp } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterSelector } from "~/components/characters/character-selector";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,13 +93,9 @@ export function EditCharacterDialog({
       <span>Editing</span>
       <span className="flex items-center gap-1">
         {editingCharacter.class &&
-          WOW_CLASSES.includes(
-            editingCharacter.class as (typeof WOW_CLASSES)[number],
-          ) && (
+          WOW_CLASSES.includes(editingCharacter.class as (typeof WOW_CLASSES)[number]) && (
             <ClassIcon
-              characterClass={
-                editingCharacter.class as (typeof WOW_CLASSES)[number]
-              }
+              characterClass={editingCharacter.class as (typeof WOW_CLASSES)[number]}
               px={20}
             />
           )}
@@ -133,18 +124,13 @@ export function EditCharacterDialog({
             onSelectAction={onSelect}
             characterSet="all"
           >
-            <Button
-              variant="outline"
-              className="w-[150px] justify-start text-left font-normal"
-            >
+            <Button variant="outline" className="w-[150px] justify-start text-left font-normal">
               Select from DB...
             </Button>
           </CharacterSelector>
 
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-sm text-muted-foreground">
-              or write in:
-            </span>
+            <span className="shrink-0 text-sm text-muted-foreground">or write in:</span>
 
             <Input
               ref={inputRef}
@@ -158,9 +144,7 @@ export function EditCharacterDialog({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 px-3">
-                  {WOW_CLASSES.includes(
-                    writeInClass as (typeof WOW_CLASSES)[number],
-                  ) ? (
+                  {WOW_CLASSES.includes(writeInClass as (typeof WOW_CLASSES)[number]) ? (
                     <ClassIcon characterClass={writeInClass} px={16} />
                   ) : (
                     <CircleHelp className="h-4 w-4 text-muted-foreground" />
@@ -168,10 +152,7 @@ export function EditCharacterDialog({
                   <ChevronDown className="h-3 w-3 text-muted-foreground opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="h-[300px] overflow-y-auto"
-              >
+              <DropdownMenuContent align="end" className="h-[300px] overflow-y-auto">
                 {WOW_CLASSES.map((cls) => (
                   <DropdownMenuItem
                     key={cls}
@@ -185,10 +166,7 @@ export function EditCharacterDialog({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              onClick={handlePlaceholderSubmit}
-              disabled={!placeholderName.trim()}
-            >
+            <Button onClick={handlePlaceholderSubmit} disabled={!placeholderName.trim()}>
               Set
             </Button>
           </div>

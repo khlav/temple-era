@@ -1,10 +1,8 @@
 #!/bin/sh
 echo "📝 Preparing commit message..."
 
-# Get the current branch name
 current_branch=$(git branch --show-current)
 
-# Extract the type from branch name (e.g., "feature/add-search" -> "feat")
 if echo "$current_branch" | grep -q "^feature/"; then
   commit_type="feat"
 elif echo "$current_branch" | grep -q "^fix/"; then
@@ -21,19 +19,11 @@ else
   commit_type=""
 fi
 
-# If we have a type and the commit message is empty or just the default, suggest a format
-if [ -n "$commit_type" ] && ([ -z "$(cat "$1")" ] || [ "$(cat "$1")" = "# Please enter the commit message for your changes. Lines starting" ]); then
-  # Extract description from branch name
+if [ -n "$commit_type" ] && [ -z "$(cat "$1")" ]; then
   description=$(echo "$current_branch" | sed "s/^[^/]*\///" | sed "s/-/ /g")
-  
-  # Create a suggested commit message
   suggested_msg="$commit_type: $description"
-  
-  # Write the suggested message to the commit message file
   echo "$suggested_msg" > "$1"
-  
   echo "💡 Suggested commit message: $suggested_msg"
-  echo "   Edit the message above if needed, or leave as-is to use the suggestion"
 fi
 
 echo "✅ Commit message prepared"

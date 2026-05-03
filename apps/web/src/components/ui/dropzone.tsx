@@ -29,18 +29,12 @@ const renderBytes = (bytes: number) => {
   return `${size.toFixed(2)}${units[unitIndex]}`;
 };
 
-const DropzoneContext = createContext<DropzoneContextType | undefined>(
-  undefined,
-);
+const DropzoneContext = createContext<DropzoneContextType | undefined>(undefined);
 
 export type DropzoneProps = Omit<DropzoneOptions, "onDrop"> & {
   src?: File[];
   className?: string;
-  onDrop?: (
-    acceptedFiles: File[],
-    fileRejections: FileRejection[],
-    event: DropEvent,
-  ) => void;
+  onDrop?: (acceptedFiles: File[], fileRejections: FileRejection[], event: DropEvent) => void;
   children?: ReactNode;
 };
 
@@ -116,10 +110,7 @@ export interface DropzoneContentProps {
 
 const maxLabelItems = 3;
 
-export const DropzoneContent = ({
-  children,
-  className,
-}: DropzoneContentProps) => {
+export const DropzoneContent = ({ children, className }: DropzoneContentProps) => {
   const { src } = useDropzoneContext();
 
   if (!src) {
@@ -154,10 +145,7 @@ export interface DropzoneEmptyStateProps {
   className?: string;
 }
 
-export const DropzoneEmptyState = ({
-  children,
-  className,
-}: DropzoneEmptyStateProps) => {
+export const DropzoneEmptyState = ({ children, className }: DropzoneEmptyStateProps) => {
   const { src, accept, maxSize, minSize, maxFiles } = useDropzoneContext();
 
   if (src) {
@@ -194,9 +182,7 @@ export const DropzoneEmptyState = ({
       <p className="w-full truncate text-wrap text-xs text-muted-foreground">
         Drag and drop or click to upload
       </p>
-      {caption && (
-        <p className="text-wrap text-xs text-muted-foreground">{caption}.</p>
-      )}
+      {caption && <p className="text-wrap text-xs text-muted-foreground">{caption}.</p>}
     </div>
   );
 };

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanEncounterAASlots } from "~/server/db/schema";
 import { and, eq, max } from "drizzle-orm";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const AASlotAssignRequestSchema = z
   .array(
@@ -19,10 +19,7 @@ const AASlotAssignRequestSchema = z
   .min(1)
   .max(200);
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -122,17 +119,11 @@ export async function PUT(
       assigned++;
     }
 
-    await db
-      .update(raidPlans)
-      .set({ updatedById: user.id })
-      .where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
 
     return NextResponse.json({ assigned, skipped });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

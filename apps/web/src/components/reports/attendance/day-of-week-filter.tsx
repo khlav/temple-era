@@ -28,8 +28,7 @@ export function DayOfWeekFilter({
   onDaysChange: (days: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [localSelectedDays, setLocalSelectedDays] =
-    useState<string[]>(selectedDays);
+  const [localSelectedDays, setLocalSelectedDays] = useState<string[]>(selectedDays);
 
   // Sync local state when selectedDays prop changes (from outside)
   useEffect(() => {
@@ -61,8 +60,7 @@ export function DayOfWeekFilter({
       : selectedDays.length === 7
         ? "All Days"
         : selectedDays.length === 1
-          ? (DAYS_OF_WEEK.find((d) => d.value === selectedDays[0])?.label ??
-            "Days")
+          ? (DAYS_OF_WEEK.find((d) => d.value === selectedDays[0])?.label ?? "Days")
           : `Days (${selectedDays.length})`;
 
   return (
@@ -73,10 +71,7 @@ export function DayOfWeekFilter({
           {displayText}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
+      <DropdownMenuContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
         {DAYS_OF_WEEK.map(({ value, label }) => (
           <DropdownMenuCheckboxItem
             key={value}

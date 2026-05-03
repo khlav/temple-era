@@ -31,11 +31,7 @@ export function RaidPageWrapper({
 
   return (
     <div>
-      <RaidDetail
-        raidId={raidId}
-        raidData={raidData}
-        showEditButton={showEditButton}
-      />
+      <RaidDetail raidId={raidId} raidData={raidData} showEditButton={showEditButton} />
     </div>
   );
 }

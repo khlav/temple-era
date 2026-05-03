@@ -1,10 +1,8 @@
 #!/bin/sh
 echo "📝 Validating commit message..."
 
-# Read the commit message from the file
 commit_msg=$(cat "$1")
 
-# Check if commit message follows conventional commit format
 if echo "$commit_msg" | grep -qE '^(feat|fix|chore|refactor|hotfix|dev)(\(.+\))?: .+'; then
   echo "✅ Commit message follows conventional commit format"
 else
@@ -22,10 +20,8 @@ else
   exit 1
 fi
 
-# Check for common issues in commit messages
 if echo "$commit_msg" | grep -qiE '(wip|work in progress|temp|temporary)'; then
   echo "⚠️  Warning: Commit message contains WIP/temporary language"
-  echo "   Consider using a more descriptive message"
 fi
 
 echo "🎉 Commit message validation passed!"

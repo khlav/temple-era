@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import {
   getCharacterMetadataWithStats,
   generateCharacterMetadata,
@@ -12,10 +13,7 @@ export async function GET(
   // Check authentication and admin privileges
   const session = await auth();
   if (!session?.user?.isAdmin) {
-    return NextResponse.json(
-      { error: "Unauthorized - Admin access required" },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 });
   }
 
   const { characterId } = await params;
@@ -25,10 +23,7 @@ export async function GET(
     const characterData = await getCharacterMetadataWithStats(characterIdNum);
 
     if (!characterData) {
-      return NextResponse.json(
-        { error: "Character not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Character not found" }, { status: 404 });
     }
 
     const metadata = generateCharacterMetadata(characterData, characterIdNum);
@@ -39,10 +34,7 @@ export async function GET(
       metadata,
     });
   } catch (error) {
-    console.error("Error fetching character metadata:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "Error fetching character metadata");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

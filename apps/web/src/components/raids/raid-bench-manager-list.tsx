@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
 import { XIcon } from "lucide-react";
 import anyAscii from "any-ascii";

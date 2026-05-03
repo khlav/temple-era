@@ -1,9 +1,6 @@
 import { RaidPageWrapper } from "~/components/raids/raid-page-wrapper";
 import { auth } from "~/server/auth";
-import {
-  getRaidMetadataWithStats,
-  generateRaidMetadata,
-} from "~/server/metadata-helpers";
+import { getRaidMetadataWithStats, generateRaidMetadata } from "~/server/metadata-helpers";
 import { type Metadata } from "next";
 import { cache, Suspense } from "react";
 import { RaidDetailSkeleton } from "~/components/raids/skeletons";
@@ -42,13 +39,7 @@ export async function generateMetadata({
   };
 }
 
-async function RaidPageContent({
-  raidId,
-  session,
-}: {
-  raidId: number;
-  session: Session | null;
-}) {
+async function RaidPageContent({ raidId, session }: { raidId: number; session: Session | null }) {
   // Fetch raid data using tRPC
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
@@ -69,20 +60,14 @@ async function RaidPageContent({
         raidId={raidId}
         raidData={raidData}
         showEditButton={session?.user?.isRaidManager}
-        initialBreadcrumbData={
-          raidName ? { [raidId.toString()]: raidName } : {}
-        }
+        initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
       />
       {/* <MetadataDebug raidId={raidId} /> Uncomment to enable debug */}
     </>
   );
 }
 
-export default async function RaidPage({
-  params,
-}: {
-  params: Promise<{ raidId: number }>;
-}) {
+export default async function RaidPage({ params }: { params: Promise<{ raidId: number }> }) {
   const p = await params;
   const raidId = parseInt(String(p.raidId));
   const session = await auth();

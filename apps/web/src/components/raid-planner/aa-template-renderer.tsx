@@ -15,11 +15,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { AlertTriangle } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AAIcon } from "~/components/ui/aa-icons";
-import {
-  parseAATemplate,
-  renderAATemplate,
-  type AACharacterAssignment,
-} from "~/lib/aa-template";
+import { parseAATemplate, renderAATemplate, type AACharacterAssignment } from "~/lib/aa-template";
 import { parseAAFormatting } from "~/lib/aa-formatting";
 import { AASlotInline, AARefInline } from "./aa-slot-dropzone";
 import type { RaidPlanCharacter, AASlotAssignment } from "./types";
@@ -56,8 +52,7 @@ export function AATemplateRenderer({
   userCharacterIds = [],
   hideUnassigned,
 }: AATemplateRendererProps) {
-  const [activeCharacter, setActiveCharacter] =
-    useState<RaidPlanCharacter | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState<RaidPlanCharacter | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -68,10 +63,7 @@ export function AATemplateRenderer({
   );
 
   // Parse template to get slot definitions
-  const { slots, refs, errors } = useMemo(
-    () => parseAATemplate(template),
-    [template],
-  );
+  const { slots, refs, errors } = useMemo(() => parseAATemplate(template), [template]);
 
   // Build a map of slot name -> assigned characters
   const slotCharacterMap = useMemo(() => {
@@ -90,8 +82,7 @@ export function AATemplateRenderer({
       const char = characters.find((c) => c.id === assignment.planCharacterId);
       if (!char) continue;
 
-      const isHighlighted =
-        !!char.characterId && userCharacterIds.includes(char.characterId);
+      const isHighlighted = !!char.characterId && userCharacterIds.includes(char.characterId);
 
       const existing = map.get(assignment.slotName) ?? [];
       existing.push({
@@ -278,12 +269,7 @@ export function AATemplateRenderer({
         case "icon":
           if (segment.iconType && segment.iconName) {
             parts.push(
-              <AAIcon
-                key={key}
-                type={segment.iconType}
-                name={segment.iconName}
-                size={18}
-              />,
+              <AAIcon key={key} type={segment.iconType} name={segment.iconName} size={18} />,
             );
           }
           break;
@@ -313,9 +299,7 @@ export function AATemplateRenderer({
                 maxCharacters={slot.maxCharacters}
                 noColor={slot.noColor}
                 onRemove={
-                  disabled || !onRemove
-                    ? undefined
-                    : (charId) => onRemove(charId, slot.name)
+                  disabled || !onRemove ? undefined : (charId) => onRemove(charId, slot.name)
                 }
                 disabled={disabled}
               />,
@@ -333,10 +317,7 @@ export function AATemplateRenderer({
             if (!matchedSlot) {
               // Unmatched ref: render with yellow warning
               parts.push(
-                <span
-                  key={key}
-                  className="inline-flex items-center gap-0.5 text-yellow-500"
-                >
+                <span key={key} className="inline-flex items-center gap-0.5 text-yellow-500">
                   <AlertTriangle className="inline h-3 w-3" />
                   <code className="text-xs">{`{ref:${refDef.name}}`}</code>
                 </span>,
@@ -351,9 +332,7 @@ export function AATemplateRenderer({
 
               // Determine noColor: use ref's own noColor if set, else inherit from the referenced slot
               const refNoColor =
-                refDef.noColor !== undefined
-                  ? refDef.noColor
-                  : matchedSlot.noColor;
+                refDef.noColor !== undefined ? refDef.noColor : matchedSlot.noColor;
               parts.push(
                 <AARefInline
                   key={key}
@@ -374,11 +353,7 @@ export function AATemplateRenderer({
       }
     }
 
-    return (
-      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-        {parts}
-      </pre>
-    );
+    return <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{parts}</pre>;
   }, [
     template,
     slots,
@@ -407,15 +382,13 @@ export function AATemplateRenderer({
         {renderedContent}
 
         {/* Slot summary */}
-        {!disabled &&
-          slots.length > 0 &&
-          slotCharacterMap.size != slots.length && (
-            <div className="absolute right-2 top-2 flex items-center gap-1 text-xs text-muted-foreground">
-              <AlertTriangle className="h-3 w-3" />
-              {slots.length - slotCharacterMap.size} empty assignment
-              {slots.length - slotCharacterMap.size !== 1 ? "s" : ""}
-            </div>
-          )}
+        {!disabled && slots.length > 0 && slotCharacterMap.size != slots.length && (
+          <div className="absolute right-2 top-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <AlertTriangle className="h-3 w-3" />
+            {slots.length - slotCharacterMap.size} empty assignment
+            {slots.length - slotCharacterMap.size !== 1 ? "s" : ""}
+          </div>
+        )}
       </div>
 
       {/* Multi-slot warning (editor only) */}
@@ -424,8 +397,7 @@ export function AATemplateRenderer({
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
           <div>
             <div className="font-medium">
-              Character{multiSlotCharacters.length > 1 ? "s" : ""} assigned to
-              multiple slots:
+              Character{multiSlotCharacters.length > 1 ? "s" : ""} assigned to multiple slots:
             </div>
             <ul className="mt-1 list-inside list-disc text-xs">
               {multiSlotCharacters.map((c) => (
@@ -458,9 +430,7 @@ export function AATemplateRenderer({
       <DragOverlay dropAnimation={null}>
         {activeCharacter && (
           <div className="flex items-center gap-1 rounded bg-card px-2 py-1 text-xs font-medium shadow-lg ring-2 ring-primary/50">
-            {activeCharacter.class && (
-              <ClassIcon characterClass={activeCharacter.class} px={14} />
-            )}
+            {activeCharacter.class && <ClassIcon characterClass={activeCharacter.class} px={14} />}
             {activeCharacter.characterName}
           </div>
         )}
@@ -477,10 +447,7 @@ interface AATemplatePreviewProps {
   slotAssignments: Map<string, AACharacterAssignment[]>;
 }
 
-export function AATemplatePreview({
-  template,
-  slotAssignments,
-}: AATemplatePreviewProps) {
+export function AATemplatePreview({ template, slotAssignments }: AATemplatePreviewProps) {
   const output = useMemo(
     () => renderAATemplate(template, slotAssignments),
     [template, slotAssignments],

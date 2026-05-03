@@ -64,10 +64,7 @@ export function AATemplateEditorDialog({
     }
   }, [open, initialTemplate]);
 
-  const { errors } = useMemo(
-    () => parseAATemplate(localTemplate),
-    [localTemplate],
-  );
+  const { errors } = useMemo(() => parseAATemplate(localTemplate), [localTemplate]);
 
   const hasErrors = errors.length > 0;
   const isDirty = localTemplate !== initialTemplate;
@@ -94,21 +91,16 @@ export function AATemplateEditorDialog({
             {zoneName} — {contextLabel} AA Template
           </DialogTitle>
           <DialogDescription>
-            Use{" "}
-            <code className="rounded bg-muted px-1">{"{assign:SlotName}"}</code>{" "}
-            to create assignment slots. Use{" "}
-            <code className="rounded bg-muted px-1">{"{ref:SlotName}"}</code> to
-            mirror a slot&apos;s assignments (read-only).
+            Use <code className="rounded bg-muted px-1">{"{assign:SlotName}"}</code> to create
+            assignment slots. Use <code className="rounded bg-muted px-1">{"{ref:SlotName}"}</code>{" "}
+            to mirror a slot&apos;s assignments (read-only).
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid h-[min(500px,70vh)] grid-cols-2 gap-4">
           {/* Left: Editor */}
           <div className="flex min-h-0 flex-col">
-            <AATemplateInlineEditor
-              template={localTemplate}
-              onChange={setLocalTemplate}
-            />
+            <AATemplateInlineEditor template={localTemplate} onChange={setLocalTemplate} />
           </div>
 
           {/* Right: Live preview */}
@@ -148,11 +140,7 @@ export function AATemplateEditorDialog({
             )}
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleOpenChange(false)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button
@@ -172,8 +160,8 @@ export function AATemplateEditorDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Clear template</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to clear the AA template for {contextLabel}?
-              This cannot be undone.
+              Are you sure you want to clear the AA template for {contextLabel}? This cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -196,9 +184,8 @@ export function AATemplateEditorDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset to Default</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace the current AA template with the default
-              template for this zone. Any customizations to the template text
-              will be lost.
+              This will replace the current AA template with the default template for this zone. Any
+              customizations to the template text will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -223,16 +210,12 @@ export function AATemplateEditorDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog
-        open={showUnsavedConfirm}
-        onOpenChange={setShowUnsavedConfirm}
-      >
+      <AlertDialog open={showUnsavedConfirm} onOpenChange={setShowUnsavedConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes to the AA template. Are you sure you want
-              to discard them?
+              You have unsaved changes to the AA template. Are you sure you want to discard them?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

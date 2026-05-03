@@ -28,8 +28,7 @@ function TextureIcon({
 }) {
   const [errored, setErrored] = useState(false);
 
-  const baseClassName =
-    className ?? "inline-block rounded-sm align-text-bottom";
+  const baseClassName = className ?? "inline-block rounded-sm align-text-bottom";
 
   if (errored) {
     return (
@@ -78,8 +77,7 @@ function SpellIconInternal({
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgErrored, setImgErrored] = useState(false);
 
-  const baseClassName =
-    className ?? "inline-block rounded-sm align-text-bottom";
+  const baseClassName = className ?? "inline-block rounded-sm align-text-bottom";
 
   // Phase 1: hook is fetching icon name from Wowhead
   // Phase 2: icon name resolved but CDN image not yet loaded
@@ -150,9 +148,7 @@ export function AAIcon({ name, type, size = 14, className }: AAIconProps) {
   // Spell icons fetch from Wowhead
   if (type === "spell") {
     const spellId = parseInt(name, 10);
-    return (
-      <SpellIconInternal spellId={spellId} size={size} className={className} />
-    );
+    return <SpellIconInternal spellId={spellId} size={size} className={className} />;
   }
 
   // Other icons use SVGs from /public/img/aa/
@@ -171,9 +167,7 @@ export function AAIcon({ name, type, size = 14, className }: AAIconProps) {
       return null;
   }
 
-  return (
-    <AAImageIcon src={iconPath} alt={name} size={size} className={className} />
-  );
+  return <AAImageIcon src={iconPath} alt={name} size={size} className={className} />;
 }
 
 /**
@@ -230,9 +224,7 @@ export function RaidMarkerIcon({
   size?: number;
   className?: string;
 }) {
-  return (
-    <AAIcon name={marker} type="marker" size={size} className={className} />
-  );
+  return <AAIcon name={marker} type="marker" size={size} className={className} />;
 }
 
 /**
@@ -262,9 +254,7 @@ export function AbilityIcon({
   size?: number;
   className?: string;
 }) {
-  return (
-    <AAIcon name={ability} type="ability" size={size} className={className} />
-  );
+  return <AAIcon name={ability} type="ability" size={size} className={className} />;
 }
 
 /**
@@ -279,7 +269,5 @@ export function SpellIcon({
   size?: number;
   className?: string;
 }) {
-  return (
-    <SpellIconInternal spellId={spellId} size={size} className={className} />
-  );
+  return <SpellIconInternal spellId={spellId} size={size} className={className} />;
 }

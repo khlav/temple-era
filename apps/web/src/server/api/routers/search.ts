@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
-import {
-  raids,
-  characters,
-  raidLogs,
-  raidLogAttendeeMap,
-} from "~/server/db/schema";
+import { raids, characters, raidLogs, raidLogAttendeeMap } from "~/server/db/schema";
 import { ilike, or, sql, eq, and, not } from "drizzle-orm";
 
 // Helper function to parse search terms with OR logic and grouped negative terms
@@ -41,10 +36,7 @@ function parseSearchTerms(query: string) {
 }
 
 // Helper function to build raid search conditions
-function buildRaidSearchConditions(
-  positiveTerms: string[],
-  negativeTerms: string[],
-) {
+function buildRaidSearchConditions(positiveTerms: string[], negativeTerms: string[]) {
   const conditions = [];
 
   // Build searchable text that includes name, zone, month, day, date formats, and zone acronyms
@@ -88,9 +80,7 @@ function buildRaidSearchConditions(
     if (term.startsWith("OR:")) {
       // Handle OR terms like "OR:warrior|mage"
       const orTerms = term.slice(3).split("|").filter(Boolean);
-      const orConditions = orTerms.map((orTerm) =>
-        ilike(searchableText, `%${orTerm}%`),
-      );
+      const orConditions = orTerms.map((orTerm) => ilike(searchableText, `%${orTerm}%`));
       conditions.push(or(...orConditions));
     } else {
       conditions.push(ilike(searchableText, `%${term}%`));
@@ -106,10 +96,7 @@ function buildRaidSearchConditions(
 }
 
 // Helper function to build character search conditions
-function buildCharacterSearchConditions(
-  positiveTerms: string[],
-  negativeTerms: string[],
-) {
+function buildCharacterSearchConditions(positiveTerms: string[], negativeTerms: string[]) {
   const conditions = [];
 
   // Build searchable text for characters
@@ -132,9 +119,7 @@ function buildCharacterSearchConditions(
     if (term.startsWith("OR:")) {
       // Handle OR terms like "OR:warrior|mage"
       const orTerms = term.slice(3).split("|").filter(Boolean);
-      const orConditions = orTerms.map((orTerm) =>
-        ilike(searchableText, `%${orTerm}%`),
-      );
+      const orConditions = orTerms.map((orTerm) => ilike(searchableText, `%${orTerm}%`));
       conditions.push(or(...orConditions));
     } else {
       conditions.push(ilike(searchableText, `%${term}%`));
@@ -150,105 +135,80 @@ function buildCharacterSearchConditions(
 }
 
 export const searchRouter = createTRPCRouter({
-  global: publicProcedure
-    .input(z.object({ query: z.string().min(1) }))
-    .query(async ({ input }) => {
-      const { positiveTerms, negativeTerms } = parseSearchTerms(input.query);
+  global: publicProcedure.input(z.object({ query: z.string().min(1) })).query(async ({ input }) => {
+    const { positiveTerms, negativeTerms } = parseSearchTerms(input.query);
 
-      // If no positive terms, return empty results
-      if (positiveTerms.length === 0 && negativeTerms.length === 0) {
-        return { raids: [], characters: [] };
-      }
+    // If no positive terms, return empty results
+    if (positiveTerms.length === 0 && negativeTerms.length === 0) {
+      return { raids: [], characters: [] };
+    }
 
-      // Build search conditions for raids
-      const raidSearchConditions = buildRaidSearchConditions(
-        positiveTerms,
-        negativeTerms,
-      );
+    // Build search conditions for raids
+    const raidSearchConditions = buildRaidSearchConditions(positiveTerms, negativeTerms);
 
-      // Search raids (fetch 51 to check if there are more results)
-      const allRaidResults = await db
-        .select({
-          raidId: raids.raidId,
-          name: raids.name,
-          zone: raids.zone,
-          date: raids.date,
-          killCount: sql<number>`COALESCE(SUM(${raidLogs.killCount}), 0)`.as(
-            "killCount",
-          ),
-        })
-        .from(raids)
-        .leftJoin(raidLogs, eq(raids.raidId, raidLogs.raidId))
-        .where(raidSearchConditions)
-        .groupBy(raids.raidId, raids.name, raids.zone, raids.date)
-        .orderBy(sql`${raids.date} DESC`)
-        .limit(51);
+    // Search raids (fetch 51 to check if there are more results)
+    const allRaidResults = await db
+      .select({
+        raidId: raids.raidId,
+        name: raids.name,
+        zone: raids.zone,
+        date: raids.date,
+        killCount: sql<number>`COALESCE(SUM(${raidLogs.killCount}), 0)`.as("killCount"),
+      })
+      .from(raids)
+      .leftJoin(raidLogs, eq(raids.raidId, raidLogs.raidId))
+      .where(raidSearchConditions)
+      .groupBy(raids.raidId, raids.name, raids.zone, raids.date)
+      .orderBy(sql`${raids.date} DESC`)
+      .limit(51);
 
-      const raidResults = allRaidResults.slice(0, 50);
-      const raidsHasMore = allRaidResults.length > 50;
+    const raidResults = allRaidResults.slice(0, 50);
+    const raidsHasMore = allRaidResults.length > 50;
 
-      // Build search conditions for characters
-      const characterSearchConditions = buildCharacterSearchConditions(
-        positiveTerms,
-        negativeTerms,
-      );
+    // Build search conditions for characters
+    const characterSearchConditions = buildCharacterSearchConditions(positiveTerms, negativeTerms);
 
-      // Search characters with last raid attended date (fetch 51 to check if there are more results)
-      // Include primary character name in search
-      const allCharacterResults = await db
-        .select({
-          characterId: characters.characterId,
-          name: characters.name,
-          class: characters.class,
-          server: characters.server,
-          lastRaidDate: sql<string>`max(${raids.date})`.as("lastRaidDate"),
-          primaryCharacterName: sql<string>`(
+    // Search characters with last raid attended date (fetch 51 to check if there are more results)
+    // Include primary character name in search
+    const allCharacterResults = await db
+      .select({
+        characterId: characters.characterId,
+        name: characters.name,
+        class: characters.class,
+        server: characters.server,
+        lastRaidDate: sql<string>`max(${raids.date})`.as("lastRaidDate"),
+        primaryCharacterName: sql<string>`(
                     SELECT pc.name 
                     FROM character AS pc 
                     WHERE pc.character_id = ${characters.primaryCharacterId}
                   )`.as("primaryCharacterName"),
-        })
-        .from(characters)
-        .leftJoin(
-          raidLogAttendeeMap,
-          eq(characters.characterId, raidLogAttendeeMap.characterId),
-        )
-        .leftJoin(
-          raidLogs,
-          eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
-        )
-        .leftJoin(raids, eq(raidLogs.raidId, raids.raidId))
-        .where(characterSearchConditions)
-        .groupBy(
-          characters.characterId,
-          characters.name,
-          characters.class,
-          characters.server,
-        )
-        .orderBy(
-          sql`CASE WHEN ${characters.primaryCharacterId} IS NULL THEN 0 ELSE 1 END`,
-          sql`max(${raids.date}) DESC NULLS LAST`,
-        )
-        .limit(51);
+      })
+      .from(characters)
+      .leftJoin(raidLogAttendeeMap, eq(characters.characterId, raidLogAttendeeMap.characterId))
+      .leftJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+      .leftJoin(raids, eq(raidLogs.raidId, raids.raidId))
+      .where(characterSearchConditions)
+      .groupBy(characters.characterId, characters.name, characters.class, characters.server)
+      .orderBy(
+        sql`CASE WHEN ${characters.primaryCharacterId} IS NULL THEN 0 ELSE 1 END`,
+        sql`max(${raids.date}) DESC NULLS LAST`,
+      )
+      .limit(51);
 
-      const characterResults = allCharacterResults.slice(0, 50);
-      const charactersHasMore = allCharacterResults.length > 50;
+    const characterResults = allCharacterResults.slice(0, 50);
+    const charactersHasMore = allCharacterResults.length > 50;
 
-      return {
-        raids: raidResults,
-        characters: characterResults,
-        hasMore: raidsHasMore || charactersHasMore,
-      };
-    }),
+    return {
+      raids: raidResults,
+      characters: characterResults,
+      hasMore: raidsHasMore || charactersHasMore,
+    };
+  }),
 
   // Debug endpoint to check if there's any data
   debug: publicProcedure.query(async () => {
-    const totalRaids = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(raids);
-    const totalCharacters = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(characters);
+    const totalRaids = await db.select({ count: sql<number>`count(*)` }).from(raids);
+    const totalCharacters = await db.select({ count: sql<number>`count(*)` }).from(characters);
 
     const sampleRaids = await db.select().from(raids).limit(3);
     const sampleCharacters = await db.select().from(characters).limit(3);

@@ -45,9 +45,7 @@ export function getInstanceIdForZoneName(zoneName: string | null | undefined) {
 /**
  * Array of raid zone names (derived from RAID_ZONE_CONFIG)
  */
-export const RAID_ZONES = RAID_ZONE_CONFIG.map(
-  (z) => z.name,
-) as readonly string[];
+export const RAID_ZONES = RAID_ZONE_CONFIG.map((z) => z.name) as readonly string[];
 
 /**
  * Type for raid zone names

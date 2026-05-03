@@ -155,10 +155,7 @@ function getClassColorCode(className: string | null): string {
 /**
  * Format a character name with optional class coloring for AA output.
  */
-function formatCharacterName(
-  character: AACharacterAssignment,
-  useColor: boolean,
-): string {
+function formatCharacterName(character: AACharacterAssignment, useColor: boolean): string {
   if (!useColor) {
     return character.name;
   }
@@ -212,10 +209,7 @@ export function renderAATemplate(
       endIndex: r.endIndex,
       name: r.name,
       // Ref uses its own noColor if set, otherwise inherits from the referenced slot
-      noColor:
-        r.noColor !== undefined
-          ? r.noColor
-          : slotNoColorMap.get(r.name.toLowerCase()),
+      noColor: r.noColor !== undefined ? r.noColor : slotNoColorMap.get(r.name.toLowerCase()),
       maxCharacters: undefined,
     })),
   ].sort((a, b) => b.startIndex - a.startIndex);
@@ -227,23 +221,16 @@ export function renderAATemplate(
     const useColor = !item.noColor;
 
     // Format character names
-    const names = assignments.map((char) =>
-      formatCharacterName(char, useColor),
-    );
+    const names = assignments.map((char) => formatCharacterName(char, useColor));
 
     // Truncate to max characters if specified
-    const limitedNames = item.maxCharacters
-      ? names.slice(0, item.maxCharacters)
-      : names;
+    const limitedNames = item.maxCharacters ? names.slice(0, item.maxCharacters) : names;
 
     // Join with space (common AA convention)
     const replacement = limitedNames.join(" ");
 
     // Replace the placeholder with the names
-    result =
-      result.slice(0, item.startIndex) +
-      replacement +
-      result.slice(item.endIndex);
+    result = result.slice(0, item.startIndex) + replacement + result.slice(item.endIndex);
   }
 
   return result;
@@ -293,10 +280,7 @@ export function getSlotDefinitions(template: string): AASlotDefinition[] {
  * Extract template lines that contain an {assign:} or {ref:} tag for any of
  * the given slot names. Used to build the per-character assignment summary.
  */
-export function extractCharacterLines(
-  template: string,
-  slotNames: string[],
-): string[] {
+export function extractCharacterLines(template: string, slotNames: string[]): string[] {
   if (!template || slotNames.length === 0) return [];
 
   const lowerNames = slotNames.map((n) => n.toLowerCase());
@@ -329,10 +313,7 @@ export function extractCharacterLines(
       if (matched.has(line)) continue;
       const lower = line.toLowerCase();
       for (const slot of referencedSlots) {
-        if (
-          lower.includes(`{assign:${slot}}`) ||
-          lower.includes(`{assign:${slot}:`)
-        ) {
+        if (lower.includes(`{assign:${slot}}`) || lower.includes(`{assign:${slot}:`)) {
           matched.add(line);
           break;
         }

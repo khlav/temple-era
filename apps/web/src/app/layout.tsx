@@ -52,9 +52,7 @@ const displayFont = Manrope({
   variable: "--font-display",
 });
 
-export default async function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
@@ -62,11 +60,7 @@ export default async function RootLayout({
       suppressHydrationWarning={true}
     >
       <body className="min-h-svh bg-background text-foreground antialiased">
-        <ThemeProvider
-          attribute="class"
-          forcedTheme="dark"
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
           <TRPCReactProvider>
             <SessionProvider basePath="/login">
               <PostHogProvider>

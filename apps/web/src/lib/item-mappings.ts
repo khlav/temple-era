@@ -14,6 +14,7 @@
 
 import type { RaidZone } from "./raid-zones";
 import { getInstancesForZone } from "./raid-zones";
+import { logger } from "~/lib/logger";
 
 /**
  * Equipment slot types for items
@@ -55,15 +56,7 @@ export type ItemQuality = (typeof ITEM_QUALITIES)[number];
 /**
  * Instance identifiers for Classic Era raids
  */
-export const ITEM_INSTANCES = [
-  "aq20",
-  "aq40",
-  "bwl",
-  "mc",
-  "naxxramas",
-  "onyxia",
-  "zg",
-] as const;
+export const ITEM_INSTANCES = ["aq20", "aq40", "bwl", "mc", "naxxramas", "onyxia", "zg"] as const;
 
 export type ItemInstance = (typeof ITEM_INSTANCES)[number];
 
@@ -89,9 +82,7 @@ const instanceCache = new Map<string, Record<number, ItemMapping>>();
  * Load items for a specific instance identifier
  * Uses dynamic import to load the JSON file on-demand
  */
-async function loadInstanceItems(
-  instance: string,
-): Promise<Record<number, ItemMapping>> {
+async function loadInstanceItems(instance: string): Promise<Record<number, ItemMapping>> {
   // Check cache first
   if (instanceCache.has(instance)) {
     return instanceCache.get(instance)!;
@@ -109,7 +100,7 @@ async function loadInstanceItems(
     return items;
   } catch (error) {
     // If file doesn't exist, return empty object
-    console.warn(`Failed to load items for instance "${instance}":`, error);
+    logger.warn({ err: error }, `Failed to load items for instance "${instance}"`);
     const empty: Record<number, ItemMapping> = {};
     instanceCache.set(instance, empty);
     return empty;
@@ -119,16 +110,12 @@ async function loadInstanceItems(
 /**
  * Load items for all instances associated with a raid zone
  */
-async function loadZoneItems(
-  zone: RaidZone,
-): Promise<Record<number, ItemMapping>> {
+async function loadZoneItems(zone: RaidZone): Promise<Record<number, ItemMapping>> {
   const instances = getInstancesForZone(zone);
   const allItems: Record<number, ItemMapping> = {};
 
   // Load all instances for this zone in parallel
-  const instancePromises = instances.map((instance) =>
-    loadInstanceItems(instance),
-  );
+  const instancePromises = instances.map((instance) => loadInstanceItems(instance));
   const instanceResults = await Promise.all(instancePromises);
 
   // Merge all items into a single object
@@ -148,10 +135,7 @@ async function loadZoneItems(
  * If zone is provided, only loads items for that zone (faster)
  * If zone is not provided, searches across all instances (slower)
  */
-export async function getItemNameById(
-  id: number,
-  zone?: RaidZone,
-): Promise<string | undefined> {
+export async function getItemNameById(id: number, zone?: RaidZone): Promise<string | undefined> {
   const item = await getItemById(id, zone);
   return item?.name;
 }
@@ -161,10 +145,7 @@ export async function getItemNameById(
  * If zone is provided, only loads items for that zone (faster)
  * If zone is not provided, searches across all instances (slower)
  */
-export async function getItemById(
-  id: number,
-  zone?: RaidZone,
-): Promise<ItemMapping | undefined> {
+export async function getItemById(id: number, zone?: RaidZone): Promise<ItemMapping | undefined> {
   if (zone) {
     // Load only items for the specified zone
     const items = await loadZoneItems(zone);
@@ -199,10 +180,7 @@ export async function getItemById(
  * If zone is provided, only checks items for that zone (faster)
  * If zone is not provided, checks across common instances (slower)
  */
-export async function hasItemMapping(
-  id: number,
-  zone?: RaidZone,
-): Promise<boolean> {
+export async function hasItemMapping(id: number, zone?: RaidZone): Promise<boolean> {
   const item = await getItemById(id, zone);
   return item !== undefined;
 }
@@ -211,9 +189,7 @@ export async function hasItemMapping(
  * Load all items for a given raid zone
  * Returns a Record mapping item ID to ItemMapping for all items in that zone
  */
-export async function getAllItemsForZone(
-  zone: RaidZone,
-): Promise<Record<number, ItemMapping>> {
+export async function getAllItemsForZone(zone: RaidZone): Promise<Record<number, ItemMapping>> {
   return loadZoneItems(zone);
 }
 
@@ -226,9 +202,7 @@ export async function getAllItems(): Promise<Record<number, ItemMapping>> {
   const allItems: Record<number, ItemMapping> = {};
 
   // Load all instances in parallel
-  const instancePromises = ITEM_INSTANCES.map((instance) =>
-    loadInstanceItems(instance),
-  );
+  const instancePromises = ITEM_INSTANCES.map((instance) => loadInstanceItems(instance));
   const instanceResults = await Promise.all(instancePromises);
 
   // Merge all items into a single object

@@ -12,8 +12,7 @@ export default function LabeledArrayCodeBlock({
       <strong>{label}</strong>
       <code
         className={
-          (className ?? "") +
-          " block overflow-y-auto whitespace-pre rounded bg-secondary p-2"
+          (className ?? "") + " block overflow-y-auto whitespace-pre rounded bg-secondary p-2"
         }
       >
         {value}

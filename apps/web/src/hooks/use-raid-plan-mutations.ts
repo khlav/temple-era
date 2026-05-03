@@ -14,10 +14,7 @@ interface UseRaidPlanMutationsOptions {
   onEncounterDeleted?: () => void;
 }
 
-export function useRaidPlanMutations({
-  planId,
-  onEncounterDeleted,
-}: UseRaidPlanMutationsOptions) {
+export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlanMutationsOptions) {
   const { toast } = useToast();
   const utils = api.useUtils();
   const [isPollingActive, setIsPollingActive] = useState(true);
@@ -59,9 +56,7 @@ export function useRaidPlanMutations({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const existingSessionId = window.sessionStorage.getItem(
-      CLIENT_SESSION_STORAGE_KEY,
-    );
+    const existingSessionId = window.sessionStorage.getItem(CLIENT_SESSION_STORAGE_KEY);
     if (existingSessionId) {
       setClientSessionId(existingSessionId);
       return;
@@ -107,18 +102,13 @@ export function useRaidPlanMutations({
   const sendPresenceHeartbeat = useCallback(
     (mode?: "viewing" | "editing") => {
       if (!clientSessionId) return;
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState !== "visible"
-      ) {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
         return;
       }
 
       const nextMode =
         mode ??
-        (Date.now() - lastEditAtRef.current <= PRESENCE_EDITING_WINDOW
-          ? "editing"
-          : "viewing");
+        (Date.now() - lastEditAtRef.current <= PRESENCE_EDITING_WINDOW ? "editing" : "viewing");
 
       upsertPresenceRef.current.mutate({
         planId,
@@ -173,10 +163,7 @@ export function useRaidPlanMutations({
     if (!plan?.lastModifiedAt) return;
 
     const currentRevision = new Date(plan.lastModifiedAt).toISOString();
-    if (
-      lastSeenRevisionRef.current &&
-      lastSeenRevisionRef.current !== currentRevision
-    ) {
+    if (lastSeenRevisionRef.current && lastSeenRevisionRef.current !== currentRevision) {
       trackActivity();
     }
 
@@ -248,24 +235,23 @@ export function useRaidPlanMutations({
     },
   });
 
-  const resetEncounterMutation =
-    api.raidPlan.resetEncounterToDefault.useMutation({
-      onSuccess: (data) => {
-        markPresenceEditing();
-        toast({
-          title: "Reset to default",
-          description: `Encounter groups reset to match default (${data.count} assignments)`,
-        });
-        void refetch();
-      },
-      onError: (error) => {
-        toast({
-          title: "Failed to reset encounter",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+  const resetEncounterMutation = api.raidPlan.resetEncounterToDefault.useMutation({
+    onSuccess: (data) => {
+      markPresenceEditing();
+      toast({
+        title: "Reset to default",
+        description: `Encounter groups reset to match default (${data.count} assignments)`,
+      });
+      void refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to reset encounter",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const updateCharacterMutation = api.raidPlan.updateCharacter.useMutation();
 
@@ -305,12 +291,8 @@ export function useRaidPlanMutations({
       const prev = utils.raidPlan.getById.getData({ planId });
       utils.raidPlan.getById.setData({ planId }, (old) => {
         if (!old) return old;
-        const charA = old.characters.find(
-          (c) => c.id === input.planCharacterIdA,
-        );
-        const charB = old.characters.find(
-          (c) => c.id === input.planCharacterIdB,
-        );
+        const charA = old.characters.find((c) => c.id === input.planCharacterIdA);
+        const charB = old.characters.find((c) => c.id === input.planCharacterIdB);
         if (!charA || !charB) return old;
         return {
           ...old,
@@ -345,152 +327,137 @@ export function useRaidPlanMutations({
   const addCharacterMutation = api.raidPlan.addCharacter.useMutation();
   const deleteCharacterMutation = api.raidPlan.deleteCharacter.useMutation();
 
-  const moveEncounterCharMutation =
-    api.raidPlan.moveEncounterCharacter.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-          const exists = old.encounterAssignments.some(
-            (a) =>
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterId,
-          );
-          return {
-            ...old,
-            encounterAssignments: exists
-              ? old.encounterAssignments.map((a) =>
-                  a.encounterId === input.encounterId &&
-                  a.planCharacterId === input.planCharacterId
-                    ? {
-                        ...a,
-                        groupNumber: input.targetGroup,
-                        position: input.targetPosition,
-                      }
-                    : a,
-                )
-              : [
-                  ...old.encounterAssignments,
-                  {
-                    encounterId: input.encounterId,
-                    planCharacterId: input.planCharacterId,
-                    groupNumber: input.targetGroup,
-                    position: input.targetPosition,
-                  },
-                ],
-          };
+  const moveEncounterCharMutation = api.raidPlan.moveEncounterCharacter.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        const exists = old.encounterAssignments.some(
+          (a) => a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterId,
+        );
+        return {
+          ...old,
+          encounterAssignments: exists
+            ? old.encounterAssignments.map((a) =>
+                a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterId
+                  ? {
+                      ...a,
+                      groupNumber: input.targetGroup,
+                      position: input.targetPosition,
+                    }
+                  : a,
+              )
+            : [
+                ...old.encounterAssignments,
+                {
+                  encounterId: input.encounterId,
+                  planCharacterId: input.planCharacterId,
+                  groupNumber: input.targetGroup,
+                  position: input.targetPosition,
+                },
+              ],
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
+
+  const swapEncounterCharsMutation = api.raidPlan.swapEncounterCharacters.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+
+        const defaultAssignment = {
+          encounterId: input.encounterId,
+          groupNumber: null as number | null,
+          position: null as number | null,
+        };
+        const assignA = old.encounterAssignments.find(
+          (a) =>
+            a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdA,
+        ) ?? {
+          ...defaultAssignment,
+          planCharacterId: input.planCharacterIdA,
+        };
+        const assignB = old.encounterAssignments.find(
+          (a) =>
+            a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdB,
+        ) ?? {
+          ...defaultAssignment,
+          planCharacterId: input.planCharacterIdB,
+        };
+
+        // Build updated assignments, swapping positions
+        let updated = old.encounterAssignments.map((a) => {
+          if (a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdA)
+            return {
+              ...a,
+              groupNumber: assignB.groupNumber,
+              position: assignB.position,
+            };
+          if (a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdB)
+            return {
+              ...a,
+              groupNumber: assignA.groupNumber,
+              position: assignA.position,
+            };
+          return a;
         });
-        return { prev };
-      },
-      onError: (_err, _vars, ctx) => {
-        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
 
-  const swapEncounterCharsMutation =
-    api.raidPlan.swapEncounterCharacters.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-
-          const defaultAssignment = {
-            encounterId: input.encounterId,
-            groupNumber: null as number | null,
-            position: null as number | null,
-          };
-          const assignA = old.encounterAssignments.find(
+        // Add new entries for characters that had no encounter assignment
+        if (
+          !old.encounterAssignments.some(
             (a) =>
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterIdA,
-          ) ?? {
-            ...defaultAssignment,
-            planCharacterId: input.planCharacterIdA,
-          };
-          const assignB = old.encounterAssignments.find(
+              a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdA,
+          )
+        ) {
+          updated = [
+            ...updated,
+            {
+              ...assignA,
+              groupNumber: assignB.groupNumber,
+              position: assignB.position,
+            },
+          ];
+        }
+        if (
+          !old.encounterAssignments.some(
             (a) =>
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterIdB,
-          ) ?? {
-            ...defaultAssignment,
-            planCharacterId: input.planCharacterIdB,
-          };
+              a.encounterId === input.encounterId && a.planCharacterId === input.planCharacterIdB,
+          )
+        ) {
+          updated = [
+            ...updated,
+            {
+              ...assignB,
+              groupNumber: assignA.groupNumber,
+              position: assignA.position,
+            },
+          ];
+        }
 
-          // Build updated assignments, swapping positions
-          let updated = old.encounterAssignments.map((a) => {
-            if (
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterIdA
-            )
-              return {
-                ...a,
-                groupNumber: assignB.groupNumber,
-                position: assignB.position,
-              };
-            if (
-              a.encounterId === input.encounterId &&
-              a.planCharacterId === input.planCharacterIdB
-            )
-              return {
-                ...a,
-                groupNumber: assignA.groupNumber,
-                position: assignA.position,
-              };
-            return a;
-          });
-
-          // Add new entries for characters that had no encounter assignment
-          if (
-            !old.encounterAssignments.some(
-              (a) =>
-                a.encounterId === input.encounterId &&
-                a.planCharacterId === input.planCharacterIdA,
-            )
-          ) {
-            updated = [
-              ...updated,
-              {
-                ...assignA,
-                groupNumber: assignB.groupNumber,
-                position: assignB.position,
-              },
-            ];
-          }
-          if (
-            !old.encounterAssignments.some(
-              (a) =>
-                a.encounterId === input.encounterId &&
-                a.planCharacterId === input.planCharacterIdB,
-            )
-          ) {
-            updated = [
-              ...updated,
-              {
-                ...assignB,
-                groupNumber: assignA.groupNumber,
-                position: assignA.position,
-              },
-            ];
-          }
-
-          return { ...old, encounterAssignments: updated };
-        });
-        return { prev };
-      },
-      onError: (_err, _vars, ctx) => {
-        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+        return { ...old, encounterAssignments: updated };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
 
   const refreshCharactersMutation = api.raidPlan.refreshCharacters.useMutation({
     onSuccess: (data) => {
@@ -524,159 +491,153 @@ export function useRaidPlanMutations({
     },
   });
 
-  const assignAASlotMutation = api.raidPlan.assignCharacterToAASlot.useMutation(
-    {
-      onMutate: async (newAssignment) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const previousData = utils.raidPlan.getById.getData({ planId });
+  const assignAASlotMutation = api.raidPlan.assignCharacterToAASlot.useMutation({
+    onMutate: async (newAssignment) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const previousData = utils.raidPlan.getById.getData({ planId });
 
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
 
-          const alreadyExists = old.aaSlotAssignments.some((a) => {
-            const contextMatches = newAssignment.encounterId
-              ? a.encounterId === newAssignment.encounterId
-              : a.raidPlanId === newAssignment.raidPlanId;
-            return (
-              contextMatches &&
-              a.planCharacterId === newAssignment.planCharacterId &&
-              a.slotName === newAssignment.slotName
-            );
-          });
-
-          if (alreadyExists) {
-            return old;
-          }
-
-          const maxSort = old.aaSlotAssignments
-            .filter((a) => a.slotName === newAssignment.slotName)
-            .reduce((max, a) => Math.max(max, a.sortOrder), -1);
-
-          return {
-            ...old,
-            aaSlotAssignments: [
-              ...old.aaSlotAssignments,
-              {
-                id: `temp-${Date.now()}`,
-                encounterId: newAssignment.encounterId ?? null,
-                raidPlanId: newAssignment.raidPlanId ?? null,
-                planCharacterId: newAssignment.planCharacterId,
-                slotName: newAssignment.slotName,
-                sortOrder: maxSort + 1,
-              },
-            ],
-          };
-        });
-
-        return { previousData };
-      },
-      onError: (error, _variables, context) => {
-        if (context?.previousData) {
-          utils.raidPlan.getById.setData({ planId }, context.previousData);
-        }
-        toast({
-          title: "Failed to assign slot",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    },
-  );
-
-  const removeAASlotMutation =
-    api.raidPlan.removeCharacterFromAASlot.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const previousData = utils.raidPlan.getById.getData({ planId });
-
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            aaSlotAssignments: old.aaSlotAssignments.filter((a) => {
-              const contextMatches = input.encounterId
-                ? a.encounterId === input.encounterId
-                : a.raidPlanId === input.raidPlanId;
-
-              if (!contextMatches) return true;
-              if (a.planCharacterId !== input.planCharacterId) return true;
-
-              if (input.slotName) {
-                return a.slotName !== input.slotName;
-              }
-
-              return false;
-            }),
-          };
-        });
-
-        return { previousData };
-      },
-      onError: (error, _variables, context) => {
-        if (context?.previousData) {
-          utils.raidPlan.getById.setData({ planId }, context.previousData);
-        }
-        toast({
-          title: "Failed to remove slot",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
-
-  const reorderAASlotMutation =
-    api.raidPlan.reorderAASlotCharacters.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const previousData = utils.raidPlan.getById.getData({ planId });
-
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-          // Build a map of planCharacterId -> new sortOrder from the input
-          const orderMap = new Map(
-            input.planCharacterIds.map((id, i) => [id, i]),
+        const alreadyExists = old.aaSlotAssignments.some((a) => {
+          const contextMatches = newAssignment.encounterId
+            ? a.encounterId === newAssignment.encounterId
+            : a.raidPlanId === newAssignment.raidPlanId;
+          return (
+            contextMatches &&
+            a.planCharacterId === newAssignment.planCharacterId &&
+            a.slotName === newAssignment.slotName
           );
-
-          return {
-            ...old,
-            aaSlotAssignments: old.aaSlotAssignments.map((a) => {
-              if (a.slotName !== input.slotName) return a;
-              const contextMatch = input.encounterId
-                ? a.encounterId === input.encounterId
-                : a.raidPlanId === input.raidPlanId;
-              if (!contextMatch) return a;
-              const newOrder = orderMap.get(a.planCharacterId);
-              if (newOrder === undefined) return a;
-              return { ...a, sortOrder: newOrder };
-            }),
-          };
         });
 
-        return { previousData };
-      },
-      onError: (error, _variables, context) => {
-        if (context?.previousData) {
-          utils.raidPlan.getById.setData({ planId }, context.previousData);
+        if (alreadyExists) {
+          return old;
         }
-        toast({
-          title: "Failed to reorder slots",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+
+        const maxSort = old.aaSlotAssignments
+          .filter((a) => a.slotName === newAssignment.slotName)
+          .reduce((max, a) => Math.max(max, a.sortOrder), -1);
+
+        return {
+          ...old,
+          aaSlotAssignments: [
+            ...old.aaSlotAssignments,
+            {
+              id: `temp-${Date.now()}`,
+              encounterId: newAssignment.encounterId ?? null,
+              raidPlanId: newAssignment.raidPlanId ?? null,
+              planCharacterId: newAssignment.planCharacterId,
+              slotName: newAssignment.slotName,
+              sortOrder: maxSort + 1,
+            },
+          ],
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
+        utils.raidPlan.getById.setData({ planId }, context.previousData);
+      }
+      toast({
+        title: "Failed to assign slot",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
+
+  const removeAASlotMutation = api.raidPlan.removeCharacterFromAASlot.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const previousData = utils.raidPlan.getById.getData({ planId });
+
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          aaSlotAssignments: old.aaSlotAssignments.filter((a) => {
+            const contextMatches = input.encounterId
+              ? a.encounterId === input.encounterId
+              : a.raidPlanId === input.raidPlanId;
+
+            if (!contextMatches) return true;
+            if (a.planCharacterId !== input.planCharacterId) return true;
+
+            if (input.slotName) {
+              return a.slotName !== input.slotName;
+            }
+
+            return false;
+          }),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
+        utils.raidPlan.getById.setData({ planId }, context.previousData);
+      }
+      toast({
+        title: "Failed to remove slot",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
+
+  const reorderAASlotMutation = api.raidPlan.reorderAASlotCharacters.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const previousData = utils.raidPlan.getById.getData({ planId });
+
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        // Build a map of planCharacterId -> new sortOrder from the input
+        const orderMap = new Map(input.planCharacterIds.map((id, i) => [id, i]));
+
+        return {
+          ...old,
+          aaSlotAssignments: old.aaSlotAssignments.map((a) => {
+            if (a.slotName !== input.slotName) return a;
+            const contextMatch = input.encounterId
+              ? a.encounterId === input.encounterId
+              : a.raidPlanId === input.raidPlanId;
+            if (!contextMatch) return a;
+            const newOrder = orderMap.get(a.planCharacterId);
+            if (newOrder === undefined) return a;
+            return { ...a, sortOrder: newOrder };
+          }),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
+        utils.raidPlan.getById.setData({ planId }, context.previousData);
+      }
+      toast({
+        title: "Failed to reorder slots",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
 
   const reorderEncountersMutation = api.raidPlan.reorderEncounters.useMutation({
     onMutate: async (input) => {
@@ -684,9 +645,7 @@ export function useRaidPlanMutations({
       const prev = utils.raidPlan.getById.getData({ planId });
       utils.raidPlan.getById.setData({ planId }, (old) => {
         if (!old) return old;
-        const orderMap = new Map(
-          input.encounters.map((e) => [e.id, e.sortOrder]),
-        );
+        const orderMap = new Map(input.encounters.map((e) => [e.id, e.sortOrder]));
         return {
           ...old,
           encounters: old.encounters
@@ -708,35 +667,34 @@ export function useRaidPlanMutations({
     },
   });
 
-  const clearAAAssignmentsMutation =
-    api.raidPlan.clearAAAssignmentsForCharacter.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            aaSlotAssignments: old.aaSlotAssignments.filter(
-              (a) => a.planCharacterId !== input.planCharacterId,
-            ),
-          };
-        });
-        return { prev };
-      },
-      onError: (_err, _vars, ctx) => {
-        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
-        toast({
-          title: "Failed to clear assignments",
-          description: _err.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+  const clearAAAssignmentsMutation = api.raidPlan.clearAAAssignmentsForCharacter.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          aaSlotAssignments: old.aaSlotAssignments.filter(
+            (a) => a.planCharacterId !== input.planCharacterId,
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+      toast({
+        title: "Failed to clear assignments",
+        description: _err.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
 
   const transferEncounterAssignmentsMutation =
     api.raidPlan.transferEncounterAssignments.useMutation({
@@ -748,10 +706,7 @@ export function useRaidPlanMutations({
           return {
             ...old,
             encounterAssignments: old.encounterAssignments.map((a) => {
-              if (
-                a.planCharacterId === input.fromPlanCharacterId &&
-                a.groupNumber !== null
-              ) {
+              if (a.planCharacterId === input.fromPlanCharacterId && a.groupNumber !== null) {
                 return { ...a, groupNumber: null, position: null };
               }
               if (a.planCharacterId === input.toPlanCharacterId) {
@@ -790,56 +745,54 @@ export function useRaidPlanMutations({
       },
     });
 
-  const benchEncounterAssignmentsMutation =
-    api.raidPlan.benchEncounterAssignments.useMutation({
-      onMutate: async (input) => {
-        await utils.raidPlan.getById.cancel({ planId });
-        const prev = utils.raidPlan.getById.getData({ planId });
-        utils.raidPlan.getById.setData({ planId }, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            encounterAssignments: old.encounterAssignments.map((a) =>
-              a.planCharacterId === input.planCharacterId
-                ? { ...a, groupNumber: null, position: null }
-                : a,
-            ),
-          };
-        });
-        return { prev };
-      },
-      onError: (_err, _vars, ctx) => {
-        if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
-        toast({
-          title: "Failed to bench character",
-          description: _err.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        markPresenceEditing();
-        void utils.raidPlan.getById.invalidate({ planId });
-      },
-    });
+  const benchEncounterAssignmentsMutation = api.raidPlan.benchEncounterAssignments.useMutation({
+    onMutate: async (input) => {
+      await utils.raidPlan.getById.cancel({ planId });
+      const prev = utils.raidPlan.getById.getData({ planId });
+      utils.raidPlan.getById.setData({ planId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          encounterAssignments: old.encounterAssignments.map((a) =>
+            a.planCharacterId === input.planCharacterId
+              ? { ...a, groupNumber: null, position: null }
+              : a,
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) utils.raidPlan.getById.setData({ planId }, ctx.prev);
+      toast({
+        title: "Failed to bench character",
+        description: _err.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      markPresenceEditing();
+      void utils.raidPlan.getById.invalidate({ planId });
+    },
+  });
 
-  const pushDefaultAAMutation =
-    api.raidPlan.pushDefaultAAAssignments.useMutation({
-      onSuccess: (data) => {
-        markPresenceEditing();
-        toast({
-          title: "Assignments pushed",
-          description: `Pushed ${data.totalSlotsPushed} slot${data.totalSlotsPushed !== 1 ? "s" : ""} to ${data.encounters.length} encounter${data.encounters.length !== 1 ? "s" : ""}`,
-        });
-        void refetch();
-      },
-      onError: (error) => {
-        toast({
-          title: "Failed to push assignments",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+  const pushDefaultAAMutation = api.raidPlan.pushDefaultAAAssignments.useMutation({
+    onSuccess: (data) => {
+      markPresenceEditing();
+      toast({
+        title: "Assignments pushed",
+        description: `Pushed ${data.totalSlotsPushed} slot${data.totalSlotsPushed !== 1 ? "s" : ""} to ${data.encounters.length} encounter${data.encounters.length !== 1 ? "s" : ""}`,
+      });
+      void refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to push assignments",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   return {
     plan,

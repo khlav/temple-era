@@ -56,10 +56,12 @@ export function PrimaryCharacterRaidsTable({
   }, [searchTerms, router, searchParams]);
 
   // Only fetch raids if this is a primary character
-  const { data: raids, isSuccess } =
-    api.character.getRaidsForPrimaryCharacterId.useQuery(characterId, {
+  const { data: raids, isSuccess } = api.character.getRaidsForPrimaryCharacterId.useQuery(
+    characterId,
+    {
       enabled: characterData.isPrimary === true,
-    });
+    },
+  );
 
   // Filter raids based on search terms
   const filteredRaids = useMemo(() => {
@@ -92,11 +94,8 @@ export function PrimaryCharacterRaidsTable({
   // Count stats for attendance summary
   const raidStats = useMemo(() => {
     const total = filteredRaids?.length ?? 0;
-    const attended =
-      filteredRaids?.filter((r) => r.attendeeOrBench === "attendee").length ??
-      0;
-    const benched =
-      filteredRaids?.filter((r) => r.attendeeOrBench === "bench").length ?? 0;
+    const attended = filteredRaids?.filter((r) => r.attendeeOrBench === "attendee").length ?? 0;
+    const benched = filteredRaids?.filter((r) => r.attendeeOrBench === "bench").length ?? 0;
 
     return { total, attended, benched };
   }, [filteredRaids]);
@@ -135,16 +134,10 @@ export function PrimaryCharacterRaidsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-1/2 md:w-4/12">Raid</TableHead>
-            <TableHead className="hidden md:table-cell md:w-2/12">
-              Zone
-            </TableHead>
-            <TableHead className="hidden md:table-cell md:w-2/12">
-              Date
-            </TableHead>
+            <TableHead className="hidden md:table-cell md:w-2/12">Zone</TableHead>
+            <TableHead className="hidden md:table-cell md:w-2/12">Date</TableHead>
             <TableHead className="w-1/4 md:w-2/12">Attendance</TableHead>
-            <TableHead className="hidden md:table-cell md:w-1/12">
-              Character
-            </TableHead>
+            <TableHead className="hidden md:table-cell md:w-1/12">Character</TableHead>
             <TableHead className="w-1/4 text-center md:w-1/12">WCL</TableHead>
           </TableRow>
         </TableHeader>
@@ -175,16 +168,12 @@ export function PrimaryCharacterRaidsTable({
                       </div>
                     </Link>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {r.zone}
-                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{r.zone}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     {PrettyPrintDate(new Date(r.date), true)}
                   </TableCell>
                   <TableCell>
-                    <RaidAttendenceWeightBadge
-                      attendanceWeight={r.attendanceWeight}
-                    />
+                    <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                   </TableCell>
                   <TableCell className="hidden gap-1 md:flex">
                     {r.attendeeOrBench == "bench" && (

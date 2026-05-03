@@ -9,8 +9,7 @@ export function SidebarSearchBox() {
 
   // Detect OS for proper key combination display
   const isMac =
-    typeof window !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    typeof window !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const keyCombo = isMac ? "⌘K" : "Ctrl+K";
 
   return (

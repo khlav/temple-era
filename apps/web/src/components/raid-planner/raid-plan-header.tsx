@@ -50,12 +50,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import {
@@ -262,14 +257,9 @@ export function RaidPlanHeader({
 
   // Get display name for zone
   const zoneName =
-    zoneId === CUSTOM_ZONE_ID
-      ? CUSTOM_ZONE_DISPLAY_NAME
-      : (INSTANCE_TO_ZONE[zoneId] ?? zoneId);
+    zoneId === CUSTOM_ZONE_ID ? CUSTOM_ZONE_DISPLAY_NAME : (INSTANCE_TO_ZONE[zoneId] ?? zoneId);
   const visiblePresence = presence.slice(0, 4);
-  const overflowPresenceCount = Math.max(
-    0,
-    presence.length - visiblePresence.length,
-  );
+  const overflowPresenceCount = Math.max(0, presence.length - visiblePresence.length);
   const lastEditedLabel =
     lastModifiedAt && lastEditor?.name
       ? `Last edited by ${lastEditor.name} ${formatDistanceToNow(new Date(lastModifiedAt), { addSuffix: true })}`
@@ -357,10 +347,7 @@ export function RaidPlanHeader({
                       {startAt ? (
                         <p>{formatRaidDate(startAt)}</p>
                       ) : event ? (
-                        <a
-                          href={`/raids/${event.raidId}`}
-                          className="hover:underline"
-                        >
+                        <a href={`/raids/${event.raidId}`} className="hover:underline">
                           Event: {event.name} ({event.date})
                         </a>
                       ) : null}
@@ -413,8 +400,7 @@ export function RaidPlanHeader({
                     <div className="flex w-fit flex-col gap-0.5 whitespace-nowrap">
                       <span className="font-bold">Polling Paused</span>
                       <span className="text-xs">
-                        This tab stopped polling after 5 minutes of inactivity.
-                        Click to resume.
+                        This tab stopped polling after 5 minutes of inactivity. Click to resume.
                       </span>
                     </div>
                   }
@@ -442,9 +428,7 @@ export function RaidPlanHeader({
                               </Avatar>
                             ))
                           ) : (
-                            <span className="text-xs text-muted-foreground">
-                              Just you
-                            </span>
+                            <span className="text-xs text-muted-foreground">Just you</span>
                           )}
                           {overflowPresenceCount > 0 ? (
                             <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
@@ -459,15 +443,10 @@ export function RaidPlanHeader({
                       className="dark border-none bg-secondary text-muted-foreground"
                     >
                       <div className="space-y-1">
-                        <p className="font-bold text-foreground">
-                          Active on this plan
-                        </p>
+                        <p className="font-bold text-foreground">Active on this plan</p>
                         {presence.length > 0 ? (
                           presence.map((user) => (
-                            <div
-                              key={user.userId}
-                              className="flex items-center gap-2 text-xs"
-                            >
+                            <div key={user.userId} className="flex items-center gap-2 text-xs">
                               {user.mode === "editing" ? (
                                 <PencilLine className="h-3 w-3 text-primary" />
                               ) : (
@@ -478,16 +457,12 @@ export function RaidPlanHeader({
                                 {user.isCurrentUser ? " (You)" : ""}
                               </span>
                               <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">
-                                {user.mode === "editing"
-                                  ? "Editing now"
-                                  : "Viewing"}
+                                {user.mode === "editing" ? "Editing now" : "Viewing"}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <p className="text-xs">
-                            No active viewers right now.
-                          </p>
+                          <p className="text-xs">No active viewers right now.</p>
                         )}
                       </div>
                     </TooltipContent>
@@ -592,9 +567,7 @@ export function RaidPlanHeader({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => void onExportAllAA?.(name)}
-                      >
+                      <DropdownMenuItem onClick={() => void onExportAllAA?.(name)}>
                         <Zap className="mr-2 h-3.5 w-3.5" />
                         Quick Export
                       </DropdownMenuItem>
@@ -612,11 +585,7 @@ export function RaidPlanHeader({
                   <DropdownMenuContent align="end">
                     {isPublic && (
                       <DropdownMenuItem asChild>
-                        <a
-                          href={`/raid-plans/${planId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href={`/raid-plans/${planId}`} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="mr-2 h-3.5 w-3.5" />
                           View Public Plan
                         </a>
@@ -644,10 +613,7 @@ export function RaidPlanHeader({
                 </DropdownMenu>
               </div>
 
-              <Dialog
-                open={exportDialogOpen}
-                onOpenChange={setExportDialogOpen}
-              >
+              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Export Encoded AA</DialogTitle>
@@ -670,10 +636,7 @@ export function RaidPlanHeader({
                     />
                   </div>
                   <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setExportDialogOpen(false)}
-                    >
+                    <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
                       Cancel
                     </Button>
                     <Button
@@ -692,23 +655,17 @@ export function RaidPlanHeader({
             </>
           )}
 
-          <AlertDialog
-            open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-          >
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Raid Plan</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete &quot;{name}&quot;? This will
-                  permanently remove all characters, encounters, and
-                  assignments. This action cannot be undone.
+                  Are you sure you want to delete &quot;{name}&quot;? This will permanently remove
+                  all characters, encounters, and assignments. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteMutation.isPending}>
-                  Cancel
-                </AlertDialogCancel>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   disabled={deleteMutation.isPending}

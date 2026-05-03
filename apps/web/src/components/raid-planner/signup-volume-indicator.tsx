@@ -1,12 +1,7 @@
 import Image from "next/image";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -101,10 +96,7 @@ function RoleSignupTooltip({
   const PEOPLE_PER_PILL = 5;
 
   return (
-    <TooltipContent
-      side="right"
-      className="border-border/80 bg-card/95 text-secondary-foreground"
-    >
+    <TooltipContent side="right" className="border-border/80 bg-card/95 text-secondary-foreground">
       <div className="space-y-1 text-xs">
         <div className="font-semibold text-foreground">
           {count} / {target} signups
@@ -113,18 +105,12 @@ function RoleSignupTooltip({
         <div className="space-y-1">
           {ROLE_ROWS.map((row) => {
             const rowCount = roleCounts[row.key];
-            const pillsNeeded = Math.max(
-              1,
-              Math.ceil(rowCount / PEOPLE_PER_PILL),
-            );
+            const pillsNeeded = Math.max(1, Math.ceil(rowCount / PEOPLE_PER_PILL));
 
             return (
               <div key={row.role} className="flex items-center gap-1">
                 <span
-                  className={cn(
-                    "w-5 shrink-0 text-right font-mono font-semibold",
-                    row.textColor,
-                  )}
+                  className={cn("w-5 shrink-0 text-right font-mono font-semibold", row.textColor)}
                 >
                   {rowCount}
                 </span>
@@ -144,16 +130,10 @@ function RoleSignupTooltip({
                     );
 
                     return (
-                      <div
-                        key={i}
-                        className="h-2 w-6 overflow-hidden rounded bg-muted/35"
-                      >
+                      <div key={i} className="h-2 w-6 overflow-hidden rounded bg-muted/35">
                         {fillAmount > 0 && (
                           <div
-                            className={cn(
-                              "h-full transition-all duration-300",
-                              row.color,
-                            )}
+                            className={cn("h-full transition-all duration-300", row.color)}
                             style={{ width: `${fillAmount * 100}%` }}
                           />
                         )}
@@ -189,10 +169,7 @@ export function SignupVolumeIndicator({
             <div className="flex flex-col gap-px">
               {ROLE_ROWS.map((row) => {
                 const rowCount = roleCounts[row.key];
-                const pillsNeeded = Math.max(
-                  1,
-                  Math.ceil(rowCount / PEOPLE_PER_PILL),
-                );
+                const pillsNeeded = Math.max(1, Math.ceil(rowCount / PEOPLE_PER_PILL));
 
                 return (
                   <div key={row.role} className="flex h-1.5 gap-px">
@@ -200,10 +177,7 @@ export function SignupVolumeIndicator({
                       const segmentStart = i * PEOPLE_PER_PILL;
                       const fillAmount = Math.max(
                         0,
-                        Math.min(
-                          1,
-                          (rowCount - segmentStart) / PEOPLE_PER_PILL,
-                        ),
+                        Math.min(1, (rowCount - segmentStart) / PEOPLE_PER_PILL),
                       );
 
                       return (
@@ -213,10 +187,7 @@ export function SignupVolumeIndicator({
                         >
                           {fillAmount > 0 && (
                             <div
-                              className={cn(
-                                "h-full transition-all duration-300",
-                                row.color,
-                              )}
+                              className={cn("h-full transition-all duration-300", row.color)}
                               style={{ width: `${fillAmount * 100}%` }}
                             />
                           )}
@@ -228,11 +199,7 @@ export function SignupVolumeIndicator({
               })}
             </div>
           </TooltipTrigger>
-          <RoleSignupTooltip
-            count={count}
-            target={target}
-            roleCounts={roleCounts}
-          />
+          <RoleSignupTooltip count={count} target={target} roleCounts={roleCounts} />
         </Tooltip>
       </TooltipProvider>
     );
@@ -252,10 +219,7 @@ export function SignupVolumeIndicator({
         style={{ width: `${containerWidth}px` }}
       >
         <div
-          className={cn(
-            "h-full rounded-sm transition-all duration-300",
-            colors.bg,
-          )}
+          className={cn("h-full rounded-sm transition-all duration-300", colors.bg)}
           style={{ width: `${barWidth}px` }}
         />
         <div
@@ -264,9 +228,7 @@ export function SignupVolumeIndicator({
         />
       </div>
 
-      {hasOverflow && (
-        <span className="text-base font-bold leading-none text-primary">+</span>
-      )}
+      {hasOverflow && <span className="text-base font-bold leading-none text-primary">+</span>}
     </div>
   );
 
@@ -275,11 +237,7 @@ export function SignupVolumeIndicator({
       <TooltipProvider>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{indicator}</TooltipTrigger>
-          <RoleSignupTooltip
-            count={count}
-            target={target}
-            roleCounts={roleCounts}
-          />
+          <RoleSignupTooltip count={count} target={target} roleCounts={roleCounts} />
         </Tooltip>
       </TooltipProvider>
     );

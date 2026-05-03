@@ -21,22 +21,14 @@ export function MRTControls({
 }: MRTControlsProps) {
   return (
     <div className="ml-auto flex items-center gap-2">
-      <label
-        className={cn(
-          "text-xs text-muted-foreground",
-          disabled && "opacity-40",
-        )}
-      >
+      <label className={cn("text-xs text-muted-foreground", disabled && "opacity-40")}>
         My server:
       </label>
       <select
         value={homeServer}
         onChange={(e) => onHomeServerChange(e.target.value)}
         disabled={disabled}
-        className={cn(
-          "h-7 rounded-md border bg-background px-2 text-xs",
-          disabled && "opacity-40",
-        )}
+        className={cn("h-7 rounded-md border bg-background px-2 text-xs", disabled && "opacity-40")}
       >
         <option value="">All servers</option>
         {WOW_SERVERS.map((s) => (

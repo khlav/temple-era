@@ -16,13 +16,7 @@ const WOW_CLASSES = new Set([
   "warrior",
 ]);
 
-const SKIP_CLASS_NAMES = new Set([
-  "bench",
-  "tentative",
-  "absent",
-  "absence",
-  "late",
-]);
+const SKIP_CLASS_NAMES = new Set(["bench", "tentative", "absent", "absence", "late"]);
 
 const TANK_SPEC_TO_CLASS: Record<string, string> = {
   guardian: "Druid",
@@ -105,15 +99,11 @@ export type SignupInput = {
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
-export function resolveClassName(
-  className: string,
-  specName?: string,
-): string | null {
+export function resolveClassName(className: string, specName?: string): string | null {
   const lc = className.toLowerCase();
   if (SKIP_CLASS_NAMES.has(lc)) return null;
   if (WOW_CLASSES.has(lc)) return lc.charAt(0).toUpperCase() + lc.slice(1);
-  if (lc === "tank" && specName)
-    return TANK_SPEC_TO_CLASS[specName.toLowerCase()] ?? null;
+  if (lc === "tank" && specName) return TANK_SPEC_TO_CLASS[specName.toLowerCase()] ?? null;
   return null;
 }
 
@@ -131,11 +121,7 @@ export function extractNormalizedTokens(name: string): string[] {
   const seen = new Set<string>();
   for (const match of matches) {
     const normalized = normalizeName(match);
-    if (
-      normalized.length < 3 ||
-      LOW_SIGNAL_SIGNUP_TOKENS.has(normalized) ||
-      seen.has(normalized)
-    )
+    if (normalized.length < 3 || LOW_SIGNAL_SIGNUP_TOKENS.has(normalized) || seen.has(normalized))
       continue;
     seen.add(normalized);
     tokens.push(normalized);
@@ -173,13 +159,9 @@ function chooseFamilyCharacterByClass(
   matches: CharacterMatch[];
 } {
   if (!resolvedClass) return { type: "missing_class_match", matches: [] };
-  const classMatches = family.filter(
-    (m) => m.class.toLowerCase() === resolvedClass.toLowerCase(),
-  );
-  if (classMatches.length === 1)
-    return { type: "matched", matches: classMatches };
-  if (classMatches.length > 1)
-    return { type: "ambiguous", matches: classMatches };
+  const classMatches = family.filter((m) => m.class.toLowerCase() === resolvedClass.toLowerCase());
+  if (classMatches.length === 1) return { type: "matched", matches: classMatches };
+  if (classMatches.length > 1) return { type: "ambiguous", matches: classMatches };
   return { type: "missing_class_match", matches: [] };
 }
 
@@ -221,9 +203,7 @@ export async function matchSignupsToCharacters(
     .from(characters)
     .where(eq(characters.isIgnored, false));
 
-  const allCharactersById = new Map(
-    allCharacters.map((c) => [c.characterId, c]),
-  );
+  const allCharactersById = new Map(allCharacters.map((c) => [c.characterId, c]));
   const familyMap = new Map<number, CharacterMatch[]>();
   const normalizedNameMap = new Map<number, string>();
 
@@ -234,9 +214,7 @@ export async function matchSignupsToCharacters(
     familyMap.get(familyId)!.push(character);
   }
 
-  const userIds = [
-    ...new Set(signupsWithResolved.map((s) => s.userId).filter(Boolean)),
-  ];
+  const userIds = [...new Set(signupsWithResolved.map((s) => s.userId).filter(Boolean))];
 
   const linkedDiscordRows =
     userIds.length === 0
@@ -262,11 +240,9 @@ export async function matchSignupsToCharacters(
 
   const linkedFamiliesByUserId = new Map<string, LinkedDiscordFamily[]>();
   for (const row of linkedDiscordRows) {
-    if (!row.characterId || !row.anchorCharacterId || !row.anchorCharacterName)
-      continue;
+    if (!row.characterId || !row.anchorCharacterId || !row.anchorCharacterName) continue;
     const anchorCharacter =
-      allCharactersById.get(row.anchorCharacterId) ??
-      allCharactersById.get(row.characterId);
+      allCharactersById.get(row.anchorCharacterId) ?? allCharactersById.get(row.characterId);
     if (!anchorCharacter) continue;
     const familyId = getEffectivePrimaryId(anchorCharacter);
     if (!linkedFamiliesByUserId.has(row.discordUserId))
@@ -319,10 +295,7 @@ export async function matchSignupsToCharacters(
             needsManagerReview: false,
             matchedPrimaryCharacterId: primaryCharacter.characterId,
             matchedPrimaryCharacterName: primaryCharacter.name,
-            matchedCharacter: toMatchedCharacter(
-              primaryCharacter,
-              primaryCharacter,
-            ),
+            matchedCharacter: toMatchedCharacter(primaryCharacter, primaryCharacter),
           };
         }
         return {
@@ -335,10 +308,7 @@ export async function matchSignupsToCharacters(
         };
       }
 
-      const familyChoice = chooseFamilyCharacterByClass(
-        family,
-        signup.resolvedClass,
-      );
+      const familyChoice = chooseFamilyCharacterByClass(family, signup.resolvedClass);
 
       if (familyChoice.type === "matched") {
         const selected = familyChoice.matches[0]!;
@@ -365,9 +335,7 @@ export async function matchSignupsToCharacters(
           needsManagerReview: true,
           matchedPrimaryCharacterId: familyId,
           matchedPrimaryCharacterName: primaryCharacter?.name ?? null,
-          candidates: familyChoice.matches.map((m) =>
-            toMatchedCharacter(m, primaryCharacter),
-          ),
+          candidates: familyChoice.matches.map((m) => toMatchedCharacter(m, primaryCharacter)),
         };
       }
 
@@ -380,9 +348,7 @@ export async function matchSignupsToCharacters(
         needsManagerReview: true,
         matchedPrimaryCharacterId: familyId,
         matchedPrimaryCharacterName: primaryCharacter?.name ?? null,
-        candidates: family
-          .slice(0, 6)
-          .map((m) => toMatchedCharacter(m, primaryCharacter)),
+        candidates: family.slice(0, 6).map((m) => toMatchedCharacter(m, primaryCharacter)),
       };
     };
 
@@ -399,9 +365,7 @@ export async function matchSignupsToCharacters(
     }
 
     const linkedFamilies = linkedFamiliesByUserId.get(signup.userId) ?? [];
-    const uniqueLinkedFamilyIds = [
-      ...new Set(linkedFamilies.map((f) => f.familyId)),
-    ];
+    const uniqueLinkedFamilyIds = [...new Set(linkedFamilies.map((f) => f.familyId))];
 
     if (uniqueLinkedFamilyIds.length === 1) {
       results.push(
@@ -426,12 +390,7 @@ export async function matchSignupsToCharacters(
       }
     >();
 
-    const applyScore = (
-      familyId: number,
-      source: MatchSource,
-      score: number,
-      token: string,
-    ) => {
+    const applyScore = (familyId: number, source: MatchSource, score: number, token: string) => {
       const existing = familyScores.get(familyId) ?? {
         score: 0,
         source,
@@ -444,10 +403,7 @@ export async function matchSignupsToCharacters(
         existing.exactTokens.push(token);
       if (source === "token_prefix" && !existing.prefixTokens.includes(token))
         existing.prefixTokens.push(token);
-      if (
-        source === "token_substring" &&
-        !existing.substringTokens.includes(token)
-      )
+      if (source === "token_substring" && !existing.substringTokens.includes(token))
         existing.substringTokens.push(token);
       if (
         source === "token_exact" ||
@@ -463,8 +419,7 @@ export async function matchSignupsToCharacters(
 
     for (const token of signup.tokens) {
       for (const character of allCharacters) {
-        const normalizedCharacterName =
-          normalizedNameMap.get(character.characterId) ?? "";
+        const normalizedCharacterName = normalizedNameMap.get(character.characterId) ?? "";
         const familyId = getEffectivePrimaryId(character);
         if (normalizedCharacterName === token) {
           applyScore(familyId, "token_exact", 120, token);
@@ -508,29 +463,15 @@ export async function matchSignupsToCharacters(
     const topFamily = rankedFamilies[0]!;
     const secondFamily = rankedFamilies[1];
 
-    if (
-      secondFamily &&
-      topFamily.score - secondFamily.score < 25 &&
-      topFamily.score < 150
-    ) {
+    if (secondFamily && topFamily.score - secondFamily.score < 25 && topFamily.score < 150) {
       const topCandidates = rankedFamilies.slice(0, 4).flatMap((entry) => {
         const family = familyMap.get(entry.familyId) ?? [];
         const primaryCharacter = allCharactersById.get(entry.familyId);
-        const familyChoice = chooseFamilyCharacterByClass(
-          family,
-          signup.resolvedClass,
-        );
-        if (
-          familyChoice.type === "matched" ||
-          familyChoice.type === "ambiguous"
-        ) {
-          return familyChoice.matches.map((m) =>
-            toMatchedCharacter(m, primaryCharacter),
-          );
+        const familyChoice = chooseFamilyCharacterByClass(family, signup.resolvedClass);
+        if (familyChoice.type === "matched" || familyChoice.type === "ambiguous") {
+          return familyChoice.matches.map((m) => toMatchedCharacter(m, primaryCharacter));
         }
-        return family
-          .slice(0, 2)
-          .map((m) => toMatchedCharacter(m, primaryCharacter));
+        return family.slice(0, 2).map((m) => toMatchedCharacter(m, primaryCharacter));
       });
 
       results.push({
@@ -538,8 +479,7 @@ export async function matchSignupsToCharacters(
         status: signup.resolvedClass ? "ambiguous" : "skipped",
         matchSource: topFamily.source,
         confidence: topFamily.score / 200,
-        explanation:
-          "Multiple families scored similarly, so this signup needs manager review.",
+        explanation: "Multiple families scored similarly, so this signup needs manager review.",
         needsManagerReview: !!signup.resolvedClass,
         candidates: topCandidates.slice(0, 6),
       });
@@ -562,19 +502,14 @@ export async function matchSignupsToCharacters(
     }
 
     const confidence =
-      topFamily.source === "token_exact"
-        ? 0.92
-        : topFamily.source === "token_prefix"
-          ? 0.78
-          : 0.62;
+      topFamily.source === "token_exact" ? 0.92 : topFamily.source === "token_prefix" ? 0.78 : 0.62;
 
     results.push(
       resolveFamily(
         topFamily.familyId,
         topFamily.source,
         confidence,
-        explanationParts[0] ??
-          "Name tokens identified a likely family for this signup.",
+        explanationParts[0] ?? "Name tokens identified a likely family for this signup.",
       ),
     );
   }

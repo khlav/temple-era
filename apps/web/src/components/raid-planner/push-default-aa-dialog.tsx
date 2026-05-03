@@ -12,12 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 
 interface PushDefaultAADialogProps {
@@ -50,8 +45,7 @@ export function PushDefaultAADialog({
   const previewData = previewMutation.data;
   const isLoading = previewMutation.isPending;
   const hasEncounters = (previewData?.encounters.length ?? 0) > 0;
-  const hasOverwrites =
-    previewData?.encounters.some((e) => e.slotsWithExisting > 0) ?? false;
+  const hasOverwrites = previewData?.encounters.some((e) => e.slotsWithExisting > 0) ?? false;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -61,8 +55,8 @@ export function PushDefaultAADialog({
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
-                Copy the Default/Trash AA slot assignments to all encounters
-                with matching slot names.
+                Copy the Default/Trash AA slot assignments to all encounters with matching slot
+                names.
               </p>
 
               {isLoading && (
@@ -74,9 +68,8 @@ export function PushDefaultAADialog({
 
               {previewData && !hasEncounters && (
                 <p className="text-sm text-muted-foreground">
-                  No encounters have matching AA slot names. Make sure
-                  encounters have AA templates enabled with slots that match the
-                  default template.
+                  No encounters have matching AA slot names. Make sure encounters have AA templates
+                  enabled with slots that match the default template.
                 </p>
               )}
 
@@ -86,23 +79,14 @@ export function PushDefaultAADialog({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
-                          <th className="px-3 py-1.5 text-left font-medium">
-                            Encounter
-                          </th>
-                          <th className="px-3 py-1.5 text-right font-medium">
-                            Slots
-                          </th>
-                          <th className="px-3 py-1.5 text-right font-medium">
-                            Overwrites
-                          </th>
+                          <th className="px-3 py-1.5 text-left font-medium">Encounter</th>
+                          <th className="px-3 py-1.5 text-right font-medium">Slots</th>
+                          <th className="px-3 py-1.5 text-right font-medium">Overwrites</th>
                         </tr>
                       </thead>
                       <tbody>
                         {previewData.encounters.map((enc) => (
-                          <tr
-                            key={enc.encounterId}
-                            className="border-b last:border-0"
-                          >
+                          <tr key={enc.encounterId} className="border-b last:border-0">
                             <td className="px-3 py-1.5">{enc.encounterName}</td>
                             <td className="px-3 py-1.5 text-right">
                               <Tooltip>
@@ -139,8 +123,7 @@ export function PushDefaultAADialog({
                                     <div className="space-y-0.5">
                                       {enc.overwrites.map((ow) => (
                                         <div key={ow.slotName}>
-                                          {ow.slotName}:{" "}
-                                          {ow.characterNames.join(", ")}
+                                          {ow.slotName}: {ow.characterNames.join(", ")}
                                         </div>
                                       ))}
                                     </div>
@@ -159,8 +142,7 @@ export function PushDefaultAADialog({
                   {hasOverwrites && (
                     <p className="flex items-start gap-1.5 text-sm font-medium text-amber-500">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      Some encounter slots already have assignments that will be
-                      replaced.
+                      Some encounter slots already have assignments that will be replaced.
                     </p>
                   )}
                 </TooltipProvider>

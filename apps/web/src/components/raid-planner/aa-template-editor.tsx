@@ -42,8 +42,7 @@ export function AATemplateInlineEditor({
   const replaceRange = useCallback(
     (replacement: string, rangeStart: number, rangeEnd: number) => {
       const textarea = textareaRef.current;
-      const newValue =
-        template.slice(0, rangeStart) + replacement + template.slice(rangeEnd);
+      const newValue = template.slice(0, rangeStart) + replacement + template.slice(rangeEnd);
       onChange(newValue);
       const newCursor = rangeStart + replacement.length;
       requestAnimationFrame(() => {

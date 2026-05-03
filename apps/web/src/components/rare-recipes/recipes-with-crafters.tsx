@@ -8,11 +8,7 @@ import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { Button } from "~/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 // import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
@@ -55,16 +51,12 @@ export const RecipesWithCrafters = () => {
   const [searchInputKey, setSearchInputKey] = useState(0);
   const [placeholderSearch, setPlaceholderSearch] = useState<string>("");
   // Track if a search has been performed
-  const [searchPerformed, setSearchPerformed] =
-    useState<boolean>(!!initialSearch);
+  const [searchPerformed, setSearchPerformed] = useState<boolean>(!!initialSearch);
   // Track whether to show inactive characters
-  const [showInactiveCharacters, setShowInactiveCharacters] =
-    useState<boolean>(false);
+  const [showInactiveCharacters, setShowInactiveCharacters] = useState<boolean>(false);
 
   useEffect(() => {
-    setPlaceholderSearch(
-      SAMPLE_SEARCHES[Math.floor(Math.random() * SAMPLE_SEARCHES.length)] ?? "",
-    );
+    setPlaceholderSearch(SAMPLE_SEARCHES[Math.floor(Math.random() * SAMPLE_SEARCHES.length)] ?? "");
   }, [searchTerms]);
 
   // Focus search input on component mount
@@ -117,9 +109,7 @@ export const RecipesWithCrafters = () => {
         ].join(" ");
 
         // Check if ANY exclusion term is present (if so, exclude this recipe)
-        if (
-          excludeTerms.some((term) => term && searchableString.includes(term))
-        ) {
+        if (excludeTerms.some((term) => term && searchableString.includes(term))) {
           return false;
         }
 
@@ -193,12 +183,10 @@ export const RecipesWithCrafters = () => {
               <ul className="list-disc space-y-1 pl-4">
                 <li>Type multiple terms to match ALL terms</li>
                 <li>
-                  Use <span className="font-mono text-chart-3">#tag</span> to
-                  search by tag
+                  Use <span className="font-mono text-chart-3">#tag</span> to search by tag
                 </li>
                 <li>
-                  Use <span className="font-mono text-chart-3">-term</span> to
-                  exclude (e.g.{" "}
+                  Use <span className="font-mono text-chart-3">-term</span> to exclude (e.g.{" "}
                   <span className="font-mono text-chart-3">-leather</span>)
                 </li>
                 <li>Click tags to add them to your search</li>
@@ -209,9 +197,7 @@ export const RecipesWithCrafters = () => {
             <Checkbox
               id="show-inactive"
               checked={showInactiveCharacters}
-              onCheckedChange={(checked) =>
-                setShowInactiveCharacters(checked === true)
-              }
+              onCheckedChange={(checked) => setShowInactiveCharacters(checked === true)}
               className="rounded-[4px] border-muted-foreground/50 data-[state=checked]:border-primary/50 data-[state=checked]:bg-primary/25 data-[state=checked]:text-foreground"
             />
             <label
@@ -265,26 +251,20 @@ export const RecipesWithCrafters = () => {
                         <CardContent className="space-y-3 p-4">
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="secondary">
-                                {recipe.profession}
-                              </Badge>
+                              <Badge variant="secondary">{recipe.profession}</Badge>
                               {recipe.isCommon ? (
                                 <Badge variant="secondary">Most crafters</Badge>
                               ) : null}
                             </div>
                             <Link
-                              href={
-                                WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId
-                              }
+                              href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
                               className="text-base font-semibold hover:underline"
                               target="_blank"
                             >
                               {recipe.recipe}
                             </Link>
                             {recipe.notes ? (
-                              <p className="text-sm text-muted-foreground">
-                                {recipe.notes}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{recipe.notes}</p>
                             ) : null}
                           </div>
 
@@ -297,9 +277,7 @@ export const RecipesWithCrafters = () => {
                                   size="sm"
                                   className="h-7 px-2 text-xs"
                                   onClick={() => handleTagClick(`#${tag}`)}
-                                  onContextMenu={(e) =>
-                                    handleTagRightClick(`#${tag}`, e)
-                                  }
+                                  onContextMenu={(e) => handleTagRightClick(`#${tag}`, e)}
                                 >
                                   #{tag}
                                 </Button>
@@ -347,18 +325,14 @@ export const RecipesWithCrafters = () => {
                           <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                             <div>
                               <Link
-                                href={
-                                  WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId
-                                }
+                                href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
                                 className="hover:underline"
                                 target="_blank"
                               >
                                 {recipe.recipe}
                               </Link>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {recipe.notes}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{recipe.notes}</div>
                           </td>
                           <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                             {recipe.profession}
@@ -379,9 +353,7 @@ export const RecipesWithCrafters = () => {
                               ) : (
                                 <CrafterList
                                   characters={recipe.characters ?? []}
-                                  showInactiveCharacters={
-                                    showInactiveCharacters
-                                  }
+                                  showInactiveCharacters={showInactiveCharacters}
                                 />
                               )}
                             </div>
@@ -395,9 +367,7 @@ export const RecipesWithCrafters = () => {
                                   size="sm"
                                   className="h-3 p-0 text-xs font-normal text-muted-foreground opacity-70 transition-all duration-100 hover:opacity-100"
                                   onClick={() => handleTagClick(`#${tag}`)}
-                                  onContextMenu={(e) =>
-                                    handleTagRightClick(`#${tag}`, e)
-                                  }
+                                  onContextMenu={(e) => handleTagRightClick(`#${tag}`, e)}
                                 >
                                   #{tag}
                                 </Button>

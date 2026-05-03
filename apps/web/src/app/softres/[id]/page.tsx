@@ -47,15 +47,13 @@ export default async function SoftResScanResultPage({
   return (
     <HydrateClient>
       <main className="w-full px-4">
-        <div className="mb-2 text-3xl font-bold tracking-tight">
-          [Beta] SoftRes Scan
-        </div>
+        <div className="mb-2 text-3xl font-bold tracking-tight">[Beta] SoftRes Scan</div>
         <div className="mb-4 text-sm text-muted-foreground">
-          Checks characters and their soft reserves against attendance
-          constraints and other rules + information.
+          Checks characters and their soft reserves against attendance constraints and other rules +
+          information.
           <span className="mt-1 block text-amber-600 dark:text-amber-400">
-            ⚠️ Note: Attendance values are <strong>current attendance</strong>{" "}
-            and may not be accurate for older raids.
+            ⚠️ Note: Attendance values are <strong>current attendance</strong> and may not be
+            accurate for older raids.
           </span>
         </div>
 

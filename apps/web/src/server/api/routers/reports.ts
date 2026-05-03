@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import {
-  raids,
-  characters,
-  primaryRaidAttendeeAndBenchMap,
-  reportDates,
-} from "~/server/db/schema";
+import { raids, characters, primaryRaidAttendeeAndBenchMap, reportDates } from "~/server/db/schema";
 import { and, eq, gte, lte, inArray, desc, sql } from "drizzle-orm";
 import { INSTANCE_TO_ZONE } from "~/lib/raid-zones";
 
@@ -37,9 +32,7 @@ export const reports = createTRPCRouter({
         if (start) {
           // Date from database is already in YYYY-MM-DD format or can be converted
           const startStr =
-            typeof start === "string"
-              ? start
-              : (start as unknown as Date).toISOString();
+            typeof start === "string" ? start : (start as unknown as Date).toISOString();
           startDate = startStr.split("T")[0];
         }
         // Always use today as the default end date
@@ -53,9 +46,9 @@ export const reports = createTRPCRouter({
 
       if (zoneNames.length === 0) {
         // Fallback to default zones if conversion fails
-        const defaultZoneNames = DEFAULT_ZONES.map(
-          (instance) => INSTANCE_TO_ZONE[instance],
-        ).filter((zone): zone is string => zone !== undefined);
+        const defaultZoneNames = DEFAULT_ZONES.map((instance) => INSTANCE_TO_ZONE[instance]).filter(
+          (zone): zone is string => zone !== undefined,
+        );
         zoneNames.push(...defaultZoneNames);
       }
 
@@ -132,14 +125,11 @@ export const reports = createTRPCRouter({
           .where(and(...characterFilters));
 
         // Maintain the order from input.primaryCharacterIds (order entered into report)
-        const characterMap = new Map(
-          fetchedCharacters.map((c) => [c.characterId, c]),
-        );
+        const characterMap = new Map(fetchedCharacters.map((c) => [c.characterId, c]));
         charactersData = input.primaryCharacterIds
           .map((id) => characterMap.get(id))
           .filter(
-            (c): c is { characterId: number; name: string; class: string } =>
-              c !== undefined,
+            (c): c is { characterId: number; name: string; class: string } => c !== undefined,
           );
       }
 
@@ -162,8 +152,7 @@ export const reports = createTRPCRouter({
         const rawAttendance = await ctx.db
           .select({
             raidId: primaryRaidAttendeeAndBenchMap.raidId,
-            primaryCharacterId:
-              primaryRaidAttendeeAndBenchMap.primaryCharacterId,
+            primaryCharacterId: primaryRaidAttendeeAndBenchMap.primaryCharacterId,
             status: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
             allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
           })
@@ -171,10 +160,7 @@ export const reports = createTRPCRouter({
           .where(
             and(
               inArray(primaryRaidAttendeeAndBenchMap.raidId, raidIds),
-              inArray(
-                primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-                characterIds,
-              ),
+              inArray(primaryRaidAttendeeAndBenchMap.primaryCharacterId, characterIds),
             ),
           );
 
@@ -226,9 +212,7 @@ export const reports = createTRPCRouter({
               class: characters.class,
             })
             .from(characters)
-            .where(
-              inArray(characters.characterId, Array.from(allCharacterIds)),
-            );
+            .where(inArray(characters.characterId, Array.from(allCharacterIds)));
 
           for (const char of characterDetails) {
             characterDetailsMap.set(char.characterId, char);
@@ -256,20 +240,14 @@ export const reports = createTRPCRouter({
                 };
               })
               .filter(
-                (
-                  c,
-                ): c is { characterId: number; name: string; class: string } =>
-                  c !== undefined,
+                (c): c is { characterId: number; name: string; class: string } => c !== undefined,
               ) || [];
 
           return {
             raidId: entry.raidId,
             primaryCharacterId: entry.primaryCharacterId,
             status: entry.status,
-            allCharacters:
-              enrichedAllCharacters.length > 0
-                ? enrichedAllCharacters
-                : undefined,
+            allCharacters: enrichedAllCharacters.length > 0 ? enrichedAllCharacters : undefined,
           };
         });
       }
@@ -293,9 +271,7 @@ export const reports = createTRPCRouter({
         class: characters.class,
       })
       .from(characters)
-      .where(
-        and(eq(characters.isPrimary, true), eq(characters.isIgnored, false)),
-      )
+      .where(and(eq(characters.isPrimary, true), eq(characters.isIgnored, false)))
       .orderBy(characters.name);
   }),
 });

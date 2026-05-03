@@ -80,10 +80,7 @@ function hasEndgameAQ40Item(ctx: RuleEvaluationContext): boolean {
 /**
  * Get end-game item names from the context
  */
-function getEndgameItemNames(
-  ctx: RuleEvaluationContext,
-  itemSet: Set<number>,
-): string[] {
+function getEndgameItemNames(ctx: RuleEvaluationContext, itemSet: Set<number>): string[] {
   return ctx.srItems
     .filter((itemId) => itemSet.has(itemId))
     .map((itemId) => ctx.srItemNames?.get(itemId) ?? `Item#${itemId}`);
@@ -118,8 +115,7 @@ const newOrUnmatchedRaiderRule: SoftResRule = {
   name: "New or unmatched raider",
   description: "No recorded raid attendance in database.",
   level: "highlight",
-  evaluate: (ctx) =>
-    ctx.characterId === null || ctx.totalRaidsAttendedBenched === 0,
+  evaluate: (ctx) => ctx.characterId === null || ctx.totalRaidsAttendedBenched === 0,
   icon: "AlertTriangle",
 };
 
@@ -193,8 +189,7 @@ const restrictedItemRaidCountIneligibleRule: SoftResRule = {
   },
   level: "inactive",
   evaluate: (ctx) =>
-    hasRestrictedNaxxItem(ctx) &&
-    (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
+    hasRestrictedNaxxItem(ctx) && (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
   icon: "AlertTriangle",
 };
 
@@ -291,9 +286,7 @@ export const SOFTRES_RULES: SoftResRule[] = [
  * Returns array of rule IDs that match
  */
 export function evaluateRules(ctx: RuleEvaluationContext): string[] {
-  return SOFTRES_RULES.filter((rule) => rule.evaluate(ctx)).map(
-    (rule) => rule.id,
-  );
+  return SOFTRES_RULES.filter((rule) => rule.evaluate(ctx)).map((rule) => rule.id);
 }
 
 /**

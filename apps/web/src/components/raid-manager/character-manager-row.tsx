@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
 import React, { useState } from "react";
 import { Loader, XIcon } from "lucide-react";
@@ -14,18 +11,10 @@ import { useToast } from "~/hooks/use-toast";
 import { toastCharacterSaved } from "~/components/raid-manager/raid-manager-toasts";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterPill } from "../ui/character-pill";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
 import { invalidateCharacterManagementQueries } from "~/lib/trpc-invalidations";
 
-export function CharacterManagerRow({
-  character,
-}: {
-  character: RaidParticipant;
-}) {
+export function CharacterManagerRow({ character }: { character: RaidParticipant }) {
   const [inEditMode, setInEditMode] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [localSecondaryCharacters, setLocalSecondaryCharacters] =
@@ -50,26 +39,23 @@ export function CharacterManagerRow({
     },
   });
 
-  const updatePrimaryCharacterId =
-    api.character.updatePrimaryCharacter.useMutation({
-      onError: (error) => {
-        alert(error.message);
-        setIsSending(false);
-      },
-      onSuccess: async () => {
-        await Promise.all([
-          invalidateCharacterManagementQueries(utils),
-          utils.character.getCharacterById.invalidate(character.characterId),
-        ]);
-        toastCharacterSaved(toast, character, localSecondaryCharacters);
-        setIsSending(false);
-        setInEditMode(false);
-      },
-    });
+  const updatePrimaryCharacterId = api.character.updatePrimaryCharacter.useMutation({
+    onError: (error) => {
+      alert(error.message);
+      setIsSending(false);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        invalidateCharacterManagementQueries(utils),
+        utils.character.getCharacterById.invalidate(character.characterId),
+      ]);
+      toastCharacterSaved(toast, character, localSecondaryCharacters);
+      setIsSending(false);
+      setInEditMode(false);
+    },
+  });
 
-  const convertCharacterListToCollection = (
-    characterList: RaidParticipant[],
-  ) => {
+  const convertCharacterListToCollection = (characterList: RaidParticipant[]) => {
     return characterList.reduce((acc, rel) => {
       acc[rel.characterId] = rel;
       return acc;
@@ -84,11 +70,9 @@ export function CharacterManagerRow({
     const newCharacterList = { ...localSecondaryCharacters };
     delete newCharacterList[characterId];
     setLocalSecondaryCharacters(newCharacterList);
-    // console.log(localSecondaryCharacters);
   };
 
   const handleAddCharacter = (character: RaidParticipant) => {
-    console.log(character);
     const newCharacterList = {
       ...localSecondaryCharacters,
       [character.characterId]: character,
@@ -109,9 +93,7 @@ export function CharacterManagerRow({
   const handleSaveClick = () => {
     updatePrimaryCharacterId.mutate({
       primaryCharacterId: character.characterId ?? 0,
-      secondaryCharacterIds: Object.keys(localSecondaryCharacters).map((cid) =>
-        parseInt(cid),
-      ),
+      secondaryCharacterIds: Object.keys(localSecondaryCharacters).map((cid) => parseInt(cid)),
     });
     setIsSending(true);
   };
@@ -211,9 +193,9 @@ export function CharacterManagerRow({
                       size="sm"
                       className={
                         "bg-accent p-3 transition-all hover:bg-destructive " +
-                        (Object.keys(
-                          originalSecondaryCharacters ?? {},
-                        ).includes(character.characterId.toString())
+                        (Object.keys(originalSecondaryCharacters ?? {}).includes(
+                          character.characterId.toString(),
+                        )
                           ? ""
                           : "border-primary")
                       }

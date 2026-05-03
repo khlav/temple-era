@@ -4,11 +4,7 @@ import { signIn } from "next-auth/react";
 import React from "react";
 import type { Session } from "next-auth";
 
-export function DashboardOnboarding({
-  session,
-}: {
-  session: Session | undefined;
-}) {
+export function DashboardOnboarding({ session }: { session: Session | undefined }) {
   return (
     <>
       {!session?.user?.characterId && (
@@ -37,8 +33,8 @@ export function DashboardOnboarding({
                   </div>
                   <div>and adding a primary character to your profile.</div>
                   <div className="text-sm text-muted-foreground">
-                    Note: This site can only see publicly-available Discord
-                    details like your public profile ID, username, and image.
+                    Note: This site can only see publicly-available Discord details like your public
+                    profile ID, username, and image.
                   </div>
                 </>
               ) : (

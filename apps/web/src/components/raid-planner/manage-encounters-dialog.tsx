@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useId,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import { useState, useId, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ChevronDown,
   FolderMinus,
@@ -124,12 +117,9 @@ interface ManageEncountersDialogProps {
 const encItemId = (id: string): ItemId => `enc:${id}`;
 const groupItemId = (id: string): ItemId => `group:${id}`;
 
-function parseItemId(
-  itemId: string,
-): { type: "enc" | "group"; id: string } | null {
+function parseItemId(itemId: string): { type: "enc" | "group"; id: string } | null {
   if (itemId.startsWith("enc:")) return { type: "enc", id: itemId.slice(4) };
-  if (itemId.startsWith("group:"))
-    return { type: "group", id: itemId.slice(6) };
+  if (itemId.startsWith("group:")) return { type: "group", id: itemId.slice(6) };
   return null;
 }
 
@@ -155,9 +145,7 @@ function buildItems(encounters: Encounter[], groups: EncounterGroup[]): Items {
   for (const g of sortedGroups) items[g.id] = [];
 
   const ungrouped: Encounter[] = [];
-  const byGroup = new Map<string, Encounter[]>(
-    sortedGroups.map((g) => [g.id, []]),
-  );
+  const byGroup = new Map<string, Encounter[]>(sortedGroups.map((g) => [g.id, []]));
 
   for (const enc of encounters) {
     if (enc.groupId && groupIds.has(enc.groupId)) {
@@ -225,9 +213,7 @@ function deriveSavePayload(
         id: parsed.id,
         sortOrder: globalSortOrder++,
         groupId: null,
-        ...(currentName !== orig?.encounterName
-          ? { encounterName: currentName }
-          : {}),
+        ...(currentName !== orig?.encounterName ? { encounterName: currentName } : {}),
       });
     }
   }
@@ -245,9 +231,7 @@ function deriveSavePayload(
         id: parsed.id,
         sortOrder: withinGroupOrder++,
         groupId: containerId,
-        ...(currentName !== orig?.encounterName
-          ? { encounterName: currentName }
-          : {}),
+        ...(currentName !== orig?.encounterName ? { encounterName: currentName } : {}),
       });
     }
   }
@@ -257,13 +241,7 @@ function deriveSavePayload(
 
 // ── Droppable group content area ───────────────────────────────────────────────
 
-function DroppableGroupArea({
-  groupId,
-  isEmpty,
-}: {
-  groupId: string;
-  isEmpty: boolean;
-}) {
+function DroppableGroupArea({ groupId, isEmpty }: { groupId: string; isEmpty: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: groupId });
   return (
     <div
@@ -304,14 +282,9 @@ function SortableEncounterRow({
   const [editValue, setEditValue] = useState(name);
   const isEditing = editingId === id;
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -370,12 +343,7 @@ function SortableEncounterRow({
           >
             <Check className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0"
-            onClick={cancelEditing}
-          >
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={cancelEditing}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -502,12 +470,7 @@ function SortableGroupHeader({
           >
             <Check className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0"
-            onClick={cancelEditing}
-          >
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={cancelEditing}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -533,10 +496,7 @@ function SortableGroupHeader({
         title={collapsed ? "Expand group" : "Collapse group"}
       >
         <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 transition-transform",
-            collapsed && "-rotate-90",
-          )}
+          className={cn("h-3.5 w-3.5 transition-transform", collapsed && "-rotate-90")}
         />
       </button>
 
@@ -595,26 +555,17 @@ function SortableGroupSection({
   encounters: Encounter[];
 }) {
   const itemId = groupItemId(groupId);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: itemId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: itemId,
+  });
 
   const style = { transform: CSS.Transform.toString(transform), transition };
   const groupEncs = items[groupId] ?? [];
   const currentName =
-    localNames.get(itemId) ??
-    encounterGroups.find((g) => g.id === groupId)?.groupName ??
-    "";
+    localNames.get(itemId) ?? encounterGroups.find((g) => g.id === groupId)?.groupName ?? "";
 
   const isBeingDraggedOver =
-    activeId !== null &&
-    !activeId.startsWith("group:") &&
-    findContainer(activeId) === groupId;
+    activeId !== null && !activeId.startsWith("group:") && findContainer(activeId) === groupId;
 
   return (
     <div
@@ -638,10 +589,7 @@ function SortableGroupSection({
 
       {!collapsed && (
         <div className="flex flex-col gap-0.5">
-          <SortableContext
-            items={groupEncs}
-            strategy={verticalListSortingStrategy}
-          >
+          <SortableContext items={groupEncs} strategy={verticalListSortingStrategy}>
             {groupEncs.map((encItemId) => {
               const encParsed = parseItemId(encItemId);
               if (!encParsed || encParsed.type !== "enc") return null;
@@ -666,10 +614,7 @@ function SortableGroupSection({
               );
             })}
           </SortableContext>
-          <DroppableGroupArea
-            groupId={groupId}
-            isEmpty={groupEncs.length === 0}
-          />
+          <DroppableGroupArea groupId={groupId} isEmpty={groupEncs.length === 0} />
         </div>
       )}
     </div>
@@ -699,9 +644,7 @@ export function ManageEncountersDialog({
   const [localNames, setLocalNames] = useState<LocalNames>(new Map());
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [newEncounterName, setNewEncounterName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
@@ -753,8 +696,7 @@ export function ManageEncountersDialog({
 
     // Only update state if the set of IDs actually changed (add/delete)
     const sameIds =
-      allFreshIds.size === allPrevIds.size &&
-      [...allFreshIds].every((id) => allPrevIds.has(id));
+      allFreshIds.size === allPrevIds.size && [...allFreshIds].every((id) => allPrevIds.has(id));
 
     if (!sameIds) {
       const next: Items = {};
@@ -882,9 +824,7 @@ export function ManageEncountersDialog({
       // If we are over a container (either root or a group),
       // prioritize items within that container.
       const containerId =
-        overId in currentItems
-          ? String(overId)
-          : findContainer(currentItems, String(overId));
+        overId in currentItems ? String(overId) : findContainer(currentItems, String(overId));
 
       if (containerId) {
         const containerCollisions = closestCenter({
@@ -986,9 +926,7 @@ export function ManageEncountersDialog({
 
   const moveEncToRoot = (itemId: ItemId) => {
     setItems((prev) => {
-      const container = Object.keys(prev).find(
-        (k) => k !== "root" && prev[k]!.includes(itemId),
-      );
+      const container = Object.keys(prev).find((k) => k !== "root" && prev[k]!.includes(itemId));
       if (!container) return prev;
       return {
         ...prev,
@@ -1001,7 +939,8 @@ export function ManageEncountersDialog({
   const toggleCollapse = (groupId: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      next.has(groupId) ? next.delete(groupId) : next.add(groupId);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
       return next;
     });
   };
@@ -1048,11 +987,7 @@ export function ManageEncountersDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           {compact ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground"
-            >
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground">
               <ListTree className="h-3 w-3" />
             </Button>
           ) : (
@@ -1099,10 +1034,7 @@ export function ManageEncountersDialog({
                   onDragEnd={handleDragEnd}
                 >
                   {/* Root SortableContext — groups + ungrouped encounters */}
-                  <SortableContext
-                    items={items.root ?? []}
-                    strategy={verticalListSortingStrategy}
-                  >
+                  <SortableContext items={items.root ?? []} strategy={verticalListSortingStrategy}>
                     <div ref={setRootNodeRef} className="flex flex-col gap-1.5">
                       {(items.root ?? []).map((itemId) => {
                         const parsed = parseItemId(itemId);
@@ -1139,8 +1071,7 @@ export function ManageEncountersDialog({
                         const encId = parsed.id;
                         const encName =
                           localNames.get(itemId) ??
-                          encounters.find((e) => e.id === encId)
-                            ?.encounterName ??
+                          encounters.find((e) => e.id === encId)?.encounterName ??
                           "";
                         return (
                           <SortableEncounterRow
@@ -1164,18 +1095,14 @@ export function ManageEncountersDialog({
                       <div
                         className={cn(
                           "flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg ring-2 ring-primary/50",
-                          activeParsed?.type === "group"
-                            ? "bg-muted/50"
-                            : "bg-card",
+                          activeParsed?.type === "group" ? "bg-muted/50" : "bg-card",
                         )}
                       >
                         {activeParsed?.type === "group" && (
                           <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         )}
                         <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 text-sm font-medium">
-                          {activeName}
-                        </span>
+                        <span className="flex-1 text-sm font-medium">{activeName}</span>
                       </div>
                     )}
                   </DragOverlay>
@@ -1245,11 +1172,7 @@ export function ManageEncountersDialog({
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="button"
-                  disabled={!isDirty || isPending}
-                  onClick={handleSave}
-                >
+                <Button type="button" disabled={!isDirty || isPending} onClick={handleSave}>
                   {isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,5 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { type NextRequest } from "next/server";
+import { logger } from "~/lib/logger";
 import { gzip } from "zlib";
 import { promisify } from "util";
 
@@ -31,9 +32,7 @@ const handler = async (req: NextRequest) => {
     onError:
       env.NODE_ENV === "development"
         ? ({ path, error }) => {
-            console.error(
-              `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
-            );
+            logger.error(`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`);
           }
         : undefined,
     responseMeta: () => {
@@ -84,17 +83,13 @@ const handler = async (req: NextRequest) => {
         headers: {
           ...Object.fromEntries(response.headers.entries()),
           "Content-Encoding": "gzip",
-          "Content-Type":
-            response.headers.get("Content-Type") || "application/json",
+          "Content-Type": response.headers.get("Content-Type") || "application/json",
           Vary: "Accept-Encoding",
         },
       });
     } catch (error) {
       // If compression fails, fall back to uncompressed
-      console.error(
-        "tRPC compression error, falling back to uncompressed:",
-        error,
-      );
+      logger.error({ err: error }, "tRPC compression error, falling back to uncompressed");
       return response;
     }
   }

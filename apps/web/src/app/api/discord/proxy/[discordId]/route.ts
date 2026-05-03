@@ -6,6 +6,7 @@ import { users, accounts } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { env } from "~/env.js";
+import { logger } from "~/lib/logger";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 
@@ -32,11 +33,9 @@ const ProxySchema = z.object({
       z
         .string()
         .startsWith("/")
-        .refine(
-          (p) =>
-            !p.startsWith("/discord/proxy") && !p.startsWith("/admin/proxy"),
-          { message: "Recursive proxy calls are not allowed" },
-        ),
+        .refine((p) => !p.startsWith("/discord/proxy") && !p.startsWith("/admin/proxy"), {
+          message: "Recursive proxy calls are not allowed",
+        }),
     ),
   body: z.unknown().optional(),
 });
@@ -49,11 +48,14 @@ export async function POST(
     // 1. Verify bot service key (same pattern as all /api/discord/* endpoints)
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
-      console.warn("Unauthorized discord proxy attempt", {
-        ip: request.headers.get("x-forwarded-for"),
-        userAgent: request.headers.get("user-agent"),
-        timestamp: new Date().toISOString(),
-      });
+      logger.warn(
+        {
+          ip: request.headers.get("x-forwarded-for"),
+          userAgent: request.headers.get("user-agent"),
+          timestamp: new Date().toISOString(),
+        },
+        "Unauthorized discord proxy attempt",
+      );
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -78,10 +80,7 @@ export async function POST(
     const { discordId } = await params;
 
     if (!/^\d{17,19}$/.test(discordId)) {
-      return NextResponse.json(
-        { error: "Invalid Discord user ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid Discord user ID" }, { status: 400 });
     }
 
     // 3. Look up user by Discord ID via accounts table
@@ -93,12 +92,7 @@ export async function POST(
       })
       .from(users)
       .innerJoin(accounts, eq(accounts.userId, users.id))
-      .where(
-        and(
-          eq(accounts.provider, "discord"),
-          eq(accounts.providerAccountId, discordId),
-        ),
-      )
+      .where(and(eq(accounts.provider, "discord"), eq(accounts.providerAccountId, discordId)))
       .limit(1);
 
     if (userResult.length === 0) {
@@ -113,10 +107,7 @@ export async function POST(
     // user later loses their manager role, their proxied calls will still be
     // attempted but will fail at the endpoint level via raidManagerProcedure.
     if (!targetUser.templarEnabled) {
-      return NextResponse.json(
-        { error: "Templar access not enabled" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Templar access not enabled" }, { status: 403 });
     }
 
     // 5. Decrypt token
@@ -134,10 +125,7 @@ export async function POST(
     try {
       plainToken = decryptToken(targetUser.apiTokenEncrypted);
     } catch {
-      return NextResponse.json(
-        { error: "Failed to decrypt user token" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Failed to decrypt user token" }, { status: 500 });
     }
 
     // 6. Forward the request to /api/v1
@@ -161,15 +149,11 @@ export async function POST(
     return new NextResponse(upstreamText, {
       status: upstreamResponse.status,
       headers: {
-        "Content-Type":
-          upstreamResponse.headers.get("content-type") ?? "application/json",
+        "Content-Type": upstreamResponse.headers.get("content-type") ?? "application/json",
       },
     });
   } catch (error) {
-    console.error("discord proxy error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "discord proxy error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

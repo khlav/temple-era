@@ -9,9 +9,7 @@ type ArtisansByProfessionProps = {
   recipes: RecipeWithCharacters[] | undefined;
 };
 
-export const ArtisansByProfession = ({
-  recipes,
-}: ArtisansByProfessionProps) => {
+export const ArtisansByProfession = ({ recipes }: ArtisansByProfessionProps) => {
   // Find artisans (characters who know all recipes within a profession)
   const artisansByProfession = useMemo(() => {
     if (!recipes?.length) return {};
@@ -26,49 +24,40 @@ export const ArtisansByProfession = ({
     // For each profession, find characters who know all non-common recipes
     const artisans: Record<string, string[]> = {};
 
-    Object.entries(professionGroups).forEach(
-      ([profession, professionRecipes]) => {
-        // Get all non-common recipes for this profession
-        const nonCommonRecipes = professionRecipes.filter(
-          (recipe) => !recipe.isCommon,
-        );
+    Object.entries(professionGroups).forEach(([profession, professionRecipes]) => {
+      // Get all non-common recipes for this profession
+      const nonCommonRecipes = professionRecipes.filter((recipe) => !recipe.isCommon);
 
-        if (nonCommonRecipes.length === 0) {
-          // If all recipes are common, no artisans to track
-          return;
-        }
+      if (nonCommonRecipes.length === 0) {
+        // If all recipes are common, no artisans to track
+        return;
+      }
 
-        // Get all characters that know at least one recipe in this profession
-        const allCharacters: Record<
-          string,
-          { id: number; name: string; recipeCount: number }
-        > = {};
+      // Get all characters that know at least one recipe in this profession
+      const allCharacters: Record<string, { id: number; name: string; recipeCount: number }> = {};
 
-        nonCommonRecipes.forEach((recipe) => {
-          recipe.characters?.forEach((character) => {
-            allCharacters[character.characterId] ??= {
-              id: character.characterId,
-              name: character.name || "Unknown",
-              recipeCount: 0,
-            };
-            // @ts-expect-error should never be null
-            allCharacters[character.characterId ?? -1].recipeCount++;
-          });
+      nonCommonRecipes.forEach((recipe) => {
+        recipe.characters?.forEach((character) => {
+          allCharacters[character.characterId] ??= {
+            id: character.characterId,
+            name: character.name || "Unknown",
+            recipeCount: 0,
+          };
+          // @ts-expect-error should never be null
+          allCharacters[character.characterId ?? -1].recipeCount++;
         });
+      });
 
-        // Find characters who know all non-common recipes
-        const professionArtisans = Object.values(allCharacters)
-          .filter(
-            (character) => character.recipeCount === nonCommonRecipes.length,
-          )
-          .map((character) => character.name)
-          .sort();
+      // Find characters who know all non-common recipes
+      const professionArtisans = Object.values(allCharacters)
+        .filter((character) => character.recipeCount === nonCommonRecipes.length)
+        .map((character) => character.name)
+        .sort();
 
-        if (professionArtisans.length > 0) {
-          artisans[profession] = professionArtisans;
-        }
-      },
-    );
+      if (professionArtisans.length > 0) {
+        artisans[profession] = professionArtisans;
+      }
+    });
 
     return artisans;
   }, [recipes]);
@@ -106,9 +95,7 @@ export const ArtisansByProfession = ({
                   </Badge>
                 ))
               ) : (
-                <div className="text-xs italic text-muted-foreground">
-                  No artisans
-                </div>
+                <div className="text-xs italic text-muted-foreground">No artisans</div>
               )}
             </div>
           </div>

@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  raidManagerProcedure,
-  createTRPCRouter,
-  publicProcedure,
-} from "~/server/api/trpc";
+import { raidManagerProcedure, createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {
   aliasedTable,
   and,
@@ -30,15 +26,10 @@ import {
   raidLogs,
   primaryRaidAttendanceL6LockoutWk,
 } from "~/server/db/schema";
-import type {
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { getEasternNow } from "~/lib/raid-formatting";
 
-export const convertParticipantArrayToCollection = (
-  participants: RaidParticipant[],
-) => {
+export const convertParticipantArrayToCollection = (participants: RaidParticipant[]) => {
   return participants.reduce((acc, rel) => {
     const participant = rel;
     acc[participant.characterId] = participant;
@@ -60,9 +51,7 @@ export const characterCols = {
 
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
-    .input(
-      z.optional(z.enum(["all", "primary", "secondary", "secondaryEligible"])),
-    )
+    .input(z.optional(z.enum(["all", "primary", "secondary", "secondaryEligible"])))
     .query(async ({ ctx, input }) => {
       const primaryCharacters = aliasedTable(characters, "primary_character");
 
@@ -97,10 +86,7 @@ export const character = createTRPCRouter({
             primaryCharacters,
             eq(characters.primaryCharacterId, primaryCharacters.characterId),
           )
-          .leftJoin(
-            countSecondary,
-            eq(countSecondary.primaryCharacterId, characters.characterId),
-          )
+          .leftJoin(countSecondary, eq(countSecondary.primaryCharacterId, characters.characterId))
           .where(
             or(
               eq(countSecondary.countSecondaryCharacters, 0),
@@ -116,10 +102,7 @@ export const character = createTRPCRouter({
             uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
           })
           .from(raidLogAttendeeMap)
-          .innerJoin(
-            raidLogs,
-            eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
-          )
+          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
           .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
           .where(eq(raidLogAttendeeMap.isIgnored, false))
           .groupBy(raidLogAttendeeMap.characterId, raids.zone);
@@ -136,17 +119,12 @@ export const character = createTRPCRouter({
           .groupBy(raidBenchMap.characterId, raids.zone);
 
         // Convert character list to collection and add raid attendance data
-        const characterCollection =
-          convertParticipantArrayToCollection(characterList) ?? {};
+        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
 
         // Add raid attendance by zone to each character
         for (const attendance of raidAttendanceByZone) {
           const characterId = attendance.characterId;
-          if (
-            characterId &&
-            characterCollection[characterId] &&
-            attendance.zone
-          ) {
+          if (characterId && characterCollection[characterId] && attendance.zone) {
             const character = characterCollection[characterId];
             character.raidAttendanceByZone ??= {};
             character.raidAttendanceByZone[attendance.zone] ??= {
@@ -171,9 +149,7 @@ export const character = createTRPCRouter({
               bench: 0,
             };
 
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(
-              bench.uniqueRaidCount,
-            );
+            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
           }
         }
 
@@ -217,10 +193,7 @@ export const character = createTRPCRouter({
             uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
           })
           .from(raidLogAttendeeMap)
-          .innerJoin(
-            raidLogs,
-            eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
-          )
+          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
           .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
           .where(eq(raidLogAttendeeMap.isIgnored, false))
           .groupBy(raidLogAttendeeMap.characterId, raids.zone);
@@ -237,17 +210,12 @@ export const character = createTRPCRouter({
           .groupBy(raidBenchMap.characterId, raids.zone);
 
         // Convert character list to collection and add raid attendance data
-        const characterCollection =
-          convertParticipantArrayToCollection(characterList) ?? {};
+        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
 
         // Add raid attendance by zone to each character
         for (const attendance of raidAttendanceByZone) {
           const characterId = attendance.characterId;
-          if (
-            characterId &&
-            characterCollection[characterId] &&
-            attendance.zone
-          ) {
+          if (characterId && characterCollection[characterId] && attendance.zone) {
             const character = characterCollection[characterId];
             character.raidAttendanceByZone ??= {};
             character.raidAttendanceByZone[attendance.zone] ??= {
@@ -272,9 +240,7 @@ export const character = createTRPCRouter({
               bench: 0,
             };
 
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(
-              bench.uniqueRaidCount,
-            );
+            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
           }
         }
 
@@ -282,63 +248,56 @@ export const character = createTRPCRouter({
       }
     }),
 
-  getCharacterById: publicProcedure
-    .input(z.number())
-    .query(async ({ ctx, input }) => {
-      const characterResult = await ctx.db.query.characters.findMany({
-        where: eq(characters.characterId, input),
-        columns: characterCols,
-        with: {
-          primaryCharacter: {
-            columns: characterCols,
-          },
+  getCharacterById: publicProcedure.input(z.number()).query(async ({ ctx, input }) => {
+    const characterResult = await ctx.db.query.characters.findMany({
+      where: eq(characters.characterId, input),
+      columns: characterCols,
+      with: {
+        primaryCharacter: {
+          columns: characterCols,
         },
-      });
+      },
+    });
 
-      const character = characterResult[0];
+    const character = characterResult[0];
 
-      const secondaryCharacters = (await ctx.db.query.characters.findMany({
-        where: eq(characters.primaryCharacterId, input),
-        columns: characterCols,
-      })) as RaidParticipant[];
+    const secondaryCharacters = (await ctx.db.query.characters.findMany({
+      where: eq(characters.primaryCharacterId, input),
+      columns: characterCols,
+    })) as RaidParticipant[];
 
-      return {
-        ...character,
-        primaryCharacterId: (character?.primaryCharacter as RaidParticipant)
-          ?.characterId,
-        primaryCharacterName: (character?.primaryCharacter as RaidParticipant)
-          ?.name,
-        primaryCharacterClass: (character?.primaryCharacter as RaidParticipant)
-          ?.class,
+    return {
+      ...character,
+      primaryCharacterId: (character?.primaryCharacter as RaidParticipant)?.characterId,
+      primaryCharacterName: (character?.primaryCharacter as RaidParticipant)?.name,
+      primaryCharacterClass: (character?.primaryCharacter as RaidParticipant)?.class,
 
-        secondaryCharacters: secondaryCharacters,
-      } as RaidParticipant;
-    }),
+      secondaryCharacters: secondaryCharacters,
+    } as RaidParticipant;
+  }),
 
-  getRaidsForPrimaryCharacterId: publicProcedure
-    .input(z.number())
-    .query(async ({ ctx, input }) => {
-      const raidsAttended = await ctx.db
-        .select({
-          raidId: raids.raidId,
-          name: raids.name,
-          attendanceWeight: raids.attendanceWeight,
-          date: raids.date,
-          zone: raids.zone,
-          attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-          allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
-          raidLogIds: primaryRaidAttendeeAndBenchMap.raidLogIds,
-        })
-        .from(raids)
-        .leftJoin(
-          primaryRaidAttendeeAndBenchMap,
-          eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId),
-        )
-        .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input))
-        .orderBy(desc(raids.date));
+  getRaidsForPrimaryCharacterId: publicProcedure.input(z.number()).query(async ({ ctx, input }) => {
+    const raidsAttended = await ctx.db
+      .select({
+        raidId: raids.raidId,
+        name: raids.name,
+        attendanceWeight: raids.attendanceWeight,
+        date: raids.date,
+        zone: raids.zone,
+        attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
+        allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
+        raidLogIds: primaryRaidAttendeeAndBenchMap.raidLogIds,
+      })
+      .from(raids)
+      .leftJoin(
+        primaryRaidAttendeeAndBenchMap,
+        eq(primaryRaidAttendeeAndBenchMap.raidId, raids.raidId),
+      )
+      .where(eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input))
+      .orderBy(desc(raids.date));
 
-      return raidsAttended ?? [];
-    }),
+    return raidsAttended ?? [];
+  }),
 
   getRaidAttendanceReportForPrimaryCharacterId: publicProcedure
     .input(z.number())
@@ -351,19 +310,14 @@ export const character = createTRPCRouter({
           lockoutWeek: trackedRaidsL6LockoutWk.lockoutWeek,
           attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
           zone: trackedRaidsL6LockoutWk.zone,
-          isParticipant: not(
-            isNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
-          ),
+          isParticipant: not(isNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId)),
           attendeeOrBench: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
         })
         .from(trackedRaidsL6LockoutWk)
         .leftJoin(
           primaryRaidAttendeeAndBenchMap,
           and(
-            eq(
-              trackedRaidsL6LockoutWk.raidId,
-              primaryRaidAttendeeAndBenchMap.raidId,
-            ),
+            eq(trackedRaidsL6LockoutWk.raidId, primaryRaidAttendeeAndBenchMap.raidId),
             eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, input),
           ),
         )
@@ -465,20 +419,14 @@ export const character = createTRPCRouter({
       const raids = await ctx.db
         .select()
         .from(primaryRaidAttendanceL6LockoutWk)
-        .where(
-          eq(primaryRaidAttendanceL6LockoutWk.characterId, input.characterId),
-        );
+        .where(eq(primaryRaidAttendanceL6LockoutWk.characterId, input.characterId));
       return raids ?? [];
     }),
 
-  getAllPrimaryRaidAttendanceL6LockoutWk: publicProcedure.query(
-    async ({ ctx }) => {
-      const raids = await ctx.db
-        .select()
-        .from(primaryRaidAttendanceL6LockoutWk);
-      return raids ?? [];
-    },
-  ),
+  getAllPrimaryRaidAttendanceL6LockoutWk: publicProcedure.query(async ({ ctx }) => {
+    const raids = await ctx.db.select().from(primaryRaidAttendanceL6LockoutWk);
+    return raids ?? [];
+  }),
 
   getWeeklyPrimaryCharacterAttendance: publicProcedure
     .input(
@@ -567,9 +515,7 @@ export const character = createTRPCRouter({
         .orderBy(raids.date);
 
       // Filter to only include raids where user attended/benched
-      const filteredRaids = raidsResult.filter(
-        (raid) => raid.attendeeOrBench !== null,
-      );
+      const filteredRaids = raidsResult.filter((raid) => raid.attendeeOrBench !== null);
 
       // Generate all lockout weeks in the range
       const lockoutWeeks: string[] = [];
@@ -667,8 +613,7 @@ export const character = createTRPCRouter({
         //   So historical = i < length - 6
         const nonHistoricalWeeks = includeCurrentWeek ? 7 : 6;
         const isHistorical =
-          lockoutWeeks.length > nonHistoricalWeeks &&
-          i < lockoutWeeks.length - nonHistoricalWeeks;
+          lockoutWeeks.length > nonHistoricalWeeks && i < lockoutWeeks.length - nonHistoricalWeeks;
         weekMap.set(weekStart, {
           weekStart,
           zones: {},
@@ -688,10 +633,8 @@ export const character = createTRPCRouter({
 
         const week = weekMap.get(weekKey)!;
         const zone = raid.zone ?? "";
-        const status =
-          raid.attendeeOrBench === "attendee" ? "attendee" : "bench";
-        const characterNames =
-          raid.allCharacters?.map((char) => char.name).filter(Boolean) ?? [];
+        const status = raid.attendeeOrBench === "attendee" ? "attendee" : "bench";
+        const characterNames = raid.allCharacters?.map((char) => char.name).filter(Boolean) ?? [];
 
         // Zones are stored as full names: "Naxxramas", "Temple of Ahn'Qiraj", "Blackwing Lair", "Molten Core"
         if (zone === "Naxxramas") {

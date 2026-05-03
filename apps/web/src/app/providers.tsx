@@ -21,12 +21,7 @@ export const PostHogIdentify = () => {
 
   // Handle identification once PostHog and session are ready
   useEffect(() => {
-    if (
-      posthogSafe.isReady() &&
-      isSignIn &&
-      sessionLoaded &&
-      session?.user?.id
-    ) {
+    if (posthogSafe.isReady() && isSignIn && sessionLoaded && session?.user?.id) {
       // Identify sends an event, so you want may want to limit how often you call it
       posthogSafe.identify(session.user.id, {
         name: session.user.name,
@@ -39,11 +34,9 @@ export const PostHogIdentify = () => {
       newSearchParams.delete("signin");
 
       const newUrl =
-        pathname +
-        (newSearchParams.toString() ? `?${newSearchParams.toString()}` : "");
+        pathname + (newSearchParams.toString() ? `?${newSearchParams.toString()}` : "");
 
       router.replace(newUrl, { scroll: false });
-      console.log(`Welcome, ${session.user.name}!`);
     }
   }, [router, isSignIn, session, sessionLoaded, pathname, searchParams]);
 
@@ -103,10 +96,7 @@ export function PostHogProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    if (
-      location.hostname === "localhost" ||
-      location.hostname === "127.0.0.1"
-    ) {
+    if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
       posthogSafe.debug();
     }
   }, []);

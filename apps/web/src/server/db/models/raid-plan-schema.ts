@@ -10,12 +10,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import {
-  IdPkAsUUID,
-  DefaultTimestamps,
-  CreatedBy,
-  UpdatedBy,
-} from "~/server/db/helpers";
+import { IdPkAsUUID, DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
 import { raids, characters } from "~/server/db/models/raid-schema";
 import { users } from "~/server/db/models/auth-schema";
 
@@ -47,13 +42,10 @@ export const raidPlanTemplates = tableCreator(
   }),
 );
 
-export const raidPlanTemplatesRelations = relations(
-  raidPlanTemplates,
-  ({ many }) => ({
-    encounters: many(raidPlanTemplateEncounters),
-    encounterGroups: many(raidPlanTemplateEncounterGroups),
-  }),
-);
+export const raidPlanTemplatesRelations = relations(raidPlanTemplates, ({ many }) => ({
+  encounters: many(raidPlanTemplateEncounters),
+  encounterGroups: many(raidPlanTemplateEncounterGroups),
+}));
 
 /**
  * Encounter groups for a zone template.
@@ -72,9 +64,9 @@ export const raidPlanTemplateEncounterGroups = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    templateIdIdx: index(
-      "raid_plan_template_encounter_group__template_id_idx",
-    ).on(table.templateId),
+    templateIdIdx: index("raid_plan_template_encounter_group__template_id_idx").on(
+      table.templateId,
+    ),
   }),
 );
 
@@ -101,10 +93,9 @@ export const raidPlanTemplateEncounters = tableCreator(
     templateId: uuid("template_id")
       .notNull()
       .references(() => raidPlanTemplates.id, { onDelete: "cascade" }),
-    groupId: uuid("group_id").references(
-      () => raidPlanTemplateEncounterGroups.id,
-      { onDelete: "set null" },
-    ),
+    groupId: uuid("group_id").references(() => raidPlanTemplateEncounterGroups.id, {
+      onDelete: "set null",
+    }),
     encounterKey: varchar("encounter_key", { length: 64 }).notNull(),
     encounterName: varchar("encounter_name", { length: 256 }).notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -112,12 +103,8 @@ export const raidPlanTemplateEncounters = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    templateIdIdx: index("raid_plan_template_encounter__template_id_idx").on(
-      table.templateId,
-    ),
-    groupIdIdx: index("raid_plan_template_encounter__group_id_idx").on(
-      table.groupId,
-    ),
+    templateIdIdx: index("raid_plan_template_encounter__template_id_idx").on(table.templateId),
+    groupIdIdx: index("raid_plan_template_encounter__group_id_idx").on(table.groupId),
   }),
 );
 
@@ -194,10 +181,9 @@ export const raidPlanCharacters = tableCreator(
     raidPlanId: uuid("raid_plan_id")
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
-    characterId: integer("character_id").references(
-      () => characters.characterId,
-      { onDelete: "set null" },
-    ),
+    characterId: integer("character_id").references(() => characters.characterId, {
+      onDelete: "set null",
+    }),
     characterName: varchar("character_name", { length: 128 }).notNull(),
     writeInClass: varchar("write_in_class", { length: 32 }), // Class for write-in characters (no characterId)
     defaultGroup: integer("default_group"), // 0-7 for 40-man, 0-3 for 20-man. NULL = bench
@@ -205,30 +191,23 @@ export const raidPlanCharacters = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    raidPlanIdIdx: index("raid_plan_character__raid_plan_id_idx").on(
-      table.raidPlanId,
-    ),
-    characterIdIdx: index("raid_plan_character__character_id_idx").on(
-      table.characterId,
-    ),
+    raidPlanIdIdx: index("raid_plan_character__raid_plan_id_idx").on(table.raidPlanId),
+    characterIdIdx: index("raid_plan_character__character_id_idx").on(table.characterId),
   }),
 );
 
-export const raidPlanCharactersRelations = relations(
-  raidPlanCharacters,
-  ({ one, many }) => ({
-    raidPlan: one(raidPlans, {
-      fields: [raidPlanCharacters.raidPlanId],
-      references: [raidPlans.id],
-    }),
-    character: one(characters, {
-      fields: [raidPlanCharacters.characterId],
-      references: [characters.characterId],
-    }),
-    encounterAssignments: many(raidPlanEncounterAssignments),
-    aaSlotAssignments: many(raidPlanEncounterAASlots),
+export const raidPlanCharactersRelations = relations(raidPlanCharacters, ({ one, many }) => ({
+  raidPlan: one(raidPlans, {
+    fields: [raidPlanCharacters.raidPlanId],
+    references: [raidPlans.id],
   }),
-);
+  character: one(characters, {
+    fields: [raidPlanCharacters.characterId],
+    references: [characters.characterId],
+  }),
+  encounterAssignments: many(raidPlanEncounterAssignments),
+  aaSlotAssignments: many(raidPlanEncounterAASlots),
+}));
 
 /**
  * Encounter groups for a raid plan.
@@ -247,9 +226,7 @@ export const raidPlanEncounterGroups = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    raidPlanIdIdx: index("raid_plan_encounter_group__raid_plan_id_idx").on(
-      table.raidPlanId,
-    ),
+    raidPlanIdIdx: index("raid_plan_encounter_group__raid_plan_id_idx").on(table.raidPlanId),
   }),
 );
 
@@ -288,28 +265,23 @@ export const raidPlanEncounters = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    raidPlanIdIdx: index("raid_plan_encounter__raid_plan_id_idx").on(
-      table.raidPlanId,
-    ),
+    raidPlanIdIdx: index("raid_plan_encounter__raid_plan_id_idx").on(table.raidPlanId),
     groupIdIdx: index("raid_plan_encounter__group_id_idx").on(table.groupId),
   }),
 );
 
-export const raidPlanEncountersRelations = relations(
-  raidPlanEncounters,
-  ({ one, many }) => ({
-    raidPlan: one(raidPlans, {
-      fields: [raidPlanEncounters.raidPlanId],
-      references: [raidPlans.id],
-    }),
-    group: one(raidPlanEncounterGroups, {
-      fields: [raidPlanEncounters.groupId],
-      references: [raidPlanEncounterGroups.id],
-    }),
-    assignments: many(raidPlanEncounterAssignments),
-    aaSlots: many(raidPlanEncounterAASlots),
+export const raidPlanEncountersRelations = relations(raidPlanEncounters, ({ one, many }) => ({
+  raidPlan: one(raidPlans, {
+    fields: [raidPlanEncounters.raidPlanId],
+    references: [raidPlans.id],
   }),
-);
+  group: one(raidPlanEncounterGroups, {
+    fields: [raidPlanEncounters.groupId],
+    references: [raidPlanEncounterGroups.id],
+  }),
+  assignments: many(raidPlanEncounterAssignments),
+  aaSlots: many(raidPlanEncounterAASlots),
+}));
 
 /**
  * Custom group assignments for a specific encounter.
@@ -331,12 +303,10 @@ export const raidPlanEncounterAssignments = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    encounterIdIdx: index(
-      "raid_plan_encounter_assignment__encounter_id_idx",
-    ).on(table.encounterId),
-    planCharacterIdIdx: index(
-      "raid_plan_encounter_assignment__plan_character_id_idx",
-    ).on(table.planCharacterId),
+    encounterIdIdx: index("raid_plan_encounter_assignment__encounter_id_idx").on(table.encounterId),
+    planCharacterIdIdx: index("raid_plan_encounter_assignment__plan_character_id_idx").on(
+      table.planCharacterId,
+    ),
   }),
 );
 
@@ -383,29 +353,24 @@ export const raidPlanEncounterAASlots = tableCreator(
   (table) => ({
     encounterIdIdx: index("aa_slot__encounter_id_idx").on(table.encounterId),
     raidPlanIdIdx: index("aa_slot__raid_plan_id_idx").on(table.raidPlanId),
-    planCharacterIdIdx: index("aa_slot__plan_character_id_idx").on(
-      table.planCharacterId,
-    ),
+    planCharacterIdIdx: index("aa_slot__plan_character_id_idx").on(table.planCharacterId),
   }),
 );
 
-export const raidPlanEncounterAASlotsRelations = relations(
-  raidPlanEncounterAASlots,
-  ({ one }) => ({
-    encounter: one(raidPlanEncounters, {
-      fields: [raidPlanEncounterAASlots.encounterId],
-      references: [raidPlanEncounters.id],
-    }),
-    raidPlan: one(raidPlans, {
-      fields: [raidPlanEncounterAASlots.raidPlanId],
-      references: [raidPlans.id],
-    }),
-    planCharacter: one(raidPlanCharacters, {
-      fields: [raidPlanEncounterAASlots.planCharacterId],
-      references: [raidPlanCharacters.id],
-    }),
+export const raidPlanEncounterAASlotsRelations = relations(raidPlanEncounterAASlots, ({ one }) => ({
+  encounter: one(raidPlanEncounters, {
+    fields: [raidPlanEncounterAASlots.encounterId],
+    references: [raidPlanEncounters.id],
   }),
-);
+  raidPlan: one(raidPlans, {
+    fields: [raidPlanEncounterAASlots.raidPlanId],
+    references: [raidPlans.id],
+  }),
+  planCharacter: one(raidPlanCharacters, {
+    fields: [raidPlanEncounterAASlots.planCharacterId],
+    references: [raidPlanCharacters.id],
+  }),
+}));
 
 /**
  * Ephemeral viewer/editor presence for a raid plan.
@@ -423,21 +388,13 @@ export const raidPlanPresence = tableCreator(
       .references(() => users.id, { onDelete: "cascade" }),
     clientSessionId: varchar("client_session_id", { length: 128 }).notNull(),
     mode: varchar("mode", { length: 16 }).notNull().default("viewing"),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    raidPlanIdIdx: index("raid_plan_presence__raid_plan_id_idx").on(
-      table.raidPlanId,
-    ),
+    raidPlanIdIdx: index("raid_plan_presence__raid_plan_id_idx").on(table.raidPlanId),
     userIdIdx: index("raid_plan_presence__user_id_idx").on(table.userId),
-    lastSeenAtIdx: index("raid_plan_presence__last_seen_at_idx").on(
-      table.lastSeenAt,
-    ),
+    lastSeenAtIdx: index("raid_plan_presence__last_seen_at_idx").on(table.lastSeenAt),
     sessionIdx: uniqueIndex("raid_plan_presence__plan_session_idx").on(
       table.raidPlanId,
       table.clientSessionId,
@@ -445,16 +402,13 @@ export const raidPlanPresence = tableCreator(
   }),
 );
 
-export const raidPlanPresenceRelations = relations(
-  raidPlanPresence,
-  ({ one }) => ({
-    raidPlan: one(raidPlans, {
-      fields: [raidPlanPresence.raidPlanId],
-      references: [raidPlans.id],
-    }),
-    user: one(users, {
-      fields: [raidPlanPresence.userId],
-      references: [users.id],
-    }),
+export const raidPlanPresenceRelations = relations(raidPlanPresence, ({ one }) => ({
+  raidPlan: one(raidPlans, {
+    fields: [raidPlanPresence.raidPlanId],
+    references: [raidPlans.id],
   }),
-);
+  user: one(users, {
+    fields: [raidPlanPresence.userId],
+    references: [users.id],
+  }),
+}));

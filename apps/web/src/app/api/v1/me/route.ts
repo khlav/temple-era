@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { characters } from "~/server/db/schema";
@@ -34,10 +35,7 @@ export async function GET(request: Request) {
       character: character ?? null,
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

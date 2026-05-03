@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users, accounts, raidLogs } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -14,11 +15,8 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization");
 
     if (!env.TEMPLE_WEB_API_TOKEN) {
-      console.error("TEMPLE_WEB_API_TOKEN environment variable not set");
-      const response = await compressResponse(
-        { error: "Server configuration error" },
-        request,
-      );
+      logger.error("TEMPLE_WEB_API_TOKEN environment variable not set");
+      const response = await compressResponse({ error: "Server configuration error" }, request);
       return new NextResponse(response.body, {
         status: 500,
         headers: response.headers,
@@ -26,15 +24,15 @@ export async function POST(request: Request) {
     }
 
     if (authHeader !== `Bearer ${env.TEMPLE_WEB_API_TOKEN}`) {
-      console.error("Unauthorized API access attempt", {
-        ip: request.headers.get("x-forwarded-for"),
-        userAgent: request.headers.get("user-agent"),
-        timestamp: new Date().toISOString(),
-      });
-      const response = await compressResponse(
-        { error: "Unauthorized" },
-        request,
+      logger.error(
+        {
+          ip: request.headers.get("x-forwarded-for"),
+          userAgent: request.headers.get("user-agent"),
+          timestamp: new Date().toISOString(),
+        },
+        "Unauthorized API access attempt",
       );
+      const response = await compressResponse({ error: "Unauthorized" }, request);
       return new NextResponse(response.body, {
         status: 401,
         headers: response.headers,
@@ -45,10 +43,7 @@ export async function POST(request: Request) {
     const { discordUserId, newWclUrl, discordMessageId } = await request.json();
 
     if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse(
-        { error: "Invalid Discord user ID" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -56,10 +51,7 @@ export async function POST(request: Request) {
     }
 
     if (!newWclUrl || !newWclUrl.includes("warcraftlogs.com/reports/")) {
-      const response = await compressResponse(
-        { error: "Invalid WarcraftLogs URL" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid WarcraftLogs URL" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -67,10 +59,7 @@ export async function POST(request: Request) {
     }
 
     if (!discordMessageId || !/^\d{17,19}$/.test(discordMessageId)) {
-      const response = await compressResponse(
-        { error: "Invalid Discord message ID" },
-        request,
-      );
+      const response = await compressResponse({ error: "Invalid Discord message ID" }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
@@ -90,12 +79,7 @@ export async function POST(request: Request) {
       })
       .from(users)
       .innerJoin(accounts, eq(users.id, accounts.userId))
-      .where(
-        and(
-          eq(accounts.provider, "discord"),
-          eq(accounts.providerAccountId, discordUserId),
-        ),
-      )
+      .where(and(eq(accounts.provider, "discord"), eq(accounts.providerAccountId, discordUserId)))
       .limit(1);
 
     if (userResult.length === 0) {
@@ -228,16 +212,11 @@ export async function POST(request: Request) {
 
     if (existingRaidLogWithNewId.length > 0) {
       const existingLog = existingRaidLogWithNewId[0];
-      if (
-        existingLog &&
-        existingLog.raidId &&
-        existingLog.raidId !== oldRaidLog.raidId
-      ) {
+      if (existingLog && existingLog.raidId && existingLog.raidId !== oldRaidLog.raidId) {
         return await compressResponse(
           {
             success: false,
-            error:
-              "This WarcraftLogs report is already being used by another raid",
+            error: "This WarcraftLogs report is already being used by another raid",
           },
           request,
         );
@@ -245,8 +224,7 @@ export async function POST(request: Request) {
     }
 
     // 9. Import new WCL log
-    const newRaidLog =
-      await caller.raidLog.importAndGetRaidLogByRaidLogId(newReportId);
+    const newRaidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId(newReportId);
 
     if (!newRaidLog) {
       return await compressResponse(
@@ -299,10 +277,7 @@ export async function POST(request: Request) {
     });
 
     // 14. Update the new raid log with the Discord message ID
-    await db
-      .update(raidLogs)
-      .set({ discordMessageId })
-      .where(eq(raidLogs.raidLogId, newReportId));
+    await db.update(raidLogs).set({ discordMessageId }).where(eq(raidLogs.raidLogId, newReportId));
 
     // 15. Remove the Discord message ID from the old raid log
     await db
@@ -329,7 +304,7 @@ export async function POST(request: Request) {
       request,
     );
   } catch (error) {
-    console.error("Error updating raid:", error);
+    logger.error({ err: error }, "Error updating raid");
     const response = await compressResponse(
       { success: false, error: "Internal server error" },
       request,

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { characters } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -15,10 +13,7 @@ export async function GET(
     const { id } = await params;
     const characterId = parseInt(id, 10);
     if (isNaN(characterId)) {
-      return NextResponse.json(
-        { error: "Invalid character ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid character ID" }, { status: 400 });
     }
 
     const characterResult = await db.query.characters.findFirst({
@@ -52,10 +47,7 @@ export async function GET(
     });
 
     if (!characterResult) {
-      return NextResponse.json(
-        { error: "Character not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Character not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -72,10 +64,7 @@ export async function GET(
       secondaryCharacters: characterResult.secondaryCharacters,
     });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

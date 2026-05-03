@@ -7,10 +7,7 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    AUTH_SECRET:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().optional(),
+    AUTH_SECRET: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
     AUTH_DISCORD_ID: z.string(),
     AUTH_DISCORD_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
@@ -26,9 +23,7 @@ export const env = createEnv({
 
     DISCORD_BOT_TOKEN: z.string(),
     DISCORD_RAID_LOGS_CHANNEL_ID: z.string(),
-    DISCORD_RAID_SR_CHANNEL_IDS: z
-      .string()
-      .transform((str) => str.split(",").map((s) => s.trim())),
+    DISCORD_RAID_SR_CHANNEL_IDS: z.string().transform((str) => str.split(",").map((s) => s.trim())),
     DISCORD_RAID_HELPER_BOT_ID: z.string(),
     DISCORD_WEBHOOK_PUBLIC_KEY: z.string().optional(),
     DISCORD_SERVER_ID: z.string(),
@@ -36,9 +31,7 @@ export const env = createEnv({
     TEMPLE_WEB_API_TOKEN: z.string(),
     API_TOKEN_ENCRYPTION_KEY: z.string().min(1),
 
-    NODE_ENV: z
-      .enum(["development", "test", "production"])
-      .default("development"),
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     GOOGLE_SITE_VERIFICATION: z.string().optional(),
   },
 
@@ -48,9 +41,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_POSTHOG_ENABLED: z
-      .string()
-      .transform((val) => val.toLowerCase() === "true"),
+    NEXT_PUBLIC_POSTHOG_ENABLED: z.string().transform((val) => val.toLowerCase() === "true"),
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
     NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: z.string().url(),
   },
@@ -86,8 +77,7 @@ export const env = createEnv({
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL:
-      process.env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL,
+    NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: process.env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL,
 
     NODE_ENV: process.env.NODE_ENV,
     GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION,

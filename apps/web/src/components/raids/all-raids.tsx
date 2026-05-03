@@ -19,10 +19,9 @@ export function AllRaids({
   session?: Session;
   raids?: Raid[] | null;
 }) {
-  const { data: fetchedRaids, isLoading } = api.raid.getRaids.useQuery(
-    undefined,
-    { enabled: !initialRaids },
-  );
+  const { data: fetchedRaids, isLoading } = api.raid.getRaids.useQuery(undefined, {
+    enabled: !initialRaids,
+  });
   const raids = initialRaids ?? fetchedRaids;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,9 +75,7 @@ export function AllRaids({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
-              <Badge variant="secondary">
-                {filteredRaids?.length ?? 0} raids
-              </Badge>
+              <Badge variant="secondary">{filteredRaids?.length ?? 0} raids</Badge>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>
                 <ul className="list-disc space-y-1 pl-4">

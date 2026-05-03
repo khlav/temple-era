@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import { db } from "~/server/db";
@@ -37,29 +38,17 @@ export async function PUT(
       return NextResponse.json({ error: "Zone not found" }, { status: 404 });
     }
     if (!UUID_RE.test(encounterId)) {
-      return NextResponse.json(
-        { error: "Invalid encounter ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid encounter ID" }, { status: 400 });
     }
 
     const template = await getTemplateByZoneId(zoneId);
     if (!template) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
-    const encounter = await validateEncounterOwnership(
-      encounterId,
-      template.id,
-    );
+    const encounter = await validateEncounterOwnership(encounterId, template.id);
     if (!encounter) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
     let body: unknown;
@@ -79,10 +68,7 @@ export async function PUT(
 
     const input = parsed.data;
     if (Object.keys(input).length === 0) {
-      return NextResponse.json(
-        { error: "No fields provided" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "No fields provided" }, { status: 400 });
     }
 
     const updates: Partial<{
@@ -107,11 +93,8 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -133,29 +116,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Zone not found" }, { status: 404 });
     }
     if (!UUID_RE.test(encounterId)) {
-      return NextResponse.json(
-        { error: "Invalid encounter ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid encounter ID" }, { status: 400 });
     }
 
     const template = await getTemplateByZoneId(zoneId);
     if (!template) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
-    const encounter = await validateEncounterOwnership(
-      encounterId,
-      template.id,
-    );
+    const encounter = await validateEncounterOwnership(encounterId, template.id);
     if (!encounter) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
     await db
@@ -164,10 +135,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

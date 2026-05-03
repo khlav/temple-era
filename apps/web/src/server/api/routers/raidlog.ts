@@ -1,21 +1,11 @@
 import { z } from "zod";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  raidManagerProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
 import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
-import {
-  GetWCLGraphQLQuery,
-  RaidReportDataShaper,
-} from "~/server/api/wcl-helpers";
-import type {
-  RaidLog,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import { GetWCLGraphQLQuery, RaidReportDataShaper } from "~/server/api/wcl-helpers";
+import type { RaidLog, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
 import { Slugify } from "~/server/api/wcl-helpers";
@@ -65,8 +55,7 @@ const queryGetRaidLogById = async (db: DB, input: string) => {
   });
 
   if (raidLogResult) {
-    const { name, raidLogId, raidId, startTimeUTC, endTimeUTC, zone, kills } =
-      raidLogResult;
+    const { name, raidLogId, raidId, startTimeUTC, endTimeUTC, zone, kills } = raidLogResult;
     const raidLogAttendeeMap = raidLogResult.raidLogAttendeeMap;
 
     const participants = raidLogAttendeeMap.reduce((acc, rel) => {
@@ -88,11 +77,7 @@ const queryGetRaidLogById = async (db: DB, input: string) => {
   return null;
 };
 
-const mutateInsertRaidLogWithAttendees = async (
-  db: DB,
-  session: Session,
-  input: RaidLog,
-) => {
+const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input: RaidLog) => {
   // Insert or update raid log with onConflictDoUpdate
   await db
     .insert(raidLogs)
@@ -132,11 +117,7 @@ const mutateInsertRaidLogWithAttendees = async (
         server: participant.server,
         createdById: session.user.id,
         slug: Slugify(
-          [
-            participant.name,
-            participant.server,
-            participant.characterId.toString(),
-          ].join("-"),
+          [participant.name, participant.server, participant.characterId.toString()].join("-"),
         ),
       })
       .onConflictDoUpdate({
@@ -156,9 +137,7 @@ const mutateInsertRaidLogWithAttendees = async (
   }
 
   // Clear existing attendee mappings for this raid log to handle roster changes
-  await db
-    .delete(raidLogAttendeeMap)
-    .where(eq(raidLogAttendeeMap.raidLogId, input.raidLogId));
+  await db.delete(raidLogAttendeeMap).where(eq(raidLogAttendeeMap.raidLogId, input.raidLogId));
 
   // Insert fresh attendee mappings
   await db.insert(raidLogAttendeeMap).values(
@@ -201,34 +180,26 @@ export const raidLog = createTRPCRouter({
     .input(z.string())
     .query(async ({ ctx, input }) => await queryGetRaidLogById(ctx.db, input)),
 
-  getParticipants: publicProcedure
-    .input(z.string())
-    .query(async ({ ctx, input }) => {
-      const primaryCharacters = aliasedTable(characters, "primary_character");
-      const allCharacters = await ctx.db
-        .selectDistinct({
-          characterId: characters.characterId,
-          name: characters.name,
-          class: characters.class,
-          classDetail: characters.classDetail,
-          server: characters.server,
-          slug: characters.slug,
-          isPrimary: characters.isPrimary,
-          primaryCharacterId: characters.primaryCharacterId,
-          primaryCharacterName: primaryCharacters.name,
-        })
-        .from(characters)
-        .leftJoin(
-          primaryCharacters,
-          eq(characters.primaryCharacterId, primaryCharacters.characterId),
-        )
-        .leftJoin(
-          raidLogAttendeeMap,
-          eq(raidLogAttendeeMap.characterId, characters.characterId),
-        )
-        .where(eq(raidLogAttendeeMap.raidLogId, input));
-      return convertParticipantArrayToCollection(allCharacters);
-    }),
+  getParticipants: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
+    const primaryCharacters = aliasedTable(characters, "primary_character");
+    const allCharacters = await ctx.db
+      .selectDistinct({
+        characterId: characters.characterId,
+        name: characters.name,
+        class: characters.class,
+        classDetail: characters.classDetail,
+        server: characters.server,
+        slug: characters.slug,
+        isPrimary: characters.isPrimary,
+        primaryCharacterId: characters.primaryCharacterId,
+        primaryCharacterName: primaryCharacters.name,
+      })
+      .from(characters)
+      .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
+      .leftJoin(raidLogAttendeeMap, eq(raidLogAttendeeMap.characterId, characters.characterId))
+      .where(eq(raidLogAttendeeMap.raidLogId, input));
+    return convertParticipantArrayToCollection(allCharacters);
+  }),
 
   getUniqueParticipantsFromMultipleLogs: publicProcedure
     .input(z.array(z.string()))
@@ -251,10 +222,7 @@ export const raidLog = createTRPCRouter({
           primaryCharacters,
           eq(characters.primaryCharacterId, primaryCharacters.characterId),
         )
-        .leftJoin(
-          raidLogAttendeeMap,
-          eq(raidLogAttendeeMap.characterId, characters.characterId),
-        )
+        .leftJoin(raidLogAttendeeMap, eq(raidLogAttendeeMap.characterId, characters.characterId))
         .where(inArray(raidLogAttendeeMap.raidLogId, input));
       return convertParticipantArrayToCollection(allCharacters);
     }),
@@ -264,15 +232,10 @@ export const raidLog = createTRPCRouter({
     return raidLogs ?? null;
   }),
 
-  getRaidLogsByRaidId: publicProcedure
-    .input(z.number())
-    .query(async ({ ctx, input }) => {
-      const logs = await ctx.db
-        .select()
-        .from(raidLogs)
-        .where(eq(raidLogs.raidId, input));
-      return logs ?? null;
-    }),
+  getRaidLogsByRaidId: publicProcedure.input(z.number()).query(async ({ ctx, input }) => {
+    const logs = await ctx.db.select().from(raidLogs).where(eq(raidLogs.raidId, input));
+    return logs ?? null;
+  }),
 
   /*
     Admin procedures

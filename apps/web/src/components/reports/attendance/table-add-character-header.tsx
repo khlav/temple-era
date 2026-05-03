@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import {
   Command,
   CommandInput,
@@ -19,11 +15,7 @@ import { Plus } from "lucide-react";
 import { api } from "~/trpc/react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import anyAscii from "any-ascii";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export function TableAddCharacterHeader({
   selectedCharacterIds,
@@ -33,8 +25,7 @@ export function TableAddCharacterHeader({
   onAddCharacter: (characterId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: characters, isLoading } =
-    api.reports.getPrimaryCharacters.useQuery();
+  const { data: characters, isLoading } = api.reports.getPrimaryCharacters.useQuery();
 
   const availableCharacters = (characters || [])
     .filter((char) => !selectedCharacterIds.includes(char.characterId))

@@ -16,9 +16,7 @@ export function ApiAccessCard() {
   const { data: profile, isLoading } = api.profile.getMyProfile.useQuery();
 
   const [newToken, setNewToken] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<
-    "regenerate" | "revoke" | null
-  >(null);
+  const [confirmAction, setConfirmAction] = useState<"regenerate" | "revoke" | null>(null);
 
   const generateToken = api.profile.generateApiToken.useMutation({
     onSuccess: (data) => {
@@ -59,9 +57,7 @@ export function ApiAccessCard() {
     onSuccess: (data) => {
       void utils.profile.getMyProfile.invalidate();
       toast({
-        title: data.templarEnabled
-          ? "Templar access enabled"
-          : "Templar access disabled",
+        title: data.templarEnabled ? "Templar access enabled" : "Templar access disabled",
       });
     },
     onError: (err) => {
@@ -97,10 +93,7 @@ export function ApiAccessCard() {
 
   if (!isRaidManager && !isAdmin) return null;
 
-  const isPending =
-    generateToken.isPending ||
-    revokeToken.isPending ||
-    setTemplarEnabled.isPending;
+  const isPending = generateToken.isPending || revokeToken.isPending || setTemplarEnabled.isPending;
 
   return (
     <Card>
@@ -130,20 +123,14 @@ export function ApiAccessCard() {
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-2">
           {!hasApiToken && !newToken ? (
-            <Button
-              size="sm"
-              onClick={() => generateToken.mutate()}
-              disabled={isPending}
-            >
+            <Button size="sm" onClick={() => generateToken.mutate()} disabled={isPending}>
               Generate Token
             </Button>
           ) : (
             <>
               {confirmAction === "regenerate" ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Replace existing token?
-                  </span>
+                  <span className="text-sm text-muted-foreground">Replace existing token?</span>
                   <Button
                     size="sm"
                     variant="destructive"
@@ -163,9 +150,7 @@ export function ApiAccessCard() {
                 </div>
               ) : confirmAction === "revoke" ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Revoke token?
-                  </span>
+                  <span className="text-sm text-muted-foreground">Revoke token?</span>
                   <Button
                     size="sm"
                     variant="destructive"
@@ -248,17 +233,15 @@ export function ApiAccessCard() {
                 id="templar-enabled"
                 checked={templarEnabled ?? false}
                 disabled={isPending}
-                onCheckedChange={(checked) =>
-                  setTemplarEnabled.mutate({ enabled: checked })
-                }
+                onCheckedChange={(checked) => setTemplarEnabled.mutate({ enabled: checked })}
               />
               <Label htmlFor="templar-enabled" className="text-sm">
                 Allow Templar (Discord bot) to act when you ask it to
               </Label>
             </div>
             <p className="pl-10 text-xs text-muted-foreground">
-              Templar is available to Raid Managers only. When disabled, Templar
-              will ignore your requests.
+              Templar is available to Raid Managers only. When disabled, Templar will ignore your
+              requests.
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 // src/app/api/v1/zone-templates/route.ts
 import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
 import { asc, inArray } from "drizzle-orm";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { RAID_ZONE_CONFIG } from "~/lib/raid-zones";
@@ -107,10 +108,7 @@ export async function GET(request: Request) {
       })),
     );
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

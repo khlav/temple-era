@@ -83,8 +83,7 @@ interface FindPlayersState {
 
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [findPlayersState, setFindPlayersState] =
-    useState<FindPlayersState | null>(null);
+  const [findPlayersState, setFindPlayersState] = useState<FindPlayersState | null>(null);
   const [isUrlImportOpen, setIsUrlImportOpen] = useState(false);
 
   const {
@@ -97,18 +96,16 @@ export function RaidPlannerImport() {
 
   // Fetch existing plans for all events
   const eventIds = events?.map((e) => e.id) ?? [];
-  const { data: existingPlans } =
-    api.raidPlan.getExistingPlansForEvents.useQuery(
-      { raidHelperEventIds: eventIds },
-      { enabled: eventIds.length > 0 },
-    );
+  const { data: existingPlans } = api.raidPlan.getExistingPlansForEvents.useQuery(
+    { raidHelperEventIds: eventIds },
+    { enabled: eventIds.length > 0 },
+  );
 
   // Fetch past plans (not linked to current scheduled events)
-  const { data: pastPlans, isLoading: isLoadingPastPlans } =
-    api.raidPlan.getPastPlans.useQuery({
-      currentEventIds: eventIds,
-      limit: 20,
-    });
+  const { data: pastPlans, isLoading: isLoadingPastPlans } = api.raidPlan.getPastPlans.useQuery({
+    currentEventIds: eventIds,
+    limit: 20,
+  });
 
   const handleFindPlayers = useCallback(
     (
@@ -164,9 +161,7 @@ export function RaidPlannerImport() {
             ))}
           </div>
         ) : error ? (
-          <div className="text-sm text-red-500">
-            Failed to load events: {error.message}
-          </div>
+          <div className="text-sm text-red-500">Failed to load events: {error.message}</div>
         ) : (
           <ScheduledEventsTable
             events={events}
@@ -237,9 +232,7 @@ function CharacterMatchingDialog({
   const [homeServer, setHomeServer] = useState("");
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [cloneFromPlanId, setCloneFromPlanId] = useState<string | null>(null);
-  const [cloneFromPlanName, setCloneFromPlanName] = useState<string | null>(
-    null,
-  );
+  const [cloneFromPlanName, setCloneFromPlanName] = useState<string | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [pendingCarryForward, setPendingCarryForward] = useState<{
     sourcePlanId: string;
@@ -249,10 +242,9 @@ function CharacterMatchingDialog({
 
   // Default home server to user's primary character server
   const characterId = session?.user?.characterId;
-  const { data: userCharacter } = api.character.getCharacterById.useQuery(
-    characterId ?? -1,
-    { enabled: !!characterId },
-  );
+  const { data: userCharacter } = api.character.getCharacterById.useQuery(characterId ?? -1, {
+    enabled: !!characterId,
+  });
 
   useEffect(() => {
     if (userCharacter?.server && !homeServer) {
@@ -261,18 +253,12 @@ function CharacterMatchingDialog({
   }, [userCharacter?.server, homeServer]);
 
   const { data: eventDetails, isLoading: isLoadingDetails } =
-    api.raidHelper.getEventDetails.useQuery(
-      { eventId: eventId! },
-      { enabled: !!eventId && open },
-    );
+    api.raidHelper.getEventDetails.useQuery({ eventId: eventId! }, { enabled: !!eventId && open });
 
   // Prepare signups for matching
   const signupsForMatching = useMemo(() => {
     if (!eventDetails) return [];
-    const allSignups = [
-      ...eventDetails.signups.assigned,
-      ...eventDetails.signups.unassigned,
-    ];
+    const allSignups = [...eventDetails.signups.assigned, ...eventDetails.signups.unassigned];
     return allSignups.map((s) => ({
       userId: s.userId,
       discordName: s.name,
@@ -320,8 +306,7 @@ function CharacterMatchingDialog({
 
   // Detect zone from event title
   const autoDetectedZone = useMemo(() => {
-    const rawTitle =
-      eventDetails?.event.displayTitle || eventDetails?.event.title;
+    const rawTitle = eventDetails?.event.displayTitle || eventDetails?.event.title;
     if (!rawTitle) return null;
     return detectZoneFromTitle(rawTitle);
   }, [eventDetails?.event.displayTitle, eventDetails?.event.title]);
@@ -381,10 +366,8 @@ function CharacterMatchingDialog({
       .map((r) => {
         // Convert partyId/slotId from 1-indexed to 0-indexed
         // Groups 9+ are bench (null group and position)
-        const defaultGroup =
-          r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
-        const defaultPosition =
-          defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
+        const defaultGroup = r.partyId !== null && r.partyId <= 8 ? r.partyId - 1 : null;
+        const defaultPosition = defaultGroup !== null && r.slotId !== null ? r.slotId - 1 : null;
 
         // Use matched character name if available, otherwise use discord name
         const characterName =
@@ -393,20 +376,15 @@ function CharacterMatchingDialog({
             : r.discordName;
 
         const characterId =
-          r.status === "matched" && r.matchedCharacter
-            ? r.matchedCharacter.characterId
-            : null;
+          r.status === "matched" && r.matchedCharacter ? r.matchedCharacter.characterId : null;
 
         // For unmatched characters, pass their RaidHelper class as writeInClass
         // Only allow valid WoW classes and recognized RaidHelper statuses (Bench, Tentative, Late)
         const normalizedClass = r.className
-          ? r.className.charAt(0).toUpperCase() +
-            r.className.slice(1).toLowerCase()
+          ? r.className.charAt(0).toUpperCase() + r.className.slice(1).toLowerCase()
           : null;
         const writeInClass =
-          !characterId &&
-          normalizedClass &&
-          VALID_WRITE_IN_CLASSES.has(normalizedClass)
+          !characterId && normalizedClass && VALID_WRITE_IN_CLASSES.has(normalizedClass)
             ? normalizedClass
             : null;
 
@@ -427,14 +405,7 @@ function CharacterMatchingDialog({
       characters,
       cloneFromPlanId: cloneFromPlanId ?? undefined,
     });
-  }, [
-    eventId,
-    eventDetails,
-    matchResults,
-    effectiveZone,
-    createPlanMutation,
-    cloneFromPlanId,
-  ]);
+  }, [eventId, eventDetails, matchResults, effectiveZone, createPlanMutation, cloneFromPlanId]);
 
   const handleCopyMRT = useCallback(() => {
     if (!matchResults) return;
@@ -487,9 +458,7 @@ function CharacterMatchingDialog({
       <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {eventDetails?.event.displayTitle ??
-              eventDetails?.event.title ??
-              "Character Matching"}
+            {eventDetails?.event.displayTitle ?? eventDetails?.event.title ?? "Character Matching"}
           </DialogTitle>
         </DialogHeader>
 
@@ -553,28 +522,18 @@ function CharacterMatchingDialog({
                       .map(([partyId, members]) => (
                         <div key={partyId ?? "unassigned"}>
                           <div className="mb-1 font-medium">
-                            {eventDetails?.plan?.partyNames?.[partyId! - 1] ??
-                              `Group ${partyId}`}
+                            {eventDetails?.plan?.partyNames?.[partyId! - 1] ?? `Group ${partyId}`}
                           </div>
                           <ul className="ml-1 space-y-0.5">
                             {members
-                              .sort(
-                                (a, b) => (a.slotId ?? 999) - (b.slotId ?? 999),
-                              )
+                              .sort((a, b) => (a.slotId ?? 999) - (b.slotId ?? 999))
                               .map((m) => (
-                                <li
-                                  key={m.userId}
-                                  className="flex items-center gap-1.5"
-                                >
+                                <li key={m.userId} className="flex items-center gap-1.5">
                                   {m.status === "matched" && (
                                     <>
                                       <Check className="h-3 w-3 shrink-0 text-green-600" />
-                                      <span className="text-muted-foreground">
-                                        {m.discordName}
-                                      </span>
-                                      <span className="text-muted-foreground">
-                                        →
-                                      </span>
+                                      <span className="text-muted-foreground">{m.discordName}</span>
+                                      <span className="text-muted-foreground">→</span>
                                       <span className="font-medium">
                                         {m.matchedCharacter?.characterName}
                                         {m.matchedCharacter?.characterServer &&
@@ -585,12 +544,8 @@ function CharacterMatchingDialog({
                                   {m.status === "ambiguous" && (
                                     <>
                                       <AlertTriangle className="h-3 w-3 shrink-0 text-yellow-600" />
-                                      <span className="text-muted-foreground">
-                                        {m.discordName}
-                                      </span>
-                                      <span className="text-muted-foreground">
-                                        →
-                                      </span>
+                                      <span className="text-muted-foreground">{m.discordName}</span>
+                                      <span className="text-muted-foreground">→</span>
                                       <span className="text-yellow-600">
                                         {m.candidates
                                           ?.map(
@@ -632,16 +587,11 @@ function CharacterMatchingDialog({
                       </div>
                       <ul className="ml-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-xs sm:grid-cols-2 lg:grid-cols-3">
                         {matchStats.byParty.get(null)!.map((m) => (
-                          <li
-                            key={m.userId}
-                            className="flex items-center gap-1.5"
-                          >
+                          <li key={m.userId} className="flex items-center gap-1.5">
                             {m.status === "matched" && (
                               <>
                                 <Check className="h-3 w-3 shrink-0 text-green-600" />
-                                <span className="text-muted-foreground">
-                                  {m.discordName}
-                                </span>
+                                <span className="text-muted-foreground">{m.discordName}</span>
                                 <span className="text-muted-foreground">→</span>
                                 <span className="font-medium">
                                   {m.matchedCharacter?.characterName}
@@ -653,9 +603,7 @@ function CharacterMatchingDialog({
                             {m.status === "ambiguous" && (
                               <>
                                 <AlertTriangle className="h-3 w-3 shrink-0 text-yellow-600" />
-                                <span className="text-muted-foreground">
-                                  {m.discordName}
-                                </span>
+                                <span className="text-muted-foreground">{m.discordName}</span>
                                 <span className="text-muted-foreground">→</span>
                                 <span className="text-yellow-600">
                                   {m.candidates
@@ -691,15 +639,11 @@ function CharacterMatchingDialog({
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground">
-                No signups to match
-              </div>
+              <div className="text-sm text-muted-foreground">No signups to match</div>
             )}
           </div>
         ) : (
-          <div className="text-sm text-red-500">
-            Failed to load event details
-          </div>
+          <div className="text-sm text-red-500">Failed to load event details</div>
         )}
 
         {matchStats && (
@@ -710,28 +654,19 @@ function CharacterMatchingDialog({
                 <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   Zone Template:
                   {autoDetectedZone && effectiveZone === autoDetectedZone && (
-                    <Badge
-                      variant="secondary"
-                      className="px-1.5 py-0 text-[10px]"
-                    >
+                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
                       Auto
                     </Badge>
                   )}
                 </label>
-                <ZoneSelect
-                  value={effectiveZone ?? undefined}
-                  onValueChange={setSelectedZone}
-                />
+                <ZoneSelect value={effectiveZone ?? undefined} onValueChange={setSelectedZone} />
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               {/* Server selector */}
               <div className="flex items-center gap-2">
-                <label
-                  className="text-sm text-muted-foreground"
-                  htmlFor="home-server-select"
-                >
+                <label className="text-sm text-muted-foreground" htmlFor="home-server-select">
                   My server:
                 </label>
                 <select
@@ -759,9 +694,7 @@ function CharacterMatchingDialog({
                   className="max-w-[230px] rounded-r-none"
                   title={
                     cloneFromPlanName ||
-                    (!effectiveZone
-                      ? "Please select a zone to create the plan"
-                      : "Create Plan")
+                    (!effectiveZone ? "Please select a zone to create the plan" : "Create Plan")
                   }
                 >
                   <span className="block truncate">

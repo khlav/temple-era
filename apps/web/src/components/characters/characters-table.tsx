@@ -1,20 +1,13 @@
 "use client";
 
-import type {
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import anyAscii from "any-ascii";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
 import type { Session } from "next-auth";
 import { CharacterLink } from "~/components/ui/character-link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import React from "react";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent } from "~/components/ui/card";
@@ -51,9 +44,7 @@ const renderAttendanceWithTooltips = (attendee: number, bench: number) => {
   }
 
   const tooltipContent =
-    bench > 0
-      ? `Attended: ${attendee}\nBench: ${bench}`
-      : `Attended: ${attendee}`;
+    bench > 0 ? `Attended: ${attendee}\nBench: ${bench}` : `Attended: ${attendee}`;
 
   return (
     <Tooltip>
@@ -101,18 +92,13 @@ export function CharactersTable({
   const isMobile = useIsMobile();
   const characterList =
     characters &&
-    Object.values(characters).sort((a, b) =>
-      anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
-    );
+    Object.values(characters).sort((a, b) => (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1));
 
   return (
     <div className="space-y-3">
       {isLoading ? (
         <div className="min-h-[360px] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70 md:min-h-[600px] md:border-0">
-          <GenericCharactersTableSkeleton
-            rows={13}
-            showRaidColumns={showRaidColumns}
-          />
+          <GenericCharactersTableSkeleton rows={13} showRaidColumns={showRaidColumns} />
         </div>
       ) : isMobile ? (
         <VirtualizedList
@@ -171,15 +157,9 @@ export function CharactersTable({
                         const value = formatAttendance(attendee, bench);
 
                         return (
-                          <Badge
-                            key={zone}
-                            variant="secondary"
-                            className="gap-1 font-normal"
-                          >
+                          <Badge key={zone} variant="secondary" className="gap-1 font-normal">
                             <span>{zoneAbbreviation(zone)}</span>
-                            <span className={attendee < 4 ? "opacity-70" : ""}>
-                              {value || "0"}
-                            </span>
+                            <span className={attendee < 4 ? "opacity-70" : ""}>{value || "0"}</span>
                           </Badge>
                         );
                       })}
@@ -205,9 +185,7 @@ export function CharactersTable({
             )}
           >
             {session?.user?.isRaidManager ? <div /> : null}
-            <div>
-              Characters {characterList ? `(${characterList.length})` : ""}
-            </div>
+            <div>Characters {characterList ? `(${characterList.length})` : ""}</div>
             <div>Server</div>
             {showRaidColumns
               ? FORTY_MAN_INSTANCES.map((zone) => (
@@ -260,9 +238,7 @@ export function CharactersTable({
                       iconSize={20}
                       target={targetNewTab ? "_blank" : "_self"}
                     />
-                    {targetNewTab ? (
-                      <ExternalLinkIcon className="ml-1 shrink-0" size={15} />
-                    ) : null}
+                    {targetNewTab ? <ExternalLinkIcon className="ml-1 shrink-0" size={15} /> : null}
                   </div>
                 </div>
                 <div className="truncate text-muted-foreground">{c.server}</div>
@@ -275,10 +251,7 @@ export function CharactersTable({
                       return (
                         <div
                           key={zone}
-                          className={cn(
-                            "text-center text-xs",
-                            getAttendanceStyling(attendee),
-                          )}
+                          className={cn("text-center text-xs", getAttendanceStyling(attendee))}
                         >
                           {renderAttendanceWithTooltips(attendee, bench)}
                         </div>

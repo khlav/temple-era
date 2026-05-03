@@ -18,10 +18,9 @@ import { CharacterBadges } from "~/components/characters/character-badges";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
 
 function CharacterAttendanceContent({ characterId }: { characterId: number }) {
-  const { data: attendanceData } =
-    api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery({
-      characterId,
-    });
+  const { data: attendanceData } = api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery({
+    characterId,
+  });
 
   // The query already filters by characterId, so we should get at most one result
   const userAttendance = attendanceData?.[0];
@@ -65,10 +64,7 @@ export function CharacterDetail({
       <div className="flex flex-col">
         <div className="flex flex-row items-center gap-1">
           <div className="grow-0">
-            <ClassIcon
-              characterClass={characterData.class.toLowerCase()}
-              px={32}
-            />
+            <ClassIcon characterClass={characterData.class.toLowerCase()} px={32} />
           </div>
           <div className="grow-0 text-2xl font-bold">{characterData.name}</div>
           <div className="grow" />
@@ -91,9 +87,7 @@ export function CharacterDetail({
               <div className="flex flex-wrap gap-2">
                 <div className="grow-0 py-2 text-sm">Alts:</div>
                 {(characterData.secondaryCharacters ?? [])
-                  .sort((a, b) =>
-                    anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
-                  )
+                  .sort((a, b) => (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1))
                   .map((secondaryCharacter) => (
                     <Link
                       key={secondaryCharacter.characterId}
@@ -113,10 +107,7 @@ export function CharacterDetail({
           </>
         ) : null}
         <Separator className="my-2 w-full" />
-        <CharacterRecipes
-          character={characterData}
-          showRecipeEditor={showRecipeEdit}
-        />
+        <CharacterRecipes character={characterData} showRecipeEditor={showRecipeEdit} />
         {characterData.isPrimary && (
           <>
             <Separator className="my-2 w-full" />
@@ -146,15 +137,11 @@ export function CharacterDetail({
                     <div className="flex flex-row gap-1">
                       <div className="grow-0">
                         <ClassIcon
-                          characterClass={
-                            characterData.primaryCharacterClass ?? "Unknown"
-                          }
+                          characterClass={characterData.primaryCharacterClass ?? "Unknown"}
                           px={20}
                         />
                       </div>
-                      <div className="grow">
-                        {characterData.primaryCharacterName}
-                      </div>
+                      <div className="grow">{characterData.primaryCharacterName}</div>
                     </div>
                   </Link>
                 </div>
@@ -167,10 +154,7 @@ export function CharacterDetail({
         <div className="">
           {characterData.isPrimary ? (
             <div className="text-md text-muted-foreground">
-              <PrimaryCharacterRaidsTable
-                characterId={characterId}
-                characterData={characterData}
-              />
+              <PrimaryCharacterRaidsTable characterId={characterId} characterData={characterData} />
             </div>
           ) : (
             <div className="text-md text-muted-foreground">

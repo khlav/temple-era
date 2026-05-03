@@ -1,11 +1,9 @@
+import { logger } from "~/lib/logger";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { raidLogs, raids } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  getDiscordWarcraftLogs,
-  getDiscordChannelInfo,
-} from "../discord-helpers";
+import { getDiscordWarcraftLogs, getDiscordChannelInfo } from "../discord-helpers";
 
 export const discordRouter = createTRPCRouter({
   getRecentWarcraftLogs: publicProcedure.query(async () => {
@@ -16,9 +14,7 @@ export const discordRouter = createTRPCRouter({
       const logsWithStatus = await Promise.all(
         discordLogs.map(async (log) => {
           // Extract report ID from URL
-          const reportIdMatch = log.wclUrl.match(
-            /\/reports\/([a-zA-Z0-9]{16})/,
-          );
+          const reportIdMatch = log.wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
           if (!reportIdMatch) {
             return { ...log, raidId: undefined, raidName: undefined };
           }
@@ -52,7 +48,7 @@ export const discordRouter = createTRPCRouter({
 
       return logsWithStatus;
     } catch (error) {
-      console.error("Error fetching Discord Warcraft Logs:", error);
+      logger.error({ err: error }, "Error fetching Discord Warcraft Logs");
       throw new Error("Failed to fetch Discord messages");
     }
   }),
@@ -62,7 +58,7 @@ export const discordRouter = createTRPCRouter({
       const channelInfo = await getDiscordChannelInfo();
       return channelInfo;
     } catch (error) {
-      console.error("Error fetching Discord channel info:", error);
+      logger.error({ err: error }, "Error fetching Discord channel info");
       throw new Error("Failed to fetch Discord channel info");
     }
   }),

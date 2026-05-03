@@ -26,8 +26,7 @@ import {
 } from "~/lib/raid-zones";
 
 export function CurrentLockoutAllRaids() {
-  const { data: trackedRaidData, isLoading } =
-    api.dashboard.getAllRaidsCurrentLockout.useQuery();
+  const { data: trackedRaidData, isLoading } = api.dashboard.getAllRaidsCurrentLockout.useQuery();
 
   return (
     <Card>
@@ -72,9 +71,7 @@ export function CurrentLockoutAllRaids() {
                                   variant="outline"
                                   className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
                                 >
-                                  {zoneId === "naxxramas"
-                                    ? "NAXX"
-                                    : zoneId.toUpperCase()}
+                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
                                 </Badge>
                               ) : null;
                             })()}
@@ -87,11 +84,7 @@ export function CurrentLockoutAllRaids() {
                       <div className="my-auto grow-0">
                         {r.currentUserAttendance && (
                           <AttendanceStatusIcon
-                            status={
-                              r.currentUserAttendance === "bench"
-                                ? "bench"
-                                : "attendee"
-                            }
+                            status={r.currentUserAttendance === "bench" ? "bench" : "attendee"}
                             size={20}
                             variant="centered"
                           />
@@ -100,9 +93,7 @@ export function CurrentLockoutAllRaids() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <RaidAttendenceWeightBadge
-                      attendanceWeight={r.attendanceWeight}
-                    />
+                    <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                   </TableCell>
                   <TableCell className="text-center">
                     {(r.raidLogIds ?? []).map((raidLogId) => {

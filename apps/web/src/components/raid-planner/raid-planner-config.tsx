@@ -5,11 +5,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { api } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { RAID_ZONE_CONFIG } from "~/lib/raid-zones";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-} from "~/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem } from "~/components/ui/accordion";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
@@ -145,10 +141,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         if (!old) return old;
         return old.map((t) => {
           if (t.id !== variables.templateId) return t;
-          const maxSort = t.encounters.reduce(
-            (m, e) => Math.max(m, e.sortOrder),
-            -1,
-          );
+          const maxSort = t.encounters.reduce((m, e) => Math.max(m, e.sortOrder), -1);
           return {
             ...t,
             encounters: [
@@ -237,9 +230,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
         if (!old) return old;
         return old.map((t) => ({
           ...t,
-          encounters: t.encounters.filter(
-            (e) => e.id !== variables.encounterId,
-          ),
+          encounters: t.encounters.filter((e) => e.id !== variables.encounterId),
         }));
       });
       return { previous };
@@ -259,85 +250,74 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
     },
   });
 
-  const createGroup =
-    api.raidPlanTemplate.createTemplateEncounterGroup.useMutation({
-      onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
-      onError: (error) =>
-        toast({
-          title: "Failed to create group",
-          description: error.message,
-          variant: "destructive",
-        }),
-    });
+  const createGroup = api.raidPlanTemplate.createTemplateEncounterGroup.useMutation({
+    onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
+    onError: (error) =>
+      toast({
+        title: "Failed to create group",
+        description: error.message,
+        variant: "destructive",
+      }),
+  });
 
-  const updateGroup =
-    api.raidPlanTemplate.updateTemplateEncounterGroup.useMutation({
-      onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
-      onError: (error) =>
-        toast({
-          title: "Failed to update group",
-          description: error.message,
-          variant: "destructive",
-        }),
-    });
+  const updateGroup = api.raidPlanTemplate.updateTemplateEncounterGroup.useMutation({
+    onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
+    onError: (error) =>
+      toast({
+        title: "Failed to update group",
+        description: error.message,
+        variant: "destructive",
+      }),
+  });
 
-  const deleteGroup =
-    api.raidPlanTemplate.deleteTemplateEncounterGroup.useMutation({
-      onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
-      onError: (error) =>
-        toast({
-          title: "Failed to delete group",
-          description: error.message,
-          variant: "destructive",
-        }),
-    });
+  const deleteGroup = api.raidPlanTemplate.deleteTemplateEncounterGroup.useMutation({
+    onSuccess: () => void utils.raidPlanTemplate.getAll.invalidate(),
+    onError: (error) =>
+      toast({
+        title: "Failed to delete group",
+        description: error.message,
+        variant: "destructive",
+      }),
+  });
 
-  const reorderEncounterGroups =
-    api.raidPlanTemplate.reorderEncounterGroups.useMutation({
-      onMutate: async (variables) => {
-        await utils.raidPlanTemplate.getAll.cancel();
-        const previous = utils.raidPlanTemplate.getAll.getData();
-        const groupOrderMap = new Map(
-          variables.groups.map((g) => [g.id, g.sortOrder]),
-        );
-        const encUpdateMap = new Map(
-          variables.encounters.map((e) => [
-            e.id,
-            { sortOrder: e.sortOrder, groupId: e.groupId },
-          ]),
-        );
-        utils.raidPlanTemplate.getAll.setData(undefined, (old) => {
-          if (!old) return old;
-          return old.map((t) => ({
-            ...t,
-            encounterGroups: t.encounterGroups.map((g) => ({
-              ...g,
-              sortOrder: groupOrderMap.get(g.id) ?? g.sortOrder,
-            })),
-            encounters: t.encounters.map((e) => {
-              const update = encUpdateMap.get(e.id);
-              return update
-                ? { ...e, sortOrder: update.sortOrder, groupId: update.groupId }
-                : e;
-            }),
-          }));
-        });
-        return { previous };
-      },
-      onError: (error, _variables, context) => {
-        if (context?.previous) {
-          utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
-        }
-        toast({
-          title: "Failed to reorder groups",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        void utils.raidPlanTemplate.getAll.invalidate();
-      },
-    });
+  const reorderEncounterGroups = api.raidPlanTemplate.reorderEncounterGroups.useMutation({
+    onMutate: async (variables) => {
+      await utils.raidPlanTemplate.getAll.cancel();
+      const previous = utils.raidPlanTemplate.getAll.getData();
+      const groupOrderMap = new Map(variables.groups.map((g) => [g.id, g.sortOrder]));
+      const encUpdateMap = new Map(
+        variables.encounters.map((e) => [e.id, { sortOrder: e.sortOrder, groupId: e.groupId }]),
+      );
+      utils.raidPlanTemplate.getAll.setData(undefined, (old) => {
+        if (!old) return old;
+        return old.map((t) => ({
+          ...t,
+          encounterGroups: t.encounterGroups.map((g) => ({
+            ...g,
+            sortOrder: groupOrderMap.get(g.id) ?? g.sortOrder,
+          })),
+          encounters: t.encounters.map((e) => {
+            const update = encUpdateMap.get(e.id);
+            return update ? { ...e, sortOrder: update.sortOrder, groupId: update.groupId } : e;
+          }),
+        }));
+      });
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        utils.raidPlanTemplate.getAll.setData(undefined, context.previous);
+      }
+      toast({
+        title: "Failed to reorder groups",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      void utils.raidPlanTemplate.getAll.invalidate();
+    },
+  });
 
   const handleToggleActive = (checked: boolean) => {
     if (!zone.template) return;
@@ -357,9 +337,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
           zoneName: zone.name,
           defaultGroupCount,
           isActive: true,
-          sortOrder: RAID_ZONE_CONFIG.findIndex(
-            (z) => z.instance === zone.instance,
-          ),
+          sortOrder: RAID_ZONE_CONFIG.findIndex((z) => z.instance === zone.instance),
         },
         {
           onSuccess: (data) => {
@@ -380,9 +358,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
           zoneName: zone.name,
           defaultGroupCount,
           isActive: true,
-          sortOrder: RAID_ZONE_CONFIG.findIndex(
-            (z) => z.instance === zone.instance,
-          ),
+          sortOrder: RAID_ZONE_CONFIG.findIndex((z) => z.instance === zone.instance),
         },
         {
           onSuccess: (data) => {
@@ -479,9 +455,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
 
   const sortedGroups = useMemo(() => {
     return zone.template
-      ? [...zone.template.encounterGroups].sort(
-          (a, b) => a.sortOrder - b.sortOrder,
-        )
+      ? [...zone.template.encounterGroups].sort((a, b) => a.sortOrder - b.sortOrder)
       : [];
   }, [zone.template]);
 
@@ -500,9 +474,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
   type DisplayEnc = { kind: "encounter"; encounter: TemplateEncounter };
   type DisplayItem = DisplayGroup | DisplayEnc;
 
-  const groupIds = new Set(
-    sortedGroups.map((g: TemplateEncounterGroup) => g.id),
-  );
+  const groupIds = new Set(sortedGroups.map((g: TemplateEncounterGroup) => g.id));
   const ungroupedEncs = sortedEncounters.filter(
     (e: TemplateEncounter) => !e.groupId || !groupIds.has(e.groupId),
   );
@@ -542,8 +514,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
             {zone.template ? (
               <Badge variant="secondary">
                 {encounterCount} encounter{encounterCount !== 1 ? "s" : ""}
-                {groupCount > 0 &&
-                  `, ${groupCount} subgroup${groupCount !== 1 ? "s" : ""}`}
+                {groupCount > 0 && `, ${groupCount} subgroup${groupCount !== 1 ? "s" : ""}`}
               </Badge>
             ) : (
               <Badge variant="outline" className="text-muted-foreground">
@@ -554,10 +525,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
           </AccordionPrimitive.Trigger>
           {zone.template && (
             <div className="mr-1 flex items-center gap-2 py-4">
-              <Label
-                htmlFor={`active-${zone.instance}`}
-                className="text-xs text-muted-foreground"
-              >
+              <Label htmlFor={`active-${zone.instance}`} className="text-xs text-muted-foreground">
                 Active
               </Label>
               <Switch
@@ -575,39 +543,27 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
             <div className="max-w-xl space-y-2">
               {/* Section header with manage button */}
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-muted-foreground">
-                  Encounters
-                </h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Encounters</h4>
                 <ManageEncountersDialog
                   compact={false}
                   encounters={sortedEncounters}
                   encounterGroups={sortedGroups}
                   onSave={handleSave}
-                  onDelete={(encId) =>
-                    deleteEncounter.mutate({ encounterId: encId })
-                  }
+                  onDelete={(encId) => deleteEncounter.mutate({ encounterId: encId })}
                   onAdd={handleDialogAdd}
                   onCreateGroup={handleDialogCreateGroup}
-                  onDeleteGroup={(groupId, mode) =>
-                    deleteGroup.mutate({ groupId, mode })
-                  }
+                  onDeleteGroup={(groupId, mode) => deleteGroup.mutate({ groupId, mode })}
                   isPending={reorderEncounterGroups.isPending}
                   isDeletePending={deleteEncounter.isPending}
-                  isAddPending={
-                    addEncounter.isPending || upsertTemplate.isPending
-                  }
-                  isGroupPending={
-                    createGroup.isPending || deleteGroup.isPending
-                  }
+                  isAddPending={addEncounter.isPending || upsertTemplate.isPending}
+                  isGroupPending={createGroup.isPending || deleteGroup.isPending}
                 />
               </div>
 
               {/* Default/Trash row */}
               <div className="rounded-md border">
                 <div className="flex items-center gap-2 px-3 py-2">
-                  <span className="flex-1 text-sm text-muted-foreground">
-                    Default/Trash
-                  </span>
+                  <span className="flex-1 text-sm text-muted-foreground">Default/Trash</span>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -630,15 +586,10 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
                 <div className="space-y-1">
                   {displayItems.map((item) =>
                     item.kind === "group" ? (
-                      <div
-                        key={item.group.id}
-                        className="overflow-hidden rounded-md border"
-                      >
+                      <div key={item.group.id} className="overflow-hidden rounded-md border">
                         <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
                           <FolderOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          <span className="flex-1 text-sm font-medium">
-                            {item.group.groupName}
-                          </span>
+                          <span className="flex-1 text-sm font-medium">{item.group.groupName}</span>
                         </div>
                         {item.encounters.length === 0 ? (
                           <p className="px-3 py-2 text-xs italic text-muted-foreground">
@@ -663,8 +614,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
                                       type: "encounter",
                                       encounterId: encounter.id,
                                       label: encounter.encounterName,
-                                      currentTemplate:
-                                        encounter.aaTemplate ?? "",
+                                      currentTemplate: encounter.aaTemplate ?? "",
                                     })
                                   }
                                 >
@@ -704,8 +654,7 @@ function ZoneAccordionItem({ zone }: { zone: ZoneRow }) {
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  No encounters configured. Click the settings icon above to add
-                  encounters.
+                  No encounters configured. Click the settings icon above to add encounters.
                 </p>
               )}
             </div>

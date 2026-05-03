@@ -22,9 +22,7 @@ export function CrafterList({
 }: CrafterListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const visibleCharacters = isExpanded
-    ? characters
-    : characters.slice(0, maxVisible);
+  const visibleCharacters = isExpanded ? characters : characters.slice(0, maxVisible);
   const remainingCount = Math.max(0, characters.length - maxVisible);
 
   return (
@@ -34,9 +32,7 @@ export function CrafterList({
           key={character.characterId}
           href={`/characters/${character.characterId}`}
           className={`inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${
-            !character.isActiveRaider && showInactiveCharacters
-              ? "opacity-40"
-              : "opacity-80"
+            !character.isActiveRaider && showInactiveCharacters ? "opacity-40" : "opacity-80"
           }`}
         >
           {character.name}

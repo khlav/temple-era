@@ -20,11 +20,7 @@ import { useSession } from "next-auth/react";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { ClassIcon } from "~/components/ui/class-icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 
@@ -158,9 +154,7 @@ export function GlobalQuickLauncher() {
         break;
       case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(
-          (prev) => (prev - 1 + allResults.length) % allResults.length,
-        );
+        setSelectedIndex((prev) => (prev - 1 + allResults.length) % allResults.length);
         break;
       case "Enter":
         e.preventDefault();
@@ -242,9 +236,7 @@ export function GlobalQuickLauncher() {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background">
           {isLoading && debouncedQuery.length > 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Searching...
-            </div>
+            <div className="py-6 text-center text-sm text-muted-foreground">Searching...</div>
           )}
 
           {!isLoading && debouncedQuery.length > 0 && data && (
@@ -328,12 +320,8 @@ export function GlobalQuickLauncher() {
                 // Filter static pages based on search query
                 const matchedStaticPages = staticPages.filter(
                   (page) =>
-                    page.name
-                      .toLowerCase()
-                      .includes(debouncedQuery.toLowerCase()) ||
-                    page.path
-                      .toLowerCase()
-                      .includes(debouncedQuery.toLowerCase()),
+                    page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+                    page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
                 );
 
                 // Combine results while preserving database ordering
@@ -389,9 +377,7 @@ export function GlobalQuickLauncher() {
                 const characterCount = data?.characters?.length || 0;
                 const totalCount = raidCount + characterCount;
                 const hasMore = data?.hasMore || false;
-                const totalCountText = hasMore
-                  ? `${totalCount}+`
-                  : totalCount.toString();
+                const totalCountText = hasMore ? `${totalCount}+` : totalCount.toString();
 
                 return (
                   <div>
@@ -435,9 +421,7 @@ export function GlobalQuickLauncher() {
                             />
                           )}
                           <div className="flex min-w-0 flex-1 items-center gap-1">
-                            <span className="truncate text-sm font-medium">
-                              {result.name}
-                            </span>
+                            <span className="truncate text-sm font-medium">{result.name}</span>
                             <span className="text-xs text-muted-foreground">
                               {result.type === "page"
                                 ? result.role || ""

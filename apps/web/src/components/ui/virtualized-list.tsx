@@ -15,8 +15,7 @@ interface VirtualizedListProps<T> {
   emptyState?: React.ReactNode;
 }
 
-const useIsomorphicLayoutEffect =
-  typeof window === "undefined" ? useEffect : useLayoutEffect;
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function VirtualizedList<T>({
   items,
@@ -31,9 +30,7 @@ export function VirtualizedList<T>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [measuredHeights, setMeasuredHeights] = useState<
-    Record<number, number>
-  >({});
+  const [measuredHeights, setMeasuredHeights] = useState<Record<number, number>>({});
 
   useIsomorphicLayoutEffect(() => {
     const container = containerRef.current;
@@ -80,10 +77,7 @@ export function VirtualizedList<T>({
       overscan * estimateItemHeight;
 
     let start = 0;
-    while (
-      start < items.length - 1 &&
-      metrics.offsets[start + 1]! <= windowTop
-    ) {
+    while (start < items.length - 1 && metrics.offsets[start + 1]! <= windowTop) {
       start += 1;
     }
 
@@ -93,28 +87,19 @@ export function VirtualizedList<T>({
     }
 
     return { start, end };
-  }, [
-    estimateItemHeight,
-    items.length,
-    metrics.offsets,
-    overscan,
-    scrollTop,
-    viewportHeight,
-  ]);
+  }, [estimateItemHeight, items.length, metrics.offsets, overscan, scrollTop, viewportHeight]);
 
   const visibleItems = useMemo(() => {
     if (visibleRange.end < visibleRange.start) return [];
 
-    return items
-      .slice(visibleRange.start, visibleRange.end + 1)
-      .map((item, relativeIndex) => {
-        const index = visibleRange.start + relativeIndex;
-        return {
-          item,
-          index,
-          top: metrics.offsets[index] ?? 0,
-        };
-      });
+    return items.slice(visibleRange.start, visibleRange.end + 1).map((item, relativeIndex) => {
+      const index = visibleRange.start + relativeIndex;
+      return {
+        item,
+        index,
+        top: metrics.offsets[index] ?? 0,
+      };
+    });
   }, [items, metrics.offsets, visibleRange.end, visibleRange.start]);
 
   const handleMeasuredHeight = (index: number, height: number) => {

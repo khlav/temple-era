@@ -1,21 +1,8 @@
 import { z } from "zod";
-import {
-  sql,
-  eq,
-  or,
-  inArray,
-  and,
-  notInArray,
-  isNotNull,
-  desc,
-  aliasedTable,
-} from "drizzle-orm";
+import { sql, eq, or, inArray, and, notInArray, isNotNull, desc, aliasedTable } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 import { formatInTimeZone } from "date-fns-tz";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  raidManagerProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
 import { CLASS_SPECS, inferTalentRole } from "~/lib/class-specs";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
@@ -209,10 +196,7 @@ export const raidHelperRouter = createTRPCRouter({
       if (session?.user?.id) {
         const account = await ctx.db.query.accounts.findFirst({
           where: (accounts, { eq, and }) =>
-            and(
-              eq(accounts.userId, session.user.id),
-              eq(accounts.provider, "discord"),
-            ),
+            and(eq(accounts.userId, session.user.id), eq(accounts.provider, "discord")),
           columns: {
             providerAccountId: true,
           },
@@ -222,8 +206,7 @@ export const raidHelperRouter = createTRPCRouter({
 
       const secondsPerHour = 3600;
       const minStartTime =
-        Math.floor(Date.now() / 1000) -
-        secondsPerHour * input.allowableHoursPastStart;
+        Math.floor(Date.now() / 1000) - secondsPerHour * input.allowableHoursPastStart;
 
       // Filter to events newer than 1 hour ago and sort by startTime ascending
       const filteredEvents = data.postedEvents
@@ -243,18 +226,14 @@ export const raidHelperRouter = createTRPCRouter({
 
           try {
             // Fetch event details to get signups
-            const detailResponse = await fetch(
-              `${RAID_HELPER_API_BASE}/v4/events/${e.id}`,
-              {
-                headers: {
-                  Authorization: env.RAID_HELPER_API_KEY,
-                },
+            const detailResponse = await fetch(`${RAID_HELPER_API_BASE}/v4/events/${e.id}`, {
+              headers: {
+                Authorization: env.RAID_HELPER_API_KEY,
               },
-            );
+            });
 
             if (detailResponse.ok) {
-              const detailData =
-                (await detailResponse.json()) as RaidHelperEventResponse;
+              const detailData = (await detailResponse.json()) as RaidHelperEventResponse;
               const signUps = detailData.signUps ?? [];
 
               // Calculate role counts
@@ -268,13 +247,7 @@ export const raidHelperRouter = createTRPCRouter({
               for (const signup of signUps) {
                 if (userDiscordId && signup.userId === userDiscordId) {
                   // Check if className indicates a special status
-                  const specialStatuses = [
-                    "Bench",
-                    "Late",
-                    "Tentative",
-                    "Absence",
-                    "Absent",
-                  ];
+                  const specialStatuses = ["Bench", "Late", "Tentative", "Absence", "Absent"];
                   if (specialStatuses.includes(signup.className)) {
                     userSignupStatus = signup.className;
                   } else {
@@ -284,10 +257,7 @@ export const raidHelperRouter = createTRPCRouter({
 
                 // Clean specName by removing numbers (e.g., "Protection1" -> "Protection")
                 const specName = signup.specName?.replace(/[0-9]/g, "") ?? "";
-                const resolvedClass = resolveClassName(
-                  signup.className,
-                  specName,
-                );
+                const resolvedClass = resolveClassName(signup.className, specName);
 
                 if (!resolvedClass) {
                   continue;
@@ -302,7 +272,7 @@ export const raidHelperRouter = createTRPCRouter({
               roleCounts = counts;
             }
           } catch (err) {
-            console.error(`Failed to fetch details for event ${e.id}`, err);
+            logger.error({ err }, `Failed to fetch details for event ${e.id}`);
             // Default to 0 counts on error
           }
 
@@ -314,9 +284,7 @@ export const raidHelperRouter = createTRPCRouter({
             startTime: e.startTime,
             leaderName: e.leaderName ?? "",
             signUpCount:
-              typeof e.signUpCount === "string"
-                ? Number(e.signUpCount)
-                : (e.signUpCount ?? 0),
+              typeof e.signUpCount === "string" ? Number(e.signUpCount) : (e.signUpCount ?? 0),
             channelId: e.channelId,
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
@@ -335,14 +303,11 @@ export const raidHelperRouter = createTRPCRouter({
     .input(z.object({ eventId: z.string() }))
     .query(async ({ input }) => {
       // First, fetch the event/channel to check if we need to resolve lastEventId
-      const initialResponse = await fetch(
-        `${RAID_HELPER_API_BASE}/v4/events/${input.eventId}`,
-        {
-          headers: {
-            Authorization: env.RAID_HELPER_API_KEY,
-          },
+      const initialResponse = await fetch(`${RAID_HELPER_API_BASE}/v4/events/${input.eventId}`, {
+        headers: {
+          Authorization: env.RAID_HELPER_API_KEY,
         },
-      );
+      });
 
       if (!initialResponse.ok) {
         throw new TRPCError({
@@ -351,10 +316,7 @@ export const raidHelperRouter = createTRPCRouter({
         });
       }
 
-      const initialData = (await initialResponse.json()) as Record<
-        string,
-        unknown
-      >;
+      const initialData = (await initialResponse.json()) as Record<string, unknown>;
 
       // If this is a channel/scheduled event (no signUps), resolve to lastEventId
       const actualEventId =
@@ -460,9 +422,7 @@ export const raidHelperRouter = createTRPCRouter({
               partyPerRaid: planData.groupCount ?? 8,
               slotPerParty: planData.slotCount ?? 5,
               partyNames:
-                planData.groups
-                  ?.sort((a, b) => a.position - b.position)
-                  .map((g) => g.name) ?? [],
+                planData.groups?.sort((a, b) => a.position - b.position).map((g) => g.name) ?? [],
             }
           : null,
         signups: {
@@ -510,17 +470,10 @@ export const raidHelperRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const {
-        registeredPrimaryCharacterIds,
-        filterZone,
-        filterDayOfWeek,
-        roleFilter,
-      } = input;
+      const { registeredPrimaryCharacterIds, filterZone, filterDayOfWeek, roleFilter } = input;
 
       // Convert instance ID to zone name (e.g., "naxxramas" -> "Naxxramas")
-      const zoneName = filterZone
-        ? (getZoneForInstance(filterZone) ?? null)
-        : null;
+      const zoneName = filterZone ? (getZoneForInstance(filterZone) ?? null) : null;
 
       // 1. Fetch the last 6 lockout weeks (The Timeline)
       // We want distinct weeks, sorted descending, limit 6
@@ -540,9 +493,7 @@ export const raidHelperRouter = createTRPCRouter({
       // Find raidIds that match the user's filters AND fall within the timeline
       const timelineFilters = [];
       if (timelineWeeks.length > 0) {
-        timelineFilters.push(
-          inArray(trackedRaidsL6LockoutWk.lockoutWeek, timelineWeeks),
-        );
+        timelineFilters.push(inArray(trackedRaidsL6LockoutWk.lockoutWeek, timelineWeeks));
       } else {
         // No raid history, return empty
         return { potentialPlayers: [] };
@@ -566,9 +517,7 @@ export const raidHelperRouter = createTRPCRouter({
         .where(and(...timelineFilters));
 
       const matchingRaidIds = matchingRaids.map((r) => r.raidId);
-      const raidIdToWeek = new Map(
-        matchingRaids.map((r) => [r.raidId, r.lockoutWeek]),
-      );
+      const raidIdToWeek = new Map(matchingRaids.map((r) => [r.raidId, r.lockoutWeek]));
 
       if (matchingRaidIds.length === 0) {
         return { potentialPlayers: [] };
@@ -599,10 +548,7 @@ export const raidHelperRouter = createTRPCRouter({
         .from(primaryRaidAttendeeAndBenchMap)
         .innerJoin(
           characters,
-          eq(
-            primaryRaidAttendeeAndBenchMap.primaryCharacterId,
-            characters.characterId,
-          ),
+          eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, characters.characterId),
         )
         // Join family members based on the same primary character ID
         .leftJoin(
@@ -613,20 +559,14 @@ export const raidHelperRouter = createTRPCRouter({
           ),
         )
         .leftJoin(users, eq(characters.characterId, users.characterId))
-        .leftJoin(
-          accounts,
-          and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")),
-        )
+        .leftJoin(accounts, and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")))
         .where(
           and(
             inArray(primaryRaidAttendeeAndBenchMap.raidId, matchingRaidIds),
             isNotNull(primaryRaidAttendeeAndBenchMap.primaryCharacterId),
             eq(characters.isIgnored, false),
             // Ensure family members are not ignored if they exist
-            or(
-              isNotNull(family.characterId),
-              isNotNull(characters.characterId),
-            ),
+            or(isNotNull(family.characterId), isNotNull(characters.characterId)),
             registeredPrimaryCharacterIds.length > 0
               ? notInArray(
                   primaryRaidAttendeeAndBenchMap.primaryCharacterId,
@@ -665,18 +605,13 @@ export const raidHelperRouter = createTRPCRouter({
 
         // Create boolean array for the last 6 tracked weeks matched by filter
         // timelineWeeks is [Newest, ..., Oldest]
-        const recentAttendance = timelineWeeks.map((week) =>
-          attendedWeeksSet.has(week),
-        );
+        const recentAttendance = timelineWeeks.map((week) => attendedWeeksSet.has(week));
 
         // Count for sorting
         const attendanceCount = recentAttendance.filter(Boolean).length;
 
         // Infer talentRole
-        const classToDefaultRole: Record<
-          string,
-          ("Tank" | "Healer" | "Melee" | "Ranged")[]
-        > = {
+        const classToDefaultRole: Record<string, ("Tank" | "Healer" | "Melee" | "Ranged")[]> = {
           // Default Warriors to Tank + Melee to cover both bases for generic imports
           Warrior: ["Tank", "Melee"],
           Rogue: ["Melee"],
@@ -693,11 +628,7 @@ export const raidHelperRouter = createTRPCRouter({
 
         const defaultRoles = classToDefaultRole[p.characterClass] ?? ["Melee"];
 
-        const talentRole = defaultRoles[0] as
-          | "Tank"
-          | "Healer"
-          | "Melee"
-          | "Ranged"; // Primary default for single usage
+        const talentRole = defaultRoles[0] as "Tank" | "Healer" | "Melee" | "Ranged"; // Primary default for single usage
 
         // Parse familyData to get classes and roles
         const familyClasses = new Set<string>();
@@ -771,9 +702,9 @@ export const raidHelperRouter = createTRPCRouter({
               // 2. Fallback to class default
               // 2. Fallback to class default
               if (!role) {
-                const defaults = classToDefaultRole[
-                  cls as keyof typeof classToDefaultRole
-                ] ?? ["Melee"];
+                const defaults = classToDefaultRole[cls as keyof typeof classToDefaultRole] ?? [
+                  "Melee",
+                ];
                 defaults.forEach((r) => familyRoles.add(r));
               } else {
                 familyRoles.add(role);
@@ -800,10 +731,7 @@ export const raidHelperRouter = createTRPCRouter({
             (a, b) => (roleOrder[a] ?? 9) - (roleOrder[b] ?? 9),
           ),
           familyClassNames: Object.fromEntries(
-            Object.entries(familyClassNames).map(([k, v]) => [
-              k,
-              Array.from(v).sort(),
-            ]),
+            Object.entries(familyClassNames).map(([k, v]) => [k, Array.from(v).sort()]),
           ),
           recentAttendance: recentAttendance,
           attendanceCount, // Helper for sorting
@@ -821,9 +749,7 @@ export const raidHelperRouter = createTRPCRouter({
 
       // Sort by attendance count descending
       return {
-        potentialPlayers: filteredPlayers.sort(
-          (a, b) => b.attendanceCount - a.attendanceCount,
-        ),
+        potentialPlayers: filteredPlayers.sort((a, b) => b.attendanceCount - a.attendanceCount),
       };
     }),
 });

@@ -11,8 +11,7 @@ import { createPageMetadata } from "~/lib/site-metadata";
 export const metadata: Metadata = {
   ...createPageMetadata({
     title: "Attendance Report",
-    description:
-      "View detailed raid attendance reports with customizable filters and date ranges.",
+    description: "View detailed raid attendance reports with customizable filters and date ranges.",
     path: "/reports/attendance",
   }),
 };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
@@ -13,8 +14,7 @@ import {
 } from "~/server/db/schema";
 import { and, eq, notInArray } from "drizzle-orm";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const UpdateEncounterSchema = z.object({
   useDefaultGroups: z.boolean().optional(),
@@ -60,10 +60,7 @@ export async function PUT(
     const input = parsed.data;
 
     if (Object.keys(input).length === 0) {
-      return NextResponse.json(
-        { error: "No fields provided" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "No fields provided" }, { status: 400 });
     }
 
     // Verify encounter belongs to this plan
@@ -73,19 +70,11 @@ export async function PUT(
         raidPlanId: raidPlanEncounters.raidPlanId,
       })
       .from(raidPlanEncounters)
-      .where(
-        and(
-          eq(raidPlanEncounters.id, encounterId),
-          eq(raidPlanEncounters.raidPlanId, id),
-        ),
-      )
+      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, id)))
       .limit(1);
 
     if (encounter.length === 0) {
-      return NextResponse.json(
-        { error: "Encounter not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Encounter not found" }, { status: 404 });
     }
 
     const updates: Partial<{
@@ -96,31 +85,22 @@ export async function PUT(
       useCustomAA: boolean;
     }> = {};
 
-    if (input.useDefaultGroups !== undefined)
-      updates.useDefaultGroups = input.useDefaultGroups;
+    if (input.useDefaultGroups !== undefined) updates.useDefaultGroups = input.useDefaultGroups;
     if (input.encounterName !== undefined) {
       updates.encounterName = input.encounterName;
       updates.encounterKey = slugifyEncounterName(input.encounterName);
     }
     if (input.aaTemplate !== undefined) updates.aaTemplate = input.aaTemplate;
-    if (input.useCustomAA !== undefined)
-      updates.useCustomAA = input.useCustomAA;
+    if (input.useCustomAA !== undefined) updates.useCustomAA = input.useCustomAA;
 
-    await db
-      .update(raidPlanEncounters)
-      .set(updates)
-      .where(eq(raidPlanEncounters.id, encounterId));
+    await db.update(raidPlanEncounters).set(updates).where(eq(raidPlanEncounters.id, encounterId));
 
     // Clean up orphaned AA slot assignments when template changes
     if (input.aaTemplate !== undefined) {
       const slotNames = input.aaTemplate ? getSlotNames(input.aaTemplate) : [];
-      const conditions = [
-        eq(raidPlanEncounterAASlots.encounterId, encounterId),
-      ];
+      const conditions = [eq(raidPlanEncounterAASlots.encounterId, encounterId)];
       if (slotNames.length > 0) {
-        conditions.push(
-          notInArray(raidPlanEncounterAASlots.slotName, slotNames),
-        );
+        conditions.push(notInArray(raidPlanEncounterAASlots.slotName, slotNames));
       }
       await db.delete(raidPlanEncounterAASlots).where(and(...conditions));
     }
@@ -156,17 +136,11 @@ export async function PUT(
       }
     }
 
-    await db
-      .update(raidPlans)
-      .set({ updatedById: user.id })
-      .where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

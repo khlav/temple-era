@@ -28,6 +28,7 @@ export function MetadataDebug({ raidId, characterId }: MetadataDebugProps) {
         setLoading(false);
       })
       .catch((err) => {
+        // eslint-disable-next-line no-console
         console.error("Error fetching metadata:", err);
         setLoading(false);
       });
@@ -41,9 +42,7 @@ export function MetadataDebug({ raidId, characterId }: MetadataDebugProps) {
 
   return (
     <div className="fixed bottom-4 right-4 max-h-96 max-w-md overflow-auto rounded-lg bg-black/90 p-4 text-xs text-white">
-      <h3 className="mb-2 font-bold">
-        Metadata Debug - {isRaid ? "Raid" : "Character"}
-      </h3>
+      <h3 className="mb-2 font-bold">Metadata Debug - {isRaid ? "Raid" : "Character"}</h3>
       <div className="space-y-2">
         <div>
           <strong>Title:</strong> {metadata.metadata?.title}
@@ -80,9 +79,7 @@ export function MetadataDebug({ raidId, characterId }: MetadataDebugProps) {
 
         <details className="mt-2">
           <summary className="cursor-pointer">Full Metadata</summary>
-          <pre className="mt-2 overflow-auto text-xs">
-            {JSON.stringify(metadata, null, 2)}
-          </pre>
+          <pre className="mt-2 overflow-auto text-xs">{JSON.stringify(metadata, null, 2)}</pre>
         </details>
       </div>
     </div>

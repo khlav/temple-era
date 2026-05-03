@@ -26,8 +26,7 @@ import {
 } from "~/lib/raid-zones";
 
 export function RecentTrackedRaids() {
-  const { data: trackedRaidData, isLoading } =
-    api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
+  const { data: trackedRaidData, isLoading } = api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
 
   return (
     <Card>
@@ -78,9 +77,7 @@ export function RecentTrackedRaids() {
                                   variant="outline"
                                   className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
                                 >
-                                  {zoneId === "naxxramas"
-                                    ? "NAXX"
-                                    : zoneId.toUpperCase()}
+                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
                                 </Badge>
                               ) : null;
                             })()}
@@ -93,11 +90,7 @@ export function RecentTrackedRaids() {
                       <div className="my-auto grow-0">
                         {r.currentUserAttendance && (
                           <AttendanceStatusIcon
-                            status={
-                              r.currentUserAttendance === "bench"
-                                ? "bench"
-                                : "attendee"
-                            }
+                            status={r.currentUserAttendance === "bench" ? "bench" : "attendee"}
                             size={20}
                             variant="centered"
                           />
@@ -106,9 +99,7 @@ export function RecentTrackedRaids() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <RaidAttendenceWeightBadge
-                      attendanceWeight={r.attendanceWeight}
-                    />
+                    <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                   </TableCell>
                   <TableCell className="text-center">
                     {(r.raidLogIds ?? []).map((raidLogId) => {

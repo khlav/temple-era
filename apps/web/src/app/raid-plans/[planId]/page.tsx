@@ -11,9 +11,7 @@ interface PageProps {
   params: Promise<{ planId: string }>;
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { planId } = await params;
 
   try {

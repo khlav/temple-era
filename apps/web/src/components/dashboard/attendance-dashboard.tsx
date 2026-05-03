@@ -13,11 +13,7 @@ import Image from "next/image";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-export function AttendanceDashboard({
-  currentUserSession,
-}: {
-  currentUserSession?: Session;
-}) {
+export function AttendanceDashboard({ currentUserSession }: { currentUserSession?: Session }) {
   return (
     <div className="flex flex-col gap-4">
       <DashboardBanner session={currentUserSession} />
@@ -27,8 +23,7 @@ export function AttendanceDashboard({
         <div
           className={cn(
             "flex flex-col gap-4 transition-all duration-300 lg:flex-row",
-            !currentUserSession &&
-              "pointer-events-none select-none opacity-50 blur-[2px]",
+            !currentUserSession && "pointer-events-none select-none opacity-50 blur-[2px]",
           )}
         >
           <div className="flex-1">
@@ -47,17 +42,10 @@ export function AttendanceDashboard({
             <div className="w-full max-w-md rounded-lg border bg-card/80 p-6 text-center shadow-lg backdrop-blur-sm">
               <div className="flex flex-col items-center gap-4">
                 <Button
-                  onClick={() =>
-                    signIn("discord", { redirectTo: "/?signin=1" })
-                  }
+                  onClick={() => signIn("discord", { redirectTo: "/?signin=1" })}
                   className="flex w-full items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#8891f2] sm:w-auto"
                 >
-                  <Image
-                    src="/img/discord-mark-white.svg"
-                    alt="Discord"
-                    height={18}
-                    width={18}
-                  />
+                  <Image src="/img/discord-mark-white.svg" alt="Discord" height={18} width={18} />
                   Sign in with Discord
                 </Button>
                 <p className="text-sm text-muted-foreground">
@@ -80,9 +68,7 @@ export function AttendanceDashboard({
           </div>
         </div>
         <div className="flex-shrink-0 lg:w-1/3">
-          <AttendanceReport
-            currentUserCharacterId={currentUserSession?.user?.characterId}
-          />
+          <AttendanceReport currentUserCharacterId={currentUserSession?.user?.characterId} />
         </div>
       </div>
     </div>

@@ -30,11 +30,10 @@ export function AACarryForwardDialog({
 }: AACarryForwardDialogProps) {
   const { toast } = useToast();
 
-  const { data: preview, isLoading } =
-    api.raidPlan.previewAACarryForward.useQuery(
-      { sourcePlanId, targetPlanId },
-      { enabled: open },
-    );
+  const { data: preview, isLoading } = api.raidPlan.previewAACarryForward.useQuery(
+    { sourcePlanId, targetPlanId },
+    { enabled: open },
+  );
 
   const applyMutation = api.raidPlan.applyAACarryForward.useMutation({
     onSuccess: (data) => {
@@ -87,11 +86,7 @@ export function AACarryForwardDialog({
                   {preview.matchedCharacters} returning raider
                   {preview.matchedCharacters === 1 ? "" : "s"}
                 </span>{" "}
-                from{" "}
-                <span className="font-medium text-foreground">
-                  {sourcePlanName}
-                </span>{" "}
-                —{" "}
+                from <span className="font-medium text-foreground">{sourcePlanName}</span> —{" "}
                 <span className="font-semibold text-foreground">
                   {preview.slotsToFill} AA slot
                   {preview.slotsToFill === 1 ? "" : "s"}
@@ -102,10 +97,8 @@ export function AACarryForwardDialog({
           ) : (
             <p>
               No returning raiders found from{" "}
-              <span className="font-medium text-foreground">
-                {sourcePlanName}
-              </span>
-              . AA slots will start empty.
+              <span className="font-medium text-foreground">{sourcePlanName}</span>. AA slots will
+              start empty.
             </p>
           )}
         </div>
@@ -120,9 +113,7 @@ export function AACarryForwardDialog({
           </Button>
           {hasMatches && (
             <Button
-              onClick={() =>
-                applyMutation.mutate({ sourcePlanId, targetPlanId })
-              }
+              onClick={() => applyMutation.mutate({ sourcePlanId, targetPlanId })}
               disabled={applyMutation.isPending}
             >
               {applyMutation.isPending ? "Pre-filling…" : "Pre-fill Slots"}

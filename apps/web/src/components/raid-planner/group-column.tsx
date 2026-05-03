@@ -9,10 +9,7 @@ import { DraggableCharacterCard } from "./character-card";
 interface GroupColumnProps {
   groupNumber: number;
   groupIndex: number;
-  getCharacterAtSlot: (
-    group: number,
-    position: number,
-  ) => RaidPlanCharacter | null;
+  getCharacterAtSlot: (group: number, position: number) => RaidPlanCharacter | null;
   editable?: boolean;
   dragOnly?: boolean;
   locked?: boolean;
@@ -39,12 +36,7 @@ export function GroupColumn({
   userCharacterIds = [],
 }: GroupColumnProps) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border bg-card p-2",
-        locked && "border-muted-foreground/20",
-      )}
-    >
+    <div className={cn("rounded-lg border bg-card p-2", locked && "border-muted-foreground/20")}>
       <div className="mb-2 flex items-center justify-center gap-1 text-center text-xs font-semibold text-muted-foreground">
         {locked && <Lock className="h-3 w-3" />}
         Group {groupNumber}
@@ -52,12 +44,10 @@ export function GroupColumn({
       <div className="flex flex-col gap-1">
         {Array.from({ length: 5 }).map((_, position) => {
           const isSlotEditing =
-            editingSlot?.group === groupIndex &&
-            editingSlot?.position === position;
+            editingSlot?.group === groupIndex && editingSlot?.position === position;
           const character = getCharacterAtSlot(groupIndex, position);
           const isHighlighted =
-            !!character?.characterId &&
-            userCharacterIds.includes(character.characterId);
+            !!character?.characterId && userCharacterIds.includes(character.characterId);
           return (
             <GroupSlot
               key={position}
@@ -68,10 +58,7 @@ export function GroupColumn({
               dragOnly={dragOnly}
               locked={locked}
               showEditControls={showEditControls}
-              isEditing={
-                editingCharacterId ===
-                getCharacterAtSlot(groupIndex, position)?.id
-              }
+              isEditing={editingCharacterId === getCharacterAtSlot(groupIndex, position)?.id}
               isSlotEditing={isSlotEditing}
               onEditClick={onEditClick}
               onSlotEditClick={onSlotEditClick}
@@ -137,19 +124,14 @@ function GroupSlot({
       ) : (
         <button
           type="button"
-          onClick={() =>
-            editable &&
-            showEditControls &&
-            onSlotEditClick?.(groupIndex, position)
-          }
+          onClick={() => editable && showEditControls && onSlotEditClick?.(groupIndex, position)}
           disabled={!editable || !showEditControls}
           className={cn(
             "group flex h-[28px] w-full items-center justify-center rounded border border-dashed text-xs transition-colors",
             editable && showEditControls
               ? "border-muted-foreground/30 text-muted-foreground/40 hover:border-primary/50 hover:bg-primary/5 hover:text-muted-foreground"
               : "border-muted-foreground/20 text-muted-foreground/40",
-            isSlotEditing &&
-              "border-primary bg-primary/10 ring-1 ring-primary/50",
+            isSlotEditing && "border-primary bg-primary/10 ring-1 ring-primary/50",
           )}
         >
           {editable && showEditControls && (

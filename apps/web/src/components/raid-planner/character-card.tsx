@@ -6,11 +6,7 @@ import { Pencil } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
 import type { RaidPlanCharacter } from "./types";
-import {
-  CLASS_COLORS,
-  WOW_CLASSES_SET,
-  RAIDHELPER_STATUS_ICONS,
-} from "./constants";
+import { CLASS_COLORS, WOW_CLASSES_SET, RAIDHELPER_STATUS_ICONS } from "./constants";
 
 interface DraggableCharacterCardProps {
   character: RaidPlanCharacter;
@@ -83,32 +79,22 @@ export const CharacterCard = memo(function CharacterCard({
   isHighlighted,
 }: CharacterCardProps) {
   const isWowClass = !!character.class && WOW_CLASSES_SET.has(character.class);
-  const StatusIcon = character.class
-    ? RAIDHELPER_STATUS_ICONS[character.class]
-    : undefined;
+  const StatusIcon = character.class ? RAIDHELPER_STATUS_ICONS[character.class] : undefined;
   // dragHandleProps is only passed when dragging is allowed (editable or dragOnly)
   const isDraggable = !!dragHandleProps;
   const isLinkedCharacter = !!character.characterId;
   const classColor =
-    isLinkedCharacter && character.class
-      ? CLASS_COLORS[character.class]
-      : undefined;
+    isLinkedCharacter && character.class ? CLASS_COLORS[character.class] : undefined;
   // Write-in gradient: muted bg on left, fading to class color at midpoint, solid class color on right 1/8
   const writeInClassColor =
-    !isLinkedCharacter && character.class
-      ? CLASS_COLORS[character.class]
-      : undefined;
-  const mutedBg = compact
-    ? "hsl(var(--muted) / 0.5)"
-    : "hsl(var(--muted) / 0.3)";
+    !isLinkedCharacter && character.class ? CLASS_COLORS[character.class] : undefined;
+  const mutedBg = compact ? "hsl(var(--muted) / 0.5)" : "hsl(var(--muted) / 0.3)";
 
   return (
     <div
       className={cn(
         "group relative flex items-center gap-1.5 rounded px-1.5 py-1 text-xs",
-        !classColor &&
-          !writeInClassColor &&
-          (compact ? "bg-muted/50" : "bg-muted/30"),
+        !classColor && !writeInClassColor && (compact ? "bg-muted/50" : "bg-muted/30"),
         isEditing && "ring-2 ring-primary",
         isHighlighted && "ring-2 ring-yellow-400 dark:ring-yellow-500",
         isDragging && "opacity-50",
@@ -138,9 +124,7 @@ export const CharacterCard = memo(function CharacterCard({
         )}
         <span className="truncate font-medium">
           {character.characterName}
-          {!isLinkedCharacter && (
-            <span className="text-muted-foreground/80">*</span>
-          )}
+          {!isLinkedCharacter && <span className="text-muted-foreground/80">*</span>}
         </span>
       </span>
       {editable && onEditClick && showEditControls && (

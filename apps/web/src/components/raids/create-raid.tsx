@@ -3,11 +3,7 @@
 import { RaidLogLoader } from "~/components/raids/raidlog-loader";
 import { DiscordWarcraftLogs } from "~/components/raids/discord-warcraft-logs";
 import { useState } from "react";
-import {
-  EmptyRaid,
-  type Raid,
-  type RaidLog,
-} from "~/server/api/interfaces/raid";
+import { EmptyRaid, type Raid, type RaidLog } from "~/server/api/interfaces/raid";
 import { useToast } from "~/hooks/use-toast";
 import { RaidEditor } from "~/components/raids/raid-editor";
 import { api } from "~/trpc/react";
@@ -44,7 +40,6 @@ export function CreateRaid() {
   });
 
   const handleInitialRaidLog = (initialRaidLog: RaidLog | undefined) => {
-    console.log(initialRaidLog);
     if (initialRaidLog) {
       if (initialRaidLog.raidId) {
         toastRaidLogInUse(toast, initialRaidLog);

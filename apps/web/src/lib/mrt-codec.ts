@@ -110,12 +110,7 @@ export class MRTCodec {
       const x3 = this._6BIT_TO_BYTE[c3];
       const x4 = this._6BIT_TO_BYTE[c4];
 
-      if (
-        x1 === undefined ||
-        x2 === undefined ||
-        x3 === undefined ||
-        x4 === undefined
-      ) {
+      if (x1 === undefined || x2 === undefined || x3 === undefined || x4 === undefined) {
         throw new Error(`Invalid character in encoded string at position ${i}`);
       }
 

@@ -24,11 +24,7 @@ function renderMessageWithClickableLinks(content: string) {
   while ((match = wclUrlRegex.exec(content)) !== null) {
     // Add text before the URL
     if (match.index > lastIndex) {
-      result.push(
-        <span key={`text-${lastIndex}`}>
-          {content.slice(lastIndex, match.index)}
-        </span>,
-      );
+      result.push(<span key={`text-${lastIndex}`}>{content.slice(lastIndex, match.index)}</span>);
     }
 
     // Add the clickable URL
@@ -49,24 +45,16 @@ function renderMessageWithClickableLinks(content: string) {
 
   // Add remaining text after the last URL
   if (lastIndex < content.length) {
-    result.push(
-      <span key={`text-${lastIndex}`}>{content.slice(lastIndex)}</span>,
-    );
+    result.push(<span key={`text-${lastIndex}`}>{content.slice(lastIndex)}</span>);
   }
 
   return result;
 }
 
 export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
-  const {
-    data: wclLogs,
-    isLoading,
-    isError,
-    error,
-  } = api.discord.getRecentWarcraftLogs.useQuery();
+  const { data: wclLogs, isLoading, isError, error } = api.discord.getRecentWarcraftLogs.useQuery();
 
-  const { data: channelInfo, isLoading: channelLoading } =
-    api.discord.getChannelInfo.useQuery();
+  const { data: channelInfo, isLoading: channelLoading } = api.discord.getChannelInfo.useQuery();
 
   const [loadingUrl, setLoadingUrl] = useState<string | null>(null);
 
@@ -74,9 +62,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
     return (
       <div className="mt-6">
         <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-muted-foreground">
-            Loading Discord messages...
-          </div>
+          <div className="text-sm text-muted-foreground">Loading Discord messages...</div>
         </div>
       </div>
     );
@@ -125,9 +111,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
               {channelLoading ? "Loading..." : "Discord Channel"}
             </span>
           )}{" "}
-          <span className="text-xs font-normal italic text-muted-foreground">
-            Last 7 days
-          </span>
+          <span className="text-xs font-normal italic text-muted-foreground">Last 7 days</span>
         </h3>
       </div>
 
@@ -156,11 +140,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
                   disabled={loadingUrl !== null}
                   className="w-24"
                 >
-                  {loadingUrl === log.wclUrl ? (
-                    <Loader className="animate-spin" />
-                  ) : (
-                    "Create"
-                  )}
+                  {loadingUrl === log.wclUrl ? <Loader className="animate-spin" /> : "Create"}
                 </Button>
               )}
             </div>
@@ -185,9 +165,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
                     addSuffix: true,
                   })}
                 </div>
-                <span className="whitespace-nowrap text-muted-foreground">
-                  •
-                </span>
+                <span className="whitespace-nowrap text-muted-foreground">•</span>
                 <div className="min-w-0 truncate text-muted-foreground">
                   {renderMessageWithClickableLinks(log.content)}
                 </div>

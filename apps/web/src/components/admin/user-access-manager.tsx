@@ -27,9 +27,7 @@ const UserAccessManagerRow = ({
     isAdmin?: boolean | null;
   };
 }) => {
-  const [isRaidManager, setIsRaidManager] = useState<boolean>(
-    user.isRaidManager ?? false,
-  );
+  const [isRaidManager, setIsRaidManager] = useState<boolean>(user.isRaidManager ?? false);
   const [isAdmin, setIsAdmin] = useState<boolean>(user.isAdmin ?? false);
   const [isSending, setIsSending] = useState<boolean>(false);
 
@@ -113,9 +111,7 @@ export const UserAccessManager = () => {
           <Table className="max-h-[400px] max-w-lg table-auto text-nowrap">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-min">
-                  Users {users && `(${users.length})`}
-                </TableHead>
+                <TableHead className="w-min">Users {users && `(${users.length})`}</TableHead>
                 <TableHead className="">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -144,11 +140,7 @@ export const UserAccessManager = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users
-                ? users?.map((u) => (
-                    <UserAccessManagerRow user={u} key={u.id} />
-                  ))
-                : null}
+              {users ? users?.map((u) => <UserAccessManagerRow user={u} key={u.id} />) : null}
             </TableBody>
           </Table>
         </>

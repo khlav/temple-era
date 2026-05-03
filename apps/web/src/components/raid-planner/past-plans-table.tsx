@@ -4,11 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "~/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
 
 interface PastPlan {
@@ -73,10 +69,9 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                   new Date(plan.lastModifiedAt),
                   { addSuffix: true },
                 )}`
-              : `Last updated ${formatDistanceToNow(
-                  new Date(plan.lastModifiedAt),
-                  { addSuffix: true },
-                )}`;
+              : `Last updated ${formatDistanceToNow(new Date(plan.lastModifiedAt), {
+                  addSuffix: true,
+                })}`;
 
             return (
               <tr
@@ -84,15 +79,8 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                 className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
               >
                 <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-20"
-                    asChild
-                  >
-                    <Link href={`/raid-manager/raid-planner/${plan.id}`}>
-                      View Plan
-                    </Link>
+                  <Button variant="secondary" size="sm" className="w-20" asChild>
+                    <Link href={`/raid-manager/raid-planner/${plan.id}`}>View Plan</Link>
                   </Button>
                 </td>
                 <td className="w-full p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">

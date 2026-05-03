@@ -59,10 +59,7 @@ export function RaidLogLoader({
 
   // Watch for external urlInput changes and process them
   useEffect(() => {
-    if (
-      externalUrlInput !== undefined &&
-      externalUrlInput !== internalUrlInput
-    ) {
+    if (externalUrlInput !== undefined && externalUrlInput !== internalUrlInput) {
       onUrlInputChange(externalUrlInput);
     }
   }, [externalUrlInput, internalUrlInput, onUrlInputChange]);
@@ -70,9 +67,7 @@ export function RaidLogLoader({
   return (
     <div>
       <div className="w-full">
-        <Label htmlFor="wclUrl">
-          {label ?? "Load log data from WCL link:"}
-        </Label>
+        <Label htmlFor="wclUrl">{label ?? "Load log data from WCL link:"}</Label>
         <div className="relative">
           <Input
             id="wclUrl"

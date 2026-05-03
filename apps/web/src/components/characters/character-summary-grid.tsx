@@ -1,16 +1,9 @@
 "use client";
-import type {
-  RaidParticipant,
-  RaidParticipantCollection,
-} from "~/server/api/interfaces/raid";
+import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { Reshape1DTo2D } from "~/lib/helpers";
 import anyAscii from "any-ascii";
 import { ClassIcon } from "~/components/ui/class-icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export const CharacterSummaryGrid = ({
   characters,
@@ -36,9 +29,7 @@ export const CharacterSummaryGrid = ({
   }
 
   const sortedCharacterList = Object.values(characters).sort((c1, c2) =>
-    `${c1.class}_${anyAscii(c1.name)}` > `${c2.class}_${anyAscii(c2.name)}`
-      ? 1
-      : -1,
+    `${c1.class}_${anyAscii(c1.name)}` > `${c2.class}_${anyAscii(c2.name)}` ? 1 : -1,
   );
 
   const sortedCharacterClassMatrixWithSubgroups = groupByClass(
@@ -84,8 +75,7 @@ export const CharacterSummaryGrid = ({
               {classObj.members.flat().map((character) => (
                 <div key={character.characterId}>
                   {character.name}{" "}
-                  {character.primaryCharacterName &&
-                    `(${character.primaryCharacterName})`}
+                  {character.primaryCharacterName && `(${character.primaryCharacterName})`}
                 </div>
               ))}
             </div>

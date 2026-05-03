@@ -1,21 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Check,
-  HelpCircle,
-  MinusCircle,
-  Search,
-} from "lucide-react";
+import { AlertTriangle, Check, HelpCircle, MinusCircle, Search } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "~/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -97,18 +86,13 @@ function formatCandidates(result: SignupMatchResult): string {
     .join(", ");
 }
 
-export function MatchReviewSheet({
-  open,
-  onOpenChange,
-  matchResults,
-}: MatchReviewSheetProps) {
+export function MatchReviewSheet({ open, onOpenChange, matchResults }: MatchReviewSheetProps) {
   const [activeFilter, setActiveFilter] = useState<ReviewFilter>("all");
 
   const filteredResults = useMemo(() => {
     return matchResults.filter((result) => {
       if (activeFilter === "all") return true;
-      if (activeFilter === "discord")
-        return result.matchSource === "discord_link";
+      if (activeFilter === "discord") return result.matchSource === "discord_link";
       if (activeFilter === "heuristic") {
         return (
           result.matchSource === "token_exact" ||
@@ -132,10 +116,7 @@ export function MatchReviewSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto sm:max-w-5xl"
-      >
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-5xl">
         <SheetHeader>
           <SheetTitle>Match Review</SheetTitle>
         </SheetHeader>
@@ -162,9 +143,7 @@ export function MatchReviewSheet({
                   <TableHead className="w-[110px]">Class / Spec</TableHead>
                   <TableHead className="w-[120px]">Status</TableHead>
                   <TableHead className="w-[140px]">Source</TableHead>
-                  <TableHead className="w-[180px]">
-                    Resolved Character
-                  </TableHead>
+                  <TableHead className="w-[180px]">Resolved Character</TableHead>
                   <TableHead>Explanation</TableHead>
                 </TableRow>
               </TableHeader>
@@ -201,9 +180,7 @@ export function MatchReviewSheet({
                           </Badge>
                         </div>
                         {result.needsManagerReview ? (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            Manager review
-                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">Manager review</div>
                         ) : null}
                       </TableCell>
                       <TableCell>
@@ -228,9 +205,7 @@ export function MatchReviewSheet({
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
-                            Unresolved
-                          </span>
+                          <span className="text-sm text-muted-foreground">Unresolved</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -238,8 +213,7 @@ export function MatchReviewSheet({
                           <div className="text-sm">
                             {result.explanation || "No explanation available."}
                           </div>
-                          {(result.status === "ambiguous" ||
-                            result.status === "unmatched") &&
+                          {(result.status === "ambiguous" || result.status === "unmatched") &&
                           result.candidates &&
                           result.candidates.length > 0 ? (
                             <div className="rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
@@ -247,9 +221,7 @@ export function MatchReviewSheet({
                                 <Search className="h-3.5 w-3.5" />
                                 Candidates
                               </div>
-                              <div className={cn("leading-5")}>
-                                {formatCandidates(result)}
-                              </div>
+                              <div className={cn("leading-5")}>{formatCandidates(result)}</div>
                             </div>
                           ) : null}
                         </div>

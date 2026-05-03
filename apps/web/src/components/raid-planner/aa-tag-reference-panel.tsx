@@ -5,11 +5,7 @@ import { BookOpen, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { AAIcon } from "~/components/ui/aa-icons";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 import { getAATagRegistry } from "~/lib/aa-tag-registry";
 import type { AATagEntry, AATagCategory } from "~/lib/aa-tag-registry";
 import type { AAIconType } from "~/lib/aa-formatting";
@@ -66,12 +62,7 @@ export function AATagReferencePanel({ onSelectTag }: AATagReferencePanelProps) {
     <div className="flex w-[200px] shrink-0 flex-col border-r">
       <div className="flex items-center justify-between border-b px-2 py-1">
         <span className="text-xs font-medium">Tag Reference</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={() => setExpanded(false)}
-        >
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(false)}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -99,9 +90,7 @@ export function AATagReferencePanel({ onSelectTag }: AATagReferencePanelProps) {
           />
         ))}
         {filteredRegistry.length === 0 && (
-          <p className="p-2 text-center text-xs text-muted-foreground">
-            No matching tags
-          </p>
+          <p className="p-2 text-center text-xs text-muted-foreground">No matching tags</p>
         )}
       </div>
     </div>
@@ -128,9 +117,7 @@ function CategorySection({
           <ChevronRight className="h-3 w-3 shrink-0" />
         )}
         <span>{category.label}</span>
-        <span className="ml-auto text-[10px] text-muted-foreground">
-          {category.entries.length}
-        </span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{category.entries.length}</span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         {category.entries.map((entry) => (
@@ -141,13 +128,7 @@ function CategorySection({
   );
 }
 
-function TagEntry({
-  entry,
-  onSelect,
-}: {
-  entry: AATagEntry;
-  onSelect: (tag: string) => void;
-}) {
+function TagEntry({ entry, onSelect }: { entry: AATagEntry; onSelect: (tag: string) => void }) {
   const isColor = entry.iconType === "color";
   const displayTag = isColor ? `|c${entry.tag}` : `{${entry.tag}}`;
 
@@ -181,9 +162,7 @@ function TagEntry({
         </span>
       )}
       <code className="shrink-0 text-[10px] text-foreground">{displayTag}</code>
-      <span className="truncate text-[10px] text-muted-foreground">
-        {entry.displayName}
-      </span>
+      <span className="truncate text-[10px] text-muted-foreground">{entry.displayName}</span>
     </button>
   );
 }

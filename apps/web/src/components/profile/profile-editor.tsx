@@ -40,9 +40,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
     if (profile) {
       setDisplayName(profile.name ?? "");
       setTempName(profile.name ?? "");
-      setCharacter(
-        profile.character ?? { name: null, characterId: null, class: null },
-      );
+      setCharacter(profile.character ?? { name: null, characterId: null, class: null });
     }
   }, [profile]);
 
@@ -90,6 +88,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
       if (context?.previousProfile) {
         utils.profile.getMyProfile.setData(undefined, context.previousProfile);
       }
+      // eslint-disable-next-line no-console
       console.error("Failed to save profile", err);
     },
     onSettled: () => {
@@ -144,9 +143,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
         <div className="mx-auto flex-col pt-4 md:mx-0">
           <Avatar className="h-24 w-24">
             <AvatarImage src={profile?.image ?? ""} alt={profile?.name ?? ""} />
-            <AvatarFallback>
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="pt-1 text-center text-xs italic text-muted-foreground">
             Source: Discord
@@ -199,19 +196,14 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
           <div className="flex flex-row gap-1">
             {character.characterId && (
               <div className="flex flex-row gap-1 rounded bg-muted px-4 py-2">
-                <ClassIcon
-                  characterClass={character.class ?? "Unknown"}
-                  px={20}
-                />
+                <ClassIcon characterClass={character.class ?? "Unknown"} px={20} />
                 <div className="grow text-sm">{character.name}</div>
               </div>
             )}
             <div className="shrink">
               <CharacterSelector
                 onSelectAction={handleCharacterChange}
-                buttonContent={
-                  character.characterId ? "Change" : "+ Add primary character"
-                }
+                buttonContent={character.characterId ? "Change" : "+ Add primary character"}
                 characterSet="primary"
                 disabled={saveProfile.isPending}
               />
@@ -237,11 +229,7 @@ export function ProfileEditor({ debug = false }: { debug?: boolean }) {
 
           {/* Back Button */}
           <div className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => router.back()}
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={() => router.back()} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Go Back
             </Button>

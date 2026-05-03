@@ -7,11 +7,7 @@ import { ExternalLink, Edit } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
 import { api } from "~/trpc/react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export function PublicPlansTable() {
   const { data: session } = useSession();
@@ -72,21 +68,11 @@ export function PublicPlansTable() {
               >
                 <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-20"
-                      asChild
-                    >
+                    <Button variant="secondary" size="sm" className="w-20" asChild>
                       <Link href={`/raid-plans/${plan.id}`}>View Plan</Link>
                     </Button>
                     {isRaidManager && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        asChild
-                      >
+                      <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" asChild>
                         <Link href={`/raid-manager/raid-planner/${plan.id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>

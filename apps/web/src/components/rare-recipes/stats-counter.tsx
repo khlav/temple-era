@@ -45,11 +45,7 @@ const StatDisplay = ({ label, value }: StatProps) => {
 };
 
 // Main stats counter component with proper typing
-export const StatsCounter = ({
-  filteredRecipes,
-}: {
-  filteredRecipes: RecipeWithCharacters[];
-}) => {
+export const StatsCounter = ({ filteredRecipes }: { filteredRecipes: RecipeWithCharacters[] }) => {
   // Add key to force component re-render when data is loaded
   const [key, setKey] = useState(0);
 
@@ -65,34 +61,17 @@ export const StatsCounter = ({
 
   // Count unique crafters (exclude common recipes)
   const craftersCount = new Set(
-    filteredRecipes.flatMap(
-      (r) => r.characters?.map((c) => c.characterId) || [],
-    ),
+    filteredRecipes.flatMap((r) => r.characters?.map((c) => c.characterId) || []),
   ).size;
 
   // Count total entries (character-recipe pairs)
-  const entriesCount = filteredRecipes.reduce(
-    (acc, r) => acc + (r.characters?.length || 0),
-    0,
-  );
+  const entriesCount = filteredRecipes.reduce((acc, r) => acc + (r.characters?.length || 0), 0);
 
   return (
     <div className="grid grid-cols-3 gap-2 border-b py-3">
-      <StatDisplay
-        key={`recipes-${key}`}
-        label="Recipes"
-        value={recipesCount}
-      />
-      <StatDisplay
-        key={`crafters-${key}`}
-        label="Crafters"
-        value={craftersCount}
-      />
-      <StatDisplay
-        key={`entries-${key}`}
-        label="Entries"
-        value={entriesCount}
-      />
+      <StatDisplay key={`recipes-${key}`} label="Recipes" value={recipesCount} />
+      <StatDisplay key={`crafters-${key}`} label="Crafters" value={craftersCount} />
+      <StatDisplay key={`entries-${key}`} label="Entries" value={entriesCount} />
     </div>
   );
 };

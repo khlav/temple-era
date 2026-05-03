@@ -23,12 +23,7 @@ export default async function RaidPlannerPage() {
       <PageHeader
         title="Raid Planner"
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="w-full sm:w-auto"
-          >
+          <Button variant="ghost" size="sm" asChild className="w-full sm:w-auto">
             <Link href="/raid-manager/raid-planner/config">
               <Settings className="mr-1 h-4 w-4" />
               Manage Templates

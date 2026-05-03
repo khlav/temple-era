@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight, ChevronLeft, Flag } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -16,12 +12,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { cn } from "~/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EncounterGroup {
   id: string;
@@ -65,9 +56,7 @@ export function EncounterSidebar({
   }, [encounterGroups]);
 
   const { sortedTreeItems, flatEncounterIds, activeLabelMap } = useMemo(() => {
-    const groupBuckets = new Map<string, EncounterItem[]>(
-      encounterGroups.map((g) => [g.id, []]),
-    );
+    const groupBuckets = new Map<string, EncounterItem[]>(encounterGroups.map((g) => [g.id, []]));
     const ungrouped: EncounterItem[] = [];
 
     for (const enc of encounters) {
@@ -120,10 +109,7 @@ export function EncounterSidebar({
         activeLabelMap.set(item.enc.id, item.enc.encounterName);
       } else {
         for (const child of item.children) {
-          activeLabelMap.set(
-            child.id,
-            `${item.group.groupName} · ${child.encounterName}`,
-          );
+          activeLabelMap.set(child.id, `${item.group.groupName} · ${child.encounterName}`);
         }
       }
     }
@@ -158,8 +144,7 @@ export function EncounterSidebar({
                 <span
                   className={cn(
                     "min-w-0 truncate whitespace-nowrap transition-colors duration-200",
-                    assignmentLabelsMap.has("default") &&
-                      "font-semibold text-yellow-500",
+                    assignmentLabelsMap.has("default") && "font-semibold text-yellow-500",
                   )}
                 >
                   Default/Trash
@@ -196,7 +181,8 @@ export function EncounterSidebar({
               onOpenChange={(open) =>
                 setExpandedGroups((prev) => {
                   const next = new Set(prev);
-                  open ? next.add(item.group.id) : next.delete(item.group.id);
+                  if (open) next.add(item.group.id);
+                  else next.delete(item.group.id);
                   return next;
                 })
               }
@@ -204,8 +190,7 @@ export function EncounterSidebar({
               <CollapsibleTrigger
                 className={cn(
                   "flex w-full items-center gap-1 rounded-md px-2 py-1 text-left text-xs font-medium hover:bg-accent/50",
-                  item.children.some((c) => c.id === activeTab) &&
-                    "bg-accent/40",
+                  item.children.some((c) => c.id === activeTab) && "bg-accent/40",
                 )}
               >
                 {item.group.groupName}
@@ -224,8 +209,7 @@ export function EncounterSidebar({
                           onClick={() => onTabChange(enc.id)}
                           className={cn(
                             "group/item relative flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-xs outline-none transition-all",
-                            enc.useDefaultGroups &&
-                              "italic text-muted-foreground",
+                            enc.useDefaultGroups && "italic text-muted-foreground",
                             enc.id === activeTab
                               ? "bg-accent text-accent-foreground"
                               : "hover:bg-accent/50",
@@ -234,8 +218,7 @@ export function EncounterSidebar({
                           <span
                             className={cn(
                               "min-w-0 truncate whitespace-nowrap transition-colors duration-200",
-                              assignmentLabelsMap.has(enc.id) &&
-                                "font-semibold text-yellow-500",
+                              assignmentLabelsMap.has(enc.id) && "font-semibold text-yellow-500",
                             )}
                           >
                             {enc.encounterName}
@@ -253,11 +236,9 @@ export function EncounterSidebar({
                           <div className="text-xs">
                             <p className="mb-1 font-semibold">Assignments:</p>
                             <ul className="list-disc pl-3">
-                              {assignmentLabelsMap
-                                .get(enc.id)
-                                ?.map((label, i) => (
-                                  <li key={i}>{label}</li>
-                                ))}
+                              {assignmentLabelsMap.get(enc.id)?.map((label, i) => (
+                                <li key={i}>{label}</li>
+                              ))}
                             </ul>
                           </div>
                         </TooltipContent>
@@ -275,8 +256,7 @@ export function EncounterSidebar({
                     onClick={() => onTabChange(item.enc.id)}
                     className={cn(
                       "group/item relative flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-xs outline-none transition-all",
-                      item.enc.useDefaultGroups &&
-                        "italic text-muted-foreground",
+                      item.enc.useDefaultGroups && "italic text-muted-foreground",
                       item.enc.id === activeTab
                         ? "bg-accent text-accent-foreground"
                         : "hover:bg-accent/50",
@@ -285,8 +265,7 @@ export function EncounterSidebar({
                     <span
                       className={cn(
                         "min-w-0 truncate whitespace-nowrap transition-colors duration-200",
-                        assignmentLabelsMap.has(item.enc.id) &&
-                          "font-semibold text-yellow-500",
+                        assignmentLabelsMap.has(item.enc.id) && "font-semibold text-yellow-500",
                       )}
                     >
                       {item.enc.encounterName}
@@ -304,11 +283,9 @@ export function EncounterSidebar({
                     <div className="text-xs">
                       <p className="mb-1 font-semibold">Assignments:</p>
                       <ul className="list-disc pl-3">
-                        {assignmentLabelsMap
-                          .get(item.enc.id)
-                          ?.map((label, i) => (
-                            <li key={i}>{label}</li>
-                          ))}
+                        {assignmentLabelsMap.get(item.enc.id)?.map((label, i) => (
+                          <li key={i}>{label}</li>
+                        ))}
                       </ul>
                     </div>
                   </TooltipContent>
@@ -321,24 +298,19 @@ export function EncounterSidebar({
 
       {/* Mobile nav (< lg) */}
       <div className="flex w-full items-center gap-2 rounded-xl bg-muted/40 p-1.5 ring-1 ring-border/50 lg:hidden">
-        <span className="shrink-0 text-sm text-muted-foreground">
-          Encounter:
-        </span>
+        <span className="shrink-0 text-sm text-muted-foreground">Encounter:</span>
 
         {/* Select */}
         <Select value={activeTab} onValueChange={onTabChange}>
           <SelectTrigger className="flex-1">
-            <span className="truncate text-sm">
-              {activeLabelMap.get(activeTab) ?? activeTab}
-            </span>
+            <span className="truncate text-sm">{activeLabelMap.get(activeTab) ?? activeTab}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="default">
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
-                    assignmentLabelsMap.has("default") &&
-                      "font-semibold text-yellow-500",
+                    assignmentLabelsMap.has("default") && "font-semibold text-yellow-500",
                   )}
                 >
                   Default/Trash
@@ -357,8 +329,7 @@ export function EncounterSidebar({
                       <div className="flex items-center gap-2">
                         <span
                           className={cn(
-                            assignmentLabelsMap.has(enc.id) &&
-                              "font-semibold text-yellow-500",
+                            assignmentLabelsMap.has(enc.id) && "font-semibold text-yellow-500",
                           )}
                         >
                           {enc.encounterName}
@@ -375,8 +346,7 @@ export function EncounterSidebar({
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        assignmentLabelsMap.has(item.enc.id) &&
-                          "font-semibold text-yellow-500",
+                        assignmentLabelsMap.has(item.enc.id) && "font-semibold text-yellow-500",
                       )}
                     >
                       {item.enc.encounterName}
@@ -408,12 +378,9 @@ export function EncounterSidebar({
         <button
           onClick={() => {
             const i = flatEncounterIds.indexOf(activeTab);
-            if (i < flatEncounterIds.length - 1)
-              onTabChange(flatEncounterIds[i + 1]!);
+            if (i < flatEncounterIds.length - 1) onTabChange(flatEncounterIds[i + 1]!);
           }}
-          disabled={
-            flatEncounterIds.indexOf(activeTab) >= flatEncounterIds.length - 1
-          }
+          disabled={flatEncounterIds.indexOf(activeTab) >= flatEncounterIds.length - 1}
           className="rounded p-1 hover:bg-accent/50 disabled:opacity-40"
           aria-label="Next encounter"
         >

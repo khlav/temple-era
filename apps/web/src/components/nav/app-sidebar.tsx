@@ -10,11 +10,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import {
-  ChartBarSquareIcon,
-  MapIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
+import { ChartBarSquareIcon, MapIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
@@ -35,8 +31,7 @@ import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 const mutedTooltip = (label: string) =>
   ({
     children: label,
-    className:
-      "pointer-events-none bg-muted text-muted-foreground border border-border shadow-sm",
+    className: "pointer-events-none bg-muted text-muted-foreground border border-border shadow-sm",
   }) as const;
 
 const coreItems = [
@@ -90,9 +85,7 @@ const adminLinks = [
   },
 ];
 
-export async function AppSidebar({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
+export async function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const session = await auth();
 
   return (
@@ -141,9 +134,7 @@ export async function AppSidebar({
         </SidebarGroup>
         <SidebarSeparator className="mx-4 bg-gray-400/40" />
         <SidebarGroup className="py-0">
-          <SidebarGroupLabel className="py-0">
-            {reportsSectionTitle}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="py-0">{reportsSectionTitle}</SidebarGroupLabel>
           <SidebarGroupContent className="py-0">
             <SidebarMenu>
               {reportsLinks.map((item) => (
@@ -163,17 +154,12 @@ export async function AppSidebar({
           <>
             <SidebarSeparator className="mx-4 bg-gray-400/40" />
             <SidebarGroup className="py-0">
-              <SidebarGroupLabel className="py-0">
-                {raidManagerTitle}
-              </SidebarGroupLabel>
+              <SidebarGroupLabel className="py-0">{raidManagerTitle}</SidebarGroupLabel>
               <SidebarGroupContent className="py-0">
                 <SidebarMenu>
                   {raidManagerLinks.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={mutedTooltip(item.title)}
-                      >
+                      <SidebarMenuButton asChild tooltip={mutedTooltip(item.title)}>
                         <Link href={item.url}>
                           <item.icon />
                           <span>{item.title}</span>
@@ -190,17 +176,12 @@ export async function AppSidebar({
           <>
             <SidebarSeparator className="mx-4 bg-gray-400/40" />
             <SidebarGroup className="py-0">
-              <SidebarGroupLabel className="py-0">
-                {adminSectionTitle}
-              </SidebarGroupLabel>
+              <SidebarGroupLabel className="py-0">{adminSectionTitle}</SidebarGroupLabel>
               <SidebarGroupContent className="py-0">
                 <SidebarMenu>
                   {adminLinks.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={mutedTooltip(item.title)}
-                      >
+                      <SidebarMenuButton asChild tooltip={mutedTooltip(item.title)}>
                         <Link href={item.url}>
                           <item.icon />
                           <span>{item.title}</span>

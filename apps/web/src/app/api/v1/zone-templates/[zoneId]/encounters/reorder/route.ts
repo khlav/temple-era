@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
+import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
-import {
-  raidPlanTemplateEncounters,
-  raidPlanTemplateEncounterGroups,
-} from "~/server/db/schema";
+import { raidPlanTemplateEncounters, raidPlanTemplateEncounterGroups } from "~/server/db/schema";
 import { getZoneConfig, getTemplateByZoneId } from "../../../_helpers";
 
 const ReorderSchema = z.object({
@@ -25,10 +23,7 @@ const ReorderSchema = z.object({
   ),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ zoneId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ zoneId: string }> }) {
   try {
     const authResult = await validateApiToken(request);
     if ("error" in authResult) return authResult.error;
@@ -45,10 +40,7 @@ export async function POST(
 
     const template = await getTemplateByZoneId(zoneId);
     if (!template) {
-      return NextResponse.json(
-        { error: "Zone template not configured" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Zone template not configured" }, { status: 404 });
     }
 
     let body: unknown;
@@ -95,10 +87,7 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("v1 API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    logger.error({ err: error }, "v1 API error");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

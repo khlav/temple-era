@@ -22,10 +22,7 @@ interface AddEncounterDialogProps {
   onEncounterCreated?: () => void;
 }
 
-export function AddEncounterDialog({
-  planId,
-  onEncounterCreated,
-}: AddEncounterDialogProps) {
+export function AddEncounterDialog({ planId, onEncounterCreated }: AddEncounterDialogProps) {
   const [open, setOpen] = useState(false);
   const [encounterName, setEncounterName] = useState("");
   const { toast } = useToast();
@@ -58,11 +55,7 @@ export function AddEncounterDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground"
-        >
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground">
           <Plus className="h-3 w-3" />
         </Button>
       </DialogTrigger>
@@ -96,10 +89,7 @@ export function AddEncounterDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!encounterName.trim() || createMutation.isPending}
-            >
+            <Button type="submit" disabled={!encounterName.trim() || createMutation.isPending}>
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

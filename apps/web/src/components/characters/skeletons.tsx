@@ -11,11 +11,7 @@ import React from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { Separator } from "~/components/ui/separator";
 
-export function PrimaryCharacterRaidsTableRowSkeleton({
-  rows = 10,
-}: {
-  rows?: number;
-}) {
+export function PrimaryCharacterRaidsTableRowSkeleton({ rows = 10 }: { rows?: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
@@ -26,10 +22,7 @@ export function PrimaryCharacterRaidsTableRowSkeleton({
             const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%
             return (
               <TableCell key={cellIndex}>
-                <Skeleton
-                  className="my-1 h-4 px-2"
-                  style={{ width: `${pseudoRandomWidth}%` }}
-                />
+                <Skeleton className="my-1 h-4 px-2" style={{ width: `${pseudoRandomWidth}%` }} />
               </TableCell>
             );
           })}

@@ -8,8 +8,7 @@ import {
   raidPlanTemplateEncounterGroups,
 } from "~/server/db/schema";
 
-export const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function getZoneConfig(zoneId: string) {
   return RAID_ZONE_CONFIG.find((z) => z.instance === zoneId) ?? null;
@@ -50,10 +49,7 @@ export async function getTemplateByZoneId(zoneId: string) {
   return result[0] ?? null;
 }
 
-export async function validateEncounterOwnership(
-  encounterId: string,
-  templateId: string,
-) {
+export async function validateEncounterOwnership(encounterId: string, templateId: string) {
   const result = await db
     .select({ id: raidPlanTemplateEncounters.id })
     .from(raidPlanTemplateEncounters)
@@ -67,10 +63,7 @@ export async function validateEncounterOwnership(
   return result[0] ?? null;
 }
 
-export async function validateGroupOwnership(
-  groupId: string,
-  templateId: string,
-) {
+export async function validateGroupOwnership(groupId: string, templateId: string) {
   const result = await db
     .select({ id: raidPlanTemplateEncounterGroups.id })
     .from(raidPlanTemplateEncounterGroups)

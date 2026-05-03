@@ -14,11 +14,7 @@ import { Info, AlertTriangle, XCircle } from "lucide-react";
 import type { SoftResScanResult } from "~/server/api/routers/softres";
 import { CharacterLink } from "~/components/ui/character-link";
 import { ClassIcon } from "~/components/ui/class-icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 const iconMap = {
   Info,
@@ -28,20 +24,13 @@ const iconMap = {
 
 const levelColors = {
   info: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
-  highlight:
-    "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  warning:
-    "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  inactive:
-    "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  highlight: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  warning: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  inactive: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
   error: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
-export function SoftResScanTable({
-  results,
-}: {
-  results: SoftResScanResult[];
-}) {
+export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) {
   if (results.length === 0) {
     return (
       <div className="rounded-md border p-4 text-center text-muted-foreground">
@@ -67,11 +56,7 @@ export function SoftResScanTable({
 
             return (
               <TableRow
-                key={
-                  isUnmatched
-                    ? `unmatched-${result.characterName}`
-                    : result.characterId
-                }
+                key={isUnmatched ? `unmatched-${result.characterName}` : result.characterId}
               >
                 <TableCell className="font-medium">
                   {isUnmatched ? (
@@ -118,9 +103,7 @@ export function SoftResScanTable({
                       return (
                         <>
                           {parts[0]}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            {parts[1]}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{parts[1]}</span>
                         </>
                       );
                     }
@@ -148,8 +131,7 @@ export function SoftResScanTable({
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {result.matchingRules.map((rule) => {
-                      const IconComponent =
-                        iconMap[rule.icon as keyof typeof iconMap] ?? Info;
+                      const IconComponent = iconMap[rule.icon as keyof typeof iconMap] ?? Info;
                       return (
                         <Tooltip key={rule.id} delayDuration={300}>
                           <TooltipTrigger asChild>
@@ -176,16 +158,12 @@ export function SoftResScanTable({
                                     : rule.level === "warning"
                                       ? "text-yellow-700 dark:text-yellow-400"
                                       : "text-muted-foreground";
-                              const parts =
-                                rule.description.split(/`([^`]+)`/g);
+                              const parts = rule.description.split(/`([^`]+)`/g);
                               return parts.map((part, index) => {
                                 // Odd indices are the quoted item names
                                 if (index % 2 === 1) {
                                   return (
-                                    <span
-                                      key={index}
-                                      className={`${itemNameColor} font-medium`}
-                                    >
+                                    <span key={index} className={`${itemNameColor} font-medium`}>
                                       {part}
                                     </span>
                                   );

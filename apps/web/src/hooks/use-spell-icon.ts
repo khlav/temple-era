@@ -90,9 +90,7 @@ async function fetchSpellIcon(spellId: number): Promise<string | null> {
  * Returns the icon texture name and loading/error states.
  */
 export function useSpellIcon(spellId: number): SpellIconData {
-  const [icon, setIcon] = useState<string | null>(
-    () => spellIconCache.get(spellId) ?? null,
-  );
+  const [icon, setIcon] = useState<string | null>(() => spellIconCache.get(spellId) ?? null);
   const [loading, setLoading] = useState(!spellIconCache.has(spellId));
   const [error, setError] = useState<string | null>(null);
 

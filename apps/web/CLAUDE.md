@@ -34,41 +34,37 @@ pnpm db:studio        # Open Drizzle Studio (database GUI)
 ### Code Quality Commands
 
 ```bash
-pnpm lint             # Run ESLint
-pnpm lint:fix         # Run ESLint with auto-fix
+pnpm lint             # Run oxlint
+pnpm lint:fix         # Run oxlint with auto-fix
 pnpm typecheck        # Run TypeScript type checking
-pnpm check            # Run both ESLint and typecheck
-pnpm format:check     # Check Prettier formatting
-pnpm format:write     # Fix Prettier formatting
+pnpm format           # Check oxfmt formatting
+pnpm format:fix       # Fix oxfmt formatting
 ```
 
 ### Pre-commit Hooks
 
-The project uses Husky with lint-staged to automatically run checks before commits:
+The project uses **lefthook** to run checks before commits and pushes. Config lives in `lefthook.yml`.
 
-- ESLint with auto-fix on all staged TypeScript files (`--max-warnings=0`)
-- Prettier formatting on staged files
-- Warning if `console.log` is detected
-- Reminder for database migrations
+**pre-commit** (runs in parallel on staged files):
+- oxlint with auto-fix on staged `src/**/*.{ts,tsx,js,jsx}` files
+- oxfmt formatting on staged `src/**/*.{ts,tsx,js,jsx}` files
+- TypeScript type check (full project)
+- Warning if uncommitted database migrations are detected
+
+**pre-push** (runs in parallel):
+- Branch name format validation (`{type}/{description}`)
+- Full oxlint run
+- Full TypeScript type check
+- Production build
 
 #### Commit Message Format
 
-Enforced by the `commit-msg` hook. Expected format: `type(scope): description`
+Enforced by the `commit-msg` hook script at `.lefthook/commit-msg/commit-msg.sh`. Expected format: `type(scope): description`
 
 - Valid types: `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`
 - Examples: `feat(search): add advanced filtering`, `fix(ui): resolve layout issue`
 - Warns on WIP/temporary language
 - The `prepare-commit-msg` hook auto-suggests messages based on branch name
-
-#### Pre-push Checks
-
-The `pre-push` hook runs before every push:
-
-1. Validates branch name format (`{type}/{description}`)
-2. Runs full ESLint
-3. Runs full TypeScript type check
-4. Runs production build
-5. Checks for remaining `console.log` statements (warning)
 
 **Important**: The `postbuild` script runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Do not interpret them as build failures. Only check the exit code to determine success.
 
@@ -298,7 +294,7 @@ Use kebab-case: `feature/add-raid-filtering`
 Format: `type(scope): description`
 
 - Valid types: `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`
-- Enforced by the `commit-msg` Husky hook
+- Enforced by the lefthook `commit-msg` hook (`.lefthook/commit-msg/commit-msg.sh`)
 - The `prepare-commit-msg` hook auto-suggests messages from branch name
 
 #### "Ship It" Process

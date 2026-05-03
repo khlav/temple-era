@@ -20,10 +20,7 @@ export const Slugify = (value: string) => {
   return anyAscii(value).toLowerCase();
 };
 
-export const GetWCLGraphQLQuery = async (
-  gqlQuery: string,
-  gqlVariables: object,
-) => {
+export const GetWCLGraphQLQuery = async (gqlQuery: string, gqlVariables: object) => {
   const OAUTH_URL = env.WCL_OAUTH_URL;
   const API_URL = env.WCL_API_URL;
 
@@ -87,13 +84,10 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
   const rawReport = apiData.data.reportData.report;
   const kills = rawReport.fights.filter((fight) => fight.kill);
 
-  const localIdActorCollection = rawReport.masterData.actors.reduce(
-    (acc, actor) => {
-      acc[actor.id] = actor;
-      return acc;
-    },
-    {} as RawActorResultCollection,
-  );
+  const localIdActorCollection = rawReport.masterData.actors.reduce((acc, actor) => {
+    acc[actor.id] = actor;
+    return acc;
+  }, {} as RawActorResultCollection);
 
   const participantsFromFights = rawReport.fights.reduce((acc, rel) => {
     rel.friendlyPlayers.map((actorId) => {
@@ -103,8 +97,6 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
     });
     return acc;
   }, {} as RaidParticipantCollection);
-
-  console.log(Object.keys(participantsFromFights).length);
 
   const newReport: RaidLog = {
     name: rawReport.title,

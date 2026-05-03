@@ -7,11 +7,7 @@ import { ExternalLink, Loader2, Users } from "lucide-react";
 import { api } from "~/trpc/react";
 import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 import Link from "next/link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
 import {
   SignupVolumeIndicator,
@@ -150,10 +146,7 @@ function EventRow({
       });
 
       // Prepare signups for matching
-      const allSignups = [
-        ...eventDetails.signups.assigned,
-        ...eventDetails.signups.unassigned,
-      ];
+      const allSignups = [...eventDetails.signups.assigned, ...eventDetails.signups.unassigned];
       const signupsForMatching = allSignups.map((s) => ({
         userId: s.userId,
         discordName: s.name,
@@ -164,10 +157,9 @@ function EventRow({
       }));
 
       // Match signups to characters
-      const matchResults =
-        await utils.raidHelper.matchSignupsToCharacters.fetch({
-          signups: signupsForMatching,
-        });
+      const matchResults = await utils.raidHelper.matchSignupsToCharacters.fetch({
+        signups: signupsForMatching,
+      });
 
       onFindPlayers(
         event.id,
@@ -188,10 +180,9 @@ function EventRow({
           new Date(existingPlan.lastModifiedAt),
           { addSuffix: true },
         )}`
-      : `Last updated ${formatDistanceToNow(
-          new Date(existingPlan.lastModifiedAt),
-          { addSuffix: true },
-        )}`
+      : `Last updated ${formatDistanceToNow(new Date(existingPlan.lastModifiedAt), {
+          addSuffix: true,
+        })}`
     : null;
 
   return (
@@ -199,9 +190,7 @@ function EventRow({
       <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
         {existingPlan ? (
           <Button variant="secondary" size="sm" className="w-20" asChild>
-            <Link href={`/raid-manager/raid-planner/${existingPlan.id}`}>
-              View Plan
-            </Link>
+            <Link href={`/raid-manager/raid-planner/${existingPlan.id}`}>View Plan</Link>
           </Button>
         ) : (
           <Button
@@ -229,9 +218,7 @@ function EventRow({
       </td>
       <td className="hidden p-2 align-middle lg:table-cell">
         {lastEditedText ? (
-          <div className="truncate text-xs font-normal text-muted-foreground">
-            {lastEditedText}
-          </div>
+          <div className="truncate text-xs font-normal text-muted-foreground">{lastEditedText}</div>
         ) : null}
       </td>
       <td className="w-[50%] p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
@@ -250,9 +237,7 @@ function EventRow({
                 ) : (
                   <Users className="h-4 w-4" />
                 )}
-                <span className="sr-only lg:not-sr-only lg:ml-1.5">
-                  Find Gamers
-                </span>
+                <span className="sr-only lg:not-sr-only lg:ml-1.5">Find Gamers</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent
@@ -262,9 +247,7 @@ function EventRow({
               Find Gamers
             </TooltipContent>
           </Tooltip>
-          <span
-            className={`min-w-[2ch] text-right text-sm font-medium ${colors.text}`}
-          >
+          <span className={`min-w-[2ch] text-right text-sm font-medium ${colors.text}`}>
             {event.signUpCount ?? 0}
           </span>
           <SignupVolumeIndicator

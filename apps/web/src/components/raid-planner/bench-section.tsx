@@ -95,8 +95,7 @@ export function BenchSection({
               className={cn(
                 "flex h-[26px] items-center justify-center rounded border border-dashed px-2 text-xs transition-colors",
                 "border-muted-foreground/30 text-muted-foreground/60 hover:border-primary/50 hover:bg-primary/5 hover:text-muted-foreground",
-                editingBench &&
-                  "border-primary bg-primary/10 ring-1 ring-primary/50",
+                editingBench && "border-primary bg-primary/10 ring-1 ring-primary/50",
               )}
             >
               + Add

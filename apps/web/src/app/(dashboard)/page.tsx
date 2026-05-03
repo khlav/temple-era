@@ -8,8 +8,7 @@ import { createPageMetadata } from "~/lib/site-metadata";
 export const metadata: Metadata = {
   ...createPageMetadata({
     title: "WoW Classic Era - Raid Plans, Rosters, and Tools",
-    description:
-      "Raid attendance, raid planning, and guild tools for Temple on WoW Classic Era.",
+    description: "Raid attendance, raid planning, and guild tools for Temple on WoW Classic Era.",
     path: "/",
   }),
   verification: {

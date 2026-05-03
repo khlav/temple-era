@@ -45,8 +45,7 @@ export async function matchCharactersBatch(
 
   // Build OR conditions for all character names
   const nameConditions = softresChars.map(
-    (c) =>
-      sql`LOWER(f_unaccent(${characters.name})) = LOWER(f_unaccent(${c.name}))`,
+    (c) => sql`LOWER(f_unaccent(${characters.name})) = LOWER(f_unaccent(${c.name}))`,
   );
 
   // Single query to get all potential matches
@@ -187,10 +186,7 @@ export async function getCharacterStatsBatch(
           uniqueRaidCount: sql<number>`COUNT(DISTINCT ${raids.raidId})`,
         })
         .from(raidLogAttendeeMap)
-        .innerJoin(
-          raidLogs,
-          eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId),
-        )
+        .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
         .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
         .where(
           and(
@@ -211,12 +207,7 @@ export async function getCharacterStatsBatch(
         })
         .from(raidBenchMap)
         .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
-        .where(
-          and(
-            inArray(raidBenchMap.characterId, characterIds),
-            eq(raids.zone, zone),
-          ),
-        )
+        .where(and(inArray(raidBenchMap.characterId, characterIds), eq(raids.zone, zone)))
         .groupBy(raidBenchMap.characterId)
     : [];
 
@@ -228,30 +219,18 @@ export async function getCharacterStatsBatch(
   const primaryAttendances = await database
     .select({
       characterId: primaryRaidAttendanceL6LockoutWk.characterId,
-      weightedAttendancePct:
-        primaryRaidAttendanceL6LockoutWk.weightedAttendancePct,
+      weightedAttendancePct: primaryRaidAttendanceL6LockoutWk.weightedAttendancePct,
     })
     .from(primaryRaidAttendanceL6LockoutWk)
-    .where(
-      inArray(
-        primaryRaidAttendanceL6LockoutWk.characterId,
-        primaryCharacterIds,
-      ),
-    );
+    .where(inArray(primaryRaidAttendanceL6LockoutWk.characterId, primaryCharacterIds));
 
   // Create maps for quick lookup
   const totalAttendeeMap = new Map(
     totalAttendeeRaids.map((r) => [r.characterId, r.uniqueRaidCount]),
   );
-  const totalBenchMap = new Map(
-    totalBenchRaids.map((r) => [r.characterId, r.uniqueRaidCount]),
-  );
-  const zoneAttendeeMap = new Map(
-    zoneAttendeeRaids.map((r) => [r.characterId, r.uniqueRaidCount]),
-  );
-  const zoneBenchMap = new Map(
-    zoneBenchRaids.map((r) => [r.characterId, r.uniqueRaidCount]),
-  );
+  const totalBenchMap = new Map(totalBenchRaids.map((r) => [r.characterId, r.uniqueRaidCount]));
+  const zoneAttendeeMap = new Map(zoneAttendeeRaids.map((r) => [r.characterId, r.uniqueRaidCount]));
+  const zoneBenchMap = new Map(zoneBenchRaids.map((r) => [r.characterId, r.uniqueRaidCount]));
   const primaryAttendanceMap = new Map(
     primaryAttendances.map((r) => [r.characterId, r.weightedAttendancePct]),
   );
@@ -266,8 +245,7 @@ export async function getCharacterStatsBatch(
     }
 
     // Use primaryCharacterId if it exists, otherwise fall back to characterId
-    const primaryCharacterId =
-      character.primaryCharacterId ?? character.characterId;
+    const primaryCharacterId = character.primaryCharacterId ?? character.characterId;
 
     result.set(characterId, {
       characterId: character.characterId,
@@ -280,11 +258,9 @@ export async function getCharacterStatsBatch(
         Number(totalBenchMap.get(characterId) ?? 0),
       zoneRaidsAttended: Number(zoneAttendeeMap.get(characterId) ?? 0),
       zoneRaidsAttendedBenched:
-        Number(zoneAttendeeMap.get(characterId) ?? 0) +
-        Number(zoneBenchMap.get(characterId) ?? 0),
+        Number(zoneAttendeeMap.get(characterId) ?? 0) + Number(zoneBenchMap.get(characterId) ?? 0),
       // Look up attendance using the coalesced primaryCharacterId (primaryCharacterId ?? characterId)
-      primaryAttendancePct:
-        primaryAttendanceMap.get(primaryCharacterId) ?? null,
+      primaryAttendancePct: primaryAttendanceMap.get(primaryCharacterId) ?? null,
     });
   }
 

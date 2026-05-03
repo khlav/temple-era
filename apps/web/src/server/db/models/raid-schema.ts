@@ -82,9 +82,7 @@ export const raidLogs = tableCreator(
   },
   (table) => ({
     idIdx: uniqueIndex("raid_log__raid_log_id_idx").on(table.raidLogId),
-    discordMessageIdIdx: index("raid_log__discord_message_id_idx").on(
-      table.discordMessageId,
-    ),
+    discordMessageIdIdx: index("raid_log__discord_message_id_idx").on(table.discordMessageId),
   }),
 );
 
@@ -111,28 +109,21 @@ export const raidLogAttendeeMap = tableCreator(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.raidLogId, table.characterId] }),
-    raidLogIdIdx: index("raid_log_attendee_map__raid_log_id_idx").on(
-      table.raidLogId,
-    ),
-    characterIdIdx: index("raid_log_attendee_map__character_id_idx").on(
-      table.characterId,
-    ),
+    raidLogIdIdx: index("raid_log_attendee_map__raid_log_id_idx").on(table.raidLogId),
+    characterIdIdx: index("raid_log_attendee_map__character_id_idx").on(table.characterId),
   }),
 );
 
-export const raidLogAttendeeMapRelations = relations(
-  raidLogAttendeeMap,
-  ({ one }) => ({
-    raidLog: one(raidLogs, {
-      fields: [raidLogAttendeeMap.raidLogId],
-      references: [raidLogs.raidLogId],
-    }),
-    character: one(characters, {
-      fields: [raidLogAttendeeMap.characterId],
-      references: [characters.characterId],
-    }),
+export const raidLogAttendeeMapRelations = relations(raidLogAttendeeMap, ({ one }) => ({
+  raidLog: one(raidLogs, {
+    fields: [raidLogAttendeeMap.raidLogId],
+    references: [raidLogs.raidLogId],
   }),
-);
+  character: one(characters, {
+    fields: [raidLogAttendeeMap.characterId],
+    references: [characters.characterId],
+  }),
+}));
 
 export const raidBenchMap = tableCreator(
   "raid_bench_map",
@@ -149,9 +140,7 @@ export const raidBenchMap = tableCreator(
   (table) => ({
     pk: primaryKey({ columns: [table.raidId, table.characterId] }),
     raidIdIdx: index("raid_bench_map__raid_id_idx").on(table.raidId),
-    characterIdIdx: index("raid_bench_map__character_id_idx").on(
-      table.characterId,
-    ),
+    characterIdIdx: index("raid_bench_map__character_id_idx").on(table.characterId),
   }),
 );
 
