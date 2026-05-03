@@ -10,6 +10,10 @@ const config = {
     // ESLint removed in favour of oxlint (runs via lefthook, not next build)
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    // tsc runs in the pre-push hook; skipping the redundant Vercel check saves ~26s
+    ignoreBuildErrors: !!process.env.VERCEL,
+  },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "date-fns-tz"],
   },
