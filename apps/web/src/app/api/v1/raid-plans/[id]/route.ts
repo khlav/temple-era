@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
+import { getBaseUrl } from "~/lib/get-base-url";
 import { db } from "~/server/db";
 import {
   raidPlans,
@@ -38,6 +39,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
+    const url = new URL(request.url);
+    const compact = url.searchParams.get("compact") === "true";
+
     const plan = await db
       .select({
         id: raidPlans.id,
@@ -58,50 +62,56 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
+    const planCharactersQuery = db
+      .select({
+        id: raidPlanCharacters.id,
+        characterId: raidPlanCharacters.characterId,
+        characterName: raidPlanCharacters.characterName,
+        defaultGroup: raidPlanCharacters.defaultGroup,
+        defaultPosition: raidPlanCharacters.defaultPosition,
+        class: sql<
+          string | null
+        >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
+      })
+      .from(raidPlanCharacters)
+      .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
+      .where(eq(raidPlanCharacters.raidPlanId, id))
+      .orderBy(
+        raidPlanCharacters.defaultGroup,
+        raidPlanCharacters.defaultPosition,
+        raidPlanCharacters.characterName,
+        raidPlanCharacters.id,
+      );
+
+    const encountersQuery = db
+      .select({
+        id: raidPlanEncounters.id,
+        encounterKey: raidPlanEncounters.encounterKey,
+        encounterName: raidPlanEncounters.encounterName,
+        sortOrder: raidPlanEncounters.sortOrder,
+        groupId: raidPlanEncounters.groupId,
+        useDefaultGroups: raidPlanEncounters.useDefaultGroups,
+        aaTemplate: raidPlanEncounters.aaTemplate,
+        useCustomAA: raidPlanEncounters.useCustomAA,
+      })
+      .from(raidPlanEncounters)
+      .where(eq(raidPlanEncounters.raidPlanId, id))
+      .orderBy(raidPlanEncounters.sortOrder);
+
+    const encounterGroupsQuery = db
+      .select({
+        id: raidPlanEncounterGroups.id,
+        groupName: raidPlanEncounterGroups.groupName,
+        sortOrder: raidPlanEncounterGroups.sortOrder,
+      })
+      .from(raidPlanEncounterGroups)
+      .where(eq(raidPlanEncounterGroups.raidPlanId, id))
+      .orderBy(raidPlanEncounterGroups.sortOrder);
+
     const [planCharacters, encounters, encounterGroups] = await Promise.all([
-      db
-        .select({
-          id: raidPlanCharacters.id,
-          characterId: raidPlanCharacters.characterId,
-          characterName: raidPlanCharacters.characterName,
-          defaultGroup: raidPlanCharacters.defaultGroup,
-          defaultPosition: raidPlanCharacters.defaultPosition,
-          class: sql<
-            string | null
-          >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
-        })
-        .from(raidPlanCharacters)
-        .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
-        .where(eq(raidPlanCharacters.raidPlanId, id))
-        .orderBy(
-          raidPlanCharacters.defaultGroup,
-          raidPlanCharacters.defaultPosition,
-          raidPlanCharacters.characterName,
-          raidPlanCharacters.id,
-        ),
-      db
-        .select({
-          id: raidPlanEncounters.id,
-          encounterKey: raidPlanEncounters.encounterKey,
-          encounterName: raidPlanEncounters.encounterName,
-          sortOrder: raidPlanEncounters.sortOrder,
-          groupId: raidPlanEncounters.groupId,
-          useDefaultGroups: raidPlanEncounters.useDefaultGroups,
-          aaTemplate: raidPlanEncounters.aaTemplate,
-          useCustomAA: raidPlanEncounters.useCustomAA,
-        })
-        .from(raidPlanEncounters)
-        .where(eq(raidPlanEncounters.raidPlanId, id))
-        .orderBy(raidPlanEncounters.sortOrder),
-      db
-        .select({
-          id: raidPlanEncounterGroups.id,
-          groupName: raidPlanEncounterGroups.groupName,
-          sortOrder: raidPlanEncounterGroups.sortOrder,
-        })
-        .from(raidPlanEncounterGroups)
-        .where(eq(raidPlanEncounterGroups.raidPlanId, id))
-        .orderBy(raidPlanEncounterGroups.sortOrder),
+      planCharactersQuery,
+      encountersQuery,
+      compact ? Promise.resolve([]) : encounterGroupsQuery,
     ]);
 
     const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
@@ -152,9 +162,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .orderBy(raidPlanEncounterAASlots.sortOrder);
 
     const p = plan[0]!;
+    const planUrl = `${getBaseUrl(request)}/raid-manager/raid-planner/${p.id}`;
+
+    if (compact) {
+      return NextResponse.json({
+        id: p.id,
+        name: p.name,
+        planUrl,
+        zoneId: p.zoneId,
+        startAt: p.startAt?.toISOString() ?? null,
+        lastModifiedAt: new Date(p.lastModifiedAt).toISOString(),
+        characters: planCharacters,
+        encounters: encounters.map((e) => ({ id: e.id, encounterName: e.encounterName })),
+        encounterAssignments,
+        aaSlotAssignments,
+      });
+    }
+
     return NextResponse.json({
       id: p.id,
       name: p.name,
+      planUrl,
       zoneId: p.zoneId,
       raidHelperEventId: p.raidHelperEventId,
       startAt: p.startAt?.toISOString() ?? null,
