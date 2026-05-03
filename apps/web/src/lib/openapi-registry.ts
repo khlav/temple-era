@@ -599,11 +599,23 @@ registry.registerPath({
       id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
     }),
     query: z.object({
-      include: z.string().optional().openapi({
-        description:
-          "Comma-separated list of sections to include. Valid values: characters, encounterGroups, encounters, encounterAssignments, aaSlots. Omit to return all sections. Note: encounterAssignments and aaSlots implicitly include encounters for ID resolution.",
-        example: "characters,aaSlots",
-      }),
+      include: z
+        .array(
+          z.enum([
+            "characters",
+            "encounterGroups",
+            "encounters",
+            "encounterAssignments",
+            "aaSlots",
+          ]),
+        )
+        .optional()
+        .openapi({
+          param: { style: "form", explode: false },
+          description:
+            "Sections to include. Omit to return all sections. encounterAssignments and aaSlots implicitly resolve encounters for ID lookups.",
+          example: ["characters", "aaSlots"],
+        }),
     }),
   },
   responses: {
