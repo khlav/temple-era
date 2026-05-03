@@ -239,44 +239,11 @@ export const RaidPlanDetailSchema = registry.register(
     defaultAATemplate: z.string().nullable().openapi({ example: null }),
     useDefaultAA: z.boolean().nullable().openapi({ example: true }),
     availableSlots: z.array(z.string()).openapi({ example: ["MainTank", "TranqShot1", "Healer1"] }),
-    characters: z.array(PlanCharacterSchema),
-    encounterGroups: z.array(EncounterGroupSchema),
-    encounters: z.array(EncounterSchema),
-    encounterAssignments: z.array(EncounterAssignmentSchema),
-    aaSlotAssignments: z.array(AASlotAssignmentSchema),
-  }),
-);
-
-const CompactEncounterSchema = z.object({
-  id: z.string().uuid().openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
-  encounterName: z.string().openapi({ example: "Patchwerk" }),
-});
-
-const CompactPlanCharacterSchema = z.object({
-  id: z.string().uuid().openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
-  characterId: z.number().nullable().openapi({ example: 12345 }),
-  characterName: z.string().openapi({ example: "Khlav" }),
-  class: z.string().nullable().openapi({ example: "Warrior" }),
-  defaultGroup: z.number().nullable().openapi({ example: 0 }),
-  defaultPosition: z.number().nullable().openapi({ example: 0 }),
-});
-
-export const RaidPlanCompactSchema = registry.register(
-  "RaidPlanCompact",
-  z.object({
-    id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
-    name: z.string().openapi({ example: "MC Tuesday" }),
-    planUrl: z.string().url().openapi({
-      example:
-        "https://www.temple-era.com/raid-manager/raid-planner/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    }),
-    zoneId: z.string().openapi({ example: "naxxramas" }),
-    startAt: z.string().nullable().openapi({ example: "2026-04-29T23:00:00.000Z" }),
-    lastModifiedAt: z.string().openapi({ example: "2026-04-28T14:30:00.000Z" }),
-    characters: z.array(CompactPlanCharacterSchema),
-    encounters: z.array(CompactEncounterSchema),
-    encounterAssignments: z.array(EncounterAssignmentSchema),
-    aaSlotAssignments: z.array(AASlotAssignmentSchema),
+    characters: z.array(PlanCharacterSchema).optional(),
+    encounterGroups: z.array(EncounterGroupSchema).optional(),
+    encounters: z.array(EncounterSchema).optional(),
+    encounterAssignments: z.array(EncounterAssignmentSchema).optional(),
+    aaSlotAssignments: z.array(AASlotAssignmentSchema).optional(),
   }),
 );
 
@@ -625,24 +592,24 @@ registry.registerPath({
   tags: ["Raid Planning"],
   summary: "Get raid plan detail",
   description:
-    "Full plan detail including roster, encounters, per-encounter group assignments, and AA slot assignments. Pass `?compact=true` to get a trimmed payload with only roster and AA assignment data (omits encounter templates, group config, and other heavy metadata). Both shapes include `planUrl`. Requires isRaidManager.",
+    "Full plan detail including roster, encounters, per-encounter group assignments, and AA slot assignments. Metadata fields are always returned. Use `?include=` to request only specific sections; omit to receive all sections. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: {
     params: z.object({
       id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
     }),
     query: z.object({
-      compact: z.enum(["true", "false"]).optional().openapi({
+      include: z.string().optional().openapi({
         description:
-          "When true, returns a trimmed payload (roster + AA assignments only, no encounter templates or group config). Default: false.",
-        example: "true",
+          "Comma-separated list of sections to include. Valid values: characters, encounterGroups, encounters, encounterAssignments, aaSlots. Omit to return all sections. Note: encounterAssignments and aaSlots implicitly include encounters for ID resolution.",
+        example: "characters,aaSlots",
       }),
     }),
   },
   responses: {
     200: {
       description:
-        "Full raid plan detail (or compact subset when ?compact=true — see RaidPlanCompact schema)",
+        "Plan metadata plus any requested sections. Section arrays are absent when not requested.",
       content: {
         "application/json": { schema: RaidPlanDetailSchema },
       },

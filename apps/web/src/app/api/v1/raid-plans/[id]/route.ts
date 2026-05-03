@@ -39,8 +39,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
+    const VALID_SECTIONS = [
+      "characters",
+      "encounterGroups",
+      "encounters",
+      "encounterAssignments",
+      "aaSlots",
+    ] as const;
+    type Section = (typeof VALID_SECTIONS)[number];
+
     const url = new URL(request.url);
-    const compact = url.searchParams.get("compact") === "true";
+    const includeParam = url.searchParams.get("include");
+    const requestedSections = new Set<Section>(
+      includeParam === null
+        ? VALID_SECTIONS
+        : includeParam
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s): s is Section => (VALID_SECTIONS as readonly string[]).includes(s)),
+    );
+    if (requestedSections.has("aaSlots") || requestedSections.has("encounterAssignments")) {
+      requestedSections.add("encounters");
+    }
 
     const plan = await db
       .select({
@@ -61,6 +81,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (plan.length === 0) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
+
+    const p = plan[0]!;
+    const planUrl = `${getBaseUrl(request)}/raid-manager/raid-planner/${p.id}`;
 
     const planCharactersQuery = db
       .select({
@@ -109,12 +132,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .orderBy(raidPlanEncounterGroups.sortOrder);
 
     const [planCharacters, encounters, encounterGroups] = await Promise.all([
-      planCharactersQuery,
-      encountersQuery,
-      compact ? Promise.resolve([]) : encounterGroupsQuery,
+      requestedSections.has("characters") ? planCharactersQuery : Promise.resolve([]),
+      requestedSections.has("encounters") ? encountersQuery : Promise.resolve([]),
+      requestedSections.has("encounterGroups") ? encounterGroupsQuery : Promise.resolve([]),
     ]);
-
-    const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
 
     let encounterAssignments: {
       encounterId: string;
@@ -123,60 +144,54 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       position: number | null;
     }[] = [];
 
-    if (customEncounterIds.length > 0) {
-      encounterAssignments = await db
-        .select({
-          encounterId: raidPlanEncounterAssignments.encounterId,
-          planCharacterId: raidPlanEncounterAssignments.planCharacterId,
-          groupNumber: raidPlanEncounterAssignments.groupNumber,
-          position: raidPlanEncounterAssignments.position,
-        })
-        .from(raidPlanEncounterAssignments)
-        .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds))
-        .orderBy(
-          raidPlanEncounterAssignments.encounterId,
-          raidPlanEncounterAssignments.groupNumber,
-          raidPlanEncounterAssignments.position,
-        );
+    if (requestedSections.has("encounterAssignments")) {
+      const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
+      if (customEncounterIds.length > 0) {
+        encounterAssignments = await db
+          .select({
+            encounterId: raidPlanEncounterAssignments.encounterId,
+            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
+            groupNumber: raidPlanEncounterAssignments.groupNumber,
+            position: raidPlanEncounterAssignments.position,
+          })
+          .from(raidPlanEncounterAssignments)
+          .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds))
+          .orderBy(
+            raidPlanEncounterAssignments.encounterId,
+            raidPlanEncounterAssignments.groupNumber,
+            raidPlanEncounterAssignments.position,
+          );
+      }
     }
 
-    const encounterIds = encounters.map((e) => e.id);
+    let aaSlotAssignments: {
+      id: string;
+      encounterId: string | null;
+      raidPlanId: string | null;
+      planCharacterId: string | null;
+      slotName: string;
+    }[] = [];
 
-    const aaSlotAssignments = await db
-      .select({
-        id: raidPlanEncounterAASlots.id,
-        encounterId: raidPlanEncounterAASlots.encounterId,
-        raidPlanId: raidPlanEncounterAASlots.raidPlanId,
-        planCharacterId: raidPlanEncounterAASlots.planCharacterId,
-        slotName: raidPlanEncounterAASlots.slotName,
-      })
-      .from(raidPlanEncounterAASlots)
-      .where(
-        or(
-          eq(raidPlanEncounterAASlots.raidPlanId, id),
-          encounterIds.length > 0
-            ? inArray(raidPlanEncounterAASlots.encounterId, encounterIds)
-            : undefined,
-        ),
-      )
-      .orderBy(raidPlanEncounterAASlots.sortOrder);
-
-    const p = plan[0]!;
-    const planUrl = `${getBaseUrl(request)}/raid-manager/raid-planner/${p.id}`;
-
-    if (compact) {
-      return NextResponse.json({
-        id: p.id,
-        name: p.name,
-        planUrl,
-        zoneId: p.zoneId,
-        startAt: p.startAt?.toISOString() ?? null,
-        lastModifiedAt: new Date(p.lastModifiedAt).toISOString(),
-        characters: planCharacters,
-        encounters: encounters.map((e) => ({ id: e.id, encounterName: e.encounterName })),
-        encounterAssignments,
-        aaSlotAssignments,
-      });
+    if (requestedSections.has("aaSlots")) {
+      const encounterIds = encounters.map((e) => e.id);
+      aaSlotAssignments = await db
+        .select({
+          id: raidPlanEncounterAASlots.id,
+          encounterId: raidPlanEncounterAASlots.encounterId,
+          raidPlanId: raidPlanEncounterAASlots.raidPlanId,
+          planCharacterId: raidPlanEncounterAASlots.planCharacterId,
+          slotName: raidPlanEncounterAASlots.slotName,
+        })
+        .from(raidPlanEncounterAASlots)
+        .where(
+          or(
+            eq(raidPlanEncounterAASlots.raidPlanId, id),
+            encounterIds.length > 0
+              ? inArray(raidPlanEncounterAASlots.encounterId, encounterIds)
+              : undefined,
+          ),
+        )
+        .orderBy(raidPlanEncounterAASlots.sortOrder);
     }
 
     return NextResponse.json({
@@ -191,14 +206,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       useDefaultAA: p.useDefaultAA,
       lastModifiedAt: new Date(p.lastModifiedAt).toISOString(),
       availableSlots: getSlotNames(p.defaultAATemplate ?? ""),
-      characters: planCharacters,
-      encounterGroups,
-      encounters: encounters.map((e) => ({
-        ...e,
-        availableSlots: getSlotNames(e.aaTemplate ?? ""),
-      })),
-      encounterAssignments,
-      aaSlotAssignments,
+      ...(requestedSections.has("characters") && { characters: planCharacters }),
+      ...(requestedSections.has("encounterGroups") && { encounterGroups }),
+      ...(requestedSections.has("encounters") && {
+        encounters: encounters.map((e) => ({
+          ...e,
+          availableSlots: getSlotNames(e.aaTemplate ?? ""),
+        })),
+      }),
+      ...(requestedSections.has("encounterAssignments") && { encounterAssignments }),
+      ...(requestedSections.has("aaSlots") && { aaSlotAssignments }),
     });
   } catch (error) {
     logger.error({ err: error }, "v1 API error");
