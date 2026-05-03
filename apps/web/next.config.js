@@ -7,8 +7,11 @@ import "./src/env.js";
 /** @type {import("next").NextConfig} */
 const config = {
   eslint: {
-    // Ensure linting runs during next build locally, matching Vercel's behavior
-    ignoreDuringBuilds: false,
+    // ESLint removed in favour of oxlint (runs via lefthook, not next build)
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "date-fns", "date-fns-tz"],
   },
   async redirects() {
     return [

@@ -10,7 +10,6 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { ChartBarSquareIcon, MapIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { auth } from "~/server/auth";
 import { AppSidebarLogin } from "~/components/nav/app-sidebar-login";
@@ -25,6 +24,8 @@ import {
   ClipboardList,
   LayoutGrid,
   DraftingCompass,
+  LayoutDashboard,
+  Swords,
 } from "lucide-react";
 import { SidebarSearchBox } from "~/components/nav/sidebar-search-box";
 
@@ -35,10 +36,10 @@ const mutedTooltip = (label: string) =>
   }) as const;
 
 const coreItems = [
-  { title: "Dashboard", url: "/", icon: ChartBarSquareIcon },
-  { title: "Raids", url: "/raids", icon: MapIcon },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Raids", url: "/raids", icon: Swords },
   { title: "Raid Plans", url: "/raid-plans", icon: DraftingCompass },
-  { title: "Raiding characters", url: "/characters", icon: UserGroupIcon },
+  { title: "Raiding characters", url: "/characters", icon: Users },
   { title: "Rare recipes & crafters", url: "/rare-recipes", icon: Wand },
 ];
 
