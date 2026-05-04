@@ -39,24 +39,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
-    const VALID_SECTIONS = [
-      "characters",
+    const OPTIONAL_SECTIONS = [
       "encounterGroups",
       "encounters",
       "encounterAssignments",
       "aaSlots",
     ] as const;
-    type Section = (typeof VALID_SECTIONS)[number];
+    type OptionalSection = (typeof OPTIONAL_SECTIONS)[number];
 
     const url = new URL(request.url);
     const includeParam = url.searchParams.get("include");
-    const requestedSections = new Set<Section>(
+    const requestedSections = new Set<OptionalSection>(
       includeParam === null
-        ? VALID_SECTIONS
+        ? []
         : includeParam
             .split(",")
             .map((s) => s.trim())
-            .filter((s): s is Section => (VALID_SECTIONS as readonly string[]).includes(s)),
+            .filter((s): s is OptionalSection =>
+              (OPTIONAL_SECTIONS as readonly string[]).includes(s),
+            ),
     );
     if (requestedSections.has("aaSlots") || requestedSections.has("encounterAssignments")) {
       requestedSections.add("encounters");
@@ -132,7 +133,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .orderBy(raidPlanEncounterGroups.sortOrder);
 
     const [planCharacters, encounters, encounterGroups] = await Promise.all([
-      requestedSections.has("characters") ? planCharactersQuery : Promise.resolve([]),
+      planCharactersQuery,
       requestedSections.has("encounters") ? encountersQuery : Promise.resolve([]),
       requestedSections.has("encounterGroups") ? encounterGroupsQuery : Promise.resolve([]),
     ]);
@@ -206,7 +207,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       useDefaultAA: p.useDefaultAA,
       lastModifiedAt: new Date(p.lastModifiedAt).toISOString(),
       availableSlots: getSlotNames(p.defaultAATemplate ?? ""),
-      ...(requestedSections.has("characters") && { characters: planCharacters }),
+      characters: planCharacters,
       ...(requestedSections.has("encounterGroups") && { encounterGroups }),
       ...(requestedSections.has("encounters") && {
         encounters: encounters.map((e) => ({

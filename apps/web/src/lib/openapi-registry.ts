@@ -239,7 +239,7 @@ export const RaidPlanDetailSchema = registry.register(
     defaultAATemplate: z.string().nullable().openapi({ example: null }),
     useDefaultAA: z.boolean().nullable().openapi({ example: true }),
     availableSlots: z.array(z.string()).openapi({ example: ["MainTank", "TranqShot1", "Healer1"] }),
-    characters: z.array(PlanCharacterSchema).optional(),
+    characters: z.array(PlanCharacterSchema),
     encounterGroups: z.array(EncounterGroupSchema).optional(),
     encounters: z.array(EncounterSchema).optional(),
     encounterAssignments: z.array(EncounterAssignmentSchema).optional(),
@@ -592,7 +592,7 @@ registry.registerPath({
   tags: ["Raid Planning"],
   summary: "Get raid plan detail",
   description:
-    "Full plan detail including roster, encounters, per-encounter group assignments, and AA slot assignments. Metadata fields are always returned. Use `?include=` to request only specific sections; omit to receive all sections. Requires isRaidManager.",
+    "Plan detail. Metadata and roster (characters) are always returned. Use `?include=` to request additional sections: encounterGroups, encounters, encounterAssignments, aaSlots. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: {
     params: z.object({
@@ -600,21 +600,13 @@ registry.registerPath({
     }),
     query: z.object({
       include: z
-        .array(
-          z.enum([
-            "characters",
-            "encounterGroups",
-            "encounters",
-            "encounterAssignments",
-            "aaSlots",
-          ]),
-        )
+        .array(z.enum(["encounterGroups", "encounters", "encounterAssignments", "aaSlots"]))
         .optional()
         .openapi({
           param: { style: "form", explode: false },
           description:
-            "Sections to include. Omit to return all sections. encounterAssignments and aaSlots implicitly resolve encounters for ID lookups.",
-          example: ["characters", "aaSlots"],
+            "Optional sections to include beyond the default roster. encounterAssignments and aaSlots implicitly resolve encounters for ID lookups.",
+          example: ["encounters", "aaSlots"],
         }),
     }),
   },
