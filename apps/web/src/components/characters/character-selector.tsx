@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "~/trpc/react";
-import anyAscii from "any-ascii";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { ClassIcon } from "~/components/ui/class-icon";
 
@@ -84,7 +83,7 @@ export function CharacterSelector({
 
   const characterList = React.useMemo(() => {
     return Object.values(characterCollection ?? {}).sort((a, b) =>
-      anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
   }, [characterCollection]);
 
@@ -96,7 +95,6 @@ export function CharacterSelector({
           <CommandInput
             placeholder={isLoading ? "Loading..." : "Search characters..."}
             className="h-9"
-            onValueChange={anyAscii}
             autoFocus
           />
           <CommandList>
@@ -106,7 +104,10 @@ export function CharacterSelector({
                 <CommandItem
                   key={c.characterId}
                   value={c.characterId.toString()}
-                  keywords={[anyAscii(c.name), anyAscii(c.primaryCharacterName ?? "")]}
+                  keywords={[
+                    c.name.normalize("NFD").replace(/[̀-ͯ]/g, ""),
+                    (c.primaryCharacterName ?? "").normalize("NFD").replace(/[̀-ͯ]/g, ""),
+                  ]}
                   onSelect={(currentValue) => {
                     handleSelect(currentValue);
                     setOpen(false);

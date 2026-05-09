@@ -3,7 +3,6 @@
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { Button } from "~/components/ui/button";
 import { XIcon } from "lucide-react";
-import anyAscii from "any-ascii";
 
 export function RaidBenchManagerList({
   characters,
@@ -18,7 +17,7 @@ export function RaidBenchManagerList({
   };
 
   const characterList = Object.values(characters).sort((a, b) =>
-    anyAscii(a.name) > anyAscii(b.name) ? 1 : -1,
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
 
   return (

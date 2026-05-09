@@ -1,7 +1,6 @@
 "use client";
 
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
-import anyAscii from "any-ascii";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import { GenericCharactersTableSkeleton } from "~/components/characters/skeletons";
@@ -92,7 +91,9 @@ export function CharactersTable({
   const isMobile = useIsMobile();
   const characterList =
     characters &&
-    Object.values(characters).sort((a, b) => (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1));
+    Object.values(characters).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
 
   return (
     <div className="space-y-3">

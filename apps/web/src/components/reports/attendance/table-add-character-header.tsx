@@ -14,7 +14,6 @@ import {
 import { Plus } from "lucide-react";
 import { api } from "~/trpc/react";
 import { ClassIcon } from "~/components/ui/class-icon";
-import anyAscii from "any-ascii";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export function TableAddCharacterHeader({
@@ -29,7 +28,7 @@ export function TableAddCharacterHeader({
 
   const availableCharacters = (characters || [])
     .filter((char) => !selectedCharacterIds.includes(char.characterId))
-    .sort((a, b) => (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1));
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
   const isDisabled = selectedCharacterIds.length >= 10 || isLoading;
 
@@ -62,7 +61,7 @@ export function TableAddCharacterHeader({
                   <CommandItem
                     key={char.characterId}
                     value={char.characterId.toString()}
-                    keywords={[anyAscii(char.name)]}
+                    keywords={[char.name.normalize("NFD").replace(/[̀-ͯ]/g, "")]}
                     onSelect={() => {
                       onAddCharacter(char.characterId);
                       setOpen(false);

@@ -1,7 +1,6 @@
 "use client";
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { Reshape1DTo2D } from "~/lib/helpers";
-import anyAscii from "any-ascii";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
@@ -28,9 +27,10 @@ export const CharacterSummaryGrid = ({
     }));
   }
 
-  const sortedCharacterList = Object.values(characters).sort((c1, c2) =>
-    `${c1.class}_${anyAscii(c1.name)}` > `${c2.class}_${anyAscii(c2.name)}` ? 1 : -1,
-  );
+  const sortedCharacterList = Object.values(characters).sort((c1, c2) => {
+    if (c1.class !== c2.class) return c1.class.localeCompare(c2.class);
+    return c1.name.localeCompare(c2.name, undefined, { sensitivity: "base" });
+  });
 
   const sortedCharacterClassMatrixWithSubgroups = groupByClass(
     sortedCharacterList,

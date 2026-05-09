@@ -10,15 +10,16 @@ import type {
 } from "~/server/api/interfaces/raid";
 import { env } from "~/env";
 import { NextResponse } from "next/server";
-import anyAscii from "any-ascii";
 import {
   type AccessTokenResponse,
   GetOauthClientCredentialAccessToken,
 } from "~/server/api/oauth-helpers";
 
-export const Slugify = (value: string) => {
-  return anyAscii(value).toLowerCase();
-};
+export const Slugify = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
 
 export const GetWCLGraphQLQuery = async (gqlQuery: string, gqlVariables: object) => {
   const OAUTH_URL = env.WCL_OAUTH_URL;

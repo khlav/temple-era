@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Separator } from "~/components/ui/separator";
 import { PrimaryCharacterRaidsTable } from "~/components/characters/primary-character-raids-table";
-import anyAscii from "any-ascii";
 import { Button } from "~/components/ui/button";
 import { Edit } from "lucide-react";
 import React from "react";
@@ -87,7 +86,7 @@ export function CharacterDetail({
               <div className="flex flex-wrap gap-2">
                 <div className="grow-0 py-2 text-sm">Alts:</div>
                 {(characterData.secondaryCharacters ?? [])
-                  .sort((a, b) => (anyAscii(a.name) > anyAscii(b.name) ? 1 : -1))
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
                   .map((secondaryCharacter) => (
                     <Link
                       key={secondaryCharacter.characterId}
