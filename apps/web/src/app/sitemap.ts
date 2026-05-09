@@ -6,11 +6,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
 
   // Fetch all raids for dynamic sitemap
-  const allRaids = await db.select({ id: raids.raidId, date: raids.date }).from(raids);
-
-  // Filter to only include raids from the last 6 months
-  const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
-  const recentRaids = allRaids.filter((raid) => raid.date && new Date(raid.date) > sixMonthsAgo);
+  let recentRaids: { id: number; date: string | null }[] = [];
+  try {
+    const allRaids = await db.select({ id: raids.raidId, date: raids.date }).from(raids);
+    const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+    recentRaids = allRaids.filter((raid) => raid.date && new Date(raid.date) > sixMonthsAgo);
+  } catch {
+    // DB unavailable during build — return static pages only
+  }
 
   const staticPages = [
     {
@@ -33,7 +36,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Add individual raid pages for recent raids only
   const raidPages = recentRaids.map((raid) => ({
     url: `${baseUrl}/raids/${raid.id}`,
     lastModified: raid.date ? new Date(raid.date) : new Date(),

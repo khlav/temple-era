@@ -7,6 +7,7 @@
     "build": "next build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:clone-prod": "bash scripts/db/clone-prod.sh",
     "db:migration:compare": "bash scripts/db/compare-row-counts.sh",
     "db:migration:dump:data": "bash scripts/db/dump.sh data-only",
     "db:migration:dump:full": "bash scripts/db/dump.sh full",

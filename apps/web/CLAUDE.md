@@ -31,6 +31,16 @@ pnpm db:migrate       # Run migrations
 pnpm db:studio        # Open Drizzle Studio (database GUI)
 ```
 
+### Cloning PROD to DEV
+
+Copies all application data from PROD to DEV. Only app-owned schemas (`public`, `views`, `drizzle`) are dumped — Supabase-managed schemas are excluded entirely.
+
+**Prerequisites:** `pg_dump`, `pg_restore`, and `psql` must be v17 to match the server. Set `DATABASE_PROD_URL` in `.env`.
+
+```bash
+pnpm db:clone-prod
+```
+
 ### Code Quality Commands
 
 ```bash

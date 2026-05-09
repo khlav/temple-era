@@ -42,6 +42,8 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_POSTHOG_ENABLED: z.string().transform((val) => val.toLowerCase() === "true"),
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
     NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: z.string().url(),
   },
@@ -76,6 +78,8 @@ export const env = createEnv({
     API_TOKEN_ENCRYPTION_KEY: process.env.API_TOKEN_ENCRYPTION_KEY,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: process.env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL,
 
