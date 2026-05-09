@@ -34,6 +34,16 @@ export const CharacterSchema = registry.register(
   }),
 );
 
+export const ByNameCharacterSchema = registry.register(
+  "ByNameCharacter",
+  z.object({
+    characterId: z.number().openapi({ example: 12345 }),
+    name: z.string().openapi({ example: "Khlav" }),
+    class: z.string().openapi({ example: "Warrior" }),
+    server: z.string().openapi({ example: "Ashkandi" }),
+  }),
+);
+
 export const CharacterDetailSchema = registry.register(
   "CharacterDetail",
   CharacterSchema.extend({
@@ -302,6 +312,36 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
+  path: "/api/v1/characters/by-name",
+  operationId: "lookupCharactersByName",
+  tags: ["Characters"],
+  summary: "Lookup characters by name",
+  description:
+    "Looks up multiple characters by exact name. Matching is case-insensitive and diacritic-insensitive (e.g. `Grolnakh` matches `Grólnakh`). Names that don't match any character are silently omitted. Capped at 100 names per request.",
+  security: [{ BearerToken: [] }],
+  request: {
+    query: z.object({
+      names: z.array(z.string()).openapi({
+        param: { style: "form", explode: false },
+        example: ["Cowch", "Sneakers", "Dunckan"],
+        description: "Comma-separated character names (max 100)",
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Matched characters",
+      content: {
+        "application/json": { schema: z.array(ByNameCharacterSchema) },
+      },
+    },
+    400: { description: "Missing names parameter" },
+    401: { description: "Invalid or missing API token" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
   path: "/api/v1/characters/{id}",
   operationId: "getCharacter",
   tags: ["Characters"],
@@ -490,9 +530,9 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/events",
-  operationId: "listEvents",
-  tags: ["Raid Planning"],
+  path: "/api/v1/scheduled-raids",
+  operationId: "listScheduledRaids",
+  tags: ["Scheduled Raids"],
   summary: "List upcoming events",
   description:
     "Lists upcoming Discord events from Raid Helper, annotated with whether a raid plan exists. Requires isRaidManager.",
@@ -554,7 +594,7 @@ registry.registerPath({
   tags: ["Raid Planning"],
   summary: "Create raid plan",
   description:
-    "Creates a new raid plan shell for a Raid Helper event. Applies encounter structure from cloneFromPlanId (if provided) or from the active zone template. Roster is empty — use sync-signups after creation. Returns 409 if a plan already exists for the event. Requires isRaidManager.",
+    "Creates a new raid plan shell for a Raid Helper event. Applies encounter structure from cloneFromPlanId (if provided) or from the active raid template. Roster is empty — use sync-signups after creation. Returns 409 if a plan already exists for the event. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: {
     body: {
@@ -982,9 +1022,9 @@ registry.registerPath({
   },
 });
 
-// ─── Zone Templates ───────────────────────────────────────────────────────────
+// ─── Raid Templates ───────────────────────────────────────────────────────────
 
-const ZoneTemplateEncounterSchema = z.object({
+const RaidTemplateEncounterSchema = z.object({
   id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   encounterKey: z.string().openapi({ example: "patchwerk" }),
   encounterName: z.string().openapi({ example: "Patchwerk" }),
@@ -995,28 +1035,28 @@ const ZoneTemplateEncounterSchema = z.object({
   }),
 });
 
-const ZoneTemplateGroupSchema = z.object({
+const RaidTemplateGroupSchema = z.object({
   id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   groupName: z.string().openapi({ example: "Spider Wing" }),
   sortOrder: z.number().int().openapi({ example: 0 }),
 });
 
-const ZoneTemplateDetailSchema = z.object({
+const RaidTemplateDetailSchema = z.object({
   id: z.string().uuid().openapi({ example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }),
   isActive: z.boolean().openapi({ example: true }),
   defaultAATemplate: z.string().nullable().openapi({
     example: "{skull} {assign:MainTank} :: {assign:MainTankHeals}",
   }),
   availableSlots: z.array(z.string()).openapi({ example: ["MainTank", "MainTankHeals"] }),
-  encounters: z.array(ZoneTemplateEncounterSchema),
-  encounterGroups: z.array(ZoneTemplateGroupSchema),
+  encounters: z.array(RaidTemplateEncounterSchema),
+  encounterGroups: z.array(RaidTemplateGroupSchema),
 });
 
 const ZoneRowSchema = z.object({
   zoneId: z.string().openapi({ example: "naxxramas" }),
   zoneName: z.string().openapi({ example: "Naxxramas" }),
   defaultGroupCount: z.number().int().openapi({ example: 8 }),
-  template: ZoneTemplateDetailSchema.nullable(),
+  template: RaidTemplateDetailSchema.nullable(),
 });
 
 const ZoneIdParam = z.object({
@@ -1035,16 +1075,16 @@ const GroupIdParam = z.object({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/zone-templates",
-  operationId: "listZoneTemplates",
-  tags: ["Zone Templates"],
-  summary: "List all zone templates",
+  path: "/api/v1/raid-templates",
+  operationId: "listRaidTemplates",
+  tags: ["Raid Templates"],
+  summary: "List all raid templates",
   description:
     "Returns all hardcoded raid zones with their template configuration. Zones without a configured template return template: null. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   responses: {
     200: {
-      description: "Zone template list",
+      description: "Raid template list",
       content: {
         "application/json": { schema: z.array(ZoneRowSchema) },
       },
@@ -1056,17 +1096,17 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/zone-templates/{zoneId}",
-  operationId: "getZoneTemplate",
-  tags: ["Zone Templates"],
-  summary: "Get zone template detail",
+  path: "/api/v1/raid-templates/{zoneId}",
+  operationId: "getRaidTemplate",
+  tags: ["Raid Templates"],
+  summary: "Get raid template detail",
   description:
-    "Returns full zone template detail including encounters and encounter groups. Returns template: null if zone exists but has no template yet. Requires isRaidManager.",
+    "Returns full raid template detail including encounters and encounter groups. Returns template: null if zone exists but has no template yet. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: { params: ZoneIdParam },
   responses: {
     200: {
-      description: "Zone template detail",
+      description: "Raid template detail",
       content: {
         "application/json": { schema: ZoneRowSchema },
       },
@@ -1079,10 +1119,10 @@ registry.registerPath({
 
 registry.registerPath({
   method: "patch",
-  path: "/api/v1/zone-templates/{zoneId}",
-  operationId: "patchZoneTemplate",
-  tags: ["Zone Templates"],
-  summary: "Update zone template",
+  path: "/api/v1/raid-templates/{zoneId}",
+  operationId: "patchRaidTemplate",
+  tags: ["Raid Templates"],
+  summary: "Update raid template",
   description:
     "Updates isActive and/or defaultAATemplate. Auto-creates the template record if it does not exist. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
@@ -1128,12 +1168,12 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/zone-templates/{zoneId}/encounters",
-  operationId: "addZoneTemplateEncounter",
-  tags: ["Zone Templates"],
-  summary: "Add encounter to zone template",
+  path: "/api/v1/raid-templates/{zoneId}/encounters",
+  operationId: "addRaidTemplateEncounter",
+  tags: ["Raid Templates"],
+  summary: "Add encounter to raid template",
   description:
-    "Adds a new encounter preset. Auto-creates the zone template record if needed. sortOrder is appended after the current max. Requires isRaidManager.",
+    "Adds a new encounter preset. Auto-creates the raid template record if needed. sortOrder is appended after the current max. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: {
     params: ZoneIdParam,
@@ -1156,7 +1196,7 @@ registry.registerPath({
     201: {
       description: "Created encounter",
       content: {
-        "application/json": { schema: ZoneTemplateEncounterSchema },
+        "application/json": { schema: RaidTemplateEncounterSchema },
       },
     },
     400: { description: "Invalid zone or request body" },
@@ -1168,10 +1208,10 @@ registry.registerPath({
 
 registry.registerPath({
   method: "put",
-  path: "/api/v1/zone-templates/{zoneId}/encounters/{encounterId}",
-  operationId: "updateZoneTemplateEncounter",
-  tags: ["Zone Templates"],
-  summary: "Update zone template encounter",
+  path: "/api/v1/raid-templates/{zoneId}/encounters/{encounterId}",
+  operationId: "updateRaidTemplateEncounter",
+  tags: ["Raid Templates"],
+  summary: "Update raid template encounter",
   description:
     "Updates any combination of encounterName, aaTemplate, sortOrder, groupId. Regenerates encounterKey when encounterName changes. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
@@ -1211,10 +1251,10 @@ registry.registerPath({
 
 registry.registerPath({
   method: "delete",
-  path: "/api/v1/zone-templates/{zoneId}/encounters/{encounterId}",
-  operationId: "deleteZoneTemplateEncounter",
-  tags: ["Zone Templates"],
-  summary: "Delete zone template encounter",
+  path: "/api/v1/raid-templates/{zoneId}/encounters/{encounterId}",
+  operationId: "deleteRaidTemplateEncounter",
+  tags: ["Raid Templates"],
+  summary: "Delete raid template encounter",
   description: "Permanently deletes the encounter preset. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: { params: EncounterIdParam },
@@ -1236,9 +1276,9 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/zone-templates/{zoneId}/encounters/reorder",
-  operationId: "reorderZoneTemplateEncounters",
-  tags: ["Zone Templates"],
+  path: "/api/v1/raid-templates/{zoneId}/encounters/reorder",
+  operationId: "reorderRaidTemplateEncounters",
+  tags: ["Raid Templates"],
   summary: "Bulk reorder encounters and groups",
   description:
     "Atomically updates sort orders for groups and encounters, and reassigns encounter groupId values. Both arrays are optional but at least one item must be provided. Requires isRaidManager.",
@@ -1280,18 +1320,18 @@ registry.registerPath({
     400: { description: "Invalid zone or request body" },
     401: { description: "Invalid or missing API token" },
     403: { description: "Not a raid manager" },
-    404: { description: "Zone template not configured" },
+    404: { description: "Raid template not configured" },
   },
 });
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/zone-templates/{zoneId}/groups",
-  operationId: "createZoneTemplateGroup",
-  tags: ["Zone Templates"],
-  summary: "Create encounter group in zone template",
+  path: "/api/v1/raid-templates/{zoneId}/groups",
+  operationId: "createRaidTemplateGroup",
+  tags: ["Raid Templates"],
+  summary: "Create encounter group in raid template",
   description:
-    "Creates a new encounter group. sortOrder is appended after the current max across both encounters and groups. Auto-creates the zone template record if needed. Requires isRaidManager.",
+    "Creates a new encounter group. sortOrder is appended after the current max across both encounters and groups. Auto-creates the raid template record if needed. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
   request: {
     params: ZoneIdParam,
@@ -1310,7 +1350,7 @@ registry.registerPath({
     201: {
       description: "Created group",
       content: {
-        "application/json": { schema: ZoneTemplateGroupSchema },
+        "application/json": { schema: RaidTemplateGroupSchema },
       },
     },
     400: { description: "Invalid zone or request body" },
@@ -1322,9 +1362,9 @@ registry.registerPath({
 
 registry.registerPath({
   method: "put",
-  path: "/api/v1/zone-templates/{zoneId}/groups/{groupId}",
-  operationId: "updateZoneTemplateGroup",
-  tags: ["Zone Templates"],
+  path: "/api/v1/raid-templates/{zoneId}/groups/{groupId}",
+  operationId: "updateRaidTemplateGroup",
+  tags: ["Raid Templates"],
   summary: "Rename encounter group",
   description: "Updates the group name. Requires isRaidManager.",
   security: [{ BearerToken: [] }],
@@ -1359,9 +1399,9 @@ registry.registerPath({
 
 registry.registerPath({
   method: "delete",
-  path: "/api/v1/zone-templates/{zoneId}/groups/{groupId}",
-  operationId: "deleteZoneTemplateGroup",
-  tags: ["Zone Templates"],
+  path: "/api/v1/raid-templates/{zoneId}/groups/{groupId}",
+  operationId: "deleteRaidTemplateGroup",
+  tags: ["Raid Templates"],
   summary: "Delete encounter group",
   description:
     "Deletes a group. mode=promote (default) moves child encounters to top-level; mode=deleteChildren deletes them. Requires isRaidManager.",

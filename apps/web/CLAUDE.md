@@ -434,10 +434,35 @@ The website provides a versioned public REST API at `/api/v1/`:
 
 - `GET /api/v1/openapi.json` - OpenAPI 3.0 spec (no auth)
 - `GET /api/v1/me` - Authenticated user identity and linked character
+- `PATCH /api/v1/me/templar` - Toggle Templar bot opt-in (raid managers/admins only)
 - `GET /api/v1/characters` - Search/list characters (query params: `q`, `type`)
+- `GET /api/v1/characters/by-name?names=` - Batch exact lookup by name (case + diacritic-insensitive, max 100)
 - `GET /api/v1/characters/:id` - Character detail with family
 - `GET /api/v1/characters/:id/attendance` - 6-week rolling attendance
-- `PATCH /api/v1/me/templar` - Toggle Templar bot opt-in for the authenticated user (raid managers/admins only)
+- `DELETE /api/v1/characters/:id/primary` - Unlink character from its primary
+- `PUT /api/v1/characters/:id/secondaries` - Set secondary characters
+- `GET /api/v1/scheduled-raids` - Upcoming Raid Helper events with existing plan annotations
+- `GET /api/v1/raid-plans` - List recent raid plans
+- `POST /api/v1/raid-plans` - Create raid plan
+- `GET /api/v1/raid-plans/:id` - Plan detail (`?include=encounters,encounterGroups,encounterAssignments,aaSlots`)
+- `PATCH /api/v1/raid-plans/:id` - Update plan AA template
+- `DELETE /api/v1/raid-plans/:id` - Delete plan
+- `PUT /api/v1/raid-plans/:id/roster` - Bulk patch default roster positions
+- `PATCH /api/v1/raid-plans/:id/roster/:planCharacterId` - Re-link roster slot to a DB character
+- `PUT /api/v1/raid-plans/:id/aa-slots` - Bulk assign AA slots
+- `PUT /api/v1/raid-plans/:id/encounters/:encounterId` - Update encounter settings
+- `PATCH /api/v1/raid-plans/:id/encounters/:encounterId/roster` - Bulk patch encounter group assignments
+- `POST /api/v1/raid-plans/:id/sync-signups` - Sync Raid Helper signups to roster
+- `GET /api/v1/raid-templates` - List all raid templates (zone configs)
+- `GET /api/v1/raid-templates/:zoneId` - Raid template detail with encounters and groups
+- `PATCH /api/v1/raid-templates/:zoneId` - Update raid template
+- `POST /api/v1/raid-templates/:zoneId/encounters` - Add encounter
+- `PUT /api/v1/raid-templates/:zoneId/encounters/:encounterId` - Update encounter
+- `DELETE /api/v1/raid-templates/:zoneId/encounters/:encounterId` - Delete encounter
+- `POST /api/v1/raid-templates/:zoneId/encounters/reorder` - Bulk reorder encounters and groups
+- `POST /api/v1/raid-templates/:zoneId/groups` - Create encounter group
+- `PUT /api/v1/raid-templates/:zoneId/groups/:groupId` - Rename encounter group
+- `DELETE /api/v1/raid-templates/:zoneId/groups/:groupId` - Delete encounter group
 
 **Auth:** Personal API tokens (`tera_<32-hex>`), generated from the profile page by raid managers and admins. Passed as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes in the DB.
 
