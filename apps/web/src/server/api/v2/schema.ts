@@ -1,6 +1,6 @@
 // src/server/api/v2/schema.ts
-import { and, desc, eq, gt, gte, ilike, inArray, lte } from "drizzle-orm";
-import { accounts, characters, raids, users } from "~/server/db/schema";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, lte } from "drizzle-orm";
+import { accounts, characters, raids, recipes, users } from "~/server/db/schema";
 import { builder } from "./builder";
 import { requireUser } from "./context";
 
@@ -10,11 +10,18 @@ import "./types/attendance";
 import "./types/raid";
 import "./types/character";
 import "./types/character-family";
+import "./types/recipe";
 
 // User type defines and exports UserRef directly (not via refs.ts)
 import { UserRef, type UserData } from "./types/user";
-import { CharacterRef, CharacterFamilyRef, RaidRef } from "./refs";
-import { CharacterTypeEnum, RaidZoneEnum, GQL_ZONE_TO_DB } from "./types/enums";
+import { CharacterRef, CharacterFamilyRef, RaidRef, RecipeRef } from "./refs";
+import {
+  CharacterTypeEnum,
+  RaidZoneEnum,
+  GQL_ZONE_TO_DB,
+  ProfessionEnum,
+  GQL_PROFESSION_TO_DB,
+} from "./types/enums";
 
 builder.queryType({
   fields: (t) => ({
@@ -138,6 +145,42 @@ builder.queryType({
           .orderBy(desc(raids.date))
           .limit(args.limit ?? 50)
           .offset(args.offset ?? 0);
+      },
+    }),
+
+    /** List recipes with optional profession filter and name search */
+    recipes: t.field({
+      type: [RecipeRef],
+      args: {
+        profession: t.arg({ type: ProfessionEnum, required: false }),
+        search: t.arg.string({ required: false }),
+      },
+      resolve: async (_root, args, ctx) => {
+        requireUser(ctx);
+        const conditions = [];
+        if (args.profession) {
+          const dbProfession = GQL_PROFESSION_TO_DB[args.profession];
+          if (dbProfession)
+            conditions.push(
+              eq(
+                recipes.profession,
+                dbProfession as
+                  | "Alchemy"
+                  | "Blacksmithing"
+                  | "Enchanting"
+                  | "Engineering"
+                  | "Tailoring"
+                  | "Leatherworking"
+                  | "Cooking",
+              ),
+            );
+        }
+        if (args.search) conditions.push(ilike(recipes.recipe, `%${args.search}%`));
+        return ctx.db
+          .select()
+          .from(recipes)
+          .where(conditions.length > 0 ? and(...conditions) : undefined)
+          .orderBy(asc(recipes.profession), asc(recipes.recipe));
       },
     }),
   }),

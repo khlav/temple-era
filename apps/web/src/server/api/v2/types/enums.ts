@@ -43,3 +43,33 @@ export const DB_ZONE_TO_GQL: Record<string, string> = Object.fromEntries(
 
 /** All GQL zone enum values, used when no zone filter is specified */
 export const ALL_GQL_ZONES = Object.keys(GQL_ZONE_TO_DB);
+
+const PROFESSION_VALUES = [
+  "ALCHEMY",
+  "BLACKSMITHING",
+  "ENCHANTING",
+  "ENGINEERING",
+  "LEATHERWORKING",
+  "TAILORING",
+  "COOKING",
+] as const;
+
+export type ProfessionValues = (typeof PROFESSION_VALUES)[number];
+
+export const ProfessionEnum = builder.enumType("Profession", {
+  values: PROFESSION_VALUES,
+});
+
+export const GQL_PROFESSION_TO_DB: Record<string, string> = {
+  ALCHEMY: "Alchemy",
+  BLACKSMITHING: "Blacksmithing",
+  ENCHANTING: "Enchanting",
+  ENGINEERING: "Engineering",
+  LEATHERWORKING: "Leatherworking",
+  TAILORING: "Tailoring",
+  COOKING: "Cooking",
+};
+
+export const DB_PROFESSION_TO_GQL: Record<string, string> = Object.fromEntries(
+  Object.entries(GQL_PROFESSION_TO_DB).map(([gql, db]) => [db, gql]),
+);
