@@ -472,6 +472,30 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `src/lib/openapi-registry.ts` - Zod-to-OpenAPI registry and `buildOpenApiSpec()`
 - `src/app/api/v1/` - Route handlers
 
+## GraphQL API (v2)
+
+A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first schema builder) + GraphQL Yoga.
+
+**Auth:** Same Bearer token model as v1 (`Authorization: Bearer <token>`). All queries require a valid token.
+
+**GraphiQL:** Available at `/api/v2/graphql` in development.
+
+**Root queries:**
+- `users(discordIds: [String!]!)` — look up users by Discord user ID; traverses to linked characters + attendance
+- `character(id: Int!)` — single character; primary characters aggregate attendance across full family
+- `characterFamily(primaryCharacterId: Int!)` — primary + all secondaries with aggregated attendance
+- `characters(type: CharacterType, search: String)` — list non-ignored characters with optional filter
+- `raids(zone: RaidZone, limit: Int, offset: Int)` — list raids newest-first with optional zone filter
+
+**Key types:** User, Character, CharacterFamily, Raid, RaidLog, AttendanceReport (with flexible zone + week params)
+
+**Key files:**
+- `src/app/api/v2/graphql/route.ts` — Yoga route handler
+- `src/server/api/v2/schema.ts` — schema assembly + root Query
+- `src/server/api/v2/types/` — Pothos type implementations
+- `src/server/api/v2/helpers/attendance.ts` — parameterized attendance computation
+- `src/server/api/v2/helpers/lockout-weeks.ts` — Tuesday-anchored WoW lockout week logic
+
 ## GitHub Automation
 
 - **PR Template**: `.github/pull_request_template.md` structures PR descriptions
