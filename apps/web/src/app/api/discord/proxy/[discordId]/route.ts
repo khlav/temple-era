@@ -10,6 +10,8 @@ import { logger } from "~/lib/logger";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 
+const API_VERSIONS = ["v1", "v2"] as const;
+
 const ProxySchema = z.object({
   method: z
     .string()
@@ -17,14 +19,15 @@ const ProxySchema = z.object({
     .refine((m) => ALLOWED_METHODS.has(m), {
       message: "method must be GET, POST, PUT, PATCH, or DELETE",
     }),
+  apiVersion: z.enum(API_VERSIONS).default("v1"),
   path: z
     .string()
     .min(1)
     .startsWith("/")
     .transform((p) => {
       try {
-        const normalized = new URL(`http://x/api/v1${p}`).pathname;
-        return normalized.slice("/api/v1".length) || "/";
+        const normalized = new URL(`http://x${p}`).pathname;
+        return normalized || "/";
       } catch {
         return p;
       }
@@ -76,7 +79,7 @@ export async function POST(
       );
     }
 
-    const { method, path, body: proxyBody } = parsed.data;
+    const { method, apiVersion, path, body: proxyBody } = parsed.data;
     const { discordId } = await params;
 
     if (!/^\d{17,19}$/.test(discordId)) {
@@ -128,9 +131,9 @@ export async function POST(
       return NextResponse.json({ error: "Failed to decrypt user token" }, { status: 500 });
     }
 
-    // 6. Forward the request to /api/v1
+    // 6. Forward the request to the target API version
     const baseUrl = getBaseUrl(request);
-    const targetUrl = `${baseUrl}/api/v1${path}`;
+    const targetUrl = `${baseUrl}/api/${apiVersion}${path}`;
 
     const proxyHeaders: HeadersInit = {
       Authorization: `Bearer ${plainToken}`,
