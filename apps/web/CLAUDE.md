@@ -442,6 +442,7 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `DELETE /api/v1/characters/:id/primary` - Unlink character from its primary
 - `PUT /api/v1/characters/:id/secondaries` - Set secondary characters
 - `GET /api/v1/scheduled-raids` - Upcoming Raid Helper events with existing plan annotations
+- `GET /api/v1/scheduled-raids/:eventId/signups` - Signups for a scheduled event with character matching and 6-week attendance (handles recurring events)
 - `GET /api/v1/raid-plans` - List recent raid plans
 - `POST /api/v1/raid-plans` - Create raid plan
 - `GET /api/v1/raid-plans/:id` - Plan detail (`?include=encounters,encounterGroups,encounterAssignments,aaSlots`)

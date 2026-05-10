@@ -464,6 +464,25 @@ export async function matchSignupsToCharacters(
     const secondFamily = rankedFamilies[1];
 
     if (secondFamily && topFamily.score - secondFamily.score < 25 && topFamily.score < 150) {
+      // Before declaring ambiguous, check if class breaks the tie
+      const tiedFamilies = rankedFamilies.filter((f) => topFamily.score - f.score < 25);
+      const classMatchingFamilies = tiedFamilies.filter(
+        (entry) =>
+          chooseFamilyCharacterByClass(familyMap.get(entry.familyId) ?? [], signup.resolvedClass)
+            .type === "matched",
+      );
+      if (classMatchingFamilies.length === 1) {
+        results.push(
+          resolveFamily(
+            classMatchingFamilies[0]!.familyId,
+            classMatchingFamilies[0]!.source,
+            classMatchingFamilies[0]!.score / 200,
+            "Class match broke the tie between equally-scored families.",
+          ),
+        );
+        continue;
+      }
+
       const topCandidates = rankedFamilies.slice(0, 4).flatMap((entry) => {
         const family = familyMap.get(entry.familyId) ?? [];
         const primaryCharacter = allCharactersById.get(entry.familyId);

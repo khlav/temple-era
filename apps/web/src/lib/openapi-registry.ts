@@ -528,6 +528,90 @@ registry.registerPath({
   },
 });
 
+export const EventSignupCharacterSchema = registry.register(
+  "EventSignupCharacter",
+  z.object({
+    id: z.number().nullable().openapi({
+      example: 12345,
+      description:
+        "Character ID. null for ambiguous matches where the exact character is uncertain.",
+    }),
+    name: z.string().nullable().openapi({ example: "Khlav" }),
+    class: z.string().nullable().openapi({
+      example: "Warrior",
+      description: "null for ambiguous matches",
+    }),
+    primaryCharacterId: z.number().nullable().openapi({ example: null }),
+  }),
+);
+
+export const EventSignupSchema = registry.register(
+  "EventSignup",
+  z.object({
+    userId: z.string().openapi({ example: "123456789012345678" }),
+    discordName: z.string().openapi({ example: "Khlav" }),
+    className: z.string().openapi({ example: "Warrior" }),
+    specName: z.string().openapi({ example: "Arms" }),
+    roleName: z.string().openapi({ example: "Melee" }),
+    status: z.string().openapi({
+      example: "Confirmed",
+      description: "Raid Helper signup status: Confirmed, Bench, Tentative, Late, Absence, Absent",
+    }),
+    matchStatus: z.enum(["matched", "ambiguous", "unmatched", "skipped"]).openapi({
+      example: "matched",
+      description:
+        "matched: linked to a DB character. ambiguous: best-guess family found. unmatched: no match. skipped: non-WoW-class signup (Bench, Absent, etc).",
+    }),
+    matchConfidence: z.number().nullable().openapi({ example: 0.99 }),
+    character: EventSignupCharacterSchema.nullable().openapi({ example: null }),
+  }),
+);
+
+export const EventSignupsResponseSchema = registry.register(
+  "EventSignupsResponse",
+  z.object({
+    event: z.object({
+      id: z.string().openapi({ example: "1234567890" }),
+      resolvedId: z.string().openapi({
+        example: "1234567891",
+        description:
+          "Actual event instance ID after recurring-event resolution. Equal to id when not a recurring event.",
+      }),
+      startTime: z.number().openapi({ example: 1747180800 }),
+    }),
+    signups: z.array(EventSignupSchema),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/scheduled-raids/{eventId}/signups",
+  operationId: "getEventSignups",
+  tags: ["Scheduled Raids"],
+  summary: "Get signups for a scheduled event",
+  description:
+    "Fetches Raid Helper signups for a given event, matches each to a DB character, and inlines 6-week attendance. Returns all signups regardless of status — use matchStatus to filter. Handles recurring events automatically. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({
+      eventId: z.string().openapi({ example: "1234567890" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Event signups with character matching and attendance",
+      content: {
+        "application/json": { schema: EventSignupsResponseSchema },
+      },
+    },
+    400: { description: "Invalid event ID format" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Event not found in Raid Helper" },
+    502: { description: "Raid Helper API unavailable" },
+  },
+});
+
 registry.registerPath({
   method: "get",
   path: "/api/v1/scheduled-raids",
