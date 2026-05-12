@@ -273,11 +273,17 @@ export function PersonalAttendanceSummary({
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
         {/* Progress Bar */}
-        <AttendanceProgressBar
-          attendancePct={attendancePct}
-          weightedAttendance={userAttendance?.weightedAttendance ?? 0}
-          showEligibility={true}
-        />
+        {characterData?.isIgnored ? (
+          <div className="flex h-10 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+            Excluded from attendance tracking
+          </div>
+        ) : (
+          <AttendanceProgressBar
+            attendancePct={attendancePct}
+            weightedAttendance={userAttendance?.weightedAttendance ?? 0}
+            showEligibility={true}
+          />
+        )}
 
         {/* Heatmap Grid */}
         {activeCharacterId && (
