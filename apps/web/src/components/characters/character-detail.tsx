@@ -16,7 +16,13 @@ import { api } from "~/trpc/react";
 import { CharacterBadges } from "~/components/characters/character-badges";
 // import { PrimaryCharacterAttendanceReport } from "~/components/characters/primary-character-attendance-report";
 
-function CharacterAttendanceContent({ characterId }: { characterId: number }) {
+function CharacterAttendanceContent({
+  characterId,
+  isIgnored,
+}: {
+  characterId: number;
+  isIgnored?: boolean;
+}) {
   const { data: attendanceData } = api.character.getPrimaryRaidAttendanceL6LockoutWk.useQuery({
     characterId,
   });
@@ -29,11 +35,17 @@ function CharacterAttendanceContent({ characterId }: { characterId: number }) {
 
   return (
     <>
-      <AttendanceProgressBar
-        attendancePct={attendancePct}
-        weightedAttendance={weightedAttendance}
-        showEligibility={true}
-      />
+      {isIgnored ? (
+        <div className="flex h-10 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+          Excluded from attendance tracking
+        </div>
+      ) : (
+        <AttendanceProgressBar
+          attendancePct={attendancePct}
+          weightedAttendance={weightedAttendance}
+          showEligibility={true}
+        />
+      )}
       <AttendanceHeatmapGrid
         characterId={characterId}
         showCreditsRow={true}
@@ -117,7 +129,7 @@ export function CharacterDetail({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <CharacterAttendanceContent characterId={characterId} />
+                <CharacterAttendanceContent characterId={characterId} isIgnored={characterData.isIgnored} />
               </CardContent>
             </Card>
           </>

@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     let primaryCharacterId = characterId;
     const char = await db.query.characters.findFirst({
       where: eq(characters.characterId, characterId),
-      columns: { primaryCharacterId: true, name: true, isPrimary: true },
+      columns: { primaryCharacterId: true, name: true, isPrimary: true, isIgnored: true },
     });
 
     if (!char) {
@@ -72,6 +72,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({
       characterId,
       characterName: char.name,
+      isIgnored: char.isIgnored ?? false,
       attendancePct,
       weeksTracked,
       raids: attendanceReport.map((r) => ({
