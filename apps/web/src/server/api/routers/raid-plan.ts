@@ -242,6 +242,10 @@ export const raidPlanRouter = createTRPCRouter({
           .select({
             id: raidPlanCharacters.id,
             characterId: raidPlanCharacters.characterId,
+            // Resolve to effective primary: secondary.primaryCharacterId or primary's own characterId
+            primaryCharacterId: sql<
+              number | null
+            >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
             characterName: raidPlanCharacters.characterName,
             defaultGroup: raidPlanCharacters.defaultGroup,
             defaultPosition: raidPlanCharacters.defaultPosition,
@@ -545,6 +549,9 @@ export const raidPlanRouter = createTRPCRouter({
           .select({
             id: raidPlanCharacters.id,
             characterId: raidPlanCharacters.characterId,
+            primaryCharacterId: sql<
+              number | null
+            >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
             characterName: raidPlanCharacters.characterName,
             defaultGroup: raidPlanCharacters.defaultGroup,
             defaultPosition: raidPlanCharacters.defaultPosition,

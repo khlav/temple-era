@@ -210,6 +210,7 @@ export function useRaidPlanHandlers({ planId, mutations }: UseRaidPlanHandlersOp
             {
               id: tempId,
               characterId: event.characterId,
+              primaryCharacterId: null,
               characterName: event.characterName,
               defaultGroup: event.targetGroup,
               defaultPosition: event.targetPosition,

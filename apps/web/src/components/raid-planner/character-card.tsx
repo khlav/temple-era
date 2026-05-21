@@ -1,12 +1,13 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useContext } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Pencil } from "lucide-react";
+import { Pencil, Pin, PinOff } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
 import type { RaidPlanCharacter } from "./types";
 import { CLASS_COLORS, WOW_CLASSES_SET, RAIDHELPER_STATUS_ICONS } from "./constants";
+import { CompareTrayContext } from "./compare-tray-context";
 
 interface DraggableCharacterCardProps {
   character: RaidPlanCharacter;
@@ -78,6 +79,7 @@ export const CharacterCard = memo(function CharacterCard({
   dragHandleProps,
   isHighlighted,
 }: CharacterCardProps) {
+  const compareTray = useContext(CompareTrayContext);
   const isWowClass = !!character.class && WOW_CLASSES_SET.has(character.class);
   const StatusIcon = character.class ? RAIDHELPER_STATUS_ICONS[character.class] : undefined;
   // dragHandleProps is only passed when dragging is allowed (editable or dragOnly)
@@ -127,15 +129,59 @@ export const CharacterCard = memo(function CharacterCard({
           {!isLinkedCharacter && <span className="text-muted-foreground/80">*</span>}
         </span>
       </span>
-      {editable && onEditClick && showEditControls && (
-        <button
-          type="button"
-          className="absolute right-1 rounded bg-card/80 p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+      {/* Hover controls: pin (when compare tray is active) + edit */}
+      {(compareTray?.isPinned(character.id) ||
+        (compareTray && character.characterId && character.primaryCharacterId) ||
+        (editable && onEditClick && showEditControls)) && (
+        <div
+          className="absolute right-1 flex items-center gap-0.5"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => onEditClick(character.id)}
         >
-          <Pencil className="h-3 w-3 text-muted-foreground" />
-        </button>
+          {compareTray && character.characterId && character.primaryCharacterId && (
+            <button
+              type="button"
+              className={cn(
+                "rounded bg-card/80 p-0.5 transition-opacity hover:bg-muted",
+                compareTray.isPinned(character.id)
+                  ? "opacity-100 text-primary"
+                  : "opacity-0 text-muted-foreground group-hover:opacity-100",
+              )}
+              onClick={() => {
+                if (compareTray.isPinned(character.id)) {
+                  compareTray.unpinCharacter(character.id);
+                } else {
+                  compareTray.pinCharacter({
+                    planCharacterId: character.id,
+                    characterId: character.characterId!,
+                    primaryCharacterId: character.primaryCharacterId!,
+                    characterName: character.characterName,
+                    characterClass: character.class,
+                  });
+                }
+              }}
+              aria-label={
+                compareTray.isPinned(character.id)
+                  ? `Remove ${character.characterName} from compare`
+                  : `Add ${character.characterName} to compare`
+              }
+            >
+              {compareTray.isPinned(character.id) ? (
+                <PinOff className="h-3 w-3" />
+              ) : (
+                <Pin className="h-3 w-3" />
+              )}
+            </button>
+          )}
+          {editable && onEditClick && showEditControls && (
+            <button
+              type="button"
+              className="rounded bg-card/80 p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+              onClick={() => onEditClick(character.id)}
+            >
+              <Pencil className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
