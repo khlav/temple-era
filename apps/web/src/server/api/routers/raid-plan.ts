@@ -2251,6 +2251,7 @@ export const raidPlanRouter = createTRPCRouter({
                 : sql`false`,
             ),
             isNotNull(raidPlanCharacters.characterId),
+            isNotNull(raidPlanCharacters.defaultGroup),
           ),
         );
 
@@ -2258,7 +2259,7 @@ export const raidPlanRouter = createTRPCRouter({
         return { matchedCharacters: 0, slotsToFill: 0 };
       }
 
-      // Fetch target plan's named characters
+      // Fetch target plan's named, non-bench characters
       const targetChars = await ctx.db
         .select({
           id: raidPlanCharacters.id,
@@ -2269,6 +2270,7 @@ export const raidPlanRouter = createTRPCRouter({
           and(
             eq(raidPlanCharacters.raidPlanId, input.targetPlanId),
             isNotNull(raidPlanCharacters.characterId),
+            isNotNull(raidPlanCharacters.defaultGroup),
           ),
         );
 
@@ -2344,12 +2346,13 @@ export const raidPlanRouter = createTRPCRouter({
                 : sql`false`,
             ),
             isNotNull(raidPlanCharacters.characterId),
+            isNotNull(raidPlanCharacters.defaultGroup),
           ),
         );
 
       if (sourceSlots.length === 0) return { slotsCreated: 0 };
 
-      // 3. Build target character map: characterId -> planCharacterId
+      // 3. Build target character map: characterId -> planCharacterId (roster-only, not bench)
       const targetChars = await ctx.db
         .select({
           id: raidPlanCharacters.id,
@@ -2360,6 +2363,7 @@ export const raidPlanRouter = createTRPCRouter({
           and(
             eq(raidPlanCharacters.raidPlanId, input.targetPlanId),
             isNotNull(raidPlanCharacters.characterId),
+            isNotNull(raidPlanCharacters.defaultGroup),
           ),
         );
 
