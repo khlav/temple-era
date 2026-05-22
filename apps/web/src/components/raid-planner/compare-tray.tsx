@@ -223,7 +223,7 @@ function CharacterColumn({
           <div className="flex items-center gap-1">
             {weeks.length > 0 ? (
               <div className="flex items-center gap-1">
-                {weeks.map((w) => (
+                {[...weeks].reverse().map((w) => (
                   <AttendanceDot key={w.week} status={w.status} />
                 ))}
               </div>
