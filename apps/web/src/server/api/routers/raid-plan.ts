@@ -237,6 +237,7 @@ export const raidPlanRouter = createTRPCRouter({
       }
 
       // Fetch characters, encounters, and encounter groups in parallel
+      const primaryCharacters = aliasedTable(characters, "primary_characters");
       const [planCharacters, encounters, encounterGroups] = await Promise.all([
         ctx.db
           .select({
@@ -246,6 +247,7 @@ export const raidPlanRouter = createTRPCRouter({
             primaryCharacterId: sql<
               number | null
             >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
+            primaryCharacterName: primaryCharacters.name,
             characterName: raidPlanCharacters.characterName,
             defaultGroup: raidPlanCharacters.defaultGroup,
             defaultPosition: raidPlanCharacters.defaultPosition,
@@ -257,6 +259,13 @@ export const raidPlanRouter = createTRPCRouter({
           })
           .from(raidPlanCharacters)
           .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
+          .leftJoin(
+            primaryCharacters,
+            eq(
+              primaryCharacters.characterId,
+              sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
+            ),
+          )
           .where(eq(raidPlanCharacters.raidPlanId, input.planId))
           .orderBy(
             raidPlanCharacters.defaultGroup,
@@ -544,6 +553,7 @@ export const raidPlanRouter = createTRPCRouter({
         });
       }
 
+      const primaryCharacters2 = aliasedTable(characters, "primary_characters2");
       const [planCharacters, encounters, encounterGroups] = await Promise.all([
         ctx.db
           .select({
@@ -552,6 +562,7 @@ export const raidPlanRouter = createTRPCRouter({
             primaryCharacterId: sql<
               number | null
             >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
+            primaryCharacterName: primaryCharacters2.name,
             characterName: raidPlanCharacters.characterName,
             defaultGroup: raidPlanCharacters.defaultGroup,
             defaultPosition: raidPlanCharacters.defaultPosition,
@@ -562,6 +573,13 @@ export const raidPlanRouter = createTRPCRouter({
           })
           .from(raidPlanCharacters)
           .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
+          .leftJoin(
+            primaryCharacters2,
+            eq(
+              primaryCharacters2.characterId,
+              sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
+            ),
+          )
           .where(eq(raidPlanCharacters.raidPlanId, input.planId)),
         ctx.db
           .select({

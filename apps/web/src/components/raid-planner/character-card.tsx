@@ -154,6 +154,7 @@ export const CharacterCard = memo(function CharacterCard({
                     planCharacterId: character.id,
                     characterId: character.characterId!,
                     primaryCharacterId: character.primaryCharacterId!,
+                    primaryCharacterName: character.primaryCharacterName ?? null,
                     characterName: character.characterName,
                     characterClass: character.class,
                   });

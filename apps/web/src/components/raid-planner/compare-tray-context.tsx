@@ -6,6 +6,7 @@ export interface PinnedCharacter {
   planCharacterId: string;
   characterId: number;
   primaryCharacterId: number;
+  primaryCharacterName: string | null;
   characterName: string;
   characterClass: string | null;
 }
@@ -14,6 +15,7 @@ interface CompareTrayContextValue {
   pinnedCharacters: PinnedCharacter[];
   pinCharacter: (char: PinnedCharacter) => void;
   unpinCharacter: (planCharacterId: string) => void;
+  clearAllPins: () => void;
   isPinned: (planCharacterId: string) => boolean;
 }
 
@@ -34,12 +36,14 @@ export function CompareTrayProvider({ children }: { children: React.ReactNode })
     setPinnedCharacters((prev) => prev.filter((c) => c.planCharacterId !== planCharacterId));
   };
 
+  const clearAllPins = () => setPinnedCharacters([]);
+
   const isPinned = (planCharacterId: string) =>
     pinnedCharacters.some((c) => c.planCharacterId === planCharacterId);
 
   return (
     <CompareTrayContext.Provider
-      value={{ pinnedCharacters, pinCharacter, unpinCharacter, isPinned }}
+      value={{ pinnedCharacters, pinCharacter, unpinCharacter, clearAllPins, isPinned }}
     >
       {children}
     </CompareTrayContext.Provider>

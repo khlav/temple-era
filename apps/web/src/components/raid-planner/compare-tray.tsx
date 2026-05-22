@@ -156,15 +156,12 @@ function WeeksTooltipContent({
         })),
   );
 
-  const isWowClass = !!character.characterClass && WOW_CLASSES_SET.has(character.characterClass);
-
   return (
     <div className="max-h-64 overflow-y-auto">
       <div className="mb-1.5 flex items-center gap-1 text-xs">
-        {isWowClass && character.characterClass && (
-          <ClassIcon characterClass={character.characterClass} px={12} />
-        )}
-        <span className="font-bold text-foreground">{character.characterName}</span>
+        <span className="font-bold text-foreground">
+          {character.primaryCharacterName ?? character.characterName}
+        </span>
         <span className="text-muted-foreground">Lockout Wk &amp; Raid</span>
       </div>
       <div className="grid grid-cols-[auto_auto_1fr] items-center gap-x-2 gap-y-0.5 text-xs">
@@ -209,7 +206,15 @@ function CharacterColumn({
               {isWowClass && character.characterClass && (
                 <ClassIcon characterClass={character.characterClass} px={12} />
               )}
-              <span className="truncate text-xs font-medium">{character.characterName}</span>
+              <span className="truncate text-xs font-medium">
+                {character.characterName}
+                {character.characterId !== character.primaryCharacterId &&
+                  character.primaryCharacterName && (
+                    <span className="ml-1 font-normal opacity-40">
+                      ({character.primaryCharacterName})
+                    </span>
+                  )}
+              </span>
             </div>
             <button
               type="button"
@@ -258,7 +263,7 @@ interface CompareTrayProps {
 }
 
 export function CompareTray({ defaultZone, defaultDay, raidDate }: CompareTrayProps) {
-  const { pinnedCharacters, unpinCharacter } = useCompareTray();
+  const { pinnedCharacters, unpinCharacter, clearAllPins } = useCompareTray();
 
   const [selectedZone, setSelectedZone] = useState(defaultZone ?? FALLBACK_ZONE);
   const [selectedDay, setSelectedDay] = useState(defaultDay ?? "all");
@@ -340,6 +345,14 @@ export function CompareTray({ defaultZone, defaultDay, raidDate }: CompareTrayPr
               Full report
               <ExternalLink className="h-3 w-3" />
             </Link>
+            <button
+              type="button"
+              onClick={clearAllPins}
+              className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Clear all pins and close tray"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
         {/* Character columns */}

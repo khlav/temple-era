@@ -7,6 +7,7 @@ export interface RaidPlanCharacter {
   id: string;
   characterId: number | null;
   primaryCharacterId: number | null;
+  primaryCharacterName: string | null;
   characterName: string;
   defaultGroup: number | null;
   defaultPosition: number | null;
