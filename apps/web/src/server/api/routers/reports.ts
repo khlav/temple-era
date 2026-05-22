@@ -26,17 +26,22 @@ export const reports = createTRPCRouter({
       let startDate = input.startDate;
       let endDate = input.endDate;
 
-      if (!startDate || !endDate) {
+      if (!endDate) {
+        endDate = new Date().toISOString().split("T")[0];
+      }
+      if (!startDate) {
         const dates = await ctx.db.select().from(reportDates).limit(1);
         const start = dates[0]?.reportPeriodStart;
         if (start) {
-          // Date from database is already in YYYY-MM-DD format or can be converted
           const startStr =
             typeof start === "string" ? start : (start as unknown as Date).toISOString();
           startDate = startStr.split("T")[0];
+        } else {
+          // fallback: 6 weeks before endDate
+          const d = new Date(endDate!);
+          d.setUTCDate(d.getUTCDate() - 42);
+          startDate = d.toISOString().split("T")[0];
         }
-        // Always use today as the default end date
-        endDate = new Date().toISOString().split("T")[0];
       }
 
       // 2. Convert instance identifiers to full zone names

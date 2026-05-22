@@ -889,6 +889,11 @@ export function RaidPlanDetail({ planId, initialBreadcrumbData }: RaidPlanDetail
                   ]
                 : undefined
           }
+          raidDate={
+            plan.startAt
+              ? plan.startAt.toISOString().split("T")[0]
+              : (plan.event?.date ?? undefined)
+          }
         />
       </div>
     </CompareTrayProvider>

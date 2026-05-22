@@ -254,9 +254,10 @@ function EmptySlot() {
 interface CompareTrayProps {
   defaultZone?: string;
   defaultDay?: string;
+  raidDate?: string; // ISO date string — attendance window ends here, not at today
 }
 
-export function CompareTray({ defaultZone, defaultDay }: CompareTrayProps) {
+export function CompareTray({ defaultZone, defaultDay, raidDate }: CompareTrayProps) {
   const { pinnedCharacters, unpinCharacter } = useCompareTray();
 
   const [selectedZone, setSelectedZone] = useState(defaultZone ?? FALLBACK_ZONE);
@@ -268,7 +269,7 @@ export function CompareTray({ defaultZone, defaultDay }: CompareTrayProps) {
   const daysOfWeek = selectedDay !== "all" ? [selectedDay] : undefined;
 
   const { data, isLoading } = api.reports.getAttendanceReportData.useQuery(
-    { primaryCharacterIds: primaryIds, zones, daysOfWeek },
+    { primaryCharacterIds: primaryIds, zones, daysOfWeek, endDate: raidDate },
     { enabled: pinnedCharacters.length > 0 },
   );
 
