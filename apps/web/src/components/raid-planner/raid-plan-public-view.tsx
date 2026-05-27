@@ -315,6 +315,8 @@ export function RaidPlanPublicView({
           <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,_1fr)]">
             {/* Sidebar column */}
             <EncounterSidebar
+              planId={planId}
+              readOnly
               encounterGroups={plan.encounterGroups}
               encounters={plan.encounters}
               activeTab={activeTab}

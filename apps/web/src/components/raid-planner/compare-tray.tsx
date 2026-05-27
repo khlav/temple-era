@@ -47,11 +47,20 @@ function formatWeekLabel(weekStart: string): string {
   return `${m}/${d}`;
 }
 
+const DAY_ABBREVS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
+
+function formatDayOfWeek(dateStr: string): string {
+  const parts = dateStr.split("-");
+  const date = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+  return DAY_ABBREVS[date.getUTCDay()]!;
+}
+
 type WeekStatus = "attendee" | "bench" | "absent";
 
 interface WeekRaid {
   name: string;
   status: WeekStatus;
+  date: string;
 }
 
 interface WeekData {
@@ -92,7 +101,7 @@ function buildWeekData(
     if (!week) continue;
     const raidStatus = attendanceByRaid.get(raid.raidId) ?? "absent";
 
-    weekRaidsMap.get(week)!.push({ name: raid.name, status: raidStatus });
+    weekRaidsMap.get(week)!.push({ name: raid.name, status: raidStatus, date: String(raid.date) });
 
     const current = weekStatusMap.get(week)!;
     if (current === "absent" || (current === "bench" && raidStatus === "attendee")) {
@@ -106,7 +115,8 @@ function buildWeekData(
     .map((week) => ({
       week,
       status: weekStatusMap.get(week)!,
-      raids: weekRaidsMap.get(week)!,
+      // Most recent raid in the week first
+      raids: (weekRaidsMap.get(week) ?? []).sort((a, b) => b.date.localeCompare(a.date)),
     }));
 }
 
@@ -131,31 +141,6 @@ function WeeksTooltipContent({
   character: PinnedCharacter;
   weeks: WeekData[];
 }) {
-  const rows = weeks.flatMap((weekData) =>
-    weekData.raids.length === 0
-      ? [
-          {
-            week: weekData.week,
-            symbol: "–",
-            symbolClass: "text-muted-foreground/40",
-            name: "No raids",
-            nameClass: "text-muted-foreground/50",
-          },
-        ]
-      : weekData.raids.map((r) => ({
-          week: weekData.week,
-          symbol: r.status === "attendee" ? "✓" : r.status === "bench" ? "~" : "✗",
-          symbolClass:
-            r.status === "attendee"
-              ? "text-emerald-400"
-              : r.status === "bench"
-                ? "text-amber-400"
-                : "text-muted-foreground/60",
-          name: r.name,
-          nameClass: r.status === "absent" ? "text-muted-foreground/50" : "text-foreground",
-        })),
-  );
-
   return (
     <div className="max-h-64 overflow-y-auto">
       <div className="mb-1.5 flex items-center gap-1 text-xs">
@@ -164,16 +149,44 @@ function WeeksTooltipContent({
         </span>
         <span className="text-muted-foreground">Lockout Wk &amp; Raid</span>
       </div>
-      <div className="grid grid-cols-[auto_auto_1fr] items-center gap-x-2 gap-y-0.5 text-xs">
-        {rows.map((row, i) => (
-          <Fragment key={i}>
-            <span className="text-muted-foreground whitespace-nowrap">
-              {formatWeekLabel(row.week)}
-            </span>
-            <span className={`text-center ${row.symbolClass}`}>{row.symbol}</span>
-            <span className={row.nameClass}>{row.name}</span>
-          </Fragment>
-        ))}
+      <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-x-2 gap-y-0.5 text-xs">
+        {weeks.flatMap((weekData) => {
+          if (weekData.raids.length === 0) {
+            return [
+              <Fragment key={weekData.week}>
+                <span className="whitespace-nowrap text-muted-foreground">
+                  {formatWeekLabel(weekData.week)}
+                </span>
+                <span className="text-center text-muted-foreground/40">–</span>
+                <span />
+                <span className="text-muted-foreground/50">No raids</span>
+              </Fragment>,
+            ];
+          }
+          return weekData.raids.map((r, i) => {
+            const nameClass =
+              r.status === "absent" ? "text-muted-foreground/50" : "text-foreground";
+            const symbolClass =
+              r.status === "attendee"
+                ? "text-emerald-400"
+                : r.status === "bench"
+                  ? "text-amber-400"
+                  : "text-muted-foreground/60";
+            return (
+              <Fragment key={`${weekData.week}-${i}`}>
+                {/* Week label only on first row of each lockout week */}
+                <span className="whitespace-nowrap text-muted-foreground">
+                  {i === 0 ? formatWeekLabel(weekData.week) : ""}
+                </span>
+                <span className={`text-center ${symbolClass}`}>
+                  {r.status === "attendee" ? "✓" : r.status === "bench" ? "~" : "✗"}
+                </span>
+                <span className={`whitespace-nowrap ${nameClass}`}>{formatDayOfWeek(r.date)}</span>
+                <span className={nameClass}>{r.name}</span>
+              </Fragment>
+            );
+          });
+        })}
       </div>
     </div>
   );
