@@ -169,6 +169,13 @@
       "when": 1777717392281,
       "tag": "0023_tough_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1779850185853,
+      "tag": "0024_dusty_black_crow",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef, useId } from "react";
-import { ChevronDown, ChevronRight, ChevronLeft, Flag, GripVertical } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Flag,
+  GripVertical,
+  HelpCircle,
+} from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -46,6 +53,19 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import {
+  EncounterNotesDialog,
+  type EncounterNote,
+} from "~/components/raid-planner/encounter-notes-dialog";
+import { ClassIcon } from "~/components/ui/class-icon";
+import { AAIcon } from "~/components/ui/aa-icons";
+import { useSpellIcon, getSpellIconUrl } from "~/hooks/use-spell-icon";
+import {
+  AA_TEXTURE_TAGS,
+  AA_CLASS_ICONS,
+  AA_ABILITY_ICONS,
+  RAID_MARKER_ALIASES,
+} from "~/lib/aa-formatting";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -61,6 +81,7 @@ interface EncounterItem {
   sortOrder: number;
   groupId: string | null;
   useDefaultGroups?: boolean;
+  notes?: EncounterNote[];
 }
 
 type ItemId = string; // "enc:{uuid}" | "group:{uuid}"
@@ -658,7 +679,10 @@ export function EncounterSidebar({
                 side="right"
                 className="dark border-none bg-secondary text-muted-foreground"
               >
-                <AssignmentTooltipBody labels={assignmentLabelsMap.get("default") ?? []} />
+                <EncounterTooltipBody
+                  labels={assignmentLabelsMap.get("default") ?? []}
+                  notes={[]}
+                />
               </TooltipContent>
             )}
           </Tooltip>
@@ -713,6 +737,7 @@ export function EncounterSidebar({
                       encounterMap={encounterMap}
                       localNames={localNames}
                       readOnly={readOnly}
+                      planId={planId}
                     />
                   );
                 }
@@ -736,6 +761,7 @@ export function EncounterSidebar({
                     assignmentLabelsMap={assignmentLabelsMap}
                     localNames={localNames}
                     readOnly={readOnly}
+                    planId={planId}
                   />
                 );
               })}
@@ -849,15 +875,35 @@ export function EncounterSidebar({
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
-function AssignmentTooltipBody({ labels }: { labels: string[] }) {
+function EncounterTooltipBody({ labels, notes }: { labels: string[]; notes: EncounterNote[] }) {
   return (
     <div className="text-xs">
-      <p className="mb-1 font-semibold">Assignments:</p>
-      <ul className="list-disc pl-3">
-        {labels.map((label, i) => (
-          <li key={i}>{label}</li>
-        ))}
-      </ul>
+      {labels.length > 0 && (
+        <>
+          <p className="mb-1 font-semibold">Assignments:</p>
+          <ul className="list-disc pl-3">
+            {labels.map((label, i) => (
+              <li key={i}>{label}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      {labels.length > 0 && notes.length > 0 && <hr className="my-1.5 border-border/40" />}
+      {notes.length > 0 && (
+        <>
+          <p className="mb-1 font-semibold">Notes:</p>
+          <ul className="space-y-0.5">
+            {[...notes]
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((note) => (
+                <li key={note.id} className="flex items-center gap-1">
+                  <NoteRowIcon note={note} size={14} />
+                  {note.text && <span>{note.text}</span>}
+                </li>
+              ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -899,6 +945,94 @@ function RenameEditor({
   );
 }
 
+// ── NoteRowIcon ───────────────────────────────────────────────────────────────
+
+function NoteSpellIcon({ spellId, size }: { spellId: number; size: number }) {
+  const spellData = useSpellIcon(spellId);
+  if (spellData.loading) {
+    return (
+      <span className="inline-block rounded-sm bg-muted" style={{ width: size, height: size }} />
+    );
+  }
+  if (spellData.icon) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={getSpellIconUrl(spellData.icon)}
+        alt={`Spell ${spellId}`}
+        width={size}
+        height={size}
+        className="rounded-sm"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  if (!spellData.loading && !spellData.icon) {
+    return (
+      <HelpCircle
+        style={{ width: size, height: size }}
+        className="shrink-0 text-muted-foreground"
+      />
+    );
+  }
+  return null;
+}
+
+function NoteRowIcon({ note, size = 12 }: { note: EncounterNote; size?: number }) {
+  const { iconRef } = note;
+  if (!iconRef)
+    return (
+      <HelpCircle
+        style={{ width: size, height: size }}
+        className="shrink-0 text-muted-foreground"
+      />
+    );
+
+  if (/^\d+$/.test(iconRef)) {
+    return <NoteSpellIcon spellId={parseInt(iconRef, 10)} size={size} />;
+  }
+
+  const textureName = AA_TEXTURE_TAGS[iconRef];
+  if (textureName) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={getSpellIconUrl(textureName)}
+        alt={iconRef}
+        width={size}
+        height={size}
+        className="rounded-sm"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  if ((AA_ABILITY_ICONS as readonly string[]).includes(iconRef)) {
+    return <AAIcon name={iconRef} type="ability" size={size} className="shrink-0" />;
+  }
+
+  if (RAID_MARKER_ALIASES[iconRef]) {
+    return (
+      <AAIcon name={RAID_MARKER_ALIASES[iconRef]} type="marker" size={size} className="shrink-0" />
+    );
+  }
+
+  if ((AA_CLASS_ICONS as readonly string[]).includes(iconRef)) {
+    const classForIcon = iconRef === "deathknight" ? "death knight" : iconRef;
+    return (
+      <ClassIcon
+        characterClass={classForIcon}
+        px={size}
+        className="inline-block shrink-0 align-text-bottom"
+      />
+    );
+  }
+
+  return (
+    <HelpCircle style={{ width: size, height: size }} className="shrink-0 text-muted-foreground" />
+  );
+}
+
 // ── SortableEncounterRow ───────────────────────────────────────────────────────
 
 function SortableEncounterRow({
@@ -916,6 +1050,7 @@ function SortableEncounterRow({
   localNames = {},
   indented = false,
   readOnly,
+  planId,
 }: {
   itemId: ItemId;
   enc: EncounterItem;
@@ -931,7 +1066,9 @@ function SortableEncounterRow({
   localNames?: Record<string, string>;
   indented?: boolean;
   readOnly?: boolean;
+  planId: string;
 }) {
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
   });
@@ -970,19 +1107,29 @@ function SortableEncounterRow({
                 >
                   {localNames[enc.id] ?? enc.encounterName}
                 </span>
-                {assignmentLabelsMap.has(enc.id) && (
-                  <Flag className="h-3 w-3 shrink-0 text-yellow-500 transition-transform duration-300 group-hover/item:rotate-12 group-hover/item:scale-110" />
-                )}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  {enc.notes &&
+                    enc.notes.length > 0 &&
+                    [...enc.notes]
+                      .sort((a, b) => a.sortOrder - b.sortOrder)
+                      .map((note) => <NoteRowIcon key={note.id} note={note} />)}
+                  {assignmentLabelsMap.has(enc.id) && (
+                    <Flag className="h-3 w-3 shrink-0 text-yellow-500 transition-transform duration-300 group-hover/item:rotate-12 group-hover/item:scale-110" />
+                  )}
+                </div>
               </>
             )}
           </div>
         </TooltipTrigger>
-        {assignmentLabelsMap.has(enc.id) && (
+        {(assignmentLabelsMap.has(enc.id) || (enc.notes && enc.notes.length > 0)) && (
           <TooltipContent
             side="right"
             className="dark border-none bg-secondary text-muted-foreground"
           >
-            <AssignmentTooltipBody labels={assignmentLabelsMap.get(enc.id) ?? []} />
+            <EncounterTooltipBody
+              labels={assignmentLabelsMap.get(enc.id) ?? []}
+              notes={enc.notes ?? []}
+            />
           </TooltipContent>
         )}
       </Tooltip>
@@ -994,24 +1141,40 @@ function SortableEncounterRow({
       ref={setNodeRef}
       style={style}
       {...(!readOnly && !isRenaming ? { ...attributes, ...listeners } : {})}
-      className={cn("flex min-w-0", isDragging && "opacity-50", indented && "pl-3")}
+      className={cn("flex flex-col min-w-0", isDragging && "opacity-50", indented && "pl-3")}
     >
       {readOnly ? (
-        <div className="flex min-w-0 flex-1">{encounterContent}</div>
+        <div className="flex flex-col min-w-0 flex-1">{encounterContent}</div>
       ) : (
-        <ContextMenu>
-          <ContextMenuTrigger className="flex min-w-0 flex-1">
-            {encounterContent}
-          </ContextMenuTrigger>
-          <ContextMenuContent className="min-w-[6rem] p-0.5">
-            <ContextMenuItem
-              className="px-2 py-1 text-xs"
-              onSelect={() => onStartRename(itemId, localNames[enc.id] ?? enc.encounterName)}
-            >
-              Rename
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
+        <>
+          <ContextMenu>
+            <ContextMenuTrigger className="flex min-w-0 flex-1">
+              {encounterContent}
+            </ContextMenuTrigger>
+            <ContextMenuContent className="min-w-[6rem] p-0.5">
+              <ContextMenuItem
+                className="px-2 py-1 text-xs"
+                onSelect={() => onStartRename(itemId, localNames[enc.id] ?? enc.encounterName)}
+              >
+                Rename
+              </ContextMenuItem>
+              <ContextMenuItem
+                className="px-2 py-1 text-xs"
+                onSelect={() => setNotesDialogOpen(true)}
+              >
+                Manage Notes
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+          <EncounterNotesDialog
+            encounterId={enc.id}
+            encounterName={localNames[enc.id] ?? enc.encounterName}
+            notes={enc.notes ?? []}
+            open={notesDialogOpen}
+            onOpenChange={setNotesDialogOpen}
+            planId={planId}
+          />
+        </>
       )}
     </div>
   );
@@ -1037,6 +1200,7 @@ function SortableGroupRow({
   encounterMap,
   localNames = {},
   readOnly,
+  planId,
 }: {
   itemId: ItemId;
   group: EncounterGroup;
@@ -1055,6 +1219,7 @@ function SortableGroupRow({
   encounterMap: Map<string, EncounterItem>;
   localNames?: Record<string, string>;
   readOnly?: boolean;
+  planId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
@@ -1159,6 +1324,7 @@ function SortableGroupRow({
                   localNames={localNames}
                   indented
                   readOnly={readOnly}
+                  planId={planId}
                 />
               );
             })}

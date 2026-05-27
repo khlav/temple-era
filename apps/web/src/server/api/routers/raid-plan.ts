@@ -21,6 +21,7 @@ import {
   raidPlanCharacters,
   raidPlanEncounterGroups,
   raidPlanEncounters,
+  raidPlanEncounterNotes,
   raidPlanEncounterAssignments,
   raidPlanEncounterAASlots,
   raidPlanPresence,
@@ -236,7 +237,7 @@ export const raidPlanRouter = createTRPCRouter({
         });
       }
 
-      // Fetch characters, encounters, and encounter groups in parallel
+      // Fetch characters, encounters, encounter groups, and encounter notes in parallel
       const primaryCharacters = aliasedTable(characters, "primary_characters");
       const [planCharacters, encounters, encounterGroups] = await Promise.all([
         ctx.db
@@ -297,6 +298,45 @@ export const raidPlanRouter = createTRPCRouter({
           .where(eq(raidPlanEncounterGroups.raidPlanId, input.planId))
           .orderBy(raidPlanEncounterGroups.sortOrder),
       ]);
+
+      // Fetch encounter notes for all encounters
+      const allEncounterIds = encounters.map((e) => e.id);
+      const encounterNotes =
+        allEncounterIds.length > 0
+          ? await ctx.db
+              .select({
+                id: raidPlanEncounterNotes.id,
+                encounterId: raidPlanEncounterNotes.encounterId,
+                iconRef: raidPlanEncounterNotes.iconRef,
+                text: raidPlanEncounterNotes.text,
+                sortOrder: raidPlanEncounterNotes.sortOrder,
+              })
+              .from(raidPlanEncounterNotes)
+              .where(inArray(raidPlanEncounterNotes.encounterId, allEncounterIds))
+              .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
+          : [];
+
+      // Group notes by encounterId
+      const notesByEncounterId = new Map<
+        string,
+        { id: string; iconRef: string; text: string | null; sortOrder: number }[]
+      >();
+      for (const note of encounterNotes) {
+        const existing = notesByEncounterId.get(note.encounterId) ?? [];
+        existing.push({
+          id: note.id,
+          iconRef: note.iconRef,
+          text: note.text,
+          sortOrder: note.sortOrder,
+        });
+        notesByEncounterId.set(note.encounterId, existing);
+      }
+
+      // Attach notes to encounters
+      const encountersWithNotes = encounters.map((enc) => ({
+        ...enc,
+        notes: notesByEncounterId.get(enc.id) ?? [],
+      }));
 
       // Fetch linked raid event if exists
       let event: { raidId: number; name: string; date: string } | null = null;
@@ -368,7 +408,7 @@ export const raidPlanRouter = createTRPCRouter({
         event,
         characters: planCharacters,
         encounterGroups,
-        encounters,
+        encounters: encountersWithNotes,
         encounterAssignments,
         aaSlotAssignments,
       };
@@ -620,6 +660,45 @@ export const raidPlanRouter = createTRPCRouter({
         event = eventResult[0] ?? null;
       }
 
+      // Fetch encounter notes for all encounters
+      const allEncounterIds = encounters.map((e) => e.id);
+      const encounterNotes =
+        allEncounterIds.length > 0
+          ? await ctx.db
+              .select({
+                id: raidPlanEncounterNotes.id,
+                encounterId: raidPlanEncounterNotes.encounterId,
+                iconRef: raidPlanEncounterNotes.iconRef,
+                text: raidPlanEncounterNotes.text,
+                sortOrder: raidPlanEncounterNotes.sortOrder,
+              })
+              .from(raidPlanEncounterNotes)
+              .where(inArray(raidPlanEncounterNotes.encounterId, allEncounterIds))
+              .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
+          : [];
+
+      // Group notes by encounterId
+      const notesByEncounterId = new Map<
+        string,
+        { id: string; iconRef: string; text: string | null; sortOrder: number }[]
+      >();
+      for (const note of encounterNotes) {
+        const existing = notesByEncounterId.get(note.encounterId) ?? [];
+        existing.push({
+          id: note.id,
+          iconRef: note.iconRef,
+          text: note.text,
+          sortOrder: note.sortOrder,
+        });
+        notesByEncounterId.set(note.encounterId, existing);
+      }
+
+      // Attach notes to encounters
+      const encountersWithNotes = encounters.map((enc) => ({
+        ...enc,
+        notes: notesByEncounterId.get(enc.id) ?? [],
+      }));
+
       const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
 
       let encounterAssignments: {
@@ -665,7 +744,7 @@ export const raidPlanRouter = createTRPCRouter({
         event,
         characters: planCharacters,
         encounterGroups,
-        encounters,
+        encounters: encountersWithNotes,
         encounterAssignments,
         aaSlotAssignments,
       };
@@ -922,6 +1001,86 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   /**
+   * Upsert an encounter note (insert or update on encounterId + sortOrder unique constraint)
+   */
+  upsertEncounterNote: raidManagerProcedure
+    .input(
+      z.object({
+        encounterId: z.string().uuid(),
+        sortOrder: z.number().int().min(0).max(2),
+        iconRef: z.string().min(1).max(128),
+        text: z.string().max(128).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { encounterId, sortOrder, iconRef, text } = input;
+
+      // Verify the encounter exists
+      const encounter = await ctx.db
+        .select({ id: raidPlanEncounters.id })
+        .from(raidPlanEncounters)
+        .where(eq(raidPlanEncounters.id, encounterId))
+        .limit(1);
+      if (encounter.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Encounter not found" });
+      }
+
+      const result = await ctx.db
+        .insert(raidPlanEncounterNotes)
+        .values({ encounterId, iconRef, text, sortOrder })
+        .onConflictDoUpdate({
+          target: [raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder],
+          set: { iconRef, text: text ?? null, updatedAt: new Date() },
+        })
+        .returning();
+
+      if (result.length === 0) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upsert encounter note",
+        });
+      }
+
+      const planId = await getRaidPlanIdForEncounter(ctx.db, encounterId);
+      if (planId) {
+        await touchRaidPlanActor(ctx.db, planId, ctx.session.user.id);
+      }
+
+      return result[0]!;
+    }),
+
+  /**
+   * Delete an encounter note by ID
+   */
+  deleteEncounterNote: raidManagerProcedure
+    .input(z.object({ noteId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const note = await ctx.db
+        .select({ id: raidPlanEncounterNotes.id, encounterId: raidPlanEncounterNotes.encounterId })
+        .from(raidPlanEncounterNotes)
+        .where(eq(raidPlanEncounterNotes.id, input.noteId))
+        .limit(1);
+
+      if (note.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Encounter note not found",
+        });
+      }
+
+      await ctx.db
+        .delete(raidPlanEncounterNotes)
+        .where(eq(raidPlanEncounterNotes.id, input.noteId));
+
+      const planId = await getRaidPlanIdForEncounter(ctx.db, note[0]!.encounterId);
+      if (planId) {
+        await touchRaidPlanActor(ctx.db, planId, ctx.session.user.id);
+      }
+
+      return { success: true };
+    }),
+
+  /**
    * Update a raid plan (name, default AA template, etc.)
    */
   update: raidManagerProcedure
@@ -1111,9 +1270,10 @@ export const raidPlanRouter = createTRPCRouter({
               }
             }
 
-            // Copy encounters
+            // Copy encounters, build id remap for notes cloning
             const sourceEncounters = await tx
               .select({
+                id: raidPlanEncounters.id,
                 encounterKey: raidPlanEncounters.encounterKey,
                 encounterName: raidPlanEncounters.encounterName,
                 sortOrder: raidPlanEncounters.sortOrder,
@@ -1125,19 +1285,62 @@ export const raidPlanRouter = createTRPCRouter({
               .where(eq(raidPlanEncounters.raidPlanId, input.cloneFromPlanId))
               .orderBy(raidPlanEncounters.sortOrder);
 
+            const cloneEncounterIdMap = new Map<string, string>();
+
             if (sourceEncounters.length > 0) {
+              const newEncounters = sourceEncounters.map((enc) => ({
+                newId: crypto.randomUUID(),
+                oldId: enc.id,
+                raidPlanId: planId,
+                encounterKey: enc.encounterKey,
+                encounterName: enc.encounterName,
+                sortOrder: enc.sortOrder,
+                useDefaultGroups: true as const, // Always reset to default groups on clone
+                groupId: enc.groupId ? (cloneGroupIdMap.get(enc.groupId) ?? null) : null,
+                aaTemplate: enc.aaTemplate,
+                useCustomAA: enc.useCustomAA,
+              }));
               await tx.insert(raidPlanEncounters).values(
-                sourceEncounters.map((enc) => ({
-                  raidPlanId: planId,
+                newEncounters.map((enc) => ({
+                  id: enc.newId,
+                  raidPlanId: enc.raidPlanId,
                   encounterKey: enc.encounterKey,
                   encounterName: enc.encounterName,
                   sortOrder: enc.sortOrder,
-                  useDefaultGroups: true, // Always reset to default groups on clone
-                  groupId: enc.groupId ? (cloneGroupIdMap.get(enc.groupId) ?? null) : null,
+                  useDefaultGroups: enc.useDefaultGroups,
+                  groupId: enc.groupId,
                   aaTemplate: enc.aaTemplate,
                   useCustomAA: enc.useCustomAA,
                 })),
               );
+              for (const enc of newEncounters) {
+                cloneEncounterIdMap.set(enc.oldId, enc.newId);
+              }
+            }
+
+            // Copy encounter notes, remapping encounterId to new IDs
+            if (cloneEncounterIdMap.size > 0) {
+              const sourceEncounterIds = [...cloneEncounterIdMap.keys()];
+              const sourceNotes = await tx
+                .select({
+                  encounterId: raidPlanEncounterNotes.encounterId,
+                  iconRef: raidPlanEncounterNotes.iconRef,
+                  text: raidPlanEncounterNotes.text,
+                  sortOrder: raidPlanEncounterNotes.sortOrder,
+                })
+                .from(raidPlanEncounterNotes)
+                .where(inArray(raidPlanEncounterNotes.encounterId, sourceEncounterIds));
+
+              if (sourceNotes.length > 0) {
+                await tx.insert(raidPlanEncounterNotes).values(
+                  sourceNotes.map((note) => ({
+                    encounterId: cloneEncounterIdMap.get(note.encounterId)!,
+                    iconRef: note.iconRef,
+                    text: note.text,
+                    sortOrder: note.sortOrder,
+                  })),
+                );
+              }
             }
           }
         } else {

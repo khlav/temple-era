@@ -281,6 +281,38 @@ export const raidPlanEncountersRelations = relations(raidPlanEncounters, ({ one,
   }),
   assignments: many(raidPlanEncounterAssignments),
   aaSlots: many(raidPlanEncounterAASlots),
+  notes: many(raidPlanEncounterNotes),
+}));
+
+/**
+ * Encounter notes for a raid plan encounter.
+ * Up to 3 notes per encounter (sortOrder 0, 1, 2).
+ * Each note has an icon reference (AA alias or numeric spell ID) and optional short text.
+ */
+export const raidPlanEncounterNotes = tableCreator(
+  "raid_plan_encounter_note",
+  {
+    ...IdPkAsUUID,
+    encounterId: uuid("encounter_id")
+      .notNull()
+      .references(() => raidPlanEncounters.id, { onDelete: "cascade" }),
+    iconRef: varchar("icon_ref", { length: 128 }).notNull(),
+    text: varchar("text", { length: 128 }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...DefaultTimestamps,
+  },
+  (table) => ({
+    encounterIdSortOrderIdx: uniqueIndex(
+      "raid_plan_encounter_note__encounter_id_sort_order_idx",
+    ).on(table.encounterId, table.sortOrder),
+  }),
+);
+
+export const raidPlanEncounterNotesRelations = relations(raidPlanEncounterNotes, ({ one }) => ({
+  encounter: one(raidPlanEncounters, {
+    fields: [raidPlanEncounterNotes.encounterId],
+    references: [raidPlanEncounters.id],
+  }),
 }));
 
 /**
