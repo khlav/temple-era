@@ -133,10 +133,7 @@ export const CharacterCard = memo(function CharacterCard({
       {(compareTray?.isPinned(character.id) ||
         (compareTray && character.characterId && character.primaryCharacterId) ||
         (editable && onEditClick && showEditControls)) && (
-        <div
-          className="absolute right-1 flex items-center gap-0.5"
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <div className="absolute right-1 flex items-center gap-0.5">
           {compareTray && character.characterId && character.primaryCharacterId && (
             <button
               type="button"
