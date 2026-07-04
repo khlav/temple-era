@@ -26,8 +26,8 @@ const ProxySchema = z.object({
     .startsWith("/")
     .transform((p) => {
       try {
-        const normalized = new URL(`http://x${p}`).pathname;
-        return normalized || "/";
+        const url = new URL(`http://x${p}`);
+        return `${url.pathname}${url.search}` || "/";
       } catch {
         return p;
       }
