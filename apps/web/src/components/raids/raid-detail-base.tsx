@@ -9,7 +9,7 @@ import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React, { useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
@@ -25,6 +25,7 @@ export function RaidDetailBase({
 }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const utils = api.useUtils();
+  const router = useRouter();
 
   const { data: raidParticipants, isLoading: isLoadingParticipants } =
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
@@ -33,9 +34,10 @@ export function RaidDetailBase({
 
   const refreshRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
     onSuccess: async () => {
-      // Invalidate relevant queries to refresh the UI
-      await utils.raid.getRaidById.invalidate();
+      // raidData is fetched server-side (RSC prop), so invalidating the client
+      // query cache alone won't update what's on screen — force a server refetch.
       await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
+      router.refresh();
       setIsRefreshing(false);
     },
     onError: () => {
