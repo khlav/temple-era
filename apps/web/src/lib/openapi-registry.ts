@@ -1512,6 +1512,282 @@ registry.registerPath({
   },
 });
 
+// ─── Raids ─────────────────────────────────────────────────────────────────
+
+export const RaidSummarySchema = registry.register(
+  "RaidSummary",
+  z.object({
+    raidId: z.number().openapi({ example: 593 }),
+    name: z.string().openapi({ example: "Naxx 01/20" }),
+    date: z.string().openapi({ example: "2026-01-20" }),
+    zone: z.string().openapi({ example: "Naxxramas" }),
+    attendanceWeight: z.number().openapi({ example: 1 }),
+  }),
+);
+
+const RaidLogSchema = z.object({
+  raidLogId: z.string().openapi({ example: "h9G3pVyDwRcgL62q" }),
+  name: z.string().openapi({ example: "Naxx 01/20" }),
+  kills: z.array(z.string()).openapi({ example: ["Anub'Rekhan", "Grand Widow Faerlina"] }),
+  startTimeUTC: z.string().nullable().openapi({ example: "2026-01-21T00:56:52.297Z" }),
+  endTimeUTC: z.string().nullable().openapi({ example: "2026-01-21T03:31:22.692Z" }),
+});
+
+const RaidRosterCharacterSchema = z.object({
+  characterId: z.number().openapi({ example: 12345 }),
+  name: z.string().openapi({ example: "Khlav" }),
+  class: z.string().openapi({ example: "Warrior" }),
+  classDetail: z.string().openapi({ example: "Warrior - Arms" }),
+  server: z.string().openapi({ example: "Ashkandi" }),
+  slug: z.string().openapi({ example: "khlav-ashkandi-12345" }),
+});
+
+export const RaidDetailSchema = registry.register(
+  "RaidDetail",
+  RaidSummarySchema.extend({
+    creator: z
+      .object({
+        name: z.string().nullable(),
+        image: z.string().nullable(),
+      })
+      .nullable(),
+    logs: z.array(RaidLogSchema),
+    bench: z.array(RaidRosterCharacterSchema),
+    attendees: z.array(RaidRosterCharacterSchema).optional(),
+  }),
+);
+
+export const CreateRaidSchema = registry.register(
+  "CreateRaid",
+  z.object({
+    name: z.string().min(1).max(256).openapi({ example: "Naxx 01/20" }),
+    date: z.string().min(1).openapi({ example: "2026-01-20" }),
+    zone: z.string().min(1).openapi({ example: "Naxxramas" }),
+    attendanceWeight: z.number().openapi({ example: 1 }),
+    raidLogIds: z
+      .array(z.string())
+      .optional()
+      .default([])
+      .openapi({ example: ["h9G3pVyDwRcgL62q"] }),
+    bench: z.array(z.number()).optional().default([]).openapi({ example: [] }),
+  }),
+);
+
+export const PatchRaidSchema = registry.register(
+  "PatchRaid",
+  z.object({
+    name: z.string().min(1).max(256).optional().openapi({ example: "Naxx 01/20" }),
+    date: z.string().min(1).optional().openapi({ example: "2026-01-20" }),
+    zone: z.string().min(1).optional().openapi({ example: "Naxxramas" }),
+    attendanceWeight: z.number().optional().openapi({ example: 1 }),
+    raidLogIds: z
+      .array(z.string())
+      .optional()
+      .openapi({ example: ["h9G3pVyDwRcgL62q"] }),
+  }),
+);
+
+export const SetBenchSchema = registry.register(
+  "SetBench",
+  z.object({
+    characterIds: z.array(z.number()).openapi({ example: [12345, 67890] }),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/raids",
+  operationId: "listRaids",
+  tags: ["Raids"],
+  summary: "List raids",
+  description: "List raids newest-first, with optional zone/date-range/scored filters.",
+  security: [{ BearerToken: [] }],
+  request: {
+    query: z.object({
+      zone: z.string().optional().openapi({ example: "Naxxramas" }),
+      from: z.string().optional().openapi({ example: "2026-01-01" }),
+      to: z.string().optional().openapi({ example: "2026-01-31" }),
+      scored: z.enum(["true", "false"]).optional().openapi({ example: "true" }),
+      limit: z.string().optional().openapi({ example: "50" }),
+      offset: z.string().optional().openapi({ example: "0" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of raids",
+      content: { "application/json": { schema: z.array(RaidSummarySchema) } },
+    },
+    401: { description: "Invalid or missing API token" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/raids",
+  operationId: "createRaid",
+  tags: ["Raids"],
+  summary: "Create raid",
+  description:
+    "Creates a raid, optionally attaching existing WCL logs and bench characters. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    body: { content: { "application/json": { schema: CreateRaidSchema } } },
+  },
+  responses: {
+    201: {
+      description: "Raid created",
+      content: { "application/json": { schema: RaidSummarySchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/raids/{id}",
+  operationId: "getRaid",
+  tags: ["Raids"],
+  summary: "Get raid detail",
+  description:
+    "Raid detail. logs and bench are always returned. Use `?include=attendees` to also return the full roster of characters who attended any attached log.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "593" }) }),
+    query: z.object({
+      include: z
+        .array(z.enum(["attendees"]))
+        .optional()
+        .openapi({
+          param: { style: "form", explode: false },
+          example: ["attendees"],
+        }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Raid detail",
+      content: { "application/json": { schema: RaidDetailSchema } },
+    },
+    400: { description: "Invalid raid ID" },
+    401: { description: "Invalid or missing API token" },
+    404: { description: "Raid not found" },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/raids/{id}",
+  operationId: "patchRaid",
+  tags: ["Raids"],
+  summary: "Update raid",
+  description:
+    "Updates raid fields and/or reassigns which WCL logs are attached to this raid. All fields optional. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "593" }) }),
+    body: { content: { "application/json": { schema: PatchRaidSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Updated raid",
+      content: { "application/json": { schema: RaidSummarySchema } },
+    },
+    400: { description: "Invalid raid ID, request body, or no fields provided" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Raid not found" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/raids/{id}",
+  operationId: "deleteRaid",
+  tags: ["Raids"],
+  summary: "Delete raid",
+  description:
+    "Permanently deletes a raid. Attached WCL logs are detached, not deleted. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "593" }) }),
+  },
+  responses: {
+    200: {
+      description: "Raid deleted",
+      content: {
+        "application/json": {
+          schema: z.object({ success: z.boolean().openapi({ example: true }) }),
+        },
+      },
+    },
+    400: { description: "Invalid raid ID" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Raid not found" },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/v1/raids/{id}/bench",
+  operationId: "setRaidBench",
+  tags: ["Raids"],
+  summary: "Set bench characters",
+  description:
+    "Fully replaces the raid's bench roster with the given character IDs. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "593" }) }),
+    body: { content: { "application/json": { schema: SetBenchSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Updated bench",
+      content: {
+        "application/json": {
+          schema: z.object({ bench: z.array(RaidRosterCharacterSchema) }),
+        },
+      },
+    },
+    400: { description: "Invalid raid ID or request body" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Raid not found" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/raids/{id}/refresh-logs",
+  operationId: "refreshRaidLogs",
+  tags: ["Raids"],
+  summary: "Re-sync WCL logs",
+  description:
+    "Re-fetches every WCL log attached to this raid from the WarcraftLogs API and updates kills, participants, and attendee mappings. Useful when a log link was imported before the raid finished and was never refreshed. Requires isRaidManager.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "593" }) }),
+  },
+  responses: {
+    200: {
+      description: "Refreshed log IDs",
+      content: {
+        "application/json": {
+          schema: z.object({
+            refreshed: z.array(z.string()).openapi({ example: ["h9G3pVyDwRcgL62q"] }),
+          }),
+        },
+      },
+    },
+    400: { description: "Invalid raid ID" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Not a raid manager" },
+    404: { description: "Raid not found" },
+  },
+});
+
 // ─── Document builder ─────────────────────────────────────────────────────────
 
 export function buildOpenApiSpec() {
