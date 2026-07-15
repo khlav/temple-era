@@ -184,7 +184,7 @@ export const raidPlanRouter = createTRPCRouter({
         .from(raidPlans)
         .leftJoin(lastEditorUsers, eq(lastEditorUsers.id, raidPlans.updatedById))
         .where(whereClause)
-        .orderBy(desc(raidPlans.startAt), desc(raidPlans.createdAt))
+        .orderBy(sql`${raidPlans.startAt} DESC NULLS LAST`, desc(raidPlans.createdAt))
         .limit(input.limit);
 
       return plans.map((plan) => ({
@@ -771,7 +771,7 @@ export const raidPlanRouter = createTRPCRouter({
         })
         .from(raidPlans)
         .where(eq(raidPlans.isPublic, true))
-        .orderBy(desc(raidPlans.startAt), desc(raidPlans.createdAt))
+        .orderBy(sql`${raidPlans.startAt} DESC NULLS LAST`, desc(raidPlans.createdAt))
         .limit(input.limit);
 
       return plans;
