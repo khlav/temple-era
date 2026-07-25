@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { AATemplateRenderer } from "./aa-template-renderer";
 import type { RaidPlanCharacter, AASlotAssignment } from "./types";
 
@@ -23,6 +23,10 @@ interface CharacterSummaryPanelProps {
   allCharacters: RaidPlanCharacter[];
   onEncounterClick: (encounterId: string) => void;
 }
+
+const HOVER_DELAY_MS = 150;
+const TOOLTIP_OFFSET = 16;
+const VIEWPORT_MARGIN = 8;
 
 function classColorFor(characterClass: string | null): string | undefined {
   return characterClass
@@ -47,6 +51,37 @@ function assignedCharactersFor(
   return [...ids].map((id) => characterById.get(id)).filter((c): c is RaidPlanCharacter => !!c);
 }
 
+/** A tooltip that tracks and follows the cursor, clamped to stay within the viewport. */
+function MouseTooltip({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: x + TOOLTIP_OFFSET, top: y + TOOLTIP_OFFSET });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    let left = x + TOOLTIP_OFFSET;
+    let top = y + TOOLTIP_OFFSET;
+    if (left + rect.width > window.innerWidth - VIEWPORT_MARGIN) {
+      left = x - rect.width - TOOLTIP_OFFSET;
+    }
+    if (top + rect.height > window.innerHeight - VIEWPORT_MARGIN) {
+      top = y - rect.height - TOOLTIP_OFFSET;
+    }
+    setPos({ left: Math.max(VIEWPORT_MARGIN, left), top: Math.max(VIEWPORT_MARGIN, top) });
+  }, [x, y]);
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: "fixed", left: pos.left, top: pos.top }}
+      className="pointer-events-none z-50 w-auto max-w-sm overflow-hidden rounded-md bg-card text-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
+    >
+      {children}
+    </div>
+  );
+}
+
 export function CharacterSummaryPanel({
   viewerPlanCharacterIds,
   encounterSummaries,
@@ -54,6 +89,26 @@ export function CharacterSummaryPanel({
   onEncounterClick,
 }: CharacterSummaryPanelProps) {
   const [showDetails, setShowDetails] = useState(true);
+  const [hoveredEncounterId, setHoveredEncounterId] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
+  const handleRowMouseEnter = (encounterId: string, e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => setHoveredEncounterId(encounterId), HOVER_DELAY_MS);
+  };
+
+  const handleRowMouseLeave = (encounterId: string) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredEncounterId((current) => (current === encounterId ? null : current));
+  };
 
   const characterById = useMemo(
     () => new Map(allCharacters.map((c) => [c.id, c])),
@@ -63,6 +118,11 @@ export function CharacterSummaryPanel({
   const assignedCharacters = useMemo(
     () => assignedCharactersFor(encounterSummaries, viewerPlanCharacterIds, characterById),
     [encounterSummaries, viewerPlanCharacterIds, characterById],
+  );
+
+  const hoveredSummary = useMemo(
+    () => encounterSummaries.find((s) => s.encounterId === hoveredEncounterId) ?? null,
+    [encounterSummaries, hoveredEncounterId],
   );
 
   const MAX_SUMMARY = 3;
@@ -114,78 +174,79 @@ export function CharacterSummaryPanel({
       {/* Encounter list — single column on mobile, two columns on larger screens */}
       {showDetails && encounterSummaries.length > 0 && (
         <div className="border-t border-border px-3 py-2">
-          <TooltipProvider delayDuration={300}>
-            <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-              {encounterSummaries.map((summary) => {
-                const encounterCharacters = assignedCharactersFor(
-                  [summary],
-                  viewerPlanCharacterIds,
-                  characterById,
-                );
+          <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+            {encounterSummaries.map((summary) => {
+              const encounterCharacters = assignedCharactersFor(
+                [summary],
+                viewerPlanCharacterIds,
+                characterById,
+              );
 
-                return (
-                  <Tooltip key={summary.encounterId}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => onEncounterClick(summary.encounterId)}
-                        className="flex items-center gap-2 py-0.5 text-left text-sm transition-opacity hover:opacity-70"
+              return (
+                <button
+                  key={summary.encounterId}
+                  type="button"
+                  onClick={() => onEncounterClick(summary.encounterId)}
+                  onMouseEnter={(e) => handleRowMouseEnter(summary.encounterId, e)}
+                  onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => handleRowMouseLeave(summary.encounterId)}
+                  className="flex items-center gap-2 py-0.5 text-left text-sm transition-opacity hover:opacity-70"
+                >
+                  <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {encounterCharacters.map(
+                      (char) =>
+                        char.class && (
+                          <ClassIcon
+                            key={char.id}
+                            characterClass={char.class}
+                            px={14}
+                            className="shrink-0"
+                          />
+                        ),
+                    )}
+                  </div>
+                  <span className="shrink-0 font-semibold text-foreground">
+                    {summary.encounterName}
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {summary.slotNames.map((name) => (
+                      <span
+                        key={name}
+                        className="inline-block rounded border border-purple-500/25 bg-purple-500/10 px-1 text-xs font-medium text-purple-300"
                       >
-                        <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-                        <div className="flex shrink-0 items-center gap-0.5">
-                          {encounterCharacters.map(
-                            (char) =>
-                              char.class && (
-                                <ClassIcon
-                                  key={char.id}
-                                  characterClass={char.class}
-                                  px={14}
-                                  className="shrink-0"
-                                />
-                              ),
-                          )}
-                        </div>
-                        <span className="shrink-0 font-semibold text-foreground">
-                          {summary.encounterName}
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {summary.slotNames.map((name) => (
-                            <span
-                              key={name}
-                              className="inline-block rounded border border-purple-500/25 bg-purple-500/10 px-1 text-xs font-medium text-purple-300"
-                            >
-                              {name}
-                            </span>
-                          ))}
-                        </div>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="right"
-                      className="w-auto max-w-sm bg-card p-0 text-foreground shadow-xl"
-                    >
-                      <AATemplateRenderer
-                        template={summary.template}
-                        encounterId={
-                          summary.encounterId !== "default" ? summary.contextId : undefined
-                        }
-                        raidPlanId={
-                          summary.encounterId === "default" ? summary.contextId : undefined
-                        }
-                        characters={allCharacters}
-                        slotAssignments={summary.slotAssignments}
-                        disabled
-                        hideUnassigned
-                        skipDndContext
-                      />
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          </TooltipProvider>
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {hoveredSummary &&
+        mousePos &&
+        createPortal(
+          <MouseTooltip x={mousePos.x} y={mousePos.y}>
+            <AATemplateRenderer
+              template={hoveredSummary.template}
+              encounterId={
+                hoveredSummary.encounterId !== "default" ? hoveredSummary.contextId : undefined
+              }
+              raidPlanId={
+                hoveredSummary.encounterId === "default" ? hoveredSummary.contextId : undefined
+              }
+              characters={allCharacters}
+              slotAssignments={hoveredSummary.slotAssignments}
+              disabled
+              hideUnassigned
+              skipDndContext
+            />
+          </MouseTooltip>,
+          document.body,
+        )}
     </div>
   );
 }
