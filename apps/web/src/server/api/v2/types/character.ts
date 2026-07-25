@@ -1,10 +1,41 @@
 // src/server/api/v2/types/character.ts
 import { eq } from "drizzle-orm";
+import { type db as dbType } from "~/server/db";
 import { characters } from "~/server/db/schema";
-import { CharacterRef, RaidAttendanceRef } from "../refs";
+import { CharacterRef, RaidAttendanceRef, type CharacterRow } from "../refs";
 import { RaidZoneEnum } from "./enums";
 import { requireUser } from "../context";
-import { computeAttendance } from "../helpers/attendance";
+import {
+  computeAttendance,
+  computeAttendedCount,
+  computeEarliestAttendance,
+} from "../helpers/attendance";
+
+/** Resolves the set of character IDs representing a character's own attendance,
+ *  or its full family (primary + all secondaries) when `includeFamily` is set. */
+async function resolveCharacterIds(
+  character: CharacterRow,
+  includeFamily: boolean,
+  db: typeof dbType,
+): Promise<number[]> {
+  if (!includeFamily) {
+    if (!character.isPrimary) return [character.characterId];
+    const secondaries = await db
+      .select({ characterId: characters.characterId })
+      .from(characters)
+      .where(eq(characters.primaryCharacterId, character.characterId));
+    return [character.characterId, ...secondaries.map((s) => s.characterId)];
+  }
+
+  const primaryCharacterId = character.isPrimary
+    ? character.characterId
+    : (character.primaryCharacterId ?? character.characterId);
+  const secondaries = await db
+    .select({ characterId: characters.characterId })
+    .from(characters)
+    .where(eq(characters.primaryCharacterId, primaryCharacterId));
+  return [primaryCharacterId, ...secondaries.map((s) => s.characterId)];
+}
 
 CharacterRef.implement({
   fields: (t) => ({
@@ -54,21 +85,55 @@ CharacterRef.implement({
         requireUser(ctx);
         // For a primary character, aggregate across self + all secondaries
         // For a secondary character, only count this character's own attendance
-        let characterIds: number[];
-        if (c.isPrimary) {
-          const secondaries = await ctx.db
-            .select({ characterId: characters.characterId })
-            .from(characters)
-            .where(eq(characters.primaryCharacterId, c.characterId));
-          characterIds = [c.characterId, ...secondaries.map((s) => s.characterId)];
-        } else {
-          characterIds = [c.characterId];
-        }
+        const characterIds = await resolveCharacterIds(c, false, ctx.db);
         return computeAttendance({
           characterIds,
           zones: args.zones as string[] | null,
           from: args.from,
           to: args.to,
+          db: ctx.db,
+        });
+      },
+    }),
+    earliestAttendance: t.field({
+      type: RaidAttendanceRef,
+      nullable: true,
+      args: {
+        zones: t.arg({ type: [RaidZoneEnum], required: false }),
+        from: t.arg.string({ required: false }),
+        to: t.arg.string({ required: false }),
+      },
+      resolve: async (c, args, ctx) => {
+        requireUser(ctx);
+        const characterIds = await resolveCharacterIds(c, false, ctx.db);
+        return computeEarliestAttendance({
+          characterIds,
+          zones: args.zones as string[] | null,
+          from: args.from,
+          to: args.to,
+          db: ctx.db,
+        });
+      },
+    }),
+    attendedCount: t.field({
+      type: "Int",
+      nullable: false,
+      args: {
+        zones: t.arg({ type: [RaidZoneEnum], required: false }),
+        from: t.arg.string({ required: false }),
+        to: t.arg.string({ required: false }),
+        includeBench: t.arg.boolean({ required: true, defaultValue: true }),
+        includeFamily: t.arg.boolean({ required: true, defaultValue: false }),
+      },
+      resolve: async (c, args, ctx) => {
+        requireUser(ctx);
+        const characterIds = await resolveCharacterIds(c, args.includeFamily, ctx.db);
+        return computeAttendedCount({
+          characterIds,
+          zones: args.zones as string[] | null,
+          from: args.from,
+          to: args.to,
+          includeBench: args.includeBench,
           db: ctx.db,
         });
       },

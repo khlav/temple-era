@@ -31,6 +31,14 @@ export const CharacterSchema = registry.register(
     isPrimary: z.boolean().nullable().openapi({ example: true }),
     primaryCharacterId: z.number().nullable().openapi({ example: null }),
     primaryCharacterName: z.string().nullable().openapi({ example: null }),
+    firstRaidAt: z
+      .string()
+      .nullable()
+      .openapi({ description: "ISO date of earliest attended raid", example: "2024-01-15" }),
+    lastRaidAt: z
+      .string()
+      .nullable()
+      .openapi({ description: "ISO date of most recent attended raid", example: "2024-06-18" }),
   }),
 );
 
@@ -296,6 +304,18 @@ registry.registerPath({
       type: z.enum(["all", "primary", "secondary"]).optional().openapi({
         description: "Filter by character type. Defaults to all.",
         default: "all",
+      }),
+      classes: z.string().optional().openapi({
+        description: "Comma-separated, case-insensitive class filter",
+        example: "shaman,druid",
+      }),
+      sortBy: z.enum(["name", "firstRaidAt", "lastRaidAt"]).optional().openapi({
+        description: "Field to sort by. Defaults to name.",
+        default: "name",
+      }),
+      order: z.enum(["asc", "desc"]).optional().openapi({
+        description: "Sort direction. Defaults to asc.",
+        default: "asc",
       }),
     }),
   },

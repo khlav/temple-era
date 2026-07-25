@@ -1,5 +1,5 @@
 // src/server/api/v2/schema.ts
-import { and, asc, desc, eq, gt, gte, ilike, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, ilike, inArray, lte, sql } from "drizzle-orm";
 import { accounts, characters, raids, recipes, users } from "~/server/db/schema";
 import { builder } from "./builder";
 import { requireUser } from "./context";
@@ -89,12 +89,13 @@ builder.queryType({
       },
     }),
 
-    /** List all non-ignored characters with optional type filter and name search */
+    /** List all non-ignored characters with optional type, class, and name filters */
     characters: t.field({
       type: [CharacterRef],
       args: {
         type: t.arg({ type: CharacterTypeEnum, required: false }),
         search: t.arg.string({ required: false }),
+        classes: t.arg.stringList({ required: false }),
       },
       resolve: async (_root, args, ctx) => {
         requireUser(ctx);
@@ -108,6 +109,15 @@ builder.queryType({
 
         if (args.search) {
           conditions.push(ilike(characters.name, `%${args.search}%`));
+        }
+
+        if (args.classes?.length) {
+          conditions.push(
+            inArray(
+              sql`lower(${characters.class})`,
+              args.classes.map((c) => c.toLowerCase()),
+            ),
+          );
         }
 
         return ctx.db
