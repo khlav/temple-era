@@ -97,20 +97,21 @@ export function RaidPlanPublicView({
     }
   }, [viewAsCharacterId, userProfile?.characterId]);
 
-  // Identify encounters where the "view as" character has an AA assignment
-  const assignmentLabelsMap = useMemo(() => {
-    if (!userCharacterIds.length || !plan?.characters.length || !plan?.aaSlotAssignments) {
-      return new Map<string, string[]>();
+  // planCharacterIds for the "view as" character's family (primary + secondaries) rostered in this plan
+  const viewerPlanCharacterIds = useMemo(() => {
+    if (!userCharacterIds.length || !plan?.characters.length) {
+      return new Set<string>();
     }
-
-    // Find the planCharacterIds for the "view as" character's characters
-    const viewerPlanCharacterIds = new Set(
+    return new Set(
       plan.characters
         .filter((char) => char.characterId !== null && userCharacterIds.includes(char.characterId))
         .map((char) => char.id),
     );
+  }, [userCharacterIds, plan?.characters]);
 
-    if (viewerPlanCharacterIds.size === 0) {
+  // Identify encounters where the "view as" character's family has an AA assignment
+  const assignmentLabelsMap = useMemo(() => {
+    if (viewerPlanCharacterIds.size === 0 || !plan?.aaSlotAssignments) {
       return new Map<string, string[]>();
     }
 
@@ -128,7 +129,7 @@ export function RaidPlanPublicView({
     }
 
     return labelsMap;
-  }, [userCharacterIds, plan?.characters, plan?.aaSlotAssignments]);
+  }, [viewerPlanCharacterIds, plan?.aaSlotAssignments]);
 
   const encounterSummaries = useMemo((): CharacterEncounterSummary[] => {
     if (!plan || assignmentLabelsMap.size === 0) return [];
@@ -302,9 +303,9 @@ export function RaidPlanPublicView({
 
         <Separator className="my-2" />
 
-        {viewAsCharacterId !== null && viewAsCharacter && encounterSummaries.length > 0 && (
+        {viewAsCharacterId !== null && encounterSummaries.length > 0 && (
           <CharacterSummaryPanel
-            viewAsCharacter={viewAsCharacter}
+            viewerPlanCharacterIds={viewerPlanCharacterIds}
             encounterSummaries={encounterSummaries}
             allCharacters={plan.characters as RaidPlanCharacter[]}
             onEncounterClick={setActiveTab}
