@@ -129,7 +129,10 @@ export function CharacterDetail({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <CharacterAttendanceContent characterId={characterId} isIgnored={characterData.isIgnored} />
+                <CharacterAttendanceContent
+                  characterId={characterId}
+                  isIgnored={characterData.isIgnored}
+                />
               </CardContent>
             </Card>
           </>
