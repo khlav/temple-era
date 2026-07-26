@@ -256,13 +256,16 @@ export const AppHeader = () => {
                 <span className="sr-only">Open navigation</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-full border-r-border/70 bg-card/95 sm:max-w-sm">
+            <SheetContent
+              side="left"
+              className="w-full border-r-border/70 bg-card/95 px-5 py-5 sm:max-w-sm"
+            >
               <SheetHeader>
-                <SheetTitle className="font-display text-2xl tracking-tight">Temple</SheetTitle>
+                <SheetTitle className="font-display text-xl tracking-tight">Temple</SheetTitle>
                 <SheetDescription>Classic Era</SheetDescription>
               </SheetHeader>
-              <div className="mt-6 space-y-6">
-                <div className="grid gap-2">
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-1.5">
                   {primaryNav.map((item) => {
                     const active = isActivePath(pathname, item.href);
                     return (
@@ -270,7 +273,7 @@ export const AppHeader = () => {
                         <Link
                           href={item.href}
                           className={cn(
-                            "rounded-2xl border px-4 py-3 text-sm font-medium transition-colors",
+                            "rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
                             active
                               ? "bg-primary/12 border-primary/30 text-primary"
                               : "border-border/70 bg-card/40 text-muted-foreground hover:border-primary/25 hover:text-foreground",
@@ -283,19 +286,16 @@ export const AppHeader = () => {
                   })}
                 </div>
                 {utilityLinks.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary">Guild Tools</Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Manager and Site Admin tools.
-                    </div>
-                    <div className="grid gap-2">
+                    <div className="grid gap-1.5">
                       {utilityLinks.map((item) => (
                         <SheetClose asChild key={item.href}>
                           <Link
                             href={item.href}
-                            className="panel-subtle flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
+                            className="panel-subtle flex items-center gap-3 rounded-xl border border-border/70 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
                           >
                             <item.icon className="h-4 w-4 text-primary" />
                             <span>{item.label}</span>
