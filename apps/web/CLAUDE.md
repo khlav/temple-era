@@ -296,8 +296,11 @@ src/
 - `refactor/` - Code improvements without behavior changes
 - `hotfix/` - Critical production fixes
 - `dev/` - Developer-only changes (docs, config, CI)
+- `claude/` - Branches created by Claude Code sessions (any change type)
 
 Use kebab-case: `feature/add-raid-filtering`
+
+Note: `claude/` describes the branch's origin, not the change type — commits on it still use the standard commit types below.
 
 #### Commit Message Convention
 

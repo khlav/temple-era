@@ -26,12 +26,14 @@ Use the output to determine which of the following steps are needed.
 
 ### Step 2: Create feature branch (skip if already on a valid feature branch)
 
-If currently on `main` or a branch that does not match `^(feature|fix|chore|refactor|hotfix|dev)/.+`:
+If currently on `main` or a branch that does not match `^(feature|fix|chore|refactor|hotfix|dev|claude)/.+`:
 
 - Infer branch type and name from $ARGUMENTS, the diff, or ask the user.
 - `git checkout -b {type}/{kebab-description}`
 
-Valid branch types: `feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`
+Valid branch types: `feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`, `claude`
+
+Do not create a `claude/` branch yourself — it is accepted because Claude Code sessions are handed one, and an existing `claude/` branch should be shipped as-is.
 
 Never push to main.
 
