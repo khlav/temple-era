@@ -1,6 +1,6 @@
 export function extractWarcraftLogsUrls(content: string): string[] {
   const wclUrlRegex =
-    /https?:\/\/(?:vanilla|classic)\.warcraftlogs\.com\/reports\/([a-zA-Z0-9]{16})/g;
+    /https?:\/\/(?:(?:vanilla|classic|www)\.)?warcraftlogs\.com\/reports\/([a-zA-Z0-9]{16})/g;
 
   const urls: string[] = [];
   let match;
