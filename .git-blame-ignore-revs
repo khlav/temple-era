@@ -1,0 +1,9 @@
+# Revisions to skip in `git blame`.
+#
+# Configure locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honours this file automatically.
+
+# chore(bot): reformat with oxfmt — prettier -> oxfmt migration (Phase 2)
+c0f4fc4ba247548a8d46765cd7388117d3bbd9bd
