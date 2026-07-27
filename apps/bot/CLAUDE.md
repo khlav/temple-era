@@ -1,6 +1,16 @@
-# CLAUDE.md
+# CLAUDE.md — `apps/bot`
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in the **Discord bot**.
+
+> **Read the root `CLAUDE.md` first.** It covers workspace layout, the shared toolchain,
+> environment-variable rules, git/commit conventions, and the Templar constraint. This
+> file covers only what is specific to `apps/bot`.
+
+**Running commands**: examples below use bare `pnpm <script>`. From the repo root, prefix with a filter:
+
+```bash
+pnpm --filter temple-raids-discord-bot <script>    # or cd apps/bot first
+```
 
 ## Project Overview
 
@@ -10,7 +20,7 @@ Temple Raids Discord Bot is a Discord bot that integrates with the Temple Ashkan
 
 ### Development
 ```bash
-# Install dependencies
+# Install dependencies (run at the repo root — installs the whole workspace)
 pnpm install
 
 # Start development server with hot reload
@@ -18,9 +28,6 @@ pnpm dev
 
 # Type checking only
 pnpm typecheck
-
-# Run both linting and type checking
-pnpm check
 ```
 
 ### Building and Running
@@ -33,6 +40,9 @@ pnpm start
 ```
 
 ### Code Quality
+
+This app uses **oxlint + oxfmt**, configured by the root `.oxlintrc.json`. It was migrated off ESLint + Prettier during the monorepo migration — do not reintroduce them.
+
 ```bash
 # Lint TypeScript files
 pnpm lint
@@ -40,11 +50,11 @@ pnpm lint
 # Lint and auto-fix issues
 pnpm lint:fix
 
-# Format check all files
-pnpm format:check
+# Check formatting
+pnpm format
 
-# Format and write all files
-pnpm format:write
+# Apply formatting
+pnpm format:fix
 ```
 
 ## Architecture
@@ -87,6 +97,8 @@ The bot operates through three main message handlers:
 - **Message Deduplication** (`messageDeduplication.ts`): LRU cache to prevent duplicate processing of messages.
 
 ### API Integration
+
+The web app that owns these endpoints lives in this monorepo at `apps/web` (handlers in `apps/web/src/app/api/discord/`). Changes to either side of this contract should land in the same PR.
 
 The bot communicates with three Temple Ashkandi API endpoints:
 
@@ -192,28 +204,12 @@ deduplicator.add(message.id);
 
 ## Git Workflow
 
-Follow the rules in `.cursorrules`:
+Branch naming, commit format, the `/ship` process, and the `user-facing` label are workspace-wide — see the root `CLAUDE.md` and `.cursorrules`.
 
-### Branch Naming
-- `feature/` - New user-facing functionality
-- `fix/` - Bug fixes or corrections
-- `chore/` - Maintenance, dependencies, tooling
-- `refactor/` - Code improvements without behavior changes
-- `dev/` - Developer-only changes (docs, config, CI)
+Two things specific to this app:
 
-### Commits
-Use conventional commits: `type(scope): description`
-
-Examples:
-- `feat(bot): add slash command support`
-- `fix(handler): resolve message parsing issue`
-- `chore(deps): update dependencies`
-
-### Pull Requests
-- Never commit directly to `main`
-- Apply `user-facing` label for `feature/` and `fix/` branches (unless only config files changed)
-- Config-only changes: `.github/`, `.cursorrules`, `*.config.*`, `*.yml`, `*.yaml`, `README.md`, `package.json`, `pnpm-lock.yaml`
-- Provide clickable PR links: `[PR #123: Title](https://github.com/khlav/temple-raids-discord-bot/pull/123)`
+- **Scope commits with a `bot/` prefix** so a reader can tell which app changed: `fix(bot/handler): resolve message parsing issue`.
+- **`apps/bot/**`-only changes are rarely `user-facing`** — the bot has no UI. Apply that label only when guild members will notice a behaviour change in Discord.
 
 ## Testing Approach
 
