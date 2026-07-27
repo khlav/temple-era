@@ -1,0 +1,33 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+export const config = {
+  discordBotToken: process.env.DISCORD_BOT_TOKEN!,
+  discordLogsChannelId: process.env.DISCORD_RAID_LOGS_CHANNEL_ID!,
+  apiBaseUrl: process.env.API_BASE_URL!,
+  templeWebApiToken: process.env.TEMPLE_WEB_API_TOKEN!,
+  // Logging configuration
+  logLevel: process.env.LOG_LEVEL || "info",
+  // Thread cleanup configuration (optional - disabled by default)
+  threadCleanupEnabled:
+    process.env.DISCORD_LOG_THREAD_CLEANUP_ENABLED === "true",
+  threadCleanupDays: parseInt(
+    process.env.DISCORD_LOG_THREAD_CLEANUP_DAYS || "3",
+    10
+  ),
+  threadCleanupCron: process.env.DISCORD_LOG_THREAD_CLEANUP_CRON || "0 1 * * *",
+};
+
+// Validate required environment variables
+const required = [
+  "discordBotToken",
+  "discordLogsChannelId",
+  "apiBaseUrl",
+  "templeWebApiToken",
+];
+
+for (const key of required) {
+  if (!config[key as keyof typeof config]) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+}

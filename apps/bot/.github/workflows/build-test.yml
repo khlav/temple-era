@@ -1,0 +1,72 @@
+name: Build Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Enable corepack and setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8 --activate
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Verify build output exists
+        run: |
+          if [ ! -f "dist/index.js" ]; then
+            echo "❌ Build output not found!"
+            exit 1
+          fi
+          echo "✅ Build output verified"
+
+      - name: Test module resolution (simulate Railway deployment)
+        timeout-minutes: 1
+        env:
+          DISCORD_BOT_TOKEN: "test-token-placeholder"
+          DISCORD_RAID_LOGS_CHANNEL_ID: "123456789"
+          API_BASE_URL: "https://api.example.com"
+          TEMPLE_WEB_API_TOKEN: "test-token-placeholder"
+        run: |
+          # Create a test script that imports the entry point to verify module resolution
+          # This catches missing dependencies before Railway tries to run it
+          node --input-type=module << 'EOF'
+          import('./dist/index.js')
+            .then(() => {
+              console.log('✅ All modules resolved successfully');
+              // Exit immediately - we just want to verify imports work
+              process.exit(0);
+            })
+            .catch((err) => {
+              console.error('❌ Module resolution failed:');
+              console.error(err.message);
+              if (err.code === 'MODULE_NOT_FOUND') {
+                console.error('\nMissing module:', err.message.match(/Cannot find module ['"]([^'"]+)['"]/)?.[1] || 'unknown');
+              }
+              console.error('\nStack trace:');
+              console.error(err.stack);
+              process.exit(1);
+            });
+          EOF
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+

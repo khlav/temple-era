@@ -1,0 +1,60 @@
+{
+  "name": "temple-raids-discord-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Discord bot for Temple Raids WCL link detection and raid creation",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.prod.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\" --cache",
+    "format:write": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\" --cache",
+    "check": "eslint src --ext .ts && tsc --noEmit",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "warcraft-logs",
+    "raid-tracking"
+  ],
+  "author": "Temple Ashkandi",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "node-cron": "^4.2.1",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.35.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "prettier": "^3.3.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --max-warnings=0 --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.ts": [
+      "bash -c 'if grep -q \"console\\.log\" \"$1\"; then echo \"⚠️  Warning: console.log found in $1\"; fi' --"
+    ]
+  }
+}
