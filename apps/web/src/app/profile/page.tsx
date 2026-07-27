@@ -1,0 +1,47 @@
+import { auth } from "~/server/auth";
+import React from "react";
+import { ProfileEditor } from "~/components/profile/profile-editor";
+import { ApiAccessCard } from "~/components/profile/api-access-card";
+import { redirect } from "next/navigation";
+import { type Metadata } from "next";
+import { createPageMetadata } from "~/lib/site-metadata";
+import { Separator } from "~/components/ui/separator";
+
+export const metadata: Metadata = {
+  ...createPageMetadata({
+    title: "Profile",
+    description: "Manage your Discord link and Temple character settings.",
+    path: "/profile",
+    noIndex: true,
+  }),
+};
+
+export default async function ProfileIndex() {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/");
+  }
+
+  /* Sample profile result
+    {
+      "name": "dirktec",
+      "characterId": 47837140,
+      "image": "https://cdn.discordapp.com/avatars/313049555509837885/579991b89886639e00d0bba47ab4688d.png"
+    }
+   */
+
+  return (
+    <main className="w-full px-4">
+      <div className="mb-2 text-3xl font-bold tracking-tight">Profile</div>
+      <Separator className="my-2" />
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+        <div className="w-full lg:w-1/2">
+          <ProfileEditor />
+        </div>
+        <div className="w-full lg:w-1/2">
+          <ApiAccessCard />
+        </div>
+      </div>
+    </main>
+  );
+}

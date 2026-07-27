@@ -1,0 +1,195 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1736608953400,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1736610396919,
+      "tag": "0001_init_6w_reporting_views",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1738271022268,
+      "tag": "0002_thankful_mole_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1738271326994,
+      "tag": "0003_wealthy_malice",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742753986549,
+      "tag": "0004_hot_romulus",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1742756310840,
+      "tag": "0005_seed_recipes_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1743711784239,
+      "tag": "0006_tearful_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758208093831,
+      "tag": "0007_unique_rhodey",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1761428279012,
+      "tag": "0008_add-unaccent-extension",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1761486579788,
+      "tag": "0009_good_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770127906561,
+      "tag": "0010_robust_mulholland_black",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770346263226,
+      "tag": "0011_little_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1770346920855,
+      "tag": "0012_small_mockingbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1770352473161,
+      "tag": "0013_famous_joseph",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1770578220540,
+      "tag": "0014_whole_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1770771501505,
+      "tag": "0015_silky_puff_adder",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1771096210882,
+      "tag": "0016_dusty_mephistopheles",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1772168558360,
+      "tag": "0017_bored_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774953022078,
+      "tag": "0018_touch-raid-plan-updated-at",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775774695817,
+      "tag": "0019_gifted_nextwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1777177266975,
+      "tag": "0020_loud_catseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1777177429445,
+      "tag": "0021_flat_carmella_unuscione",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1777343397698,
+      "tag": "0022_fix-lockout-views-et-timezone",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777717392281,
+      "tag": "0023_tough_namorita",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1779850185853,
+      "tag": "0024_dusty_black_crow",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785116308680,
+      "tag": "0025_add_roles_permissions_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1785116321939,
+      "tag": "0026_backfill_roles_permissions_data",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# superpowers brainstorm/session artifacts
+.superpowers/
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# database
+/prisma/db.sqlite
+/prisma/db.sqlite-journal
+db.sqlite
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+# do not commit any .env files to git, except for the ..env.example file. https://create.t3.gg/en/usage/env-variables#using-environment-variables
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# idea files
+.idea
+
+# planning md files
+plans
+docs/superpowers/
+.superpowers/
+
+# wow_addons_for_reference
+wow_addons_for_reference
+
+# BFG Repo-Cleaner files (contain sensitive data)
+bfg-replacements.txt
+..bfg-report/
+
+# claude/llm local settings and testing
+.claude/settings*
+/scripts/*.ts
+.worktrees/
+.env*
+
+# Local database dumps — contain production user data, never commit
+/backups/

@@ -1,0 +1,106 @@
+"use client";
+import { api } from "~/trpc/react";
+import { CharactersTable } from "~/components/characters/characters-table";
+import { useState } from "react";
+import { TableSearchInput } from "~/components/ui/table-search-input";
+import { TableSearchTips } from "~/components/ui/table-search-tips";
+import type { RaidParticipantCollection } from "~/server/api/interfaces/raid";
+import { AllCharactersTableSkeleton } from "~/components/characters/skeletons";
+import type { Session } from "next-auth";
+import { Badge } from "~/components/ui/badge";
+
+export function AllCharacters({
+  session,
+  characters: initialCharacters,
+}: {
+  session?: Session;
+  characters?: RaidParticipantCollection | null;
+}) {
+  const { data: fetchedCharacters } = api.character.getCharacters.useQuery(undefined, {
+    enabled: !initialCharacters,
+  });
+  const players = initialCharacters ?? fetchedCharacters;
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Function to normalize text (remove non-ASCII characters and convert to lowercase)
+  const normalizeText = (text: string) => {
+    return (
+      text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        // eslint-disable-next-line no-control-regex
+        .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+        .toLowerCase()
+    ); // Convert to lowercase
+  };
+
+  // Filter characters based on search term
+  const filteredPlayers = (
+    players
+      ? Object.values(players).filter((player) => {
+          const terms = normalizeText(searchTerm).split(/\s+/).filter(Boolean);
+          if (terms.length === 0) {
+            return true;
+          }
+
+          // Search only in specific fields, excluding characterId
+          const searchableText = normalizeText(
+            [
+              player.name,
+              player.server,
+              player.class,
+              player.classDetail,
+              player.slug,
+              player.primaryCharacterName,
+              player.raidAttendanceByZone?.["Molten Core"]?.attendee ? "Molten Core mc" : "",
+              player.raidAttendanceByZone?.["Blackwing Lair"]?.attendee ? "Blackwing Lair bwl" : "",
+              player.raidAttendanceByZone?.["Temple of Ahn'Qiraj"]?.attendee
+                ? "Temple of Ahn'Qiraj aq40"
+                : "",
+              player.raidAttendanceByZone?.Naxxramas?.attendee ? "Naxxramas" : "",
+            ]
+              .filter(Boolean)
+              .join(" "),
+          );
+
+          return terms.every((term) => searchableText.includes(term));
+        })
+      : []
+  ).reduce((acc, rel) => {
+    acc[rel.characterId] = rel;
+    return acc;
+  }, {} as RaidParticipantCollection);
+
+  // Show content if we have data (either from server or client fetch)
+  const hasData = !!players;
+
+  return (
+    <>
+      {hasData ? (
+        <div className="space-y-2">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <TableSearchInput
+                placeholder="Search characters, server, class, or main..."
+                onDebouncedChange={(v) => setSearchTerm(v)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+              <Badge variant="secondary">{Object.keys(filteredPlayers).length} characters</Badge>
+              <TableSearchTips>
+                <p className="mb-1 font-medium">Search tips:</p>
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>Search by name, server, class, slug, or primary name</li>
+                  <li>Terms are ANDed together (must all appear)</li>
+                </ul>
+              </TableSearchTips>
+            </div>
+          </div>
+          <CharactersTable characters={filteredPlayers} session={session} />
+        </div>
+      ) : (
+        <AllCharactersTableSkeleton rows={14} />
+      )}
+    </>
+  );
+}

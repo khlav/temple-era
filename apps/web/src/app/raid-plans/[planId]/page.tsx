@@ -1,0 +1,138 @@
+import { type Metadata } from "next";
+import { headers } from "next/headers";
+import { Suspense } from "react";
+import { auth } from "~/server/auth";
+import { RaidPlanPublicView } from "~/components/raid-planner/raid-plan-public-view";
+import { Skeleton } from "~/components/ui/skeleton";
+import { createCaller } from "~/server/api/root";
+import { createTRPCContext } from "~/server/api/trpc";
+import { siteConfig } from "~/lib/site-metadata";
+interface PageProps {
+  params: Promise<{ planId: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { planId } = await params;
+
+  try {
+    const heads = new Headers(await headers());
+    heads.set("x-trpc-source", "rsc");
+    const ctx = await createTRPCContext({ headers: heads });
+    const caller = createCaller(ctx);
+
+    const plan = await caller.raidPlan.getPublicById({ planId });
+    if (plan) {
+      const encounterCount = plan.encounters?.length ?? 0;
+
+      // Map zone IDs to their generated background images
+      const zoneImageMap: Record<string, string> = {
+        mc: "/img/zones/mc.png",
+        naxxramas: "/img/zones/naxxramas.png",
+        bwl: "/img/zones/bwl.png",
+        aq20: "/img/zones/aq.png",
+        aq40: "/img/zones/aq.png",
+        zg: "/img/zones/zg.png",
+      };
+
+      const ogImage = zoneImageMap[plan.zoneId] ?? "/img/temple_512.jpeg";
+      const title = `${plan.name} Raid Plan`;
+      const description = `Sign in with Discord to highlight your characters' groups and assignments. (${encounterCount} encounters)`;
+
+      return {
+        title,
+        description,
+        alternates: {
+          canonical: `/raid-plans/${planId}`,
+        },
+        openGraph: {
+          title: `${siteConfig.name} | ${title}`,
+          description,
+          url: `${siteConfig.url}/raid-plans/${planId}`,
+          siteName: siteConfig.name,
+          type: "website",
+          images: [ogImage],
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: `${siteConfig.name} | ${title}`,
+          description,
+          images: [ogImage],
+        },
+      };
+    }
+  } catch {
+    // Plan may not exist or not be public
+  }
+
+  return {
+    title: "Raid Plan",
+    description: "View a public Temple raid plan.",
+    robots: {
+      index: false,
+      follow: false,
+      noarchive: true,
+      nosnippet: true,
+    },
+  };
+}
+
+async function RaidPlanContent({ planId }: { planId: string }) {
+  // Fetch plan name on server to avoid breadcrumb flash
+  const heads = new Headers(await headers());
+  heads.set("x-trpc-source", "rsc");
+  const ctx = await createTRPCContext({ headers: heads });
+  const caller = createCaller(ctx);
+
+  let planName: string | undefined;
+  try {
+    const plan = await caller.raidPlan.getPublicById({ planId });
+    planName = plan?.name;
+  } catch {
+    // Plan may not exist or user may not have access
+  }
+
+  const session = await auth();
+
+  return (
+    <RaidPlanPublicView
+      planId={planId}
+      initialBreadcrumbData={planName ? { [planId]: planName } : undefined}
+      isLoggedIn={!!session}
+      isRaidManager={session?.user?.isRaidManager}
+    />
+  );
+}
+
+function RaidPlanSkeleton() {
+  return (
+    <div className="">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Skeleton className="h-9 w-48" />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-40" />
+            ))}
+          </div>
+        </div>
+        <Skeleton className="h-[300px]" />
+      </div>
+    </div>
+  );
+}
+
+export default async function RaidPlanPublicPage({ params }: PageProps) {
+  const { planId } = await params;
+
+  return (
+    <main className="w-full px-4">
+      <Suspense fallback={<RaidPlanSkeleton />}>
+        <RaidPlanContent planId={planId} />
+      </Suspense>
+    </main>
+  );
+}

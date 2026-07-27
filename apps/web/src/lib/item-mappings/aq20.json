@@ -1,0 +1,834 @@
+{
+  "20727": {
+    "id": 20727,
+    "name": "Formula: Enchant Gloves - Shadow Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20728": {
+    "id": 20728,
+    "name": "Formula: Enchant Gloves - Frost Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20729": {
+    "id": 20729,
+    "name": "Formula: Enchant Gloves - Fire Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20730": {
+    "id": 20730,
+    "name": "Formula: Enchant Gloves - Healing Power",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20731": {
+    "id": 20731,
+    "name": "Formula: Enchant Gloves - Superior Agility",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20734": {
+    "id": 20734,
+    "name": "Formula: Enchant Cloak - Stealth",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20736": {
+    "id": 20736,
+    "name": "Formula: Enchant Cloak - Dodge",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "20866": {
+    "id": 20866,
+    "name": "Azure Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20867": {
+    "id": 20867,
+    "name": "Onyx Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20868": {
+    "id": 20868,
+    "name": "Lambent Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20869": {
+    "id": 20869,
+    "name": "Amber Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20870": {
+    "id": 20870,
+    "name": "Jasper Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20871": {
+    "id": 20871,
+    "name": "Obsidian Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20872": {
+    "id": 20872,
+    "name": "Vermillion Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "20873": {
+    "id": 20873,
+    "name": "Alabaster Idol",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21214": {
+    "id": 21214,
+    "name": "Tome of Frostbolt XI",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21220": {
+    "id": 21220,
+    "name": "Head of Ossirian the Unscarred",
+    "equipslot": "Miscellaneous",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21279": {
+    "id": 21279,
+    "name": "Tome of Fireball XII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21280": {
+    "id": 21280,
+    "name": "Tome of Arcane Missiles VIII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21281": {
+    "id": 21281,
+    "name": "Grimoire of Shadow Bolt X",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21282": {
+    "id": 21282,
+    "name": "Grimoire of Immolate VIII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21283": {
+    "id": 21283,
+    "name": "Grimoire of Corruption VII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21284": {
+    "id": 21284,
+    "name": "Codex of Greater Heal V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21285": {
+    "id": 21285,
+    "name": "Codex of Renew X",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21287": {
+    "id": 21287,
+    "name": "Codex of Prayer of Healing V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21288": {
+    "id": 21288,
+    "name": "Libram: Blessing of Wisdom VI",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21289": {
+    "id": 21289,
+    "name": "Libram: Blessing of Might VII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21290": {
+    "id": 21290,
+    "name": "Libram: Holy Light IX",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21291": {
+    "id": 21291,
+    "name": "Tablet of Healing Wave X",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21292": {
+    "id": 21292,
+    "name": "Tablet of Strength of Earth Totem V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21293": {
+    "id": 21293,
+    "name": "Tablet of Grace of Air Totem III",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21294": {
+    "id": 21294,
+    "name": "Book of Healing Touch XI",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21295": {
+    "id": 21295,
+    "name": "Book of Starfire VII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21296": {
+    "id": 21296,
+    "name": "Book of Rejuvenation XI",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21297": {
+    "id": 21297,
+    "name": "Manual of Heroic Strike IX",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21298": {
+    "id": 21298,
+    "name": "Manual of Battle Shout VII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21299": {
+    "id": 21299,
+    "name": "Manual of Revenge VI",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21300": {
+    "id": 21300,
+    "name": "Handbook of Backstab IX",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21302": {
+    "id": 21302,
+    "name": "Handbook of Deadly Poison V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21303": {
+    "id": 21303,
+    "name": "Handbook of Feint V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21304": {
+    "id": 21304,
+    "name": "Guide: Multi-Shot V",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21306": {
+    "id": 21306,
+    "name": "Guide: Serpent Sting IX",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21307": {
+    "id": 21307,
+    "name": "Guide: Aspect of the Hawk VII",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21452": {
+    "id": 21452,
+    "name": "Staff of the Ruins",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21453": {
+    "id": 21453,
+    "name": "Mantle of the Horusath",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21454": {
+    "id": 21454,
+    "name": "Runic Stone Shoulders",
+    "equipslot": "Shoulder",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21455": {
+    "id": 21455,
+    "name": "Southwind Helm",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21456": {
+    "id": 21456,
+    "name": "Sandstorm Cloak",
+    "equipslot": "Back",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21457": {
+    "id": 21457,
+    "name": "Bracers of Brutality",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21458": {
+    "id": 21458,
+    "name": "Gauntlets of New Life",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21459": {
+    "id": 21459,
+    "name": "Crossbow of Imminent Doom",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21460": {
+    "id": 21460,
+    "name": "Helm of Domination",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21461": {
+    "id": 21461,
+    "name": "Leggings of the Black Blizzard",
+    "equipslot": "Legs",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21462": {
+    "id": 21462,
+    "name": "Gloves of Dark Wisdom",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21463": {
+    "id": 21463,
+    "name": "Ossirian's Binding",
+    "equipslot": "Waist",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21464": {
+    "id": 21464,
+    "name": "Shackles of the Unscarred",
+    "equipslot": "Wrist",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21466": {
+    "id": 21466,
+    "name": "Stinger of Ayamiss",
+    "equipslot": "Main Hand",
+    "quality": "Epic",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21467": {
+    "id": 21467,
+    "name": "Thick Silithid Chestguard",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21468": {
+    "id": 21468,
+    "name": "Mantle of Maz'Nadir",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21469": {
+    "id": 21469,
+    "name": "Gauntlets of Southwind",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21470": {
+    "id": 21470,
+    "name": "Cloak of the Savior",
+    "equipslot": "Back",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21471": {
+    "id": 21471,
+    "name": "Talon of Furious Concentration",
+    "equipslot": "Held In Off-hand",
+    "quality": "Epic",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21472": {
+    "id": 21472,
+    "name": "Dustwind Turban",
+    "equipslot": "Head",
+    "quality": "Epic",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21473": {
+    "id": 21473,
+    "name": "Eye of Moam",
+    "equipslot": "Trinket",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21474": {
+    "id": 21474,
+    "name": "Chitinous Shoulderguards",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21475": {
+    "id": 21475,
+    "name": "Legplates of the Destroyer",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21476": {
+    "id": 21476,
+    "name": "Obsidian Scaled Leggings",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21477": {
+    "id": 21477,
+    "name": "Ring of Fury",
+    "equipslot": "Finger",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  },
+  "21478": {
+    "id": 21478,
+    "name": "Bow of Taut Sinew",
+    "equipslot": "Ranged",
+    "quality": "Epic",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21479": {
+    "id": 21479,
+    "name": "Gauntlets of the Immovable",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "from": "Shared",
+    "instance": "aq20"
+  },
+  "21480": {
+    "id": 21480,
+    "name": "Scaled Silithid Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21481": {
+    "id": 21481,
+    "name": "Boots of the Desert Protector",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21482": {
+    "id": 21482,
+    "name": "Boots of the Fiery Sands",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21483": {
+    "id": 21483,
+    "name": "Ring of the Desert Winds",
+    "equipslot": "Finger",
+    "quality": "Rare",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21484": {
+    "id": 21484,
+    "name": "Helm of Regrowth",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "from": "Ayamiss the Hunter",
+    "instance": "aq20"
+  },
+  "21485": {
+    "id": 21485,
+    "name": "Buru's Skull Fragment",
+    "equipslot": "Shield",
+    "quality": "Epic",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21486": {
+    "id": 21486,
+    "name": "Gloves of the Swarm",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21487": {
+    "id": 21487,
+    "name": "Slimy Scaled Gauntlets",
+    "equipslot": "Hands",
+    "quality": "Epic",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21488": {
+    "id": 21488,
+    "name": "Fetish of Chitinous Spikes",
+    "equipslot": "Trinket",
+    "quality": "Rare",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21489": {
+    "id": 21489,
+    "name": "Quicksand Waders",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21490": {
+    "id": 21490,
+    "name": "Slime Kickers",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21491": {
+    "id": 21491,
+    "name": "Scaled Bracers of the Gorger",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "from": "Buru the Gorger",
+    "instance": "aq20"
+  },
+  "21492": {
+    "id": 21492,
+    "name": "Manslayer of the Qiraji",
+    "equipslot": "Two-Hand",
+    "quality": "Epic",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21493": {
+    "id": 21493,
+    "name": "Boots of the Vanguard",
+    "equipslot": "Feet",
+    "quality": "Epic",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21494": {
+    "id": 21494,
+    "name": "Southwind's Grasp",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21495": {
+    "id": 21495,
+    "name": "Legplates of the Qiraji Command",
+    "equipslot": "Legs",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21496": {
+    "id": 21496,
+    "name": "Bracers of Qiraji Command",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21497": {
+    "id": 21497,
+    "name": "Boots of the Qiraji General",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21498": {
+    "id": 21498,
+    "name": "Qiraji Sacrificial Dagger",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21499": {
+    "id": 21499,
+    "name": "Vestments of the Shifting Sands",
+    "equipslot": "Chest",
+    "quality": "Epic",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21500": {
+    "id": 21500,
+    "name": "Belt of the Inquisition",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21501": {
+    "id": 21501,
+    "name": "Toughened Silithid Hide Gloves",
+    "equipslot": "Hands",
+    "quality": "Rare",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21502": {
+    "id": 21502,
+    "name": "Sand Reaver Wristguards",
+    "equipslot": "Wrist",
+    "quality": "Rare",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21503": {
+    "id": 21503,
+    "name": "Belt of the Sand Reaver",
+    "equipslot": "Waist",
+    "quality": "Rare",
+    "from": "Kurinnaxx",
+    "instance": "aq20"
+  },
+  "21715": {
+    "id": 21715,
+    "name": "Sand Polished Hammer",
+    "equipslot": "One-Hand",
+    "quality": "Epic",
+    "from": "Ossirian the Unscarred",
+    "instance": "aq20"
+  },
+  "21800": {
+    "id": 21800,
+    "name": "Silithid Husked Launcher",
+    "equipslot": "Ranged",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21801": {
+    "id": 21801,
+    "name": "Antenna of Invigoration",
+    "equipslot": "Ranged",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21802": {
+    "id": 21802,
+    "name": "The Lost Kris of Zedd",
+    "equipslot": "Main Hand",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21804": {
+    "id": 21804,
+    "name": "Coif of Elemental Fury",
+    "equipslot": "Head",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21805": {
+    "id": 21805,
+    "name": "Polished Obsidian Pauldrons",
+    "equipslot": "Shoulder",
+    "quality": "Rare",
+    "from": "Trash",
+    "instance": "aq20"
+  },
+  "21806": {
+    "id": 21806,
+    "name": "Gavel of Qiraji Authority",
+    "equipslot": "Two-Hand",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21809": {
+    "id": 21809,
+    "name": "Fury of the Forgotten Swarm",
+    "equipslot": "Neck",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "21810": {
+    "id": 21810,
+    "name": "Treads of the Wandering Nomad",
+    "equipslot": "Feet",
+    "quality": "Rare",
+    "from": "General Rajaxx",
+    "instance": "aq20"
+  },
+  "22220": {
+    "id": 22220,
+    "name": "Plans: Black Grasp of the Destroyer",
+    "equipslot": "Miscellaneous",
+    "quality": "Rare",
+    "from": "Moam",
+    "instance": "aq20"
+  }
+}

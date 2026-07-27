@@ -1,0 +1,118 @@
+import { createHash } from "crypto";
+import { NextResponse } from "next/server";
+import { logger } from "~/lib/logger";
+import { db } from "~/server/db";
+import { users } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
+import { resolveUserAccess } from "~/server/services/access-service";
+import type { Scope } from "~/lib/scopes";
+
+type ValidateApiTokenResult =
+  | {
+      user: {
+        id: string;
+        name: string | null;
+        image: string | null;
+        isRaidManager: boolean | null;
+        isAdmin: boolean | null;
+        characterId: number | null;
+        templarEnabled: boolean | null;
+        scopes: Scope[];
+      };
+    }
+  | { error: NextResponse };
+
+export async function validateApiToken(request: Request): Promise<ValidateApiTokenResult> {
+  const authHeader = request.headers.get("authorization");
+
+  // Check for missing Authorization header
+  if (!authHeader) {
+    logger.warn(
+      {
+        ip: request.headers.get("x-forwarded-for"),
+        userAgent: request.headers.get("user-agent"),
+        timestamp: new Date().toISOString(),
+      },
+      "Unauthorized API access attempt (missing header)",
+    );
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Check for Bearer prefix
+  if (!authHeader.startsWith("Bearer ")) {
+    logger.warn(
+      {
+        ip: request.headers.get("x-forwarded-for"),
+        userAgent: request.headers.get("user-agent"),
+        timestamp: new Date().toISOString(),
+      },
+      "Unauthorized API access attempt (invalid format)",
+    );
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Extract token
+  const token = authHeader.slice(7).trim(); // Remove "Bearer " prefix
+
+  // Reject empty token
+  if (!token) {
+    logger.warn(
+      {
+        ip: request.headers.get("x-forwarded-for"),
+        userAgent: request.headers.get("user-agent"),
+        timestamp: new Date().toISOString(),
+      },
+      "Unauthorized API access attempt - empty token",
+    );
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Hash the token before querying
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+
+  // Query for user with matching token hash
+  const result = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      image: users.image,
+      characterId: users.characterId,
+      templarEnabled: users.templarEnabled,
+    })
+    .from(users)
+    .where(eq(users.apiToken, tokenHash))
+    .limit(1);
+
+  // Token not found
+  if (result.length === 0) {
+    logger.warn(
+      {
+        ip: request.headers.get("x-forwarded-for"),
+        userAgent: request.headers.get("user-agent"),
+        timestamp: new Date().toISOString(),
+      },
+      "Unauthorized API access attempt (token not found)",
+    );
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  const user = result[0]!;
+  const access = await resolveUserAccess(user.id);
+
+  return {
+    user: {
+      ...user,
+      isRaidManager: access.isRaidManager,
+      isAdmin: access.isAdmin,
+      scopes: access.scopes,
+    },
+  };
+}
