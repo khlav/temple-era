@@ -1,10 +1,7 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
-import {
-  extractWarcraftLogsUrls,
-  extractReportId,
-} from "../services/wclDetector.js";
+import { extractWarcraftLogsUrls, extractReportId } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
@@ -65,21 +62,18 @@ export async function handleMessage(message: Message) {
       messageId: message.id,
     });
 
-    const response = await fetch(
-      `${config.apiBaseUrl}/api/discord/create-raid`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.templeWebApiToken}`,
-        },
-        body: JSON.stringify({
-          discordUserId: message.author.id,
-          wclUrl: firstUrl,
-          discordMessageId: message.id,
-        }),
-      }
-    );
+    const response = await fetch(`${config.apiBaseUrl}/api/discord/create-raid`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.templeWebApiToken}`,
+      },
+      body: JSON.stringify({
+        discordUserId: message.author.id,
+        wclUrl: firstUrl,
+        discordMessageId: message.id,
+      }),
+    });
 
     let result;
     try {

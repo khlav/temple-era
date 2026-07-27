@@ -1,10 +1,4 @@
-import {
-  Client,
-  GatewayIntentBits,
-  Events,
-  type Message,
-  Options,
-} from "discord.js";
+import { Client, GatewayIntentBits, Events, type Message, Options } from "discord.js";
 import * as cron from "node-cron";
 import { config } from "./config/env.js";
 import { logger } from "./config/logger.js";
@@ -63,7 +57,7 @@ export function createBot(): Client {
         },
         {
           timezone: "America/New_York",
-        }
+        },
       );
 
       logger.info(`Thread cleanup scheduled: ${config.threadCleanupCron} (ET)`);

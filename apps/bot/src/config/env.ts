@@ -9,22 +9,13 @@ export const config = {
   // Logging configuration
   logLevel: process.env.LOG_LEVEL || "info",
   // Thread cleanup configuration (optional - disabled by default)
-  threadCleanupEnabled:
-    process.env.DISCORD_LOG_THREAD_CLEANUP_ENABLED === "true",
-  threadCleanupDays: parseInt(
-    process.env.DISCORD_LOG_THREAD_CLEANUP_DAYS || "3",
-    10
-  ),
+  threadCleanupEnabled: process.env.DISCORD_LOG_THREAD_CLEANUP_ENABLED === "true",
+  threadCleanupDays: parseInt(process.env.DISCORD_LOG_THREAD_CLEANUP_DAYS || "3", 10),
   threadCleanupCron: process.env.DISCORD_LOG_THREAD_CLEANUP_CRON || "0 1 * * *",
 };
 
 // Validate required environment variables
-const required = [
-  "discordBotToken",
-  "discordLogsChannelId",
-  "apiBaseUrl",
-  "templeWebApiToken",
-];
+const required = ["discordBotToken", "discordLogsChannelId", "apiBaseUrl", "templeWebApiToken"];
 
 for (const key of required) {
   if (!config[key as keyof typeof config]) {

@@ -23,7 +23,9 @@ const createConsoleLogger = () => {
     },
     error: (message: string | Error, metadata?: any) => {
       if (message instanceof Error) {
-        console.error(formatMessage("error", message.message, { ...metadata, stack: message.stack }));
+        console.error(
+          formatMessage("error", message.message, { ...metadata, stack: message.stack }),
+        );
       } else {
         console.error(formatMessage("error", message, metadata));
       }
@@ -69,7 +71,7 @@ const createWinstonLogger = () => {
           msg += ` ${JSON.stringify(metadata)}`;
         }
         return msg;
-      })
+      }),
     );
   };
 
@@ -89,21 +91,19 @@ const createWinstonLogger = () => {
   const exceptionFormat = winston.format.combine(
     winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     winston.format.colorize(),
-    winston.format.printf(
-      ({ timestamp, level, message }) => `[${timestamp}] ${level}: ${message}`
-    )
+    winston.format.printf(({ timestamp, level, message }) => `[${timestamp}] ${level}: ${message}`),
   );
 
   logger.exceptions.handle(
     new winston.transports.Console({
       format: exceptionFormat,
-    })
+    }),
   );
 
   logger.rejections.handle(
     new winston.transports.Console({
       format: exceptionFormat,
-    })
+    }),
   );
 
   return logger;

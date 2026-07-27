@@ -6,7 +6,7 @@ export function buildLoginRequiredResponse(_reportId: string) {
     new ButtonBuilder()
       .setLabel("Log in to templeashkandi.com")
       .setURL(config.apiBaseUrl)
-      .setStyle(ButtonStyle.Link)
+      .setStyle(ButtonStyle.Link),
   );
 
   return {
@@ -20,7 +20,7 @@ export function buildPermissionRequiredResponse() {
     new ButtonBuilder()
       .setLabel("View your profile")
       .setURL(`${config.apiBaseUrl}/profile`)
-      .setStyle(ButtonStyle.Link)
+      .setStyle(ButtonStyle.Link),
   );
 
   return {
@@ -34,7 +34,7 @@ export function buildRaidCreationResponse(reportId: string) {
     new ButtonBuilder()
       .setLabel("Create Raid Entry")
       .setURL(`${config.apiBaseUrl}/raids/new?wcl=${reportId}`)
-      .setStyle(ButtonStyle.Link)
+      .setStyle(ButtonStyle.Link),
   );
 
   return {
