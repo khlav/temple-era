@@ -1,24 +1,18 @@
 import { type Message } from "discord.js";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
-import {
-  extractWarcraftLogsUrls,
-  extractReportId,
-} from "../services/wclDetector.js";
+import { extractWarcraftLogsUrls, extractReportId } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
 // Track recently processed message updates to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
 
-export async function handleMessageUpdate(
-  oldMessage: Message,
-  newMessage: Message
-) {
+export async function handleMessageUpdate(oldMessage: Message, newMessage: Message) {
   // Skip if this is not actually an edit (editedTimestamp is null or 0)
   if (!newMessage.editedTimestamp || newMessage.editedTimestamp === 0) {
     logger.debug(
-      `Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`
+      `Skipping message update - not an actual edit (timestamp: ${newMessage.editedTimestamp})`,
     );
     return;
   }
@@ -28,9 +22,7 @@ export async function handleMessageUpdate(
 
   // Check if we've already processed this exact update recently
   if (deduplicator.has(updateKey)) {
-    logger.debug(
-      `Message update ${updateKey} already processed recently, skipping`
-    );
+    logger.debug(`Message update ${updateKey} already processed recently, skipping`);
     return;
   }
 
@@ -55,13 +47,10 @@ export async function handleMessageUpdate(
     if (newMessage.thread) {
       try {
         await newMessage.thread.send(
-          "⏰ Raid edits are only allowed within 15 minutes of the original message."
+          "⏰ Raid edits are only allowed within 15 minutes of the original message.",
         );
       } catch (error) {
-        logger.error(
-          "Could not post 15-minute window message to thread:",
-          error
-        );
+        logger.error("Could not post 15-minute window message to thread:", error);
       }
     }
     return;
@@ -82,7 +71,7 @@ export async function handleMessageUpdate(
     if (newMessage.thread) {
       try {
         await newMessage.thread.send(
-          "❌ Invalid WarcraftLogs URL. Please check the link and try again."
+          "❌ Invalid WarcraftLogs URL. Please check the link and try again.",
         );
       } catch (error) {
         logger.error("Could not post invalid URL message to thread:", error);
@@ -120,21 +109,18 @@ export async function handleMessageUpdate(
       oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
     });
 
-    const response = await fetch(
-      `${config.apiBaseUrl}/api/discord/update-raid`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.templeWebApiToken}`,
-        },
-        body: JSON.stringify({
-          discordUserId: newMessage.author.id,
-          newWclUrl: firstUrl,
-          discordMessageId: newMessage.id,
-        }),
-      }
-    );
+    const response = await fetch(`${config.apiBaseUrl}/api/discord/update-raid`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.templeWebApiToken}`,
+      },
+      body: JSON.stringify({
+        discordUserId: newMessage.author.id,
+        newWclUrl: firstUrl,
+        discordMessageId: newMessage.id,
+      }),
+    });
 
     let result;
     try {
@@ -248,14 +234,11 @@ export async function handleMessageUpdate(
     if (newMessage.thread) {
       try {
         await newMessage.thread.send(
-          "❌ An error occurred while updating the raid. Please try again."
+          "❌ An error occurred while updating the raid. Please try again.",
         );
       } catch (threadError) {
         logger.error("Could not post error message to thread", {
-          error:
-            threadError instanceof Error
-              ? threadError.message
-              : String(threadError),
+          error: threadError instanceof Error ? threadError.message : String(threadError),
           threadId: newMessage.thread.id,
           user: newMessage.author.tag,
           messageId: newMessage.id,

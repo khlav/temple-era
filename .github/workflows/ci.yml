@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Decide which app jobs need to run. Anything shared (lockfile, root config,
+  # packages/*, or this workflow itself) forces BOTH apps to run.
+  changes:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      bot: ${{ steps.filter.outputs.bot }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - 'turbo.json'
+              - '.oxlintrc.json'
+              - '.nvmrc'
+              - '.npmrc'
+              - '.github/workflows/ci.yml'
+            web:
+              - *shared
+              - 'apps/web/**'
+            bot:
+              - *shared
+              - 'apps/bot/**'
+
+  web:
+    name: Web
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Locate pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter temple-raid-t3 lint
+
+      - name: Typecheck
+        run: pnpm --filter temple-raid-t3 typecheck
+
+      - name: Test
+        run: pnpm --filter temple-raid-t3 test
+
+      # `build` no longer runs migrations (that moved to `db:deploy` in Phase 2),
+      # so CI can compile with no database credentials at all. Env validation is
+      # skipped because CI holds no real secrets; Vercel validates for real.
+      - name: Build
+        env:
+          SKIP_ENV_VALIDATION: "1"
+        run: pnpm --filter temple-raid-t3 build
+
+  bot:
+    name: Bot
+    needs: changes
+    if: needs.changes.outputs.bot == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Locate pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter temple-raids-discord-bot lint
+
+      - name: Typecheck
+        run: pnpm --filter temple-raids-discord-bot typecheck
+
+      - name: Build
+        run: pnpm --filter temple-raids-discord-bot build
+
+      - name: Verify build output exists
+        run: |
+          if [ ! -f "apps/bot/dist/index.js" ]; then
+            echo "❌ Build output not found!"
+            exit 1
+          fi
+          echo "✅ Build output verified"
+
+      # Formerly "simulate Railway deployment". The bot is on Northflank and has
+      # never run on Railway; the check itself is genuinely useful, because the
+      # bot uses Node16 module resolution with mandatory .js import extensions
+      # and tsc only emits src/ — a missing runtime dep surfaces here, not at
+      # build time.
+      - name: Verify production entrypoint resolves all modules
+        timeout-minutes: 1
+        working-directory: apps/bot
+        env:
+          DISCORD_BOT_TOKEN: "test-token-placeholder"
+          DISCORD_RAID_LOGS_CHANNEL_ID: "123456789"
+          API_BASE_URL: "https://api.example.com"
+          TEMPLE_WEB_API_TOKEN: "test-token-placeholder"
+        run: |
+          node --input-type=module << 'EOF'
+          import('./dist/index.js')
+            .then(() => {
+              console.log('✅ All modules resolved successfully');
+              process.exit(0);
+            })
+            .catch((err) => {
+              console.error('❌ Module resolution failed:');
+              console.error(err.message);
+              if (err.code === 'MODULE_NOT_FOUND') {
+                console.error('\nMissing module:', err.message.match(/Cannot find module ['"]([^'"]+)['"]/)?.[1] || 'unknown');
+              }
+              console.error('\nStack trace:');
+              console.error(err.stack);
+              process.exit(1);
+            });
+          EOF
+
+  # Single required status check for branch protection. Stays green when a job
+  # is legitimately skipped by the path filter, but fails if one actually fails.
+  ci:
+    name: CI
+    if: always()
+    needs: [web, bot]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          echo "web: ${{ needs.web.result }}"
+          echo "bot: ${{ needs.bot.result }}"
+          for r in "${{ needs.web.result }}" "${{ needs.bot.result }}"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "❌ A required job did not pass."
+              exit 1
+            fi
+          done
+          echo "✅ All required jobs passed or were skipped."

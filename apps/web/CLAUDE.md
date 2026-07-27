@@ -1,8 +1,18 @@
-# CLAUDE.md
+# CLAUDE.md — `apps/web`
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in the **web app**.
 
-**Maintenance Rule**: When making changes that affect architecture, project structure, commands, database schema, API endpoints, or common patterns, update this file to keep it synchronized with the codebase.
+> **Read the root `CLAUDE.md` first.** It covers workspace layout, the shared toolchain,
+> environment-variable rules, git/commit conventions, and the Templar constraint. This
+> file covers only what is specific to `apps/web`.
+
+**Maintenance Rule**: When making changes that affect this app's architecture, structure, commands, database schema, API endpoints, or common patterns, update this file. Workspace-level changes belong in the root `CLAUDE.md` instead.
+
+**Running commands**: examples below use bare `pnpm <script>`. From the repo root, prefix with a filter:
+
+```bash
+pnpm --filter temple-raid-t3 <script>    # or cd apps/web first
+```
 
 ## Project Overview
 
@@ -28,8 +38,11 @@ pnpm preview          # Build and start production server locally
 pnpm db:push          # Push schema changes to database (development)
 pnpm db:generate      # Generate migration files
 pnpm db:migrate       # Run migrations
+pnpm db:deploy        # Run migrations + kill idle connections (deploy step)
 pnpm db:studio        # Open Drizzle Studio (database GUI)
 ```
+
+**`db:deploy` is not part of `build`.** Migrations used to run via `postbuild`; Phase 2 of the monorepo migration split them apart so builds never mutate a database. Any deploy pipeline must invoke `db:deploy` explicitly — see the root `CLAUDE.md` for the required Vercel Build Command.
 
 ### Cloning PROD to DEV
 
@@ -53,30 +66,15 @@ pnpm format:fix       # Fix oxfmt formatting
 
 ### Pre-commit Hooks
 
-The project uses **lefthook** to run checks before commits and pushes. Config lives in `lefthook.yml`.
+Hooks are managed by **lefthook** from the repo root (`lefthook.yml` + `.lefthook/`) and cover both apps. See the root `CLAUDE.md` for the full description.
 
-**pre-commit** (runs in parallel on staged files):
-- oxlint with auto-fix on staged `src/**/*.{ts,tsx,js,jsx}` files
-- oxfmt formatting on staged `src/**/*.{ts,tsx,js,jsx}` files
-- TypeScript type check (full project)
-- Warning if uncommitted database migrations are detected
+**Important**: `pnpm db:deploy` runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Only check the exit code to determine success.
 
-**pre-push** (runs in parallel):
-- Branch name format validation (`{type}/{description}`)
-- Full oxlint run
-- Full TypeScript type check
-- Production build
+`pnpm build` compiles only and never touches the database. It does still validate the environment via `@t3-oss/env-nextjs`, so it needs a populated `apps/web/.env`. To compile without one:
 
-#### Commit Message Format
-
-Enforced by the `commit-msg` hook script at `.lefthook/commit-msg/commit-msg.sh`. Expected format: `type(scope): description`
-
-- Valid types: `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`
-- Examples: `feat(search): add advanced filtering`, `fix(ui): resolve layout issue`
-- Warns on WIP/temporary language
-- The `prepare-commit-msg` hook auto-suggests messages based on branch name
-
-**Important**: The `postbuild` script runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Do not interpret them as build failures. Only check the exit code to determine success.
+```bash
+SKIP_ENV_VALIDATION=1 pnpm --filter temple-raid-t3 exec next build
+```
 
 ## Architecture Overview
 
@@ -269,8 +267,9 @@ src/
   - Queries in `src/server/api/wcl-queries.ts`
   - Helpers in `src/server/api/wcl-helpers.ts`
 - **Battle.net**: Fetches character data (configured via OAuth)
-- **Discord Bot**: Separate repository, communicates via REST API endpoints in `src/app/api/discord/`
+- **Discord Bot**: Lives in this monorepo at `apps/bot`; communicates via the REST API endpoints in `src/app/api/discord/`
   - Helper functions in `src/server/api/discord-helpers.ts`
+  - Changing any `/api/discord/*` request or response shape is a contract change — update `apps/bot` in the same PR
 - **Raid Helper**: Integration for raid scheduling via `RAID_HELPER_API_KEY`
 
 #### Component Patterns
@@ -290,37 +289,9 @@ src/
 
 ## Development Workflow
 
-### Branch and PR Rules
+### Branch, commit, and PR rules
 
-**CRITICAL**: All development work MUST be done on feature branches. Never commit directly to `main`.
-
-#### Branch Naming Convention
-
-- `feature/` - New user-facing functionality
-- `fix/` - Bug fixes
-- `chore/` - Maintenance, dependencies, tooling
-- `refactor/` - Code improvements without behavior changes
-- `hotfix/` - Critical production fixes
-- `dev/` - Developer-only changes (docs, config, CI)
-- `claude/` - Branches created by Claude Code sessions (any change type)
-
-Use kebab-case: `feature/add-raid-filtering`
-
-Note: `claude/` describes the branch's origin, not the change type — commits on it still use the standard commit types below.
-
-#### Commit Message Convention
-
-Format: `type(scope): description`
-
-- Valid types: `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`
-- Enforced by the lefthook `commit-msg` hook (`.lefthook/commit-msg/commit-msg.sh`)
-- The `prepare-commit-msg` hook auto-suggests messages from branch name
-
-#### "Ship It" Process
-
-When the user says "ship it", invoke the `/ship` command (`.claude/commands/ship.md`). It handles state detection, branching, committing, pushing, and PR creation including the `user-facing` label automatically.
-
-The `user-facing` label controls Discord notifications for merged PRs.
+See the root `CLAUDE.md` — branch naming, commit format, the `/ship` process, and the `user-facing` label are workspace-wide and documented there once.
 
 ### Parallel Implementation
 
@@ -427,7 +398,7 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 
 ## Discord Bot Integration
 
-The website provides REST API endpoints for the Discord bot (separate repo):
+The website provides REST API endpoints for the Discord bot at `apps/bot`:
 
 - `POST /api/discord/create-raid` - Creates raid from WCL URL
 - `POST /api/discord/check-permissions` - Checks user permissions

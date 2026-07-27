@@ -1,0 +1,78 @@
+# Cursor Rules — temple-era monorepo
+
+## CRITICAL: Read CLAUDE.md first
+
+**MANDATORY — ALWAYS APPLY:**
+
+1. **Before exploring the codebase**, read `CLAUDE.md` at the repo root. It is the
+   primary reference for workspace layout, tooling, and cross-app constraints.
+   Then read the app-level file for whichever app you are working in:
+   - `apps/web/CLAUDE.md` — Next.js app: architecture, tRPC/Drizzle, API surface
+   - `apps/bot/CLAUDE.md` — Discord bot: handlers, gateway patterns
+
+2. **When making repository updates**, update the CLAUDE.md at the right level:
+   - Workspace layout, root tooling, cross-app contracts → root `CLAUDE.md`
+   - Architecture, structure, commands, schema, endpoints, patterns for one app
+     → that app's `CLAUDE.md`
+   Keep them synchronized with the actual codebase state.
+
+3. **These rules apply to ALL interactions** — no exceptions.
+
+## Monorepo awareness
+
+This repo holds two independently-deployed apps. Before changing anything, know which
+one you are in:
+
+| Path | App | Deploys to |
+|---|---|---|
+| `apps/web` | Next.js 15 web app (owns the DB and all API surfaces) | Vercel |
+| `apps/bot` | Discord gateway bot (thin client over `/api/discord/*`) | Northflank |
+
+- Run commands from the **repo root** — Turborepo fans out to both apps.
+  Target one with `pnpm --filter <name> <script>`.
+- Changing an `/api/discord/*` endpoint in `apps/web` is a **contract change** the bot
+  depends on. Update both sides in the same PR.
+- `/api/v1/*`, `/api/discord/proxy/*`, and the OpenAPI spec are consumed by an external
+  bot (Templar) that is not in this repo. **Never change their wire formats.**
+
+## PR Generation Rules
+
+### 1. Always return clickable links
+- `[PR #123: Title](https://github.com/khlav/temple-era/pull/123)`
+- Use full GitHub URLs for maximum compatibility
+
+### 2. Branch management
+**CRITICAL**: All work MUST be on non-main branches. Never commit directly to `main`.
+
+- Verify the working tree with `git status` before starting
+- If on `main`, create a branch; if already on a feature branch, use it
+- Always branch, no matter how small the change
+
+Branch format `{type}/{kebab-case-description}`, type one of:
+`feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`, `claude`
+
+### 3. "Ship it"
+When the user says "ship it", follow `.claude/commands/ship.md` exactly. Do not
+substitute your own shipping logic.
+
+Commit format `{type}({scope}): {description}` — scope the message to the app touched:
+
+- `apps/web/**` only → `feat(raids): add attendance export`
+- `apps/bot/**` only → `fix(bot/handler): resolve thread parsing`
+- Both, or root config → `chore(repo): bump turbo`
+
+### 4. PR descriptions
+- _Italics_ for inline code/file references instead of backticks
+- 2–4 bullets max per section; omit empty sections
+- User-focused — what people will see, not implementation detail
+- Do not restate the title
+- Follow `.github/pull_request_template.md`
+
+### 5. `user-facing` label
+Controls Discord notifications for merged PRs.
+
+- Apply for `feature/` and `fix/` branches
+- Skip for `chore/`, `dev/`, `refactor/`
+- Skip for config-only changes with no user-visible effect
+- `apps/bot/**`-only changes are rarely user-facing — the bot has no UI. Label only
+  when guild members will notice a behaviour change in Discord.

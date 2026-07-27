@@ -27,10 +27,7 @@ export async function cleanupOldThreads(client: Client) {
     // Fetch all threads in the channel
     const threads = await channel.threads.fetchActive();
     const archivedThreads = await channel.threads.fetchArchived();
-    const allThreads = [
-      ...threads.threads.values(),
-      ...archivedThreads.threads.values(),
-    ];
+    const allThreads = [...threads.threads.values(), ...archivedThreads.threads.values()];
 
     logger.info(`Found ${allThreads.length} total threads in logs channel`);
 
@@ -42,17 +39,14 @@ export async function cleanupOldThreads(client: Client) {
     logger.info(`Found ${botThreads.length} bot-created threads`);
 
     // Calculate cutoff time (3 days ago in milliseconds)
-    const cutoffTime =
-      Date.now() - config.threadCleanupDays * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - config.threadCleanupDays * 24 * 60 * 60 * 1000;
 
     // Filter for threads older than the cutoff
     const oldThreads = botThreads.filter((thread) => {
       return thread.createdTimestamp && thread.createdTimestamp < cutoffTime;
     });
 
-    logger.info(
-      `Found ${oldThreads.length} threads older than ${config.threadCleanupDays} days`
-    );
+    logger.info(`Found ${oldThreads.length} threads older than ${config.threadCleanupDays} days`);
 
     if (oldThreads.length === 0) {
       logger.info("No old threads to clean up");
@@ -71,17 +65,13 @@ export async function cleanupOldThreads(client: Client) {
         await thread.delete();
         deletedCount++;
 
-        logger.info(
-          `Deleted thread: "${threadName}" (created: ${createdDate})`
-        );
+        logger.info(`Deleted thread: "${threadName}" (created: ${createdDate})`);
       } catch (error) {
         logger.error(`Failed to delete thread "${thread.name}":`, error);
       }
     }
 
-    logger.info(
-      `Thread cleanup completed: ${deletedCount}/${oldThreads.length} threads deleted`
-    );
+    logger.info(`Thread cleanup completed: ${deletedCount}/${oldThreads.length} threads deleted`);
   } catch (error) {
     logger.error("Thread cleanup failed:", error);
   }

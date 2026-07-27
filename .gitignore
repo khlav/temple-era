@@ -1,0 +1,29 @@
+# Root-level ignores ONLY.
+#
+# Each app keeps its own .gitignore (apps/web, apps/bot) — do NOT merge them up
+# here. Patterns without a leading slash match at ANY depth, so a concatenated
+# root file would start ignoring apps/web/public (the bot's file carries bare
+# `public` and `dist` entries from a Gatsby/Nuxt template). Keep this list
+# minimal and prefer app-local rules.
+
+# dependencies
+node_modules/
+
+# env — never commit secrets from any app
+.env
+.env.*
+!.env.example
+
+# build/tooling caches
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# agent + session artifacts (these moved to root when .claude/ was hoisted,
+# so they are no longer covered by apps/web/.gitignore)
+.claude/settings*
+.superpowers/
+.worktrees/
+
+# OS
+.DS_Store

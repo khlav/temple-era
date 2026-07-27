@@ -20,11 +20,15 @@ on:
       pr_url:
         description: "PR URL"
         required: true
-        default: "https://github.com/khlav/temple-raids-t3"
+        default: "https://github.com/khlav/temple-era"
       merged_at:
         description: "Merged At Timestamp"
         required: true
         default: "2026-02-26T00:00:00Z"
+      pr_scope:
+        description: "Scope prefix (Website / Bot / Website + Bot / Repo)"
+        required: false
+        default: "Website"
 
 jobs:
   notify-discord:
@@ -35,9 +39,39 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Monorepo: derive a title prefix from which app the PR touched, so a bot
+      # PR is not announced as "Website PR #N".
+      - name: Determine PR scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "scope=${{ github.event.inputs.pr_scope }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FILES=$(gh pr view "${{ github.event.pull_request.number }}" \
+                    --repo "${{ github.repository }}" \
+                    --json files --jq '.files[].path')
+
+          WEB=$(echo "$FILES" | grep -c '^apps/web/' || true)
+          BOT=$(echo "$FILES" | grep -c '^apps/bot/' || true)
+
+          if   [ "$WEB" -gt 0 ] && [ "$BOT" -gt 0 ]; then SCOPE="Website + Bot"
+          elif [ "$WEB" -gt 0 ];                     then SCOPE="Website"
+          elif [ "$BOT" -gt 0 ];                     then SCOPE="Bot"
+          else                                            SCOPE="Repo"
+          fi
+
+          echo "Detected scope: $SCOPE (web files: $WEB, bot files: $BOT)"
+          echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
+
       - name: Send Discord Notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PR_SCOPE: ${{ steps.scope.outputs.scope }}
           PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.inputs.pr_title || github.event.pull_request.title }}
           PR_DESCRIPTION: ${{ github.event.inputs.pr_description || github.event.pull_request.body }}

@@ -21,13 +21,12 @@
     "format:fix": "oxfmt src/",
     "lint": "oxlint src/",
     "lint:fix": "oxlint --fix src/",
-    "prepare": "lefthook install",
     "preview": "next build && next start",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "postbuild": "drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs"
+    "db:deploy": "drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
@@ -109,7 +108,6 @@
   "ct3aMetadata": {
     "initVersion": "7.38.1"
   },
-  "packageManager": "pnpm@9.15.1",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   }

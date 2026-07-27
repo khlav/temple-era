@@ -46,7 +46,17 @@ Never push to main.
   - Example: `feat(raids): add attendance export button`
 - `git commit -m "type(scope): description"`
 
-If the pre-commit hook fails (lint-staged), show the error, fix it, and retry. Do not use `--no-verify`.
+If the pre-commit hook fails (lefthook: oxlint, oxfmt, typecheck), show the error, fix it, and retry. Do not use `--no-verify`.
+
+**Scope the commit message to the app(s) touched.** This is a monorepo — determine which apps changed before writing the message:
+
+```bash
+git diff --cached --name-only | cut -d/ -f1-2 | sort -u
+```
+
+- Only `apps/web/**` → web scope, e.g. `feat(raids): ...`
+- Only `apps/bot/**` → prefix the scope with `bot`, e.g. `fix(bot/handler): ...`
+- Both, or root config → use a workspace scope, e.g. `chore(repo): ...`
 
 ### Step 4: Push (skip if branch is already up to date on remote)
 
@@ -54,14 +64,16 @@ If the pre-commit hook fails (lint-staged), show the error, fix it, and retry. D
 git push origin $(git branch --show-current) -u
 ```
 
-**Pre-push hook note**: The hook runs ESLint, TypeScript checking, and a full Next.js production build — this can take several minutes.
+**Pre-push hook note**: The hook runs oxlint, TypeScript checking, and a full build across **both** apps via Turborepo — this can take several minutes. Turbo caches, so unchanged apps replay instantly.
 
 **If the push appears to fail:**
 
-1. Check the output carefully. The `postbuild` script runs `drizzle-kit migrate`, which produces PostgreSQL `NOTICE` messages (e.g. "schema already exists, skipping"). These are **not errors** — they are normal and the exit code will still be 0. If NOTICE messages are the only output and there are no real lint/type/build errors, the push succeeded. If it still reports failure with only NOTICE output, retry with `--no-verify`.
+1. **Missing `apps/web/.env`** — the build validates the environment via `@t3-oss/env-nextjs` and fails with `❌ Invalid environment variables`. This is a local setup problem, not a code problem. Populate `apps/web/.env` from `apps/web/.env.example`; do not work around it with `--no-verify`.
 2. For real errors (lint, TypeScript, build failures): show the error, fix it, commit the fix, and retry without `--no-verify`.
 
 Never use `--no-verify` for actual lint, type, or build failures.
+
+Note: `pnpm build` no longer runs migrations — `drizzle-kit migrate` moved to an explicit `db:deploy` script in Phase 2 — so a push can no longer mutate a database, and PostgreSQL `NOTICE` output should not appear in hook output at all.
 
 ### Step 5: Create PR (skip if an open PR already exists for this branch)
 
@@ -81,7 +93,14 @@ Read `.github/pull_request_template.md` for the expected structure.
 
 - Apply `user-facing` label for `feature/` and `fix/` branches
 - Skip for `chore/`, `dev/`, `refactor/` branches
-- Exception: skip even on feature/fix if changes are exclusively to config files (package.json, .env, .husky, .claude/, etc.) with no user-visible functionality changed
+- Exception: skip even on feature/fix if changes are exclusively to config files (package.json, .env, lefthook.yml, turbo.json, .claude/, etc.) with no user-visible functionality changed
+- **Monorepo exception**: `apps/bot/**`-only changes are almost never `user-facing` — the bot has no UI. Label these only when guild members will notice a behaviour change in Discord (e.g. a different reply, a new thread format), not for internal refactors.
+
+Detect which app(s) a PR touches with:
+
+```bash
+git diff --name-only origin/main...HEAD | cut -d/ -f1-2 | sort -u
+```
 
 ```bash
 # For feature/ or fix/ branches:

@@ -9,21 +9,16 @@ interface PermissionCheckResult {
   statusCode?: number; // Optional HTTP status code
 }
 
-export async function checkUserPermissions(
-  discordUserId: string
-): Promise<PermissionCheckResult> {
+export async function checkUserPermissions(discordUserId: string): Promise<PermissionCheckResult> {
   try {
-    const response = await fetch(
-      `${config.apiBaseUrl}/api/discord/check-permissions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.templeWebApiToken}`,
-        },
-        body: JSON.stringify({ discordUserId }),
-      }
-    );
+    const response = await fetch(`${config.apiBaseUrl}/api/discord/check-permissions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.templeWebApiToken}`,
+      },
+      body: JSON.stringify({ discordUserId }),
+    });
 
     if (!response.ok) {
       logger.error("API error checking user permissions", {

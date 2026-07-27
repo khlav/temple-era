@@ -1,8 +1,10 @@
-# Handoff: Build `temple-raids` monorepo from two existing repos
+# Handoff: Build the `temple-era` monorepo from two existing repos
 
 **Audience:** a local coding agent with push access to `khlav/*` and a working `pnpm` + Docker + `git-filter-repo` toolchain. Written to be executed without prior context.
 
-**Note on location:** this doc describes building a *new* repo. It lives in `temple-raids-t3` only because that is where the work is staged today. Phase 1 carries it into `apps/web/docs/` automatically; move it to the monorepo root in Phase 2.
+**Note on location:** this doc originated in `temple-raids-t3`, was carried into `apps/web/docs/` by the Phase 1 graft, and was moved here to the monorepo root in Phase 2. It now lives at its final location.
+
+**Note on the repo name:** the new repo was created as **`khlav/temple-era`** (public, to satisfy Vercel's free-tier requirement), not `khlav/temple-raids` as originally drafted. All references below have been updated. References to `temple-raids-t3` and `temple-raids-discord-bot` still mean the two original source repos.
 
 **Steps are tagged `[AGENT]` (do it) or `[HUMAN]` (stop and hand back).** Never attempt a `[HUMAN]` step — they are dashboard/console actions with production consequences.
 
@@ -17,7 +19,7 @@ Two repos are already coupled, but nothing enforces the coupling:
 
 The contract between them is enforced by nothing. The bot hand-declares `interface PermissionCheckResult` in `src/services/permissionChecker.ts`; the web handlers do `const { discordUserId, wclUrl } = await request.json()` with an ad-hoc regex (`src/app/api/discord/create-raid/route.ts`). Either side can ship independently and break the other silently at runtime.
 
-**Goal:** one new repo, `khlav/temple-raids`, as a pnpm + Turborepo workspace with `apps/web` and `apps/bot`, both histories preserved. Deployments stay exactly where they are — Vercel for web, Northflank for the bot. Shared typed contracts follow in Phase 7.
+**Goal:** one new repo, `khlav/temple-era`, as a pnpm + Turborepo workspace with `apps/web` and `apps/bot`, both histories preserved. Deployments stay exactly where they are — Vercel for web, Northflank for the bot. Shared typed contracts follow in Phase 7.
 
 **Why a new repo helps:** the entire restructure happens in a repo nothing deploys from. Production is untouched until Phase 4, and cutover is two independent dashboard changes, each individually revertible by pointing back at the old repo.
 
@@ -30,7 +32,7 @@ Therefore, **at no point in this migration may the v1 REST surface, the proxy ro
 ### Decisions already made
 - Layout: `apps/web` + `apps/bot`.
 - Turborepo: yes.
-- New repo `khlav/temple-raids`; both old repos **archived, never deleted**.
+- New repo `khlav/temple-era`; both old repos **archived, never deleted**.
 - Templar stays external.
 
 ---
@@ -132,7 +134,7 @@ Both apps define `TEMPLE_WEB_API_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_RAID_LOGS
 
 ### Phase 0 — Prep `[HUMAN]`
 1. Merge or close **all** open PRs in both repos; announce a freeze.
-2. Create empty `khlav/temple-raids` — no README, no `.gitignore`, no license.
+2. Create empty `khlav/temple-era` — no README, no `.gitignore`, no license.
 3. Export current Vercel project settings and Northflank service config (build context, Dockerfile path, env vars, trigger rules). **This is the rollback reference.**
 4. Confirm `git-filter-repo` is installed locally (`git filter-repo --version`).
 
@@ -146,7 +148,7 @@ cd /tmp/web-rewrite && git filter-repo --to-subdirectory-filter apps/web
 git clone https://github.com/khlav/temple-raids-discord-bot /tmp/bot-rewrite
 cd /tmp/bot-rewrite && git filter-repo --to-subdirectory-filter apps/bot
 
-mkdir temple-raids && cd temple-raids && git init -b main
+mkdir temple-era && cd temple-era && git init -b main
 git commit --allow-empty -m "chore(repo): initialize monorepo"
 git remote add web /tmp/web-rewrite && git fetch web
 git merge web/main --allow-unrelated-histories -m "chore(repo): import temple-raids-t3 as apps/web"
@@ -156,7 +158,23 @@ git merge bot/main --allow-unrelated-histories -m "chore(repo): import temple-ra
 
 `filter-repo` rewrites SHAs. That is acceptable — the old repos stay archived as the permanent reference for old SHAs and PR links — and it buys a clean path-prefixed log (`git log apps/bot/…` works throughout, no `--follow` needed).
 
-**Acceptance:** `git log --oneline apps/bot/ | wc -l` ≈ 77; `git log --oneline apps/web/ | wc -l` ≈ 50; `apps/web/public/` and `apps/web/src/` are present and tracked.
+**Acceptance:** ~~`git log --oneline apps/bot/ | wc -l` ≈ 77; `git log --oneline apps/web/ | wc -l` ≈ 50~~ — **these numbers were wrong.** `git log --oneline <path>` applies history simplification (it collapses merge commits), so it never returns the repo's total commit count. The web repo also had 708 commits by the time this ran, not 50.
+
+Use these instead, which actually prove the graft was lossless:
+
+```bash
+# 1. Total commit count is exactly the sum of both sources plus our 3 commits
+#    (1 empty root + 2 merges). Anything less means history was dropped.
+git rev-list --count HEAD          # expect: web_total + bot_total + 3
+
+# 2. Trees are byte-identical to each source's HEAD.
+diff <(git ls-tree -r --name-only HEAD apps/web | sed 's|^apps/web/||') \
+     <(git -C /path/to/temple-raids-t3 ls-tree -r --name-only origin/main)
+diff <(git ls-tree -r --name-only HEAD apps/bot | sed 's|^apps/bot/||') \
+     <(git -C /path/to/temple-raids-discord-bot ls-tree -r --name-only origin/main)
+```
+
+**Result when executed (2026-07-27):** 788 = 708 + 77 + 3 ✅; both tree diffs empty ✅; `apps/web/public/` (42 files) and `apps/web/src/` (357 files) tracked ✅.
 
 ### Phase 2 — Workspace scaffolding and toolchain `[AGENT]`
 1. Hoist to root from `apps/web/`: `.npmrc`, `.nvmrc`, `.oxlintrc.json`, `lefthook.yml`, `.lefthook/`, `.claude/`, `.agent/`, `.github/`. Leave everything else in place.
@@ -192,7 +210,28 @@ git merge bot/main --allow-unrelated-histories -m "chore(repo): import temple-ra
 **Acceptance:** a throwaway PR touching only `apps/bot/**` runs the bot job and skips web; the reverse for `apps/web/**`; a `pnpm-lock.yaml` change runs both.
 
 ### Phase 4 — Web cutover `[HUMAN]`, verified `[AGENT]`
-Per **R7**: repoint the **existing** Vercel project's Git repo to `khlav/temple-raids`; Root Directory → `apps/web`; enable *include files outside root*; Ignored Build Step → `npx turbo-ignore`.
+
+> ### ⛔ RELEASE GATE — migrations no longer run automatically
+>
+> Phase 2 moved `drizzle-kit migrate` **out of** the web app's `postbuild` script and into
+> an explicit `db:deploy` script, so that local pre-push hooks and CI could build without
+> mutating a database.
+>
+> **Consequence: if you repoint Vercel without changing its Build Command, production will
+> deploy new application code against an un-migrated database.** That is a silent failure —
+> the build goes green and the app breaks at runtime on the first query touching a new
+> column.
+>
+> Set the Vercel **Build Command** to run both, in order:
+>
+> ```bash
+> pnpm build && pnpm --filter temple-raid-t3 db:deploy
+> ```
+>
+> Verify on a preview deployment that the migrate step appears in the build log **before**
+> promoting to production. Do not treat Phase 4 as complete until you have seen it run.
+
+Per **R7**: repoint the **existing** Vercel project's Git repo to `khlav/temple-era`; Root Directory → `apps/web`; enable *include files outside root*; Ignored Build Step → `npx turbo-ignore`.
 
 **Verify on a preview deployment before promoting:** home page renders; `/api/v1/openapi.json` returns a spec byte-identical to production's; an authenticated `/api/v1/me` call with an existing token succeeds. That last check is the Templar gate — if it fails, stop.
 

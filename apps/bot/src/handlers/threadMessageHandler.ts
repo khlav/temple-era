@@ -65,7 +65,7 @@ export async function handleThreadMessage(message: Message) {
         userId: message.author.id,
       });
       await message.reply(
-        "❌ Could not find raid ID in this thread. Make sure a raid URL was posted."
+        "❌ Could not find raid ID in this thread. Make sure a raid URL was posted.",
       );
       return;
     }
@@ -90,32 +90,23 @@ export async function handleThreadMessage(message: Message) {
     });
 
     // Call the API to update bench
-    const response = await fetch(
-      `${config.apiBaseUrl}/api/discord/update-bench`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.templeWebApiToken}`,
-        },
-        body: JSON.stringify({
-          discordUserId: message.author.id,
-          raidId: raidId,
-          characterNames: characterNames,
-        }),
-      }
-    );
+    const response = await fetch(`${config.apiBaseUrl}/api/discord/update-bench`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.templeWebApiToken}`,
+      },
+      body: JSON.stringify({
+        discordUserId: message.author.id,
+        raidId: raidId,
+        characterNames: characterNames,
+      }),
+    });
 
     const result = await response.json();
 
     if (result.success) {
-      const {
-        raidId,
-        raidName,
-        matchedCharacters,
-        unmatchedNames,
-        totalBenchCharacters,
-      } = result;
+      const { raidId, raidName, matchedCharacters, unmatchedNames, totalBenchCharacters } = result;
 
       // Build success message
       let replyMessage = `✅ **Bench updated for ${raidName} (#${raidId})**\n\n`;

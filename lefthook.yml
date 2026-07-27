@@ -1,0 +1,66 @@
+pre-commit:
+  parallel: true
+  commands:
+    migrations:
+      run: |
+        if [ -d "apps/web/drizzle" ] && [ "$(git status --porcelain apps/web/drizzle/ | wc -l)" -gt 0 ]; then
+          echo "⚠️  Warning: Uncommitted database migrations detected"
+          echo "   Consider running 'pnpm --filter temple-raid-t3 db:generate' and committing migrations"
+        fi
+    lint:
+      glob: "apps/**/src/**/*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true
+    format:
+      glob: "apps/**/src/**/*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    typecheck:
+      run: pnpm turbo run typecheck
+    # Ported from the bot's husky pre-commit hook, removed in the monorepo
+    # migration (R2). Warn-only — these must never block a commit.
+    console-log:
+      glob: "apps/**/src/**/*.{ts,tsx}"
+      run: |
+        if grep -l 'console\.log' {staged_files} 2>/dev/null; then
+          echo "⚠️  Warning: console.log found in the files above"
+          echo "   Consider removing or replacing with the app's logger"
+        fi
+        exit 0
+    todo-comments:
+      glob: "apps/**/src/**/*.{ts,tsx}"
+      run: |
+        if grep -lE '(TODO|FIXME|HACK)' {staged_files} 2>/dev/null; then
+          echo "⚠️  Warning: TODO/FIXME/HACK comments found in the files above"
+          echo "   Consider addressing these before committing"
+        fi
+        exit 0
+
+pre-push:
+  parallel: true
+  commands:
+    branch-name:
+      run: |
+        current_branch=$(git branch --show-current)
+        if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev|claude)/.+'; then
+          echo "✅ Branch name follows convention: $current_branch"
+        else
+          echo "❌ Branch name does not follow convention: $current_branch"
+          echo "   Expected format: {type}/{description}"
+          echo "   Types: feature, fix, chore, refactor, hotfix, dev, claude"
+          exit 1
+        fi
+    lint:
+      run: pnpm turbo run lint
+    build:
+      run: pnpm turbo run build
+
+commit-msg:
+  scripts:
+    "commit-msg.sh":
+      runner: sh
+
+prepare-commit-msg:
+  scripts:
+    "prepare-commit-msg.sh":
+      runner: sh

@@ -6,9 +6,7 @@ import { logger } from "../config/logger.js";
  * @param thread The Discord thread channel
  * @returns The raid ID if found, null otherwise
  */
-export async function extractRaidIdFromThread(
-  thread: ThreadChannel
-): Promise<number | null> {
+export async function extractRaidIdFromThread(thread: ThreadChannel): Promise<number | null> {
   try {
     // Fetch up to 20 messages to find raid URL (raid URLs are typically posted early)
     // cache: false prevents messages from being added to Discord.js cache
