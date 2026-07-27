@@ -68,10 +68,12 @@ git push origin $(git branch --show-current) -u
 
 **If the push appears to fail:**
 
-1. Check the output carefully. The `postbuild` script runs `drizzle-kit migrate`, which produces PostgreSQL `NOTICE` messages (e.g. "schema already exists, skipping"). These are **not errors** — they are normal and the exit code will still be 0. If NOTICE messages are the only output and there are no real lint/type/build errors, the push succeeded. If it still reports failure with only NOTICE output, retry with `--no-verify`.
+1. **Missing `apps/web/.env`** — the build validates the environment via `@t3-oss/env-nextjs` and fails with `❌ Invalid environment variables`. This is a local setup problem, not a code problem. Populate `apps/web/.env` from `apps/web/.env.example`; do not work around it with `--no-verify`.
 2. For real errors (lint, TypeScript, build failures): show the error, fix it, commit the fix, and retry without `--no-verify`.
 
 Never use `--no-verify` for actual lint, type, or build failures.
+
+Note: `pnpm build` no longer runs migrations — `drizzle-kit migrate` moved to an explicit `db:deploy` script in Phase 2 — so a push can no longer mutate a database, and PostgreSQL `NOTICE` output should not appear in hook output at all.
 
 ### Step 5: Create PR (skip if an open PR already exists for this branch)
 

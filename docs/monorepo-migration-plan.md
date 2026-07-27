@@ -210,6 +210,27 @@ diff <(git ls-tree -r --name-only HEAD apps/bot | sed 's|^apps/bot/||') \
 **Acceptance:** a throwaway PR touching only `apps/bot/**` runs the bot job and skips web; the reverse for `apps/web/**`; a `pnpm-lock.yaml` change runs both.
 
 ### Phase 4 — Web cutover `[HUMAN]`, verified `[AGENT]`
+
+> ### ⛔ RELEASE GATE — migrations no longer run automatically
+>
+> Phase 2 moved `drizzle-kit migrate` **out of** the web app's `postbuild` script and into
+> an explicit `db:deploy` script, so that local pre-push hooks and CI could build without
+> mutating a database.
+>
+> **Consequence: if you repoint Vercel without changing its Build Command, production will
+> deploy new application code against an un-migrated database.** That is a silent failure —
+> the build goes green and the app breaks at runtime on the first query touching a new
+> column.
+>
+> Set the Vercel **Build Command** to run both, in order:
+>
+> ```bash
+> pnpm build && pnpm --filter temple-raid-t3 db:deploy
+> ```
+>
+> Verify on a preview deployment that the migrate step appears in the build log **before**
+> promoting to production. Do not treat Phase 4 as complete until you have seen it run.
+
 Per **R7**: repoint the **existing** Vercel project's Git repo to `khlav/temple-era`; Root Directory → `apps/web`; enable *include files outside root*; Ignored Build Step → `npx turbo-ignore`.
 
 **Verify on a preview deployment before promoting:** home page renders; `/api/v1/openapi.json` returns a spec byte-identical to production's; an authenticated `/api/v1/me` call with an existing token succeeds. That last check is the Templar gate — if it fails, stop.

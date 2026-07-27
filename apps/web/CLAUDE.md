@@ -38,8 +38,11 @@ pnpm preview          # Build and start production server locally
 pnpm db:push          # Push schema changes to database (development)
 pnpm db:generate      # Generate migration files
 pnpm db:migrate       # Run migrations
+pnpm db:deploy        # Run migrations + kill idle connections (deploy step)
 pnpm db:studio        # Open Drizzle Studio (database GUI)
 ```
+
+**`db:deploy` is not part of `build`.** Migrations used to run via `postbuild`; Phase 2 of the monorepo migration split them apart so builds never mutate a database. Any deploy pipeline must invoke `db:deploy` explicitly — see the root `CLAUDE.md` for the required Vercel Build Command.
 
 ### Cloning PROD to DEV
 
@@ -65,9 +68,9 @@ pnpm format:fix       # Fix oxfmt formatting
 
 Hooks are managed by **lefthook** from the repo root (`lefthook.yml` + `.lefthook/`) and cover both apps. See the root `CLAUDE.md` for the full description.
 
-**Important**: The `postbuild` script runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Do not interpret them as build failures. Only check the exit code to determine success.
+**Important**: `pnpm db:deploy` runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Only check the exit code to determine success.
 
-**Also important**: because `postbuild` migrates, a plain `pnpm build` hits a real database. To compile without touching one:
+`pnpm build` compiles only and never touches the database. It does still validate the environment via `@t3-oss/env-nextjs`, so it needs a populated `apps/web/.env`. To compile without one:
 
 ```bash
 SKIP_ENV_VALIDATION=1 pnpm --filter temple-raid-t3 exec next build

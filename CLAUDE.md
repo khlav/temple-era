@@ -36,17 +36,30 @@ pnpm --filter temple-raid-t3 dev              # web dev server
 pnpm --filter temple-raids-discord-bot dev    # bot with hot reload
 ```
 
-> ⚠️ **`pnpm build` runs database migrations.** The web app's `postbuild` script is
-> `drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs`, which executes
-> against whatever `DATABASE_URL` is set in `apps/web/.env`. A root `pnpm build` therefore
-> migrates a real database. To compile without touching one:
+### Database migrations are NOT part of `build`
+
+`pnpm build` compiles only. Migrations run through an explicit script:
+
+```bash
+pnpm --filter temple-raid-t3 db:deploy    # drizzle-kit migrate + kill idle connections
+```
+
+This was split apart during the monorepo migration (Phase 2). Previously it lived in the
+web app's `postbuild`, which meant every `git push` — via the pre-push build hook — ran
+migrations against a real database.
+
+> ⛔ **Deployment consequence.** Because `build` no longer migrates, any deploy pipeline
+> must call `db:deploy` itself. The Vercel Build Command must be:
 >
 > ```bash
-> SKIP_ENV_VALIDATION=1 pnpm --filter temple-raid-t3 exec next build
+> pnpm build && pnpm --filter temple-raid-t3 db:deploy
 > ```
 >
-> Note also that `drizzle-kit migrate` emits PostgreSQL `NOTICE` lines ("schema already
-> exists, skipping"). Those are **not errors** — check the exit code, not the output.
+> If it isn't, deploys will ship code against an un-migrated database and fail silently at
+> runtime rather than at build time.
+
+`drizzle-kit migrate` emits PostgreSQL `NOTICE` lines ("schema already exists, skipping").
+Those are **not errors** — check the exit code, not the output.
 
 ## Toolchain
 
