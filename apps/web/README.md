@@ -208,3 +208,5 @@ Follow the T3 Stack deployment guides for:
 ## License
 
 This project is private and intended for use by the Temple guild on Ashkandi server.
+
+<!-- ci path-filter probe -->
