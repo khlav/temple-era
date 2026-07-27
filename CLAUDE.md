@@ -97,6 +97,25 @@ A third bot — separate from this repo, and **not** joining it — consumes `/a
 
 **Never change the v1 REST wire formats, the proxy route, the OpenAPI spec (`apps/web/src/lib/openapi-registry.ts`), or the meaning of `TEMPLE_WEB_API_TOKEN`** without treating it as a breaking change to an external consumer you cannot see. This is a release gate, not a guideline.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every PR and on pushes to `main`.
+
+A `changes` job uses `dorny/paths-filter` to decide which app jobs run:
+
+| Changed | Runs |
+|---|---|
+| `apps/web/**` | web job only |
+| `apps/bot/**` | bot job only |
+| `packages/**`, `pnpm-lock.yaml`, `package.json`, `turbo.json`, `.oxlintrc.json`, `.nvmrc`, `.npmrc`, `ci.yml` | **both** |
+
+- **web**: lint → typecheck → test → build. Runs with `SKIP_ENV_VALIDATION=1` and **no database credentials** — possible only because `build` no longer migrates (see above). Vercel does the real env validation.
+- **bot**: lint → typecheck → build → verify `dist/index.js` exists → import the built entrypoint to prove every module resolves. That last check matters because the bot uses `Node16` resolution with mandatory `.js` import extensions and `tsc` emits only `src/`, so a missing runtime dependency does not surface at build time.
+
+A final `ci` job aggregates both and is the intended **required status check** for branch protection — it stays green when a job is legitimately skipped by the path filter, but fails if either actually fails. Do not mark `web` or `bot` required directly; a skipped job would block the PR forever.
+
+`.github/workflows/discord-pr-notification.yml` announces merged PRs carrying the `user-facing` label. It derives a title prefix from the changed paths (`Website` / `Bot` / `Website + Bot` / `Repo`) so a bot PR is not announced as a website change.
+
 ## Git conventions
 
 These apply repo-wide; the app-level `CLAUDE.md` files defer to this section.

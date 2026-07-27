@@ -22,7 +22,12 @@ PR_DESCRIPTION="${PR_DESCRIPTION:-$3}"
 PR_URL="${PR_URL:-$4}"
 MERGED_AT="${MERGED_AT:-$5}"
 
-echo "Processing Discord notification for PR #$PR_NUMBER"
+# Which app the PR touched, used as the embed title prefix. The workflow derives
+# this from the changed paths ("Website" / "Bot" / "Website + Bot" / "Repo").
+# Defaults to "Website" to preserve pre-monorepo behaviour if unset.
+PR_SCOPE="${PR_SCOPE:-Website}"
+
+echo "Processing Discord notification for $PR_SCOPE PR #$PR_NUMBER"
 
 # Function to convert GitHub markdown to Discord format
 convert_to_discord() {
@@ -71,7 +76,7 @@ fi
 if command -v jq >/dev/null 2>&1; then
     JSON_PAYLOAD=$(jq -n \
         --arg number "$PR_NUMBER" \
-        --arg title "Website PR #$PR_NUMBER: $PR_TITLE" \
+        --arg title "$PR_SCOPE PR #$PR_NUMBER: $PR_TITLE" \
         --arg desc "$DESCRIPTION" \
         --arg url "$PR_URL" \
         --arg timestamp "$MERGED_AT" \
@@ -103,7 +108,7 @@ else
 {
   "embeds": [
     {
-      "title": "Website PR #$PR_NUMBER: $ESCAPED_TITLE",
+      "title": "$PR_SCOPE PR #$PR_NUMBER: $ESCAPED_TITLE",
       "description": "$ESCAPED_DESCRIPTION",
       "color": 5763719,
       "url": "$PR_URL",
