@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { logger } from "~/lib/logger";
-import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import type { SoftResRaidData } from "~/server/api/interfaces/softres";
 import {
@@ -18,6 +18,7 @@ import type { RuleEvaluationContext } from "~/server/services/softres-rule-types
 import { getAllItemsForZone, getAllItems } from "~/lib/item-mappings";
 import { getSpecNameById } from "~/lib/class-specs";
 import { getDiscordSoftResLinks } from "~/server/api/discord-helpers";
+import { SCOPE } from "~/lib/scopes";
 
 export interface SoftResScanResult {
   characterId: number | null; // null for unmatched characters
@@ -92,7 +93,7 @@ export const softres = createTRPCRouter({
    * Get SoftRes links from Discord channels (raid-helper bot only)
    * Enriches links with raid instance and date from SoftRes API
    */
-  getSoftResLinksFromDiscord: raidManagerProcedure.query(async () => {
+  getSoftResLinksFromDiscord: scopedProcedure(SCOPE.SOFTRES_ACCESS).query(async () => {
     try {
       const links = await getDiscordSoftResLinks();
 
@@ -128,7 +129,7 @@ export const softres = createTRPCRouter({
    * Get SoftRes raid data and match characters to database
    * Returns enriched data with attendance stats and rule evaluations
    */
-  getSoftResRaidData: raidManagerProcedure
+  getSoftResRaidData: scopedProcedure(SCOPE.SOFTRES_ACCESS)
     .input(z.string().min(1))
     .query(async ({ ctx, input }): Promise<SoftResScanResponse> => {
       const raidId = input;

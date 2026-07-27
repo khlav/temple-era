@@ -5,6 +5,7 @@ import { CreateRaidSchema } from "~/lib/openapi-registry";
 import { db } from "~/server/db";
 import { raids, raidLogs, raidBenchMap } from "~/server/db/schema";
 import { desc, eq, gte, lte, gt, and, inArray, type SQL } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 export async function GET(request: Request) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

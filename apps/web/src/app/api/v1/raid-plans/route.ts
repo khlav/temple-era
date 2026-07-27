@@ -13,6 +13,7 @@ import {
   raidPlanTemplateEncounters,
 } from "~/server/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 const CreatePlanSchema = z.object({
   raidHelperEventId: z.string().min(1),
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

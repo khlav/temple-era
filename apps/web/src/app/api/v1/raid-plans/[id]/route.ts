@@ -15,6 +15,7 @@ import {
   characters,
 } from "~/server/db/schema";
 import { eq, inArray, or, sql } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 const PatchPlanSchema = z.object({
   defaultAATemplate: z.string().nullable().optional(),
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -230,7 +231,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -301,7 +302,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

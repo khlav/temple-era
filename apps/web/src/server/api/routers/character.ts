@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { raidManagerProcedure, createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { scopedProcedure, createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {
   aliasedTable,
   and,
@@ -28,6 +28,7 @@ import {
 } from "~/server/db/schema";
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { getEasternNow } from "~/lib/raid-formatting";
+import { SCOPE } from "~/lib/scopes";
 
 export const convertParticipantArrayToCollection = (participants: RaidParticipant[]) => {
   return participants.reduce((acc, rel) => {
@@ -328,7 +329,7 @@ export const character = createTRPCRouter({
       }));
     }),
 
-  getCharactersWithSecondaries: raidManagerProcedure.query(async ({ ctx }) => {
+  getCharactersWithSecondaries: scopedProcedure(SCOPE.RAIDPLAN_MANAGE).query(async ({ ctx }) => {
     const charactersWithSecondaries = await ctx.db.query.characters.findMany({
       where: eq(characters.isPrimary, true),
       columns: {
@@ -361,7 +362,7 @@ export const character = createTRPCRouter({
     return charactersWithSecondaries || [];
   }),
 
-  updatePrimaryCharacter: raidManagerProcedure
+  updatePrimaryCharacter: scopedProcedure(SCOPE.CHARACTER_MANAGE)
     .input(
       z.object({
         primaryCharacterId: z.number(),
@@ -394,7 +395,7 @@ export const character = createTRPCRouter({
       };
     }),
 
-  updateIsIgnored: raidManagerProcedure
+  updateIsIgnored: scopedProcedure(SCOPE.CHARACTER_MANAGE)
     .input(
       z.object({
         characterId: z.number(),

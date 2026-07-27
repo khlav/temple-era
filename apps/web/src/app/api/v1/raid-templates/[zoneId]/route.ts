@@ -12,6 +12,7 @@ import {
   raidPlanTemplateEncounterGroups,
 } from "~/server/db/schema";
 import { getZoneConfig, upsertZoneTemplate } from "../_helpers";
+import { SCOPE } from "~/lib/scopes";
 
 export async function GET(request: Request, { params }: { params: Promise<{ zoneId: string }> }) {
   try {
@@ -19,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ zone
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -103,7 +104,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ zo
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

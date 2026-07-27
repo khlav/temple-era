@@ -9,6 +9,7 @@ import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -40,7 +41,7 @@ export default async function SoftResScanResultPage({
   const raidId = p.id;
 
   // Check if user is raid manager
-  if (!session?.user?.isRaidManager) {
+  if (!session?.user?.scopes?.includes(SCOPE.SOFTRES_ACCESS)) {
     redirect("/");
   }
 

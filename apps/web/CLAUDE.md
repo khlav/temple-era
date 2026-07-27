@@ -239,11 +239,17 @@ src/
 
 - Discord OAuth via NextAuth.js (v5 beta)
 - Session-based authentication
-- Role-based access control with four tRPC procedure types:
+- Scope-based access control with three tRPC procedure types:
   - `publicProcedure` - No authentication required
   - `protectedProcedure` - Requires authenticated user
-  - `raidManagerProcedure` - Requires `isRaidManager` role
-  - `adminProcedure` - Requires `isAdmin` role
+  - `scopedProcedure(...scopes)` - Requires the session to hold every listed scope
+  - `adminProcedure` - Legacy; retained only for `recipe.ts` catalog management
+- Permission scopes are defined in `src/lib/scopes.ts` and mirrored by the `scope` Postgres enum.
+  Current set: `raidlog:manage`, `raidplan:manage`, `character:manage`, `userpermissions:manage`,
+  `templar:access`, `softres:access`, `api-token:access`
+- Scopes are granted via roles (`role`/`user_role` tables); `resolveUserAccess()` in
+  `src/server/services/access-service.ts` is the single chokepoint that resolves a user's
+  effective scopes and derives the legacy `isRaidManager`/`isAdmin` compatibility booleans
 - Discord user ID is the primary identifier
 
 #### Database Schema
@@ -511,7 +517,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 
 1. Define procedure in appropriate router in `src/server/api/routers/`
 2. Use Zod for input validation
-3. Add to router with proper authentication middleware (`protectedProcedure`, `raidManagerProcedure`, or `adminProcedure`)
+3. Add to router with proper authentication middleware (`protectedProcedure`, or `scopedProcedure("<scope>")` for a permission-gated surface)
 4. Use in components via `api.router.procedure.useQuery()` or `useMutation()`
 
 ### Adding a New tRPC Router

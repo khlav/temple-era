@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "~/server/auth";
 import { type Metadata } from "next";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   robots: {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
 
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.scopes?.includes(SCOPE.USERPERMISSIONS_MANAGE)) {
     redirect("/");
   }
 

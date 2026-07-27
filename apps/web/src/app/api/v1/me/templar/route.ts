@@ -5,6 +5,7 @@ import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "~/lib/logger";
+import { SCOPE } from "~/lib/scopes";
 
 const PatchSchema = z.object({
   enabled: z.boolean(),
@@ -16,7 +17,7 @@ export async function PATCH(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager && !user.isAdmin) {
+    if (!user.scopes.includes(SCOPE.TEMPLAR_ACCESS)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

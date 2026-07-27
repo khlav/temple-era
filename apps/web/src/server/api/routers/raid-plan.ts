@@ -14,7 +14,7 @@ import {
   sql,
   isNotNull,
 } from "drizzle-orm";
-import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import {
   raidPlans,
@@ -36,6 +36,7 @@ import { TRPCError } from "@trpc/server";
 import { getSlotNames } from "~/lib/aa-template";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import { type db as database } from "~/server/db";
+import { SCOPE } from "~/lib/scopes";
 
 const PRESENCE_ACTIVE_WINDOW_MS = 60_000;
 const PRESENCE_RETENTION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -99,7 +100,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Check which Raid-Helper events have existing raid plans.
    * Returns a map of raidHelperEventId -> raidPlanId for events that have plans.
    */
-  getExistingPlansForEvents: raidManagerProcedure
+  getExistingPlansForEvents: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         raidHelperEventIds: z.array(z.string()),
@@ -152,7 +153,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Get past plans - plans not linked to any of the current scheduled events.
    * Returns basic plan info for display in a list.
    */
-  getPastPlans: raidManagerProcedure
+  getPastPlans: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         currentEventIds: z.array(z.string()),
@@ -196,7 +197,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Fetch a raid plan by ID with all characters and encounters
    */
-  getById: raidManagerProcedure
+  getById: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ planId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       // Fetch the plan
@@ -414,7 +415,7 @@ export const raidPlanRouter = createTRPCRouter({
       };
     }),
 
-  getPresence: raidManagerProcedure
+  getPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ planId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       await cleanupStalePresence(ctx.db);
@@ -481,7 +482,7 @@ export const raidPlanRouter = createTRPCRouter({
       });
     }),
 
-  upsertPresence: raidManagerProcedure
+  upsertPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -515,7 +516,7 @@ export const raidPlanRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  clearPresence: raidManagerProcedure
+  clearPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -539,7 +540,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Toggle the public visibility of a raid plan
    */
-  togglePublic: raidManagerProcedure
+  togglePublic: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -780,7 +781,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Delete a raid plan (cascades to characters, encounters, assignments)
    */
-  delete: raidManagerProcedure
+  delete: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ planId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db
@@ -801,7 +802,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Create a new encounter for a raid plan
    */
-  createEncounter: raidManagerProcedure
+  createEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -862,7 +863,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Update an encounter (toggle useDefaultGroups, rename, or update AA template)
    */
-  updateEncounter: raidManagerProcedure
+  updateEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -977,7 +978,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Delete an encounter (cascades to assignments)
    */
-  deleteEncounter: raidManagerProcedure
+  deleteEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ encounterId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const planId = await getRaidPlanIdForEncounter(ctx.db, input.encounterId);
@@ -1003,7 +1004,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Upsert an encounter note (insert or update on encounterId + sortOrder unique constraint)
    */
-  upsertEncounterNote: raidManagerProcedure
+  upsertEncounterNote: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -1052,7 +1053,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Delete an encounter note by ID
    */
-  deleteEncounterNote: raidManagerProcedure
+  deleteEncounterNote: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ noteId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const note = await ctx.db
@@ -1083,7 +1084,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Update a raid plan (name, default AA template, etc.)
    */
-  update: raidManagerProcedure
+  update: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -1152,7 +1153,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Create a new raid plan from Raid-Helper event with matched characters
    */
-  create: raidManagerProcedure
+  create: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         raidHelperEventId: z.string(),
@@ -1446,7 +1447,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Search for characters to add/replace in a raid plan
    */
-  searchCharacters: raidManagerProcedure
+  searchCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         query: z.string().min(1).max(100),
@@ -1483,7 +1484,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Update a raid plan character (replace with different character)
    */
-  updateCharacter: raidManagerProcedure
+  updateCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),
@@ -1522,7 +1523,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Move a character to a different group/position (for drag-and-drop)
    * Uses fixed slots - no position shifting
    */
-  moveCharacter: raidManagerProcedure
+  moveCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),
@@ -1559,7 +1560,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Add a character to a specific slot in a raid plan
    * Use targetGroup: -1 to add to bench (null group/position)
    */
-  addCharacter: raidManagerProcedure
+  addCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -1611,7 +1612,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Delete a character from a raid plan
    */
-  deleteCharacter: raidManagerProcedure
+  deleteCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),
@@ -1641,7 +1642,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Swap two characters' positions (for cross-group drag-and-drop)
    */
-  swapCharacters: raidManagerProcedure
+  swapCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterIdA: z.string().uuid(),
@@ -1704,7 +1705,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Move a character to a different group/position within an encounter
    */
-  moveEncounterCharacter: raidManagerProcedure
+  moveEncounterCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -1750,7 +1751,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Swap two characters' positions within an encounter
    */
-  swapEncounterCharacters: raidManagerProcedure
+  swapEncounterCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -1845,7 +1846,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Reset encounter assignments to match the default group configuration.
    * This deletes all custom encounter assignments and recreates them from the default positions.
    */
-  resetEncounterToDefault: raidManagerProcedure
+  resetEncounterToDefault: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -1912,7 +1913,7 @@ export const raidPlanRouter = createTRPCRouter({
    * For default/trash view: provide raidPlanId
    * Characters can be assigned to multiple slots in the same context.
    */
-  assignCharacterToAASlot: raidManagerProcedure
+  assignCharacterToAASlot: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z
         .object({
@@ -1998,7 +1999,7 @@ export const raidPlanRouter = createTRPCRouter({
    * For default/trash view: provide raidPlanId
    * If slotName is not provided, removes from all slots in the context.
    */
-  removeCharacterFromAASlot: raidManagerProcedure
+  removeCharacterFromAASlot: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z
         .object({
@@ -2042,7 +2043,7 @@ export const raidPlanRouter = createTRPCRouter({
    * For encounter-specific: provide encounterId
    * For default/trash view: provide raidPlanId
    */
-  reorderAASlotCharacters: raidManagerProcedure
+  reorderAASlotCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z
         .object({
@@ -2098,7 +2099,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Clear all AA slot assignments for a specific plan character.
    * Used when replacing a character and user chooses to clear assignments.
    */
-  clearAAAssignmentsForCharacter: raidManagerProcedure
+  clearAAAssignmentsForCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),
@@ -2122,7 +2123,7 @@ export const raidPlanRouter = createTRPCRouter({
    * For each encounter where fromPlanCharacterId has a non-null group position,
    * assign that position to toPlanCharacterId and bench fromPlanCharacterId.
    */
-  transferEncounterAssignments: raidManagerProcedure
+  transferEncounterAssignments: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         fromPlanCharacterId: z.string().uuid(),
@@ -2184,7 +2185,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Bench a character in all custom encounter group assignments.
    * Sets groupNumber and position to null for all encounter assignments.
    */
-  benchEncounterAssignments: raidManagerProcedure
+  benchEncounterAssignments: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),
@@ -2209,7 +2210,7 @@ export const raidPlanRouter = createTRPCRouter({
    * When preview=true, returns a summary without making changes.
    * When preview=false (default), performs the push and returns the summary.
    */
-  pushDefaultAAAssignments: raidManagerProcedure
+  pushDefaultAAAssignments: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         raidPlanId: z.string().uuid(),
@@ -2441,7 +2442,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Matches characters by characterId (write-ins are excluded).
    * Matches encounters by encounterName.
    */
-  previewAACarryForward: raidManagerProcedure
+  previewAACarryForward: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         sourcePlanId: z.string().uuid(),
@@ -2526,7 +2527,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Characters matched by characterId; encounters matched by encounterName.
    * Write-in characters (no characterId) are skipped.
    */
-  applyAACarryForward: raidManagerProcedure
+  applyAACarryForward: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         sourcePlanId: z.string().uuid(),
@@ -2667,7 +2668,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Reconciles existing characters with new list, preserving assignments
    * for characters that remain (by keeping the same raidPlanCharacters.id UUID).
    */
-  refreshCharacters: raidManagerProcedure
+  refreshCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -2833,7 +2834,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Bulk reorder encounters. Wrapped in a transaction.
    */
-  reorderEncounters: raidManagerProcedure
+  reorderEncounters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounters: z.array(
@@ -2877,7 +2878,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Create an encounter group for a raid plan.
    * Sort order is computed as max across both encounters and groups + 1.
    */
-  createEncounterGroup: raidManagerProcedure
+  createEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -2921,7 +2922,7 @@ export const raidPlanRouter = createTRPCRouter({
   /**
    * Update an encounter group's name.
    */
-  updateEncounterGroup: raidManagerProcedure
+  updateEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groupId: z.string().uuid(),
@@ -2947,7 +2948,7 @@ export const raidPlanRouter = createTRPCRouter({
    * "promote": set groupId = null on child encounters (keep them as top-level)
    * "deleteChildren": delete all encounters that belong to this group
    */
-  deleteEncounterGroup: raidManagerProcedure
+  deleteEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groupId: z.string().uuid(),
@@ -2982,7 +2983,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Reorder both encounter groups and encounters in the flat top-level list.
    * Groups and ungrouped encounters share a global sort space.
    */
-  reorderEncounterGroups: raidManagerProcedure
+  reorderEncounterGroups: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groups: z.array(
@@ -3034,7 +3035,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Bulk save the entire encounter and group structure (names, orders, parent-child).
    * Wrapped in a transaction for atomicity.
    */
-  saveEncounterStructure: raidManagerProcedure
+  saveEncounterStructure: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planId: z.string().uuid(),
@@ -3105,7 +3106,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Get AA slot assignments for a specific plan character.
    * Used to check if a character has assignments before replacing them.
    */
-  getAAAssignmentsForCharacter: raidManagerProcedure
+  getAAAssignmentsForCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         planCharacterId: z.string().uuid(),

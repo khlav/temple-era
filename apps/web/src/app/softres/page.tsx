@@ -6,6 +6,7 @@ import { DiscordSoftResLinks } from "~/components/softres/discord-softres-links"
 import { Skeleton } from "~/components/ui/skeleton";
 import { type Metadata } from "next";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -20,7 +21,7 @@ export default async function SoftResScanPage() {
   const session = await auth();
 
   // Check if user is raid manager
-  if (!session?.user?.isRaidManager) {
+  if (!session?.user?.scopes?.includes(SCOPE.SOFTRES_ACCESS)) {
     redirect("/");
   }
 

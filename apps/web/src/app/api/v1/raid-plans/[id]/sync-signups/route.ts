@@ -12,6 +12,7 @@ import {
   raidPlanEncounterAssignments,
 } from "~/server/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.xyz/api";
 
@@ -27,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

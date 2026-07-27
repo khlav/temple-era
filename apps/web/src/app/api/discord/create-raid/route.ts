@@ -9,6 +9,8 @@ import { getDefaultAttendanceWeight } from "~/lib/raid-weights";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { getEasternDate } from "~/lib/raid-formatting";
 import { compressResponse } from "~/lib/compression";
+import { resolveUserAccess } from "~/server/services/access-service";
+import { SCOPE } from "~/lib/scopes";
 
 export async function POST(request: Request) {
   try {
@@ -74,8 +76,6 @@ export async function POST(request: Request) {
         name: users.name,
         email: users.email,
         image: users.image,
-        isRaidManager: users.isRaidManager,
-        isAdmin: users.isAdmin,
         characterId: users.characterId,
       })
       .from(users)
@@ -104,7 +104,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!user.isRaidManager) {
+    const access = await resolveUserAccess(user.id);
+
+    if (!access.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return await compressResponse(
         {
           success: false,
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
     }
 
     // Create tRPC caller with user session
-    const caller = createDiscordRouteCaller(user);
+    const caller = createDiscordRouteCaller({ ...user, ...access });
 
     // 4. Extract report ID from WCL URL
     const reportIdMatch = wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);

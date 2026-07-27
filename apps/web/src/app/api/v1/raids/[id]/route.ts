@@ -12,6 +12,7 @@ import {
   users,
 } from "~/server/db/schema";
 import { aliasedTable, eq, inArray } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 function parseRaidId(id: string) {
   const raidId = parseInt(id, 10);
@@ -152,7 +153,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -241,7 +242,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

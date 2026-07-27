@@ -5,6 +5,7 @@ import {
   generateCharacterMetadata,
 } from "~/server/metadata-helpers";
 import { auth } from "~/server/auth";
+import { SCOPE } from "~/lib/scopes";
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
 ) {
   // Check authentication and admin privileges
   const session = await auth();
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.scopes?.includes(SCOPE.USERPERMISSIONS_MANAGE)) {
     return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 403 });
   }
 

@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { raidLogs, raids, raidBenchMap, users } from "~/server/db/schema";
 import { EmptyRaid, type Raid, type RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
 import type { Session } from "next-auth";
+import { SCOPE } from "~/lib/scopes";
 
 type DB = typeof db;
 
@@ -166,7 +167,7 @@ export const raid = createTRPCRouter({
     } as Raid;
   }),
 
-  insertRaid: raidManagerProcedure
+  insertRaid: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(
       z.object({
         name: z.string(),
@@ -232,7 +233,7 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  updateRaid: raidManagerProcedure
+  updateRaid: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(
       z.object({
         raidId: z.number(),
@@ -294,14 +295,16 @@ export const raid = createTRPCRouter({
       };
     }),
 
-  delete: raidManagerProcedure.input(z.number()).mutation(async ({ ctx, input }) => {
-    return await ctx.db
-      .delete(raids)
-      .where(eq(raids.raidId, input))
-      .returning({ raidId: raids.raidId, name: raids.name });
-  }),
+  delete: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
+    .input(z.number())
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.db
+        .delete(raids)
+        .where(eq(raids.raidId, input))
+        .returning({ raidId: raids.raidId, name: raids.name });
+    }),
 
-  addBenchCharacters: raidManagerProcedure
+  addBenchCharacters: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(
       z.object({
         raidId: z.number(),

@@ -4,6 +4,7 @@ import { CreateRaid } from "~/components/raids/create-raid";
 import { redirect } from "next/navigation";
 import { type Metadata } from "next";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default async function RaidNewPage() {
   const session = await auth();
 
-  if (!session?.user?.isRaidManager) {
+  if (!session?.user?.scopes?.includes(SCOPE.RAIDLOG_MANAGE)) {
     redirect("/raids");
   }
 

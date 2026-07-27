@@ -5,6 +5,7 @@ import { users, accounts } from "~/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { env } from "~/env.js";
 import { compressResponse } from "~/lib/compression";
+import { resolveUserAccess } from "~/server/services/access-service";
 
 export async function POST(request: Request) {
   try {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     // 3. Check user permissions
     const result = await db
       .select({
-        isRaidManager: users.isRaidManager,
+        id: users.id,
         userName: users.name,
       })
       .from(users)
@@ -58,7 +59,8 @@ export async function POST(request: Request) {
       .where(and(eq(accounts.provider, "discord"), eq(accounts.providerAccountId, discordUserId)))
       .limit(1);
 
-    if (result.length === 0) {
+    const matchedUser = result[0];
+    if (!matchedUser) {
       return await compressResponse(
         {
           hasAccount: false,
@@ -68,10 +70,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const access = await resolveUserAccess(matchedUser.id);
+
     return await compressResponse(
       {
         hasAccount: true,
-        isRaidManager: result[0]?.isRaidManager ?? false,
+        isRaidManager: access.isRaidManager,
       },
       request,
     );

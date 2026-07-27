@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
 import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
@@ -9,6 +9,7 @@ import type { RaidLog, RaidParticipantCollection } from "~/server/api/interfaces
 import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
 import { Slugify } from "~/server/api/wcl-helpers";
+import { SCOPE } from "~/lib/scopes";
 /*
   Reusable router functions
  */
@@ -240,11 +241,11 @@ export const raidLog = createTRPCRouter({
   /*
     Admin procedures
    */
-  getWclLogById: raidManagerProcedure
+  getWclLogById: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(z.string())
     .query(async ({ input }) => await queryGetWclLogById(input)),
 
-  importAndGetRaidLogByRaidLogId: raidManagerProcedure
+  importAndGetRaidLogByRaidLogId: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(z.string())
     .query(async ({ ctx, input }) => {
       // Always fetch fresh data from WCL and update database
@@ -253,13 +254,13 @@ export const raidLog = createTRPCRouter({
       return await queryGetRaidLogById(ctx.db, input);
     }),
 
-  insertRaidLogWithAttendees: raidManagerProcedure
+  insertRaidLogWithAttendees: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(inputInsertRaidLogWithAttendees)
     .mutation(async ({ ctx, input }) =>
       mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, input),
     ),
 
-  refreshRaidLogByRaidLogId: raidManagerProcedure
+  refreshRaidLogByRaidLogId: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       // Fetch fresh data from WCL API

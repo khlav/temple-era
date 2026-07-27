@@ -1,10 +1,10 @@
 import crypto from "crypto";
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, scopedProcedure } from "~/server/api/trpc";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptToken } from "~/server/api/token-crypto";
+import { SCOPE } from "~/lib/scopes";
 
 export const profile = createTRPCRouter({
   getMyProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -114,18 +114,7 @@ export const profile = createTRPCRouter({
         });
     }),
 
-  generateApiToken: protectedProcedure.mutation(async ({ ctx }) => {
-    const { isRaidManager, isAdmin } = ctx.session.user;
-    // Uses protectedProcedure + manual guard (not raidManagerProcedure) because token
-    // generation should be available to both raid managers and admins, and no existing
-    // middleware covers that union.
-    if (!isRaidManager && !isAdmin) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Only raid managers and admins can generate API tokens.",
-      });
-    }
-
+  generateApiToken: scopedProcedure(SCOPE.API_TOKEN_ACCESS).mutation(async ({ ctx }) => {
     // Check if user already had a token (so UI can warn about invalidating it)
     const existing = await ctx.db.query.users.findFirst({
       columns: { apiToken: true },
@@ -145,15 +134,7 @@ export const profile = createTRPCRouter({
     return { token, replaced };
   }),
 
-  revokeApiToken: protectedProcedure.mutation(async ({ ctx }) => {
-    const { isRaidManager, isAdmin } = ctx.session.user;
-    if (!isRaidManager && !isAdmin) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Only raid managers and admins can manage API tokens.",
-      });
-    }
-
+  revokeApiToken: scopedProcedure(SCOPE.API_TOKEN_ACCESS).mutation(async ({ ctx }) => {
     await ctx.db
       .update(users)
       .set({ apiToken: null, apiTokenEncrypted: null })
@@ -162,16 +143,9 @@ export const profile = createTRPCRouter({
     return { success: true };
   }),
 
-  setTemplarEnabled: protectedProcedure
+  setTemplarEnabled: scopedProcedure(SCOPE.TEMPLAR_ACCESS)
     .input(z.object({ enabled: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      const { isRaidManager, isAdmin } = ctx.session.user;
-      if (!isRaidManager && !isAdmin) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only raid managers and admins can manage Templar access.",
-        });
-      }
       await ctx.db
         .update(users)
         .set({ templarEnabled: input.enabled })

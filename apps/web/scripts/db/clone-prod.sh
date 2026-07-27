@@ -12,7 +12,10 @@ require_command pg_restore
 require_command psql
 
 PROD_DB_URL="$(resolve_url_from_env "DATABASE_PROD_URL")"
-DEV_DB_URL="$(resolve_url_from_env "DATABASE_URL")"
+# Use the session-mode connection for the dev-side DDL below: Supavisor's transaction-mode pooler
+# (DATABASE_URL) multiplexes clients onto shared backends and doesn't reliably propagate session
+# state, so pg_restore setting search_path='' on its connection can leak into the next client.
+DEV_DB_URL="${DATABASE_MIGRATION_URL:-$(resolve_url_from_env "DATABASE_URL")}"
 
 DUMP_FILE="$(mktemp /tmp/prod-clone.XXXXXX.dump)"
 TOC_FILE="$(mktemp /tmp/prod-clone.XXXXXX.toc)"

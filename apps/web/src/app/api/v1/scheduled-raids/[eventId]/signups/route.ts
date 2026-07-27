@@ -4,6 +4,7 @@ import { validateApiToken } from "~/server/api/v1-auth";
 import { matchSignupsToCharacters } from "~/server/api/helpers/match-signups";
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { SCOPE } from "~/lib/scopes";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.xyz/api";
 
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ even
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

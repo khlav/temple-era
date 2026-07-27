@@ -7,6 +7,7 @@ import { RAID_ZONE_CONFIG } from "~/lib/raid-zones";
 import { getGroupCount } from "~/components/raid-planner/constants";
 import { getSlotNames } from "~/lib/aa-template";
 import { db } from "~/server/db";
+import { SCOPE } from "~/lib/scopes";
 import {
   raidPlanTemplates,
   raidPlanTemplateEncounters,
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

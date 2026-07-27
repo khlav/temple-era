@@ -4,6 +4,8 @@ import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+import { resolveUserAccess } from "~/server/services/access-service";
+import type { Scope } from "~/lib/scopes";
 
 type ValidateApiTokenResult =
   | {
@@ -15,6 +17,7 @@ type ValidateApiTokenResult =
         isAdmin: boolean | null;
         characterId: number | null;
         templarEnabled: boolean | null;
+        scopes: Scope[];
       };
     }
   | { error: NextResponse };
@@ -79,8 +82,6 @@ export async function validateApiToken(request: Request): Promise<ValidateApiTok
       id: users.id,
       name: users.name,
       image: users.image,
-      isRaidManager: users.isRaidManager,
-      isAdmin: users.isAdmin,
       characterId: users.characterId,
       templarEnabled: users.templarEnabled,
     })
@@ -103,7 +104,15 @@ export async function validateApiToken(request: Request): Promise<ValidateApiTok
     };
   }
 
+  const user = result[0]!;
+  const access = await resolveUserAccess(user.id);
+
   return {
-    user: result[0]!,
+    user: {
+      ...user,
+      isRaidManager: access.isRaidManager,
+      isAdmin: access.isAdmin,
+      scopes: access.scopes,
+    },
   };
 }

@@ -5,6 +5,7 @@ import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { characters } from "~/server/db/schema";
+import { SCOPE } from "~/lib/scopes";
 
 const BodySchema = z.object({
   secondaryIds: z.array(z.number().int()).min(1),
@@ -17,7 +18,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if ("error" in authResult) return authResult.error;
 
     const { user } = authResult;
-    if (!user.isRaidManager && !user.isAdmin) {
+    if (!user.scopes.includes(SCOPE.CHARACTER_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -10,6 +10,7 @@ import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { noIndexRobots } from "~/lib/site-metadata";
+import { SCOPE } from "~/lib/scopes";
 
 // Cache the raid data fetch to avoid duplicate calls between generateMetadata and page component
 const getCachedRaidData = cache(async (raidId: number) => {
@@ -51,7 +52,7 @@ async function RaidEditPageContent({
   raidId: number;
   session: Session | null;
 }) {
-  if (!session?.user?.isRaidManager) {
+  if (!session?.user?.scopes?.includes(SCOPE.RAIDLOG_MANAGE)) {
     redirect("/raids");
   }
 

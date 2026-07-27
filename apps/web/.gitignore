@@ -63,3 +63,7 @@ bfg-replacements.txt
 .claude/settings*
 /scripts/*.ts
 .worktrees/
+.env*
+
+# Local database dumps — contain production user data, never commit
+/backups/

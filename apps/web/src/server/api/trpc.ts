@@ -16,6 +16,8 @@ import { ZodError } from "zod";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { env } from "~/env";
+import type { Scope } from "~/server/db/models/access-schema";
+import { SCOPE } from "~/lib/scopes";
 
 export interface TRPCContext {
   db: typeof db;
@@ -197,31 +199,6 @@ export const protectedProcedure = t.procedure.use(timingMiddleware).use(async ({
 });
 
 /**
- * Raid Manager (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to users with the 'admin' role, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
- */
-export const raidManagerProcedure = t.procedure.use(timingMiddleware).use(async ({ ctx, next }) => {
-  const session = await ctx.getSession();
-
-  if (!session || !session.user || !session.user.isRaidManager) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: `Unauthorized - Raid managers only`,
-    });
-  }
-  return next({
-    ctx: {
-      // infers the `session` as non-nullable
-      session,
-    },
-  });
-});
-
-/**
  * Admin (authenticated) procedure
  *
  * If you want a query or mutation to ONLY be accessible to users with the 'admin' role, use this. It verifies
@@ -232,7 +209,11 @@ export const raidManagerProcedure = t.procedure.use(timingMiddleware).use(async 
 export const adminProcedure = t.procedure.use(timingMiddleware).use(async ({ ctx, next }) => {
   const session = await ctx.getSession();
 
-  if (!session || !session.user || !session.user.isAdmin) {
+  // Checks the scope directly rather than the derived `isAdmin` boolean. Behaviour-identical
+  // (LEGACY_ADMIN_SCOPES is exactly [SCOPE.USERPERMISSIONS_MANAGE]), but it keeps every authorization
+  // decision in the codebase scope-based, so the legacy booleans can be deleted without touching
+  // any guard.
+  if (!session?.user?.scopes?.includes(SCOPE.USERPERMISSIONS_MANAGE)) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: `Unauthorized - Admin only`,
@@ -245,3 +226,39 @@ export const adminProcedure = t.procedure.use(timingMiddleware).use(async ({ ctx
     },
   });
 });
+
+/**
+ * Scoped (authenticated) procedure
+ *
+ * Requires the session to hold every scope passed in. This is the standard procedure for
+ * scope-gated surfaces; all routers now use it instead of the legacy role-based procedure it
+ * replaced. `adminProcedure` remains only for recipe.ts's catalog management.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const scopedProcedure = (...required: Scope[]) =>
+  t.procedure.use(timingMiddleware).use(async ({ ctx, next }) => {
+    const session = await ctx.getSession();
+
+    if (!session?.user) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Unauthorized - Login required`,
+      });
+    }
+
+    const userScopes = new Set(session.user.scopes ?? []);
+    if (!required.every((scope) => userScopes.has(scope))) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `Unauthorized - Missing required scope(s): ${required.join(", ")}`,
+      });
+    }
+
+    return next({
+      ctx: {
+        // infers the `session` as non-nullable
+        session,
+      },
+    });
+  });

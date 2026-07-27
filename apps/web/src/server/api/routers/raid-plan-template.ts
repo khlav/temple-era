@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { eq, max, inArray } from "drizzle-orm";
-import { createTRPCRouter, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
+import { SCOPE } from "~/lib/scopes";
 import {
   raidPlanTemplates,
   raidPlanTemplateEncounterGroups,
@@ -13,7 +14,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * Get the default AA template for a specific zone.
    * Used by the raid planner to reset templates to defaults.
    */
-  getByZoneId: raidManagerProcedure
+  getByZoneId: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ zoneId: z.string().min(1).max(64) }))
     .query(async ({ ctx, input }) => {
       const template = await ctx.db
@@ -66,7 +67,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Fetch all templates with their encounters, ordered by sortOrder.
    */
-  getAll: raidManagerProcedure.query(async ({ ctx }) => {
+  getAll: scopedProcedure(SCOPE.RAIDPLAN_MANAGE).query(async ({ ctx }) => {
     const templates = await ctx.db
       .select({
         id: raidPlanTemplates.id,
@@ -138,7 +139,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * Create or update a zone template.
    * Uses onConflictDoUpdate on the zoneId unique index.
    */
-  upsertTemplate: raidManagerProcedure
+  upsertTemplate: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         zoneId: z.string().min(1).max(64),
@@ -176,7 +177,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Partial update of a template by ID.
    */
-  updateTemplate: raidManagerProcedure
+  updateTemplate: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         templateId: z.string().uuid(),
@@ -216,7 +217,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Delete a template by ID. FK cascade handles encounters.
    */
-  deleteTemplate: raidManagerProcedure
+  deleteTemplate: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ templateId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(raidPlanTemplates).where(eq(raidPlanTemplates.id, input.templateId));
@@ -228,7 +229,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * Add an encounter to a template.
    * Auto-generates encounterKey (slugified) and computes next sortOrder.
    */
-  addEncounter: raidManagerProcedure
+  addEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         templateId: z.string().uuid(),
@@ -270,7 +271,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Update an encounter by ID. Optionally rename (regenerates key) or change sortOrder.
    */
-  updateEncounter: raidManagerProcedure
+  updateEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounterId: z.string().uuid(),
@@ -315,7 +316,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Delete an encounter by ID.
    */
-  deleteEncounter: raidManagerProcedure
+  deleteEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ encounterId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db
@@ -329,7 +330,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * Bulk reorder encounter groups and encounters together.
    * Updates group sortOrders and encounter sortOrders + groupId assignments in one transaction.
    */
-  reorderEncounterGroups: raidManagerProcedure
+  reorderEncounterGroups: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groups: z.array(
@@ -369,7 +370,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Bulk reorder encounters. Wrapped in a transaction.
    */
-  reorderEncounters: raidManagerProcedure
+  reorderEncounters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         encounters: z.array(
@@ -408,7 +409,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * Create an encounter group for a template.
    * Sort order is computed as max across both encounters and groups + 1.
    */
-  createTemplateEncounterGroup: raidManagerProcedure
+  createTemplateEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         templateId: z.string().uuid(),
@@ -450,7 +451,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
   /**
    * Update a template encounter group's name.
    */
-  updateTemplateEncounterGroup: raidManagerProcedure
+  updateTemplateEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groupId: z.string().uuid(),
@@ -471,7 +472,7 @@ export const raidPlanTemplateRouter = createTRPCRouter({
    * "promote": set groupId = null on child encounters (keep them as top-level)
    * "deleteChildren": delete all encounters that belong to this group
    */
-  deleteTemplateEncounterGroup: raidManagerProcedure
+  deleteTemplateEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         groupId: z.string().uuid(),

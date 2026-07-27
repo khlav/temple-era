@@ -4,6 +4,7 @@ import { auth } from "~/server/auth";
 import { type Metadata } from "next";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   robots: {
@@ -19,7 +20,7 @@ export default async function RaidManagerLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
 
-  if (!session?.user?.isRaidManager) {
+  if (!session?.user?.scopes?.includes(SCOPE.RAIDPLAN_MANAGE)) {
     // [AGENT_NOTE]: This layout uses a hard-coded path and regex to detect raid plan IDs
     // because layouts do not receive route params for nested dynamic segments.
     // If the path `/raid-manager/raid-planner/` changes, this logic must be updated.

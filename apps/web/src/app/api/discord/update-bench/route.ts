@@ -7,6 +7,8 @@ import { env } from "~/env.js";
 import { createDiscordRouteCaller } from "~/server/api/discord-trpc-caller";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { compressResponse } from "~/lib/compression";
+import { resolveUserAccess } from "~/server/services/access-service";
+import { SCOPE } from "~/lib/scopes";
 
 export async function POST(request: Request) {
   try {
@@ -105,7 +107,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!user.isRaidManager) {
+    const access = await resolveUserAccess(user.id);
+
+    if (!access.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return await compressResponse(
         {
           success: false,
@@ -151,7 +155,9 @@ export async function POST(request: Request) {
     );
 
     // 5. Create tRPC caller with user session
-    const caller = createDiscordRouteCaller(user);
+    // Spread `access` so the synthetic session carries resolved scopes — the inner tRPC
+    // procedures are scopedProcedure-gated and would reject a session with an empty scope list.
+    const caller = createDiscordRouteCaller({ ...user, ...access });
 
     // 6. Get raid details for response
     const raidDetails = await caller.raid.getRaidById(raidId);

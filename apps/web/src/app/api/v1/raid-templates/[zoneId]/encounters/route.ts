@@ -7,6 +7,7 @@ import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import { db } from "~/server/db";
 import { raidPlanTemplateEncounters } from "~/server/db/schema";
 import { getZoneConfig, upsertZoneTemplate, validateGroupOwnership } from "../../_helpers";
+import { SCOPE } from "~/lib/scopes";
 
 const AddEncounterSchema = z.object({
   encounterName: z.string().min(1).max(256),
@@ -20,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ zon
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -7,6 +7,7 @@ import { eq, sql } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
 import { GetWCLGraphQLQuery, RaidReportDataShaper, Slugify } from "~/server/api/wcl-helpers";
 import type { RawRaidReportRequestResult } from "~/server/api/interfaces/wcl";
+import { SCOPE } from "~/lib/scopes";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -4,6 +4,7 @@ import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { characters } from "~/server/db/schema";
+import { SCOPE } from "~/lib/scopes";
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +12,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if ("error" in authResult) return authResult.error;
 
     const { user } = authResult;
-    if (!user.isRaidManager && !user.isAdmin) {
+    if (!user.scopes.includes(SCOPE.CHARACTER_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

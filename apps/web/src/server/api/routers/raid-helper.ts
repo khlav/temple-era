@@ -2,7 +2,7 @@ import { z } from "zod";
 import { sql, eq, or, inArray, and, notInArray, isNotNull, desc, aliasedTable } from "drizzle-orm";
 import { logger } from "~/lib/logger";
 import { formatInTimeZone } from "date-fns-tz";
-import { createTRPCRouter, publicProcedure, raidManagerProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { CLASS_SPECS, inferTalentRole } from "~/lib/class-specs";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
@@ -14,6 +14,7 @@ import {
   trackedRaidsL6LockoutWk,
 } from "~/server/db/schema";
 import { getZoneForInstance } from "~/lib/raid-zones";
+import { SCOPE } from "~/lib/scopes";
 import {
   type MatchStatus,
   type MatchedCharacter,
@@ -299,7 +300,7 @@ export const raidHelperRouter = createTRPCRouter({
   /**
    * Fetch event details including all signups and group assignments
    */
-  getEventDetails: raidManagerProcedure
+  getEventDetails: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ eventId: z.string() }))
     .query(async ({ input }) => {
       // First, fetch the event/channel to check if we need to resolve lastEventId
@@ -437,7 +438,7 @@ export const raidHelperRouter = createTRPCRouter({
    * Match Raid-Helper signups to database characters
    * Uses prefix matching and class matching to find the best match
    */
-  matchSignupsToCharacters: raidManagerProcedure
+  matchSignupsToCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         signups: z.array(
@@ -460,7 +461,7 @@ export const raidHelperRouter = createTRPCRouter({
    * Find potential players based on attendance history
    * Excludes players already signed up (by primary character ID)
    */
-  findPotentialPlayers: raidManagerProcedure
+  findPotentialPlayers: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
         registeredPrimaryCharacterIds: z.array(z.number()),

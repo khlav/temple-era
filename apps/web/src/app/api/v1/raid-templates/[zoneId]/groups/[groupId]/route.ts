@@ -5,6 +5,7 @@ import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { db } from "~/server/db";
 import { raidPlanTemplateEncounters, raidPlanTemplateEncounterGroups } from "~/server/db/schema";
+import { SCOPE } from "~/lib/scopes";
 import {
   UUID_RE,
   getZoneConfig,
@@ -27,7 +28,7 @@ export async function PUT(
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -85,7 +86,7 @@ export async function DELETE(
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

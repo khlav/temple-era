@@ -5,6 +5,7 @@ import { SetBenchSchema } from "~/lib/openapi-registry";
 import { db } from "~/server/db";
 import { raids, raidBenchMap } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+import { SCOPE } from "~/lib/scopes";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,7 +13,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDLOG_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -7,6 +7,7 @@ import { inArray } from "drizzle-orm";
 import { inferTalentRole } from "~/lib/class-specs";
 import { env } from "~/env";
 import { formatInTimeZone } from "date-fns-tz";
+import { SCOPE } from "~/lib/scopes";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.xyz/api";
 
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
     if ("error" in authResult) return authResult.error;
     const { user } = authResult;
 
-    if (!user.isRaidManager) {
+    if (!user.scopes.includes(SCOPE.RAIDPLAN_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { env } from "~/env.js";
+import { resolveUserAccess } from "~/server/services/access-service";
 
 export type AuthUser = {
   id: string;
@@ -39,15 +40,20 @@ async function resolveAuth(
       id: users.id,
       name: users.name,
       image: users.image,
-      isRaidManager: users.isRaidManager,
-      isAdmin: users.isAdmin,
       characterId: users.characterId,
     })
     .from(users)
     .where(eq(users.apiToken, tokenHash))
     .limit(1);
 
-  return { user: result[0] ?? null, isServiceAuth: false };
+  const row = result[0];
+  if (!row) return { user: null, isServiceAuth: false };
+
+  const access = await resolveUserAccess(row.id);
+  return {
+    user: { ...row, isRaidManager: access.isRaidManager, isAdmin: access.isAdmin },
+    isServiceAuth: false,
+  };
 }
 
 export async function buildContext({ request }: { request: Request }): Promise<Context> {

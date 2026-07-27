@@ -11,6 +11,7 @@ export const env = createEnv({
     AUTH_DISCORD_ID: z.string(),
     AUTH_DISCORD_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
+    DATABASE_MIGRATION_URL: z.string().url().optional(),
 
     WCL_CLIENT_ID: z.string(),
     WCL_CLIENT_SECRET: z.string(),
@@ -27,6 +28,19 @@ export const env = createEnv({
     DISCORD_RAID_HELPER_BOT_ID: z.string(),
     DISCORD_WEBHOOK_PUBLIC_KEY: z.string().optional(),
     DISCORD_SERVER_ID: z.string(),
+    // Break-glass superadmins: comma-separated Discord user IDs granted every scope, resolved
+    // from env rather than the DB so access cannot be revoked through the admin UI.
+    SUPERADMIN_DISCORD_IDS: z
+      .string()
+      .optional()
+      .transform((str) =>
+        str
+          ? str
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      ),
     RAID_HELPER_API_KEY: z.string(),
     TEMPLE_WEB_API_TOKEN: z.string(),
     API_TOKEN_ENCRYPTION_KEY: z.string().min(1),
@@ -57,6 +71,7 @@ export const env = createEnv({
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_MIGRATION_URL: process.env.DATABASE_MIGRATION_URL,
 
     WCL_CLIENT_ID: process.env.WCL_CLIENT_ID,
     WCL_CLIENT_SECRET: process.env.WCL_CLIENT_SECRET,
@@ -73,6 +88,7 @@ export const env = createEnv({
     DISCORD_RAID_HELPER_BOT_ID: process.env.DISCORD_RAID_HELPER_BOT_ID,
     DISCORD_WEBHOOK_PUBLIC_KEY: process.env.DISCORD_WEBHOOK_PUBLIC_KEY,
     DISCORD_SERVER_ID: process.env.DISCORD_SERVER_ID,
+    SUPERADMIN_DISCORD_IDS: process.env.SUPERADMIN_DISCORD_IDS,
     RAID_HELPER_API_KEY: process.env.RAID_HELPER_API_KEY,
     TEMPLE_WEB_API_TOKEN: process.env.TEMPLE_WEB_API_TOKEN,
     API_TOKEN_ENCRYPTION_KEY: process.env.API_TOKEN_ENCRYPTION_KEY,

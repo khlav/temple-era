@@ -5,6 +5,11 @@ import DiscordProvider, { type DiscordProfile } from "next-auth/providers/discor
 
 import { db } from "~/server/db";
 import { accounts, sessions, users, verificationTokens } from "~/server/db/models/auth-schema";
+import type { Scope } from "~/server/db/models/access-schema";
+import {
+  resolveUserAccess,
+  materializePendingGrantsForDiscordId,
+} from "~/server/services/access-service";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -20,6 +25,8 @@ declare module "next-auth" {
       characterId: number;
       isRaidManager: boolean;
       isAdmin: boolean;
+      isSuperadmin: boolean;
+      scopes: Scope[];
     } & DefaultSession["user"];
   }
 
@@ -76,14 +83,20 @@ export const authConfig = {
     verificationTokensTable: verificationTokens,
   }),
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-        image: user.image,
-      },
-    }),
+    session: async ({ session, user }) => {
+      // Explicit query rather than free-riding the adapter's raw row: the source of truth for
+      // isRaidManager/isAdmin/scopes has moved to user_role/role, off the flat auth_user columns.
+      const access = await resolveUserAccess(user.id);
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: user.id,
+          image: user.image,
+          ...access,
+        },
+      };
+    },
     signIn: async ({ user, profile }) => {
       // Update profile image from Discord
       await db
@@ -92,6 +105,12 @@ export const authConfig = {
           image: profile?.image_url?.toString() ?? "",
         })
         .where(eq(users.id, user.id ?? ""));
+
+      // Materialize any pre-authorized role grants for this Discord account (manual grants
+      // named before first login, or ones discovered by the Discord role sync job).
+      if (user.id && profile?.id) {
+        await materializePendingGrantsForDiscordId(String(profile.id), user.id);
+      }
 
       // Allow login
       return true;

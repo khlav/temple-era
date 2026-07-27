@@ -176,6 +176,20 @@
       "when": 1779850185853,
       "tag": "0024_dusty_black_crow",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785116308680,
+      "tag": "0025_add_roles_permissions_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1785116321939,
+      "tag": "0026_backfill_roles_permissions_data",
+      "breakpoints": true
     }
   ]
 }
