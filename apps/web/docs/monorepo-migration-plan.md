@@ -85,6 +85,8 @@ The bot's `.gitignore` contains bare `public` and `dist` entries (Gatsby/Nuxt te
 
 **Do:** write a minimal root `.gitignore` (`node_modules`, `.env*`, `.DS_Store`, `*.tsbuildinfo`, `.turbo`, `.vercel`) and move each repo's existing file **into its app directory unchanged**. Nested files anchor leading-`/` patterns to their own directory, which also repairs web's `/.next/`, `/node_modules`, `/scripts/*.ts` — those silently stop matching once code moves down a level.
 
+Web's `.gitignore` also picked up a `/backups/` entry (2026-07) — `pnpm db:clone-prod` and prod restore dumps land there, and they contain emails, Discord IDs, and API token hashes. Preserve it in the merge; it's the same class of risk as the tracked-vs-ignored mismatches above, just in the other direction (must stay ignored).
+
 ### R2. husky and lefthook both claim `.git/hooks`
 Last `prepare` to run wins; the other's checks silently stop. **Do:** delete `.husky/`, drop `husky` + `lint-staged` from the bot's `package.json`, remove its `prepare` script. Only root `package.json` gets `"prepare": "lefthook install"`.
 
@@ -106,6 +108,8 @@ Issues, PR history and review threads, labels, Actions secrets, branch protectio
 The existing project holds the `temple-era.com` domain, all env vars, and `DATABASE_URL`. Its `postbuild` runs `drizzle-kit migrate` against **production**. A fresh project with a hand-retyped `DATABASE_URL` is a live-data hazard.
 
 **Do:** change the connected Git repo on the **existing** project (Settings → Git), then set Root Directory → `apps/web`, enable *"Include source files outside of the Root Directory"*, and set Ignored Build Step → `npx turbo-ignore`. Without that last one, every bot commit triggers a production migration. `[HUMAN]`
+
+Since repointing carries the existing env vars over rather than recreating them, this is also where a newly-added var like `SUPERADMIN_DISCORD_IDS` (2026-07, Production + Preview — env-derived break-glass superadmin access, no DB row) survives for free. If R7's approach ever changes to "recreate the project," anything added after this doc was written needs a fresh audit of the existing project's env var list before cutover — a silently-missing one here means an admin loses access, not a build failure.
 
 ### R8. Northflank Docker build must be rewritten
 The current `Dockerfile` assumes it is the whole repo (`COPY . .`, `pnpm install --frozen-lockfile`) and fails without the workspace manifest. Rewrite is in Phase 5; build context moves to repo root and Dockerfile path to `apps/bot/Dockerfile`.
@@ -232,7 +236,8 @@ Then `docker build -f apps/bot/Dockerfile .` and run the container locally again
 Wait ~1 week of normal operation. Then **archive** (never delete) both old repos. Archived keeps every old SHA, PR, and issue link resolving — which is what makes R6 and both rollbacks survivable.
 
 ### Phase 7 — Collect the payoff `[AGENT]`, one PR each
-- **`packages/contracts`** — one Zod schema per `/api/discord/*` request/response, compiled per **R3**. Web handlers parse with it; bot fetch wrappers type against it. Replaces the bot's hand-declared `PermissionCheckResult` and the routes' untyped `await request.json()`. **Must not alter any wire format** — Templar depends on the proxy route.
+- **`packages/contracts`** — one Zod schema per `/api/discord/*` request/response, compiled per **R3**. Web handlers parse with it; bot fetch wrappers type against it. Replaces the bot's hand-declared `PermissionCheckResult` and the routes' untyped `await request.json()`. **Must not alter any wire format** — Templar depends on the proxy route. Wire formats are stable, but the *authorization meaning* behind them is not: as of 2026-07, all five `/api/discord/*` endpoints gate on scopes (e.g. `raidlog:manage`) rather than the legacy `isRaidManager`/`isAdmin` booleans. Contract schemas authored against the old semantics would be wrong even though the JSON shape hasn't moved.
+  - The bot's hand-declared `PermissionCheckResult` still includes `isRaidManager`/`isAdmin`, and `check-permissions` still returns them for compatibility. Removing those fields (tracked as issue #285 in the web repo) is a **cross-repo breaking change** — the bot must migrate to reading `scopes` before the fields are dropped. Do this here, in Phase 7, where both apps' code is visible in the same PR, not as a solo web-side change. See `docs/followups/legacy-access-booleans-cleanup.md` for the deprecation's full history.
 - **`packages/wcl`** — shared URL/report-ID parsing, deduplicating `apps/bot/src/services/wclDetector.ts` against `apps/web/src/server/api/wcl-helpers.ts`.
 - Converge the bot onto pino; delete winston and the console shim.
 - Add Vitest to the bot — `wclDetector`, `benchParser`, `messageDeduplication` are pure functions and the bot has zero tests today.
