@@ -1,0 +1,28 @@
+{
+  "name": "temple-era",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Temple Raids monorepo — Next.js web app (temple-era.com) and Discord bot",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "turbo run format",
+    "format:fix": "turbo run format:fix",
+    "test": "turbo run test",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "lefthook": "^2.1.6",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
+    "turbo": "^2.10.7"
+  },
+  "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  }
+}
