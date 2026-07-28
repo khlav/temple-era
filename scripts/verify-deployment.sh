@@ -56,11 +56,21 @@ if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]; then
   echo "(using Vercel protection bypass)"
 fi
 
-# Distinguish "Vercel blocked us" from "the app returned an error". Vercel's
-# auth wall answers 401 with its own SSO markers, which would otherwise look
-# identical to a genuine app-level 401 on /api/v1/me.
+# Distinguish "Vercel blocked us" from "the app returned an error".
+#
+# Verified against a protected deployment 2026-07-28: the wall answers
+#   HTTP 302
+#   location: https://vercel.com/sso-api?url=...&nonce=...
+#   set-cookie: _vercel_sso_nonce=...
+#   body: "Redirecting..."
+#
+# The body carries no usable marker, so this MUST inspect headers. An earlier
+# body-only version of this check silently failed to detect the wall.
+#
+#   $1 = header dump, $2 = body file (optional)
 looks_like_vercel_wall() {
-  grep -qiE 'vercel.com/sso|_vercel_sso_nonce|Authentication Required' "$1" 2>/dev/null
+  grep -qiE '^location:.*vercel\.com/sso|^set-cookie:.*_vercel_sso_nonce' "$1" 2>/dev/null && return 0
+  [ -n "${2:-}" ] && grep -qiE 'vercel\.com/sso|_vercel_sso_nonce|Authentication Required' "$2" 2>/dev/null
 }
 
 pass=0
@@ -74,17 +84,18 @@ echo
 # ---------------------------------------------------------------- 1. home page
 echo "1. Home page"
 home=$(mktemp -t home).html
-code=$(curl -sS -o "$home" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/" || echo 000)
+homeh=$(mktemp -t homeh).txt
+code=$(curl -sS -D "$homeh" -o "$home" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/" || echo 000)
 if [ "$code" = "200" ]; then
   ok "GET / -> 200"
-elif looks_like_vercel_wall "$home"; then
+elif looks_like_vercel_wall "$homeh" "$home"; then
   bad "GET / -> $code — blocked by Vercel Deployment Protection, not the app."
   echo "     Set VERCEL_AUTOMATION_BYPASS_SECRET (see header comment). This says"
   echo "     nothing about whether the deployment is healthy."
 else
   bad "GET / -> $code (expected 200)"
 fi
-rm -f "$home"
+rm -f "$home" "$homeh"
 echo
 
 # ------------------------------------------------------- 2. OpenAPI spec parity
@@ -96,8 +107,9 @@ else
   # node, and an extensionless temp file silently fails to parse, which turns
   # the "what changed?" output into a 60KB dump of the whole document.
   tmp=$(mktemp -t openapi).json
-  code=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/api/v1/openapi.json" || echo 000)
-  if [ "$code" != "200" ] && looks_like_vercel_wall "$tmp"; then
+  tmph=$(mktemp -t openapih).txt
+  code=$(curl -sS -D "$tmph" -o "$tmp" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/api/v1/openapi.json" || echo 000)
+  if [ "$code" != "200" ] && looks_like_vercel_wall "$tmph" "$tmp"; then
     bad "GET /api/v1/openapi.json -> $code — blocked by Vercel Deployment Protection"
     echo "     Set VERCEL_AUTOMATION_BYPASS_SECRET; this is not a spec problem."
   elif [ "$code" != "200" ]; then
@@ -126,7 +138,7 @@ else
          <(node -e "const fs=require('fs');console.log(JSON.stringify(JSON.parse(fs.readFileSync('$tmp','utf8')),null,1))") \
       2>/dev/null | head -30 | cut -c1-140 | sed 's/^/       /'
   fi
-  rm -f "$tmp"
+  rm -f "$tmp" "$tmph"
 fi
 echo
 
@@ -157,7 +169,8 @@ else
   echo "  (token source: $TOKEN_SRC)"
   # .json suffix again load-bearing — see the note on $tmp above.
   body=$(mktemp -t me).json
-  code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} \
+  bodyh=$(mktemp -t meh).txt
+  code=$(curl -sS -D "$bodyh" -o "$body" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} \
            -H "Authorization: Bearer $TOKEN" \
            "$BASE_URL/api/v1/me" || echo 000)
   if [ "$code" = "200" ]; then
@@ -170,14 +183,14 @@ else
         console.log(parts.join(', '));
       } catch(e) { console.log('UNPARSEABLE RESPONSE'); }" 2>/dev/null)
     ok "GET /api/v1/me -> 200 as $who"
-  elif looks_like_vercel_wall "$body"; then
+  elif looks_like_vercel_wall "$bodyh" "$body"; then
     bad "GET /api/v1/me -> $code — blocked by Vercel Deployment Protection."
     echo "     THE TEMPLAR GATE DID NOT RUN. Set VERCEL_AUTOMATION_BYPASS_SECRET"
     echo "     and re-run; do not read this as a passed or failed auth check."
   else
     bad "GET /api/v1/me -> $code (expected 200) — TEMPLAR WOULD BREAK"
   fi
-  rm -f "$body"
+  rm -f "$body" "$bodyh"
 fi
 echo
 
