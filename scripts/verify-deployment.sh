@@ -39,6 +39,30 @@ BASE_URL="${BASE_URL%/}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASELINE="$REPO_ROOT/docs/baselines/openapi-v1-prod.json"
 
+# Vercel Deployment Protection is enabled for ALL previews on this project
+# (ssoProtection: prod_deployment_urls_and_all_previews). Without a bypass
+# secret, Vercel intercepts requests before they reach the app and every check
+# fails for reasons that say nothing about the deployment.
+#
+# Generate one at Project Settings -> Deployment Protection -> Protection Bypass
+# for Automation, then:
+#
+#   VERCEL_AUTOMATION_BYPASS_SECRET=... scripts/verify-deployment.sh <url>
+#
+# Do NOT disable protection to work around this.
+BYPASS=()
+if [ -n "${VERCEL_AUTOMATION_BYPASS_SECRET:-}" ]; then
+  BYPASS=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+  echo "(using Vercel protection bypass)"
+fi
+
+# Distinguish "Vercel blocked us" from "the app returned an error". Vercel's
+# auth wall answers 401 with its own SSO markers, which would otherwise look
+# identical to a genuine app-level 401 on /api/v1/me.
+looks_like_vercel_wall() {
+  grep -qiE 'vercel.com/sso|_vercel_sso_nonce|Authentication Required' "$1" 2>/dev/null
+}
+
 pass=0
 fail=0
 ok()   { echo "  ✅ $1"; pass=$((pass + 1)); }
@@ -49,8 +73,18 @@ echo
 
 # ---------------------------------------------------------------- 1. home page
 echo "1. Home page"
-code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$BASE_URL/" || echo 000)
-if [ "$code" = "200" ]; then ok "GET / -> 200"; else bad "GET / -> $code (expected 200)"; fi
+home=$(mktemp -t home).html
+code=$(curl -sS -o "$home" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/" || echo 000)
+if [ "$code" = "200" ]; then
+  ok "GET / -> 200"
+elif looks_like_vercel_wall "$home"; then
+  bad "GET / -> $code — blocked by Vercel Deployment Protection, not the app."
+  echo "     Set VERCEL_AUTOMATION_BYPASS_SECRET (see header comment). This says"
+  echo "     nothing about whether the deployment is healthy."
+else
+  bad "GET / -> $code (expected 200)"
+fi
+rm -f "$home"
 echo
 
 # ------------------------------------------------------- 2. OpenAPI spec parity
@@ -62,8 +96,11 @@ else
   # node, and an extensionless temp file silently fails to parse, which turns
   # the "what changed?" output into a 60KB dump of the whole document.
   tmp=$(mktemp -t openapi).json
-  code=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 30 "$BASE_URL/api/v1/openapi.json" || echo 000)
-  if [ "$code" != "200" ]; then
+  code=$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/api/v1/openapi.json" || echo 000)
+  if [ "$code" != "200" ] && looks_like_vercel_wall "$tmp"; then
+    bad "GET /api/v1/openapi.json -> $code — blocked by Vercel Deployment Protection"
+    echo "     Set VERCEL_AUTOMATION_BYPASS_SECRET; this is not a spec problem."
+  elif [ "$code" != "200" ]; then
     bad "GET /api/v1/openapi.json -> $code (expected 200)"
   elif cmp -s "$BASELINE" "$tmp"; then
     ok "spec is byte-identical to the production baseline"
@@ -120,7 +157,7 @@ else
   echo "  (token source: $TOKEN_SRC)"
   # .json suffix again load-bearing — see the note on $tmp above.
   body=$(mktemp -t me).json
-  code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 \
+  code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} \
            -H "Authorization: Bearer $TOKEN" \
            "$BASE_URL/api/v1/me" || echo 000)
   if [ "$code" = "200" ]; then
@@ -133,6 +170,10 @@ else
         console.log(parts.join(', '));
       } catch(e) { console.log('UNPARSEABLE RESPONSE'); }" 2>/dev/null)
     ok "GET /api/v1/me -> 200 as $who"
+  elif looks_like_vercel_wall "$body"; then
+    bad "GET /api/v1/me -> $code — blocked by Vercel Deployment Protection."
+    echo "     THE TEMPLAR GATE DID NOT RUN. Set VERCEL_AUTOMATION_BYPASS_SECRET"
+    echo "     and re-run; do not read this as a passed or failed auth check."
   else
     bad "GET /api/v1/me -> $code (expected 200) — TEMPLAR WOULD BREAK"
   fi
