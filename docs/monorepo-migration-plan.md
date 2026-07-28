@@ -133,10 +133,16 @@ Both apps define `TEMPLE_WEB_API_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_RAID_LOGS
 ## 5. Execution
 
 ### Phase 0 — Prep `[HUMAN]`
-1. Merge or close **all** open PRs in both repos; announce a freeze.
-2. Create empty `khlav/temple-era` — no README, no `.gitignore`, no license.
-3. Export current Vercel project settings and Northflank service config (build context, Dockerfile path, env vars, trigger rules). **This is the rollback reference.**
-4. Confirm `git-filter-repo` is installed locally (`git filter-repo --version`).
+1. ~~Merge or close **all** open PRs in both repos; announce a freeze.~~ ✅ done — no open PRs in either repo.
+2. ~~Create empty `khlav/temple-era`~~ ✅ done (public, per Vercel's free-tier requirement).
+3. ~~Export current Vercel project settings and Northflank service config.~~ ✅ done — see
+   `docs/baselines/vercel-project-export.md` and `docs/baselines/northflank-service-export.md`.
+   **These are the rollback reference.** Both surfaced corrections to later phases; read them
+   before Phase 4 or 5.
+4. ~~Confirm `git-filter-repo` is installed locally.~~ ✅ done (2.47.0).
+
+**Phases 1–3 are complete.** See `git log` on `main`. Remaining: 4 (web cutover),
+5 (bot cutover), 6 (archive), 7 (shared packages).
 
 ### Phase 1 — Graft both histories `[AGENT]`
 Nothing deploys from this repo yet. Work on `main` directly; it is a fresh repo.
@@ -267,7 +273,22 @@ Notes: `pnpm deploy` semantics changed in pnpm 10 (needs `--legacy`) — we are 
 
 Then `docker build -f apps/bot/Dockerfile .` and run the container locally against a **test** Discord server.
 
-`[HUMAN]` — create a **new** Northflank service on a non-production branch with test credentials (build context `/`, Dockerfile `apps/bot/Dockerfile`); verify; then repoint the production service at the monorepo, keeping the old definition saved. Add a build-path filter if the plan tier supports it; if not, accept that web commits restart the bot (stateless, 128 MB, cheap).
+`[HUMAN]` — create a **new** Northflank service on a non-production branch with test credentials (build context `/`, Dockerfile `apps/bot/Dockerfile`); verify; then repoint the production service at the monorepo, keeping the old definition saved.
+
+> **Corrected 2026-07-28 from the Phase 0 export** (`docs/baselines/northflank-service-export.md`):
+>
+> - **Path filtering is supported.** `buildConfiguration.pathIgnoreRules` exists on the
+>   service and is currently empty. Add `apps/web/**` after the cutover — no need to
+>   accept web commits restarting the bot.
+> - **Build context is already `/`.** `dockerWorkDir` is `/` today, so only
+>   `dockerFilePath` changes: `/Dockerfile` → `/apps/bot/Dockerfile`.
+> - **The compute plan is `nf-compute-10` — 0.1 vCPU / 256 MB**, not the 128 MB
+>   assumed elsewhere in this document.
+> - ⚠️ **`DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN` come from a secret group**,
+>   not the service's runtime environment. A **new** service starts with no secret
+>   group linked, so the staging service above will fail at startup on a missing
+>   token with no build error. Record which secret group is linked, from the
+>   dashboard, before creating it.
 
 **Rollback:** repoint Northflank at `temple-raids-discord-bot` — a settings change, not a code restore.
 
