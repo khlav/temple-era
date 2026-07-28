@@ -11,10 +11,18 @@
 #      baseline  -> the external Templar bot codegens against this
 #   3. An authenticated /api/v1/me call succeeds  -> THE TEMPLAR GATE
 #
-# Check 3 needs a real personal API token. Export it first; it is never
-# written to disk or echoed:
+# Check 3 needs a real personal API token, supplied one of two ways:
 #
-#   export TEMPLE_API_TOKEN=tera_...
+#   1. Environment:  export TEMPLE_API_TOKEN=tera_...
+#   2. Token file:   ~/.temple-era-token  (or $TEMPLE_API_TOKEN_FILE)
+#
+# Prefer the file. Shells here are one-shot, so an `export` in one command
+# does not survive into the next, and putting the token on the command line
+# leaks it into shell history and any transcript. Create the file once, from
+# a private terminal, with a hidden prompt:
+#
+#   read -rs t && printf '%s' "$t" > ~/.temple-era-token \
+#     && chmod 600 ~/.temple-era-token && unset t
 #
 # Exit code is non-zero if any check fails. If check 2 or 3 fails, STOP —
 # do not promote the deployment.
@@ -87,15 +95,33 @@ echo
 
 # ------------------------------------------------------------ 3. Templar gate
 echo "3. Authenticated /api/v1/me  (THE TEMPLAR GATE)"
-if [ -z "${TEMPLE_API_TOKEN:-}" ]; then
-  echo "  ⚠️  SKIPPED — TEMPLE_API_TOKEN not set."
-  echo "     This is the check that proves external API auth still works."
-  echo "     Do not promote without running it:  export TEMPLE_API_TOKEN=tera_..."
+
+# Fall back to a token file when the env var is unset OR empty. Empty matters:
+# `TEMPLE_API_TOKEN="$UNSET_VAR" script.sh` sets it to "" rather than leaving
+# it unset, which otherwise looks identical to supplying no token at all.
+TOKEN="${TEMPLE_API_TOKEN:-}"
+TOKEN_FILE="${TEMPLE_API_TOKEN_FILE:-$HOME/.temple-era-token}"
+TOKEN_SRC="environment"
+if [ -z "$TOKEN" ] && [ -r "$TOKEN_FILE" ]; then
+  TOKEN=$(tr -d '[:space:]' < "$TOKEN_FILE")
+  TOKEN_SRC="$TOKEN_FILE"
+fi
+
+if [ -z "$TOKEN" ]; then
+  echo "  ⚠️  SKIPPED — no API token found."
+  echo "     This is the check that proves external API auth still works;"
+  echo "     a skipped Templar gate is NOT a passed one."
+  echo
+  echo "     Create the token file once, from a private terminal:"
+  echo "       read -rs t && printf '%s' \"\$t\" > $TOKEN_FILE \\"
+  echo "         && chmod 600 $TOKEN_FILE && unset t"
+  echo "     Or set TEMPLE_API_TOKEN in the same command that runs this script."
 else
+  echo "  (token source: $TOKEN_SRC)"
   # .json suffix again load-bearing — see the note on $tmp above.
   body=$(mktemp -t me).json
   code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 \
-           -H "Authorization: Bearer $TEMPLE_API_TOKEN" \
+           -H "Authorization: Bearer $TOKEN" \
            "$BASE_URL/api/v1/me" || echo 000)
   if [ "$code" = "200" ]; then
     who=$(node -e "
