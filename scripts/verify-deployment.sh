@@ -92,14 +92,21 @@ if [ -z "${TEMPLE_API_TOKEN:-}" ]; then
   echo "     This is the check that proves external API auth still works."
   echo "     Do not promote without running it:  export TEMPLE_API_TOKEN=tera_..."
 else
-  body=$(mktemp)
+  # .json suffix again load-bearing — see the note on $tmp above.
+  body=$(mktemp -t me).json
   code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 \
            -H "Authorization: Bearer $TEMPLE_API_TOKEN" \
            "$BASE_URL/api/v1/me" || echo 000)
   if [ "$code" = "200" ]; then
-    ok "GET /api/v1/me -> 200 as $(node -e "
-      try { const m=require('$body'); console.log(m.name ?? m.discordId ?? 'authenticated user'); }
-      catch(e) { console.log('authenticated user'); }" 2>/dev/null)"
+    who=$(node -e "
+      const fs=require('fs');
+      try {
+        const m=JSON.parse(fs.readFileSync('$body','utf8'));
+        const parts=[m.name ?? m.id ?? 'unknown'];
+        if (m.character?.name) parts.push('char: '+m.character.name);
+        console.log(parts.join(', '));
+      } catch(e) { console.log('UNPARSEABLE RESPONSE'); }" 2>/dev/null)
+    ok "GET /api/v1/me -> 200 as $who"
   else
     bad "GET /api/v1/me -> $code (expected 200) — TEMPLAR WOULD BREAK"
   fi
