@@ -16,12 +16,13 @@ Everything here happens in the Vercel dashboard. Nothing in this repo changes.
 - Project: **`temple-raids-t3`** under the **Temple Era** team
 - Current settings are recorded in `docs/baselines/vercel-project-export.md` — that
   is the rollback reference
-- Production is currently served from `khlav/temple-raids-t3` and stays that way
-  until you promote
+- The Git repo has already been repointed to `khlav/temple-era` (step 1a done)
+- Production continues serving the last deployment built from the **old** repo
+  until you promote — repointing Git does not change what is live
 
 ---
 
-## Step 1 — Change four settings
+## Step 1 — Change the settings
 
 Vercel → project `temple-raids-t3` → **Settings**.
 
@@ -37,6 +38,7 @@ Vercel → project `temple-raids-t3` → **Settings**.
 | **Root Directory** | `apps/web` | *(empty)* |
 | **Include source files outside of the Root Directory** | ✅ **on** | already on |
 | **Build Command** | `pnpm build && pnpm --filter temple-raid-t3 db:deploy` | *(empty — override OFF)* |
+| Ignored Build Step | **leave on Automatic** — see 1c | Automatic |
 | Install Command | leave empty | empty |
 | Output Directory | leave empty | empty |
 
@@ -52,11 +54,35 @@ You must toggle **Override** on for the Build Command field before typing into i
 > database schema. You find out from a runtime error, not a build failure. This is
 > the only step here that fails silently.
 
-### 1c. Ignored Build Step
+### 1c. Ignored Build Step — leave it on **Automatic**
 
-**Settings → Git → Ignored Build Step** → Override → `npx turbo-ignore`
+**Do not set `npx turbo-ignore`.** Earlier drafts of the plan said to; that is
+obsolete. Vercel now ships **Skip Deployments**, which does the same job better
+and is **on by default** — there is nothing to configure.
 
-Without this, every bot-only commit triggers a full web production deploy.
+Vercel skips a build unless the project's own source changed, one of its internal
+dependencies changed, or a lockfile change affects its dependencies. It reads the
+pnpm workspace graph directly.
+
+Two concrete advantages over the Ignored Build Step:
+
+- Skipped builds **do not consume concurrent build slots** and do not count
+  against deployment quotas. Ignored-Build-Step cancellations still do — they run
+  a build container just to exit 0.
+- Nothing to maintain: no command, no first-deploy edge case.
+
+This repo meets every requirement (verified 2026-08-01): GitHub-connected, pnpm
+workspaces via `pnpm-workspace.yaml`, unique package names (`temple-era`,
+`temple-raid-t3`, `temple-raids-discord-bot`), and no undeclared cross-package
+dependencies — `packages/` is empty.
+
+> **When `packages/` stops being empty (Phase 7):** skip detection relies on
+> dependencies being declared explicitly. If `apps/web` starts consuming
+> `packages/contracts`, that dependency must appear in `apps/web/package.json`,
+> or Vercel will skip web builds when only the contracts package changed.
+
+To confirm it's active: **Settings → Build and Deployment → Root Directory** —
+there's a **Skip deployment** toggle. Leave it **Enabled**.
 
 ---
 
@@ -152,9 +178,10 @@ Settings change only — no code restore, ~5 minutes:
 
 1. **Settings → Git** → reconnect `khlav/temple-raids-t3`
 2. **Root Directory** → clear it
-3. **Build Command** → turn Override off
-4. **Ignored Build Step** → turn Override off
-5. Redeploy the last known-good production deployment
+3. **Build Command** → turn Override off (restores the `postbuild` migration path)
+4. Redeploy the last known-good production deployment
+
+Ignored Build Step needs no rollback — it was never changed.
 
 Environment variables, domains, and protection settings are untouched by any of
 the above. The old repo is still intact — Phase 6 archives it, and archiving is
@@ -174,10 +201,11 @@ this still bites, add `LEFTHOOK=0` or set Install Command to
 "Include source files outside of the Root Directory" got switched off. It must be
 on — the lockfile and workspace manifest live at the repo root.
 
-**`turbo-ignore` skips the very first build**
-It compares against a previous deployment and this repo has none. Redeploy with
-"use existing build cache" **off**, or temporarily clear the Ignored Build Step
-for the first deploy.
+**A build gets skipped when you expected one**
+Skip Deployments decided nothing relevant to `apps/web` changed. Check the
+deployment's status — it will say so explicitly. To force one, use **Redeploy**,
+or push a commit touching `apps/web`. Changes to files outside any workspace
+package (root config, `.github/`) are treated as global and build everything.
 
 **Verification says "blocked by Vercel Deployment Protection"**
 The bypass secret is missing or wrong. It lives at `~/.temple-era-vercel-bypass`.
@@ -191,7 +219,7 @@ means Templar's generated client no longer matches. Do not promote.
 
 ## When it's done
 
-- [ ] Four settings changed
+- [ ] Two settings changed (Root Directory, Build Command) — Git repo already repointed
 - [ ] Preview built, `drizzle-kit` visible in its logs
 - [ ] `verify-deployment.sh` green on the preview, **including check 3**
 - [ ] Promoted, production verified, site clicked through
