@@ -1,277 +1,163 @@
-# Northflank Deployment Guide
+# Northflank Deployment
 
-This guide covers deploying the Temple Raids Discord Bot to Northflank.
+How the Discord bot is deployed. It runs as a single always-on container on
+Northflank, built from this monorepo.
 
-## Prerequisites
+> This describes the **current** setup. The service already exists and is
+> running — you should not need to create it. For the one-time cutover from the
+> standalone repo, see `docs/phase-5-bot-cutover.md`.
 
-- Northflank account
-- GitHub repository connected to Northflank
-- All required environment variables (see below)
+## Current configuration
 
-## Deployment Steps
+| | |
+|---|---|
+| Project / service | `temple-discord-bot` / `temple-discord-bot` |
+| Repository | `khlav/temple-era` (branch `main`) |
+| Build context | `/` — the **repo root**, not `apps/bot` |
+| Dockerfile path | `/apps/bot/Dockerfile` |
+| Compute plan | `nf-compute-10` — 0.1 vCPU / 256 MB |
+| Instances | 1 |
+| Cluster | `nf-us-east1` |
+| Path rule | `apps/web` (ignore) |
+| Ports | one internal HTTP port, not public |
 
-### 1. Create a New Service in Northflank
+**The build context must be the repo root.** `pnpm-lock.yaml` and
+`pnpm-workspace.yaml` live there, and the install cannot resolve without them.
 
-1. Log in to your Northflank dashboard
-2. Create a new service or add-on
-3. Select "Docker" as the deployment method
-4. Connect your GitHub repository (`temple-raids-discord-bot`)
+**The path rule matters.** Without ignoring `apps/web`, every web commit rebuilds
+and restarts the bot, dropping the gateway connection for no reason. Northflank
+path rules use `.gitignore` syntax, and a commit is skipped only if *every*
+modified file matches — so a commit touching both apps still builds the bot.
 
-### 2. Configure Build Settings
+## Environment variables
 
-Northflank will automatically detect the `Dockerfile` in the repository root. The build process will:
+Four are required (`src/config/env.ts`), and they come from **two different
+places**:
 
-- Use Node.js 18 Alpine base image
-- Install pnpm
-- Install dependencies
-- Build TypeScript code
-- Create production-ready image
+| Variable | Source |
+|---|---|
+| `API_BASE_URL` | service runtime environment |
+| `DISCORD_RAID_LOGS_CHANNEL_ID` | service runtime environment |
+| **`DISCORD_BOT_TOKEN`** | **secret group** |
+| **`TEMPLE_WEB_API_TOKEN`** | **secret group** |
 
-**Build Configuration:**
+Optional, all in the service runtime environment: `LOG_LEVEL`,
+`DISCORD_LOG_THREAD_CLEANUP_ENABLED`, `DISCORD_LOG_THREAD_CLEANUP_DAYS`,
+`DISCORD_LOG_THREAD_CLEANUP_CRON`.
 
-- **Dockerfile Path**: `Dockerfile` (root of repository)
-- **Build Context**: `.` (root of repository)
-- **No build command needed** - Dockerfile handles everything
+> ### ⚠️ A new service starts with no secret group attached
+>
+> If you ever create a *new* service rather than editing this one, link the
+> secret group first. Otherwise the build goes green and the container dies at
+> startup on a missing `DISCORD_BOT_TOKEN`, with nothing in the build log to
+> explain why.
 
-### 3. Configure Runtime Settings
+Two values must agree with other systems:
 
-**Start Command:**
+- `API_BASE_URL` must equal the web app's `NEXT_PUBLIC_APP_URL`
+  (`https://www.temple-era.com`).
+- `TEMPLE_WEB_API_TOKEN` is shared by the web app, this bot, **and the external
+  Templar bot**. Changing it is a three-way breaking change.
 
-- The Dockerfile already sets `CMD ["node", "dist/index.js"]`
-- No additional start command needed in Northflank
+## Deploying
 
-**Resource Limits (Bare Minimum):**
+Push to `main`. Northflank builds and redeploys automatically, unless the commit
+only touches `apps/web`.
 
-- **Memory**: 128MB (minimum available)
-- **CPU**: 0.1 CPU (minimum available)
-- The bot is lightweight and will run fine with minimal resources
+The image is built by `apps/bot/Dockerfile`: multi-stage on `node:22-alpine`,
+manifests copied before sources so the install layer caches, then
+`pnpm deploy --prod` collects a standalone runtime tree. It runs as a non-root
+user and holds no ports open.
 
-**Restart Policy:**
+Two things in that Dockerfile are load-bearing and easy to break:
 
-- Configure automatic restarts on failure
-- Northflank will handle container restarts automatically
+- **`--ignore-scripts` on *both* the install and the `pnpm deploy` step.** The
+  root `package.json` has `"prepare": "lefthook install"`, and `pnpm deploy`
+  performs its own install. git is not in the image, so lefthook fails the build.
+  Guarding only the first step is not enough — this was found the hard way.
+- **Filters are path-based (`./apps/bot`), not by package name.**
+  `pnpm --filter <unknown-name>` prints a warning and exits **0**, so a stale
+  name would produce a green build that silently did nothing.
 
-### 4. Set Environment Variables
+## Verifying a deploy
 
-Configure the following environment variables in Northflank's service settings:
-
-#### Required Variables
+Check the service logs for:
 
 ```
-DISCORD_BOT_TOKEN=your_discord_bot_token_here
-DISCORD_RAID_LOGS_CHANNEL_ID=your_channel_id_here
-API_BASE_URL=https://www.templeashkandi.com
-TEMPLE_WEB_API_TOKEN=your_generated_token_here
+[2026-08-01 21:29:03] info: Thread cleanup scheduled: 0 1 * * * (ET)
+[2026-08-01 21:30:43] info: Attempting to create raid {...}
+[2026-08-01 21:30:44] info: Raid operation successful {...}
+[2026-08-01 21:30:44] info: Created new thread for raid {...}
 ```
 
-#### Optional Variables
+The timestamps matter: they confirm the Winston logger is running.
 
-```
-LOG_LEVEL=info
-DISCORD_LOG_THREAD_CLEANUP_ENABLED=false
-DISCORD_LOG_THREAD_CLEANUP_DAYS=3
-DISCORD_LOG_THREAD_CLEANUP_CRON="0 1 * * *"
-```
+The bot acts only on **new** gateway events and never replays history, so the
+real test is posting a WCL link in the raid-logs channel and confirming a raid
+plus a thread appears. Then `bench <name>` in that thread.
 
-**How to Set Environment Variables in Northflank:**
+## Local testing
 
-1. Navigate to your service settings
-2. Go to "Environment Variables" section
-3. Add each variable individually or import from a file
-4. Save changes (service will automatically redeploy)
-
-### 5. Deploy
-
-1. Push your code to the connected branch (typically `main` or `master`)
-2. Northflank will automatically:
-   - Build the Docker image
-   - Deploy the container
-   - Start the bot
-
-3. Monitor the deployment in the Northflank dashboard
-4. Check logs to verify the bot started successfully
-
-### 6. Verify Deployment
-
-**Check Logs:**
-
-- Look for: `Bot logged in as [BotName]#[Discriminator]`
-- Look for: `Monitoring channel: [channel_id]`
-- No error messages should appear
-
-**Test the Bot:**
-
-1. Post a Warcraft Logs link in the configured channel
-2. Verify the bot creates a raid entry
-3. Check that a Discord thread is created
-
-## Local Testing
-
-### Testing Without Docker (Standard Development)
-
-Your existing local development workflow continues to work:
+From the **repo root**:
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Development mode with hot reload
-pnpm dev
-
-# Or build and run production mode
-pnpm build
-pnpm start
+pnpm dev:bot                                          # tsx watch, hot reload
+docker build -f apps/bot/Dockerfile -t temple-bot .   # note the trailing dot
+docker run --rm --env-file apps/bot/.env temple-bot
 ```
 
-The bot will automatically load your `.env` file from the project root.
+Building from inside `apps/bot` cannot work — the context must be the repo root.
 
-### Testing With Docker (Production-Like Environment)
+Running locally alongside the production bot is safe if they watch different
+channels. Even on the same channel the damage is cosmetic: `create-raid` is
+idempotent on WCL report ID and the handler checks for an existing thread, so
+you get a duplicate raid-URL message rather than duplicate raids or threads.
 
-To test the exact production environment locally:
+**Reaching a local web server from the container:** `localhost` inside the
+container is the container. Use `API_BASE_URL=http://host.docker.internal:3000`
+on Docker Desktop, or your host's LAN IP.
 
-```bash
-# Build the Docker image
-docker build -t temple-raids-bot .
-
-# Run the container with your local .env file
-docker run --rm \
-  --env-file .env \
-  temple-raids-bot
-```
-
-Or mount the `.env` file as a volume:
-
-```bash
-docker run --rm \
-  -v $(pwd)/.env:/app/.env \
-  temple-raids-bot
-```
-
-**Note:** The Dockerfile does NOT copy `.env` into the image for security reasons. You must provide environment variables at runtime.
-
-**Important: Localhost Access from Docker Container**
-
-If your `API_BASE_URL` points to `http://localhost:3000` (for local API testing), the Docker container cannot access it because `localhost` inside the container refers to the container itself, not your host machine.
-
-**Solutions:**
-
-1. **Use `host.docker.internal` (Recommended for Docker Desktop on Mac/Windows):**
-
-   ```bash
-   # In your .env file, change:
-   API_BASE_URL=http://host.docker.internal:3000
-   ```
-
-2. **Use your host machine's IP address:**
-
-   ```bash
-   # Find your IP address
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-
-   # Then in your .env file:
-   API_BASE_URL=http://YOUR_IP_ADDRESS:3000
-   ```
-
-3. **For production, always use the full domain:**
-   ```bash
-   API_BASE_URL=https://www.templeashkandi.com
-   ```
+The Dockerfile never copies `.env` into the image; variables are supplied at
+runtime.
 
 ## Troubleshooting
 
-### Build Failures
+**Build fails on `lefthook install`** — an `--ignore-scripts` flag was dropped.
+See above; both the install and the `pnpm deploy` step need it.
 
-**Issue:** Docker build fails
+**`ERR_PNPM_OUTDATED_LOCKFILE`** — run `pnpm install` at the repo root and commit
+the lockfile.
 
-- **Solution:** Check that all dependencies are listed in `package.json`
-- Verify `pnpm-lock.yaml` is up to date
-- Check Docker logs for specific error messages
+**Build cannot find `pnpm-workspace.yaml`** — build context is not the repo root.
 
-**Issue:** TypeScript compilation errors
+**Container starts, then exits** — a required variable is missing, most likely
+because the secret group is not attached. The process exits 1, so Northflank
+restarts it, which looks like a crash loop.
 
-- **Solution:** Run `pnpm typecheck` locally to identify issues
-- Ensure all TypeScript dependencies are installed
+**Bot runs but ignores messages** — check `DISCORD_RAID_LOGS_CHANNEL_ID`, and
+that the bot has the **Message Content** privileged intent plus Send Messages and
+Create Public Threads.
 
-### Runtime Issues
+**Web commits rebuild the bot** — the `apps/web` path rule is missing or
+malformed. A leading space makes it match nothing.
 
-**Issue:** Bot fails to start
+## Rollback
 
-- **Check:** All required environment variables are set in Northflank
-- **Check:** Bot token is valid and has proper permissions
-- **Check:** API endpoint is accessible from Northflank's network
+Settings change only, no code restore:
 
-**Issue:** Bot starts but doesn't respond
+1. Repository → `khlav/temple-raids-discord-bot` (archived; unarchive first —
+   archived repos are read-only)
+2. Dockerfile path → `/Dockerfile`
+3. Remove the `apps/web` path rule
+4. Rebuild
 
-- **Check:** Channel ID is correct
-- **Check:** Bot has proper Discord permissions (Send Messages, Create Public Threads)
-- **Check:** Bot is monitoring the correct channel
+Compute plan, ports, storage, secret group, and runtime environment are
+untouched by any of the above.
 
-**Issue:** Memory or CPU limits exceeded
+## Notes
 
-- **Solution:** If you're using minimum resources (128MB/0.1 CPU) and hitting limits, increase to 256MB memory
-- The bot is lightweight and should run fine on minimum resources, but Discord.js can use memory during high activity
-
-### Environment Variable Issues
-
-**Issue:** Environment variables not loading
-
-- **Check:** Variables are set in Northflank service settings (not just build settings)
-- **Check:** Variable names match exactly (case-sensitive)
-- **Check:** No extra spaces or quotes in variable values
-
-## Migration from Railway
-
-If you're migrating from Railway:
-
-1. **Export environment variables from Railway:**
-   - Copy all environment variables from Railway dashboard
-   - Note the exact variable names and values
-
-2. **Set up Northflank service:**
-   - Follow steps 1-4 above
-   - Import all environment variables
-
-3. **Deploy to Northflank:**
-   - Push code to trigger deployment
-   - Verify bot is running
-
-4. **Test thoroughly:**
-   - Test bot functionality
-   - Monitor logs for 24 hours
-   - Verify no issues
-
-5. **Decommission Railway:**
-   - Once confirmed working on Northflank
-   - Stop/delete Railway service
-   - Update any documentation referencing Railway
-
-## Continuous Deployment
-
-Northflank supports automatic deployments:
-
-1. **Connect GitHub repository** to Northflank
-2. **Configure branch** (typically `main` or `master`)
-3. **Enable auto-deploy** on push
-4. Each push will trigger a new build and deployment
-
-## Monitoring
-
-- **Logs:** View real-time logs in Northflank dashboard
-- **Metrics:** Monitor CPU, memory, and network usage
-- **Alerts:** Configure alerts for service failures or high resource usage
-
-## Security Best Practices
-
-1. **Never commit `.env` files** - Already in `.gitignore`
-2. **Use Northflank secrets** - Store sensitive values as secrets, not plain environment variables
-3. **Rotate tokens regularly** - Update Discord bot token and API tokens periodically
-4. **Limit permissions** - Bot should only have necessary Discord permissions
-5. **Monitor access** - Review logs regularly for suspicious activity
-
-## Support
-
-For issues specific to:
-
-- **Northflank platform:** Check [Northflank documentation](https://northflank.com/docs)
-- **Discord bot functionality:** See main `README.md`
-- **Deployment issues:** Review logs and troubleshooting section above
+- **Logs:** Northflank dashboard. The CLI has no log command.
+- **Secrets:** keep `DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN` in the secret
+  group, never in the plain runtime environment.
+- **Restarts:** the bot is stateless with no volumes, so a restart is cheap. It
+  reconnects to the gateway on its own.
