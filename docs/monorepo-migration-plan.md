@@ -148,8 +148,48 @@ Both apps define `TEMPLE_WEB_API_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_RAID_LOGS
    before Phase 4 or 5.
 4. ~~Confirm `git-filter-repo` is installed locally.~~ ✅ done (2.47.0).
 
-**Phases 1–3 are complete.** See `git log` on `main`. Remaining: 4 (web cutover),
-5 (bot cutover), 6 (archive), 7 (shared packages).
+## ✅ MIGRATION COMPLETE — 2026-08-01
+
+Phases 0–6 are done. Only Phase 7 (shared packages) remains, and it is optional
+payoff work rather than migration.
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 0 Prep | ✅ | `docs/baselines/` — both platform exports |
+| 1 Graft | ✅ | 788 commits = 708 + 77 + 3; trees byte-identical to both sources |
+| 2 Scaffold | ✅ | Root gate green; R1 assertions pass |
+| 3 CI | ✅ | Path filtering proven with 3 throwaway PRs |
+| 4 Web cutover | ✅ | Live from monorepo; migrations run via Build Command; OpenAPI byte-identical; Templar gate 200 |
+| 5 Bot cutover | ✅ | Live from monorepo; real raid post: gateway → API → thread |
+| 6 Archive | ✅ | Both old repos archived (not deleted) |
+| 7 Packages | ⬜ | Optional |
+
+**What differs from this plan as written** — corrections found while executing:
+
+- Repo is **`khlav/temple-era`**, not `khlav/temple-raids` (public, for Vercel's free tier).
+- **Phase 1's acceptance criteria were wrong** — `git log --oneline <path>` applies
+  history simplification, so it can never equal a repo's commit count. Replaced
+  with a total-count identity and tree diffs.
+- **`turbo-ignore` is deprecated.** Vercel's built-in Skip Deployments replaces it,
+  is on by default, and does not consume build slots for skipped builds.
+- **Migrations moved out of `postbuild`** into `db:deploy` (Phase 2), so the Vercel
+  Build Command must invoke it explicitly. This is the migration's only silent
+  failure mode.
+- **Northflank supports path filtering** — the plan hedged that it might not.
+  Build context was already `/`; only the Dockerfile path changed.
+- **R10's logger fix was inverted.** The dead `RAILWAY_ENVIRONMENT` branch was
+  removed along with the console shim it selected, rather than repaired: `import
+  winston` costs ~2.6 MB regardless (measured) versus ~140 KB for the instance, so
+  the shim saved ~5% while giving up timestamps, `logLevel`, and uncaught
+  exception handling.
+- **A root `.dockerignore` was required.** Moving the build context to the repo
+  root silently disabled `apps/bot/.dockerignore`, which would have put `.env`
+  files and `apps/web/backups/` (production dumps) into the build context.
+- **Phase 5's test environment was skipped** deliberately — a local `docker build`
+  plus CI's module-resolution check covered the risk for a stateless bot whose
+  rollback is a settings change.
+
+Runbooks: `docs/phase-4-web-cutover.md`, `docs/phase-5-bot-cutover.md`.
 
 ### Phase 1 — Graft both histories `[AGENT]`
 Nothing deploys from this repo yet. Work on `main` directly; it is a fresh repo.
@@ -301,8 +341,15 @@ Then `docker build -f apps/bot/Dockerfile .` and run the container locally again
 
 **Rollback:** repoint Northflank at `temple-raids-discord-bot` — a settings change, not a code restore.
 
-### Phase 6 — Archive `[HUMAN]`
-Wait ~1 week of normal operation. Then **archive** (never delete) both old repos. Archived keeps every old SHA, PR, and issue link resolving — which is what makes R6 and both rollbacks survivable.
+### Phase 6 — Archive `[HUMAN]` — ✅ done 2026-08-01
+~~Wait ~1 week of normal operation.~~ Archived the same day, after both cutovers
+were verified against production. **Archived, never deleted** — every old SHA, PR,
+and issue link still resolves, which is what makes R6 and both rollbacks
+survivable.
+
+Archiving is reversible: unarchive from the repo's settings page, or
+`gh repo unarchive <repo>`. A rollback would need that first, since an archived
+repo is read-only.
 
 ### Phase 7 — Collect the payoff `[AGENT]`, one PR each
 - **`packages/contracts`** — one Zod schema per `/api/discord/*` request/response, compiled per **R3**. Web handlers parse with it; bot fetch wrappers type against it. Replaces the bot's hand-declared `PermissionCheckResult` and the routes' untyped `await request.json()`. **Must not alter any wire format** — Templar depends on the proxy route. Wire formats are stable, but the *authorization meaning* behind them is not: as of 2026-07, all five `/api/discord/*` endpoints gate on scopes (e.g. `raidlog:manage`) rather than the legacy `isRaidManager`/`isAdmin` booleans. Contract schemas authored against the old semantics would be wrong even though the JSON shape hasn't moved.
