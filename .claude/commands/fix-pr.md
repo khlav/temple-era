@@ -27,9 +27,13 @@ say the PR is ready and ask.
 ## Step 1: Identify the PR
 
 ```bash
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 PR=$(gh pr view --json number --jq .number)   # or use the number in $ARGUMENTS
 gh pr view "$PR" --json number,title,headRefName,headRefOid,url
 ```
+
+Capture `$REPO` rather than hardcoding the owner/name — the same command file
+should keep working in a fork or after a rename.
 
 If there is no PR for the current branch, stop and say so — this command
 operates on an existing PR.
@@ -49,10 +53,24 @@ Poll until the SHA in that marker matches the PR head:
 
 ```bash
 HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
-gh api "repos/khlav/temple-era/issues/$PR/comments" \
+REVIEWED=$(gh api "repos/$REPO/issues/$PR/comments" \
   --jq '.[] | select(.user.login=="greptile-apps[bot]") | .body' \
-  | grep -o 'commit/[0-9a-f]\{7,40\}' | tail -1
+  | grep -o 'commit/[0-9a-f]\{7,40\}' | tail -1 | cut -d/ -f2)
 ```
+
+**Compare by prefix, not equality.** `headRefOid` is the full 40-character SHA
+while the marker URL may carry an abbreviated one, so `"$REVIEWED" = "$HEAD"`
+can never match and the loop would spin until timeout on every run:
+
+```bash
+case "$HEAD" in
+  "$REVIEWED"*) echo "current" ;;
+  *)            echo "stale — keep polling" ;;
+esac
+```
+
+Note the `cut -d/ -f2` above: `grep -o` returns `commit/<sha>`, and forgetting to
+strip that prefix produces the same never-matching comparison.
 
 Poll about every 30 seconds, up to ~10 minutes. If it never updates, report
 that Greptile did not review and stop — do not guess at feedback.
@@ -64,7 +82,7 @@ Three sources, all worth reading:
 **a. Confidence score** — the loop's exit condition:
 
 ```bash
-gh api "repos/khlav/temple-era/issues/$PR/comments" \
+gh api "repos/$REPO/issues/$PR/comments" \
   --jq '.[] | select(.user.login=="greptile-apps[bot]") | .body' \
   | grep -oE 'Confidence Score: [0-9]+/5'
 ```
@@ -77,9 +95,12 @@ the rendered HTML.
 **c. Inline review comments** — a separate endpoint, easy to miss:
 
 ```bash
-gh api "repos/khlav/temple-era/pulls/$PR/comments" \
-  --jq '.[] | "\(.path):\(.line)  \(.body)"'
+gh api "repos/$REPO/pulls/$PR/comments" \
+  --jq '.[] | "\(.path):\(.line // .original_line)  \(.body)"'
 ```
+
+`.line` is null on comments anchored to an outdated diff position — fall back to
+`.original_line` or those comments render as `null`.
 
 ## Step 4: Judge each issue, then fix
 
