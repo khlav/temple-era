@@ -79,15 +79,34 @@ Northflank → project `temple-discord-bot` → service `temple-discord-bot` →
 
 Only two fields actually change: repository and Dockerfile path.
 
-### Then add a path filter
+### Then add a path rule
 
-**Build settings → path ignore rules** → add `apps/web/**`.
+**Service → Build options → Advanced build settings → Path rules** — the same
+page as the two fields above, further down.
+
+Add, using **`.gitignore` syntax** (not glob):
+
+```
+apps/web/
+```
 
 Without it, every web commit rebuilds and restarts the bot. The bot is stateless
 so a restart is survivable, but it drops the gateway connection for no reason.
 
+Two details from Northflank's docs:
+
+- The rule is **all-or-nothing per commit**: a commit is skipped only if *every*
+  modified file matches. A commit touching both apps still builds the bot, which
+  is the safe direction.
+- Northflank also supports allow-list mode (`isAllowList: true`) where you list
+  what *should* build. This service has `isAllowList: false`, so a single ignore
+  rule is the smaller change.
+
+Commit-message flags are already enabled by default — `[skip ci]`, `[skip nf]`,
+and similar — useful for docs-only commits.
+
 The export confirmed `pathIgnoreRules` exists on this service and is currently
-empty — the original plan hedged that the tier might not support it.
+empty; the original plan hedged that the tier might not support it.
 
 ---
 
@@ -159,7 +178,7 @@ Northflank service.
 - [ ] `docker build` succeeds locally
 - [ ] Container runs and logs in against the real gateway
 - [ ] Northflank repointed: repo + Dockerfile path
-- [ ] `apps/web/**` path ignore rule added
+- [ ] `apps/web/` path rule added
 - [ ] Service Running, gateway connected
 - [ ] One real raid post → raid created + thread
 - [ ] One bench message → bench updated
