@@ -5,7 +5,7 @@ pre-commit:
       run: |
         if [ -d "apps/web/drizzle" ] && [ "$(git status --porcelain apps/web/drizzle/ | wc -l)" -gt 0 ]; then
           echo "⚠️  Warning: Uncommitted database migrations detected"
-          echo "   Consider running 'pnpm --filter temple-raid-t3 db:generate' and committing migrations"
+          echo "   Consider running 'pnpm --filter temple-era-web db:generate' and committing migrations"
         fi
     lint:
       glob: "apps/**/src/**/*.{ts,tsx,js,jsx}"

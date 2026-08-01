@@ -1,5 +1,5 @@
 {
-  "name": "temple-raids-discord-bot",
+  "name": "temple-era-bot",
   "version": "1.0.0",
   "type": "module",
   "description": "Discord bot for Temple Raids WCL link detection and raid creation",

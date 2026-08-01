@@ -1,5 +1,10 @@
 # Discord bot image.
 #
+# Filters here are PATH-based ("./apps/bot") rather than by package name, so a
+# package rename cannot silently break this build. That matters because
+# `pnpm --filter <unknown-name>` prints a warning and exits 0 — it does not fail,
+# so a stale name would produce a green build that quietly did nothing.
+#
 # IMPORTANT: the build context is the REPO ROOT, not this directory:
 #
 #   docker build -f apps/bot/Dockerfile -t temple-bot .
@@ -26,12 +31,12 @@ COPY apps/web/package.json apps/web/
 # which would fail here — .git is excluded by .dockerignore and lefthook is not
 # part of a filtered production install. None of the bot's runtime dependencies
 # (discord.js, winston, node-cron, dotenv) have meaningful install scripts.
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter temple-raids-discord-bot...
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter "./apps/bot..."
 
 # ---------------------------------------------------------------------- build
 FROM deps AS build
 COPY apps/bot apps/bot
-RUN pnpm --filter temple-raids-discord-bot build
+RUN pnpm --filter "./apps/bot" build
 
 # Collect the bot plus only its production dependencies into a standalone tree.
 # pnpm 9 semantics: `deploy` changed in pnpm 10 and needs --legacy there, which
@@ -41,7 +46,7 @@ RUN pnpm --filter temple-raids-discord-bot build
 # install into /out, which re-triggers the root "prepare": "lefthook install".
 # git is not present in this image, so lefthook exits non-zero and fails the
 # build. Guarding only the earlier install step is not enough.
-RUN pnpm deploy --filter temple-raids-discord-bot --prod --ignore-scripts /out
+RUN pnpm deploy --filter "./apps/bot" --prod --ignore-scripts /out
 
 # --------------------------------------------------------------------- runtime
 FROM base AS runner

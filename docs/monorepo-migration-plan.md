@@ -244,7 +244,7 @@ diff <(git ls-tree -r --name-only HEAD apps/bot | sed 's|^apps/bot/||') \
 7. Extend `lefthook.yml` globs to `apps/**/src/**`; make typecheck/build per-app via Turborepo.
 8. `pnpm install`. Diff the bot's tree against the old repo (**R5**):
    ```bash
-   pnpm --filter temple-raids-discord-bot list --depth 2
+   pnpm --filter temple-era-bot list --depth 2
    ```
 9. Root `CLAUDE.md` (workspace-level only); trim `apps/*/CLAUDE.md` to app-specific content; merge the two `.cursorrules`; update `/ship` for two apps.
 
@@ -278,7 +278,7 @@ diff <(git ls-tree -r --name-only HEAD apps/bot | sed 's|^apps/bot/||') \
 > Set the Vercel **Build Command** to run both, in order:
 >
 > ```bash
-> pnpm build && pnpm --filter temple-raid-t3 db:deploy
+> pnpm build && pnpm --filter temple-era-web db:deploy
 > ```
 >
 > Verify on a preview deployment that the migrate step appears in the build log **before**
@@ -304,12 +304,12 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/bot/package.json apps/bot/
 # add packages/*/package.json here once Phase 7 lands
-RUN pnpm install --frozen-lockfile --filter temple-raids-discord-bot...
+RUN pnpm install --frozen-lockfile --filter temple-era-bot...
 
 FROM deps AS build
 COPY . .
-RUN pnpm --filter temple-raids-discord-bot build
-RUN pnpm deploy --filter temple-raids-discord-bot --prod /out
+RUN pnpm --filter temple-era-bot build
+RUN pnpm deploy --filter temple-era-bot --prod /out
 
 FROM base AS runner
 COPY --from=build /out /app

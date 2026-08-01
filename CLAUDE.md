@@ -8,7 +8,7 @@ Workspace-level guidance for Claude Code (claude.ai/code) in the `temple-era` mo
 
 A pnpm + Turborepo workspace holding two previously separate applications, both histories preserved:
 
-| Path | App | Deploys to |
+| Path | Package | Deploys to |
 |---|---|---|
 | `apps/web` | Next.js 15 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
 | `apps/bot` | Discord gateway bot — a thin client over five `/api/discord/*` endpoints the web app owns | **Northflank** (Docker) |
@@ -44,12 +44,12 @@ owns it. `dev` deliberately means *web only* — `dev:all` starts both, which is
 rarely what you want.
 
 For a script with no root alias, there are short prefixes rather than
-hand-typing the package name (note it is `temple-raid-t3`, singular "raid",
+hand-typing the package name (note it is `temple-era-web`, singular "raid",
 inherited from the original repo and easy to typo):
 
 ```bash
-pnpm web preview          # = pnpm --filter temple-raid-t3 preview
-pnpm bot start            # = pnpm --filter temple-raids-discord-bot start
+pnpm web preview          # = pnpm --filter temple-era-web preview
+pnpm bot start            # = pnpm --filter temple-era-bot start
 ```
 
 ### Database migrations are NOT part of `build`
@@ -57,7 +57,7 @@ pnpm bot start            # = pnpm --filter temple-raids-discord-bot start
 `pnpm build` compiles only. Migrations run through an explicit script:
 
 ```bash
-pnpm --filter temple-raid-t3 db:deploy    # drizzle-kit migrate + kill idle connections
+pnpm --filter temple-era-web db:deploy    # drizzle-kit migrate + kill idle connections
 ```
 
 This was split apart during the monorepo migration (Phase 2). Previously it lived in the
@@ -68,7 +68,7 @@ migrations against a real database.
 > must call `db:deploy` itself. The Vercel Build Command must be:
 >
 > ```bash
-> pnpm build && pnpm --filter temple-raid-t3 db:deploy
+> pnpm build && pnpm --filter temple-era-web db:deploy
 > ```
 >
 > If it isn't, deploys will ship code against an un-migrated database and fail silently at

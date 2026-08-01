@@ -43,6 +43,18 @@ jobs:
               - *shared
               - 'apps/bot/**'
 
+  # `pnpm --filter <unknown-name>` prints a warning and exits 0 rather than
+  # failing, so a stale package name produces a green build that quietly does
+  # nothing. This job fails fast if any --filter names a package that no longer
+  # exists. Path-based filters ("./apps/bot") are rename-proof and skipped.
+  filters:
+    name: Filter names
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every --filter <name> must match a real workspace package
+        run: node .github/scripts/check-filters.mjs
+
   web:
     name: Web
     needs: changes
@@ -72,13 +84,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm --filter temple-raid-t3 lint
+        run: pnpm --filter temple-era-web lint
 
       - name: Typecheck
-        run: pnpm --filter temple-raid-t3 typecheck
+        run: pnpm --filter temple-era-web typecheck
 
       - name: Test
-        run: pnpm --filter temple-raid-t3 test
+        run: pnpm --filter temple-era-web test
 
       # `build` no longer runs migrations (that moved to `db:deploy` in Phase 2),
       # so CI can compile with no database credentials at all. Env validation is
@@ -86,7 +98,7 @@ jobs:
       - name: Build
         env:
           SKIP_ENV_VALIDATION: "1"
-        run: pnpm --filter temple-raid-t3 build
+        run: pnpm --filter temple-era-web build
 
   bot:
     name: Bot
@@ -117,13 +129,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm --filter temple-raids-discord-bot lint
+        run: pnpm --filter temple-era-bot lint
 
       - name: Typecheck
-        run: pnpm --filter temple-raids-discord-bot typecheck
+        run: pnpm --filter temple-era-bot typecheck
 
       - name: Build
-        run: pnpm --filter temple-raids-discord-bot build
+        run: pnpm --filter temple-era-bot build
 
       - name: Verify build output exists
         run: |
@@ -170,14 +182,15 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [web, bot]
+    needs: [web, bot, filters]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          echo "web: ${{ needs.web.result }}"
-          echo "bot: ${{ needs.bot.result }}"
-          for r in "${{ needs.web.result }}" "${{ needs.bot.result }}"; do
+          echo "web:     ${{ needs.web.result }}"
+          echo "bot:     ${{ needs.bot.result }}"
+          echo "filters: ${{ needs.filters.result }}"
+          for r in "${{ needs.web.result }}" "${{ needs.bot.result }}" "${{ needs.filters.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "❌ A required job did not pass."
               exit 1
