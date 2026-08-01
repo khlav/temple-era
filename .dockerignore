@@ -1,0 +1,49 @@
+# Docker build context is the REPO ROOT (see apps/bot/Dockerfile), so this file
+# is the one Docker reads. apps/bot/.dockerignore no longer applies — it was
+# written when the bot repo was its own build context.
+#
+# Keep this tight: everything not excluded is uploaded to the daemon on every
+# build, and apps/web alone carries a very large node_modules.
+
+# dependencies — reinstalled inside the image from the lockfile
+**/node_modules
+
+# secrets — must never enter an image layer
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/!.env.example
+
+# build outputs — rebuilt in the image
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+**/coverage
+
+# local data — apps/web/backups holds production dumps with user data
+apps/web/backups
+apps/web/public/**/*.map
+
+# vcs + tooling
+.git
+.github
+.claude
+.agent
+.lefthook
+.worktrees
+.vercel
+.idea
+.vscode
+
+# docs and scripts not needed to build the bot
+docs
+plans
+apps/web/docs
+wow_addons_for_reference
+
+# misc
+**/.DS_Store
+**/*.log
