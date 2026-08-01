@@ -182,14 +182,15 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [web, bot]
+    needs: [web, bot, filters]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          echo "web: ${{ needs.web.result }}"
-          echo "bot: ${{ needs.bot.result }}"
-          for r in "${{ needs.web.result }}" "${{ needs.bot.result }}"; do
+          echo "web:     ${{ needs.web.result }}"
+          echo "bot:     ${{ needs.bot.result }}"
+          echo "filters: ${{ needs.filters.result }}"
+          for r in "${{ needs.web.result }}" "${{ needs.bot.result }}" "${{ needs.filters.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "❌ A required job did not pass."
               exit 1
