@@ -63,10 +63,18 @@ while the marker URL may carry an abbreviated one, so `"$REVIEWED" = "$HEAD"`
 can never match and the loop would spin until timeout on every run:
 
 ```bash
-case "$HEAD" in
-  "$REVIEWED"*) echo "current" ;;
-  *)            echo "stale — keep polling" ;;
-esac
+# Guard the empty case FIRST. With $REVIEWED empty — no comment posted yet, which
+# is exactly the state on a fresh PR — the pattern becomes ""* which matches any
+# input, so the case would report "current" and the loop would exit immediately
+# and read a review that does not exist.
+if [ -z "$REVIEWED" ]; then
+  echo "no review yet — keep polling"
+else
+  case "$HEAD" in
+    "$REVIEWED"*) echo "current" ;;
+    *)            echo "stale — keep polling" ;;
+  esac
+fi
 ```
 
 Note the `cut -d/ -f2` above: `grep -o` returns `commit/<sha>`, and forgetting to
