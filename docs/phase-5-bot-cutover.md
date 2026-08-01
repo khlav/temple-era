@@ -47,11 +47,21 @@ docker run --rm --env-file apps/bot/.env temple-bot
 Expect `Starting Discord bot...` followed by a successful gateway login. Post a
 WCL link in the raid-logs channel and confirm a thread appears.
 
-> ### ⚠️ Never run two instances at once
+> ### Running alongside the live bot is fine
 >
-> Both would receive the same `MESSAGE_CREATE` events and both would act, giving
-> duplicate raids and duplicate threads. **Pause the Northflank service before
-> running the container locally**, and unpause it after.
+> Both instances receive the same `MESSAGE_CREATE` events, but the damage is
+> cosmetic — verified by reading the code, 2026-08-01:
+>
+> - **No duplicate raids.** `create-raid` looks up the raid log by WCL report ID
+>   and returns the existing raid instead of inserting.
+> - **No duplicate threads.** `messageHandler.ts` checks `if (message.thread)`
+>   first, and Discord allows only one thread per message regardless.
+> - **You will see a duplicate raid-URL message** in the thread, since both bots
+>   post it.
+>
+> Running both is actually a good test: you can watch the new image respond to a
+> real gateway event. Pause Northflank only if the duplicate message would
+> confuse people.
 
 ---
 
@@ -147,7 +157,7 @@ Northflank service.
 ## When it's done
 
 - [ ] `docker build` succeeds locally
-- [ ] Container runs and logs in (production service paused during the test)
+- [ ] Container runs and logs in against the real gateway
 - [ ] Northflank repointed: repo + Dockerfile path
 - [ ] `apps/web/**` path ignore rule added
 - [ ] Service Running, gateway connected

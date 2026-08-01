@@ -36,7 +36,12 @@ RUN pnpm --filter temple-raids-discord-bot build
 # Collect the bot plus only its production dependencies into a standalone tree.
 # pnpm 9 semantics: `deploy` changed in pnpm 10 and needs --legacy there, which
 # is why packageManager is pinned to pnpm@9.15.1 at the root.
-RUN pnpm deploy --filter temple-raids-discord-bot --prod /out
+#
+# --ignore-scripts again, and it is easy to miss here: `deploy` performs its own
+# install into /out, which re-triggers the root "prepare": "lefthook install".
+# git is not present in this image, so lefthook exits non-zero and fails the
+# build. Guarding only the earlier install step is not enough.
+RUN pnpm deploy --filter temple-raids-discord-bot --prod --ignore-scripts /out
 
 # --------------------------------------------------------------------- runtime
 FROM base AS runner
