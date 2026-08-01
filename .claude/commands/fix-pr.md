@@ -52,7 +52,11 @@ The comment ends with a marker naming the commit it reviewed:
 Poll until the SHA in that marker matches the PR head:
 
 ```bash
-HEAD=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
+# Use the LOCAL SHA, not `gh pr view --json headRefOid`. GitHub's API lags a push
+# by a few seconds, so reading it right after `git push` returns the PREVIOUS
+# commit — which Greptile has already reviewed, so the poll matches instantly and
+# you act on the previous round's feedback.
+HEAD=$(git rev-parse HEAD)
 REVIEWED=$(gh api "repos/$REPO/issues/$PR/comments" \
   --jq '.[] | select(.user.login=="greptile-apps[bot]") | .body' \
   | grep -o 'commit/[0-9a-f]\{7,40\}' | tail -1 | cut -d/ -f2)
