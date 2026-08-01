@@ -37,7 +37,7 @@ Vercel → project `temple-raids-t3` → **Settings**.
 |---|---|---|
 | **Root Directory** | `apps/web` | *(empty)* |
 | **Include source files outside of the Root Directory** | ✅ **on** | already on |
-| **Build Command** | `pnpm build && pnpm --filter temple-raid-t3 db:deploy` | *(empty — override OFF)* |
+| **Build Command** | `pnpm build && pnpm --filter temple-era-web db:deploy` | *(empty — override OFF)* |
 | Ignored Build Step | **leave on Automatic** — see 1c | Automatic |
 | Install Command | leave empty | empty |
 | Output Directory | leave empty | empty |
@@ -73,7 +73,7 @@ Two concrete advantages over the Ignored Build Step:
 
 This repo meets every requirement (verified 2026-08-01): GitHub-connected, pnpm
 workspaces via `pnpm-workspace.yaml`, unique package names (`temple-era`,
-`temple-raid-t3`, `temple-raids-discord-bot`), and no undeclared cross-package
+`temple-era-web`, `temple-raids-discord-bot`), and no undeclared cross-package
 dependencies — `packages/` is empty.
 
 > **When `packages/` stops being empty (Phase 7):** skip detection relies on

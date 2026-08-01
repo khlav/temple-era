@@ -9,7 +9,7 @@ Guidance for Claude Code (claude.ai/code) when working in the **Discord bot**.
 **Running commands**: examples below use bare `pnpm <script>`. From the repo root, prefix with a filter:
 
 ```bash
-pnpm --filter temple-raids-discord-bot <script>    # or cd apps/bot first
+pnpm --filter temple-era-bot <script>    # or cd apps/bot first
 ```
 
 ## Project Overview

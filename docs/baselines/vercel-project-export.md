@@ -19,7 +19,7 @@ If Phase 4 goes wrong, this is what "put it back" means.
 | Production branch | `main` | `main` (unchanged) |
 | Root Directory | **null** (repo root) | `apps/web` |
 | Include files outside Root Dir | **true** | true (already correct) |
-| Build Command | **null** → framework default | `pnpm build && pnpm --filter temple-raid-t3 db:deploy` |
+| Build Command | **null** → framework default | `pnpm build && pnpm --filter temple-era-web db:deploy` |
 | Install Command | null → default | null |
 | Output Directory | null → default | null |
 | Ignored Build Step | **unset** → every commit builds | **unchanged** — Vercel's built-in Skip Deployments (on by default) replaces `turbo-ignore` |

@@ -11,7 +11,7 @@ Guidance for Claude Code (claude.ai/code) when working in the **web app**.
 **Running commands**: examples below use bare `pnpm <script>`. From the repo root, prefix with a filter:
 
 ```bash
-pnpm --filter temple-raid-t3 <script>    # or cd apps/web first
+pnpm --filter temple-era-web <script>    # or cd apps/web first
 ```
 
 ## Project Overview
@@ -73,7 +73,7 @@ Hooks are managed by **lefthook** from the repo root (`lefthook.yml` + `.lefthoo
 `pnpm build` compiles only and never touches the database. It does still validate the environment via `@t3-oss/env-nextjs`, so it needs a populated `apps/web/.env`. To compile without one:
 
 ```bash
-SKIP_ENV_VALIDATION=1 pnpm --filter temple-raid-t3 exec next build
+SKIP_ENV_VALIDATION=1 pnpm --filter temple-era-web exec next build
 ```
 
 ## Architecture Overview
