@@ -27,7 +27,15 @@ MERGED_AT="${MERGED_AT:-$5}"
 # Defaults to "Website" to preserve pre-monorepo behaviour if unset.
 PR_SCOPE="${PR_SCOPE:-Website}"
 
-echo "Processing Discord notification for $PR_SCOPE PR #$PR_NUMBER"
+# "Repo PR #12" reads badly, and a repo-wide change has no app to name — so the
+# prefix is dropped entirely there, giving plain "PR #12: title". App-specific
+# scopes keep theirs, which is the whole point of having a prefix.
+case "$PR_SCOPE" in
+  Repo|"") TITLE_PREFIX="" ;;
+  *)       TITLE_PREFIX="$PR_SCOPE " ;;
+esac
+
+echo "Processing Discord notification for ${TITLE_PREFIX}PR #$PR_NUMBER"
 
 # Function to convert GitHub markdown to Discord format
 convert_to_discord() {
@@ -76,7 +84,7 @@ fi
 if command -v jq >/dev/null 2>&1; then
     JSON_PAYLOAD=$(jq -n \
         --arg number "$PR_NUMBER" \
-        --arg title "$PR_SCOPE PR #$PR_NUMBER: $PR_TITLE" \
+        --arg title "${TITLE_PREFIX}PR #$PR_NUMBER: $PR_TITLE" \
         --arg desc "$DESCRIPTION" \
         --arg url "$PR_URL" \
         --arg timestamp "$MERGED_AT" \
@@ -108,7 +116,7 @@ else
 {
   "embeds": [
     {
-      "title": "$PR_SCOPE PR #$PR_NUMBER: $ESCAPED_TITLE",
+      "title": "${TITLE_PREFIX}PR #$PR_NUMBER: $ESCAPED_TITLE",
       "description": "$ESCAPED_DESCRIPTION",
       "color": 5763719,
       "url": "$PR_URL",
