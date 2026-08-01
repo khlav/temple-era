@@ -29,11 +29,27 @@ pnpm test             # vitest (web only today; bot has no suite yet)
 pnpm format:fix       # oxfmt across both apps
 ```
 
-Target a single app with `--filter`:
+Everyday commands work from the root without filters:
 
 ```bash
-pnpm --filter temple-raid-t3 dev              # web dev server
-pnpm --filter temple-raids-discord-bot dev    # bot with hot reload
+pnpm dev              # web dev server (the common case)
+pnpm dev:bot          # bot with hot reload
+pnpm dev:all          # both at once via Turborepo
+pnpm db:studio        # any db:* script — all forward to apps/web
+pnpm db:clone-prod
+```
+
+`db:*` scripts are web-only passthroughs: there is one database and `apps/web`
+owns it. `dev` deliberately means *web only* — `dev:all` starts both, which is
+rarely what you want.
+
+For a script with no root alias, there are short prefixes rather than
+hand-typing the package name (note it is `temple-raid-t3`, singular "raid",
+inherited from the original repo and easy to typo):
+
+```bash
+pnpm web preview          # = pnpm --filter temple-raid-t3 preview
+pnpm bot start            # = pnpm --filter temple-raids-discord-bot start
 ```
 
 ### Database migrations are NOT part of `build`

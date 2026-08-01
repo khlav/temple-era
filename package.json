@@ -6,14 +6,33 @@
   "description": "Temple Raids monorepo — Next.js web app (temple-era.com) and Discord bot",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "format": "turbo run format",
     "format:fix": "turbo run format:fix",
     "test": "turbo run test",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+
+    "dev": "pnpm --filter temple-raid-t3 dev",
+    "dev:web": "pnpm --filter temple-raid-t3 dev",
+    "dev:bot": "pnpm --filter temple-raids-discord-bot dev",
+    "dev:all": "turbo run dev",
+
+    "web": "pnpm --filter temple-raid-t3",
+    "bot": "pnpm --filter temple-raids-discord-bot",
+
+    "db:generate": "pnpm --filter temple-raid-t3 db:generate",
+    "db:migrate": "pnpm --filter temple-raid-t3 db:migrate",
+    "db:deploy": "pnpm --filter temple-raid-t3 db:deploy",
+    "db:push": "pnpm --filter temple-raid-t3 db:push",
+    "db:studio": "pnpm --filter temple-raid-t3 db:studio",
+    "db:clone-prod": "pnpm --filter temple-raid-t3 db:clone-prod",
+    "db:migration:compare": "pnpm --filter temple-raid-t3 db:migration:compare",
+    "db:migration:dump:data": "pnpm --filter temple-raid-t3 db:migration:dump:data",
+    "db:migration:dump:full": "pnpm --filter temple-raid-t3 db:migration:dump:full",
+    "db:migration:preflight": "pnpm --filter temple-raid-t3 db:migration:preflight",
+    "db:migration:restore": "pnpm --filter temple-raid-t3 db:migration:restore"
   },
   "devDependencies": {
     "lefthook": "^2.1.6",
