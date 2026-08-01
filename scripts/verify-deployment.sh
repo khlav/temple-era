@@ -36,6 +36,21 @@ if [ -z "$BASE_URL" ]; then
 fi
 BASE_URL="${BASE_URL%/}"
 
+# Validate the URL before making three requests against it. A malformed URL
+# otherwise produces three "could not resolve host" failures that read like the
+# deployment is broken — which is the opposite of reassuring on a cutover.
+# Copy-pasting a URL that already carries its scheme is the common way in.
+case "$BASE_URL" in
+  https://https://*|http://http://*|https://http://*|http://https://*)
+    echo "❌ Doubled URL scheme: $BASE_URL" >&2
+    echo "   Did you mean: ${BASE_URL#*://}" >&2
+    exit 64 ;;
+  https://*|http://*) ;;
+  *)
+    echo "❌ URL must start with https:// or http:// — got: $BASE_URL" >&2
+    exit 64 ;;
+esac
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASELINE="$REPO_ROOT/docs/baselines/openapi-v1-prod.json"
 
@@ -85,7 +100,7 @@ echo
 echo "1. Home page"
 home=$(mktemp -t home).html
 homeh=$(mktemp -t homeh).txt
-code=$(curl -sS -D "$homeh" -o "$home" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/" || echo 000)
+code=$(curl -sS -D "$homeh" -o "$home" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/")
 if [ "$code" = "200" ]; then
   ok "GET / -> 200"
 elif looks_like_vercel_wall "$homeh" "$home"; then
@@ -108,7 +123,7 @@ else
   # the "what changed?" output into a 60KB dump of the whole document.
   tmp=$(mktemp -t openapi).json
   tmph=$(mktemp -t openapih).txt
-  code=$(curl -sS -D "$tmph" -o "$tmp" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/api/v1/openapi.json" || echo 000)
+  code=$(curl -sS -D "$tmph" -o "$tmp" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} "$BASE_URL/api/v1/openapi.json")
   if [ "$code" != "200" ] && looks_like_vercel_wall "$tmph" "$tmp"; then
     bad "GET /api/v1/openapi.json -> $code — blocked by Vercel Deployment Protection"
     echo "     Set VERCEL_AUTOMATION_BYPASS_SECRET; this is not a spec problem."
@@ -172,7 +187,7 @@ else
   bodyh=$(mktemp -t meh).txt
   code=$(curl -sS -D "$bodyh" -o "$body" -w '%{http_code}' --max-time 30 ${BYPASS[@]+"${BYPASS[@]}"} \
            -H "Authorization: Bearer $TOKEN" \
-           "$BASE_URL/api/v1/me" || echo 000)
+           "$BASE_URL/api/v1/me")
   if [ "$code" = "200" ]; then
     who=$(node -e "
       const fs=require('fs');
