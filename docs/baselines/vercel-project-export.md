@@ -22,7 +22,7 @@ If Phase 4 goes wrong, this is what "put it back" means.
 | Build Command | **null** → framework default | `pnpm build && pnpm --filter temple-raid-t3 db:deploy` |
 | Install Command | null → default | null |
 | Output Directory | null → default | null |
-| Ignored Build Step | **unset** → every commit builds | `npx turbo-ignore` |
+| Ignored Build Step | **unset** → every commit builds | **unchanged** — Vercel's built-in Skip Deployments (on by default) replaces `turbo-ignore` |
 | Framework | `nextjs` | unchanged |
 | Node version | `22.x` | unchanged |
 | Function region | `iad1` | unchanged |

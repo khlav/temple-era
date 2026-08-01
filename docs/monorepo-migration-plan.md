@@ -109,7 +109,14 @@ Issues, PR history and review threads, labels, Actions secrets, branch protectio
 ### R7. Vercel — repoint, don't recreate
 The existing project holds the `temple-era.com` domain, all env vars, and `DATABASE_URL`. Its `postbuild` runs `drizzle-kit migrate` against **production**. A fresh project with a hand-retyped `DATABASE_URL` is a live-data hazard.
 
-**Do:** change the connected Git repo on the **existing** project (Settings → Git), then set Root Directory → `apps/web`, enable *"Include source files outside of the Root Directory"*, and set Ignored Build Step → `npx turbo-ignore`. Without that last one, every bot commit triggers a production migration. `[HUMAN]`
+**Do:** change the connected Git repo on the **existing** project (Settings → Git), then set Root Directory → `apps/web` and enable *"Include source files outside of the Root Directory"*. `[HUMAN]`
+
+> **Superseded 2026-08-01:** this originally said to set Ignored Build Step →
+> `npx turbo-ignore` so bot commits would not trigger a production migration.
+> Vercel now ships **Skip Deployments**, which is on by default, reads the pnpm
+> workspace graph, and — unlike the Ignored Build Step — does not consume
+> concurrent build slots or deployment quota for skipped builds. Leave Ignored
+> Build Step on **Automatic**. This repo meets all of the feature's requirements.
 
 Since repointing carries the existing env vars over rather than recreating them, this is also where a newly-added var like `SUPERADMIN_DISCORD_IDS` (2026-07, Production + Preview — env-derived break-glass superadmin access, no DB row) survives for free. If R7's approach ever changes to "recreate the project," anything added after this doc was written needs a fresh audit of the existing project's env var list before cutover — a silently-missing one here means an admin loses access, not a build failure.
 
@@ -237,7 +244,9 @@ diff <(git ls-tree -r --name-only HEAD apps/bot | sed 's|^apps/bot/||') \
 > Verify on a preview deployment that the migrate step appears in the build log **before**
 > promoting to production. Do not treat Phase 4 as complete until you have seen it run.
 
-Per **R7**: repoint the **existing** Vercel project's Git repo to `khlav/temple-era`; Root Directory → `apps/web`; enable *include files outside root*; Ignored Build Step → `npx turbo-ignore`.
+Per **R7**: repoint the **existing** Vercel project's Git repo to `khlav/temple-era`; Root Directory → `apps/web`; enable *include files outside root*. Leave Ignored Build Step on **Automatic** — Vercel's built-in Skip Deployments replaces `turbo-ignore`; see R7.
+
+Full step-by-step: **`docs/phase-4-web-cutover.md`**.
 
 **Verify on a preview deployment before promoting:** home page renders; `/api/v1/openapi.json` returns a spec byte-identical to production's; an authenticated `/api/v1/me` call with an existing token succeeds. That last check is the Templar gate — if it fails, stop.
 
