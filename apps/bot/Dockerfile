@@ -1,37 +1,53 @@
-# Use Node.js 18 LTS as base image
-FROM node:18-alpine
+# Discord bot image.
+#
+# IMPORTANT: the build context is the REPO ROOT, not this directory:
+#
+#   docker build -f apps/bot/Dockerfile -t temple-bot .
+#
+# The workspace manifest and lockfile live at the root, so a context of
+# apps/bot/ cannot resolve the install. Northflank must be configured with
+# build context "/" and Dockerfile path "/apps/bot/Dockerfile".
 
-# Install pnpm globally
-RUN npm install -g pnpm
-
-# Set working directory
+FROM node:22-alpine AS base
+RUN corepack enable
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# ---------------------------------------------------------------- dependencies
+# Copy only manifests first so this layer caches until a dependency changes.
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/bot/package.json apps/bot/
+# apps/web's manifest is required: pnpm validates the whole workspace against
+# the lockfile even when installing a filtered subset.
+COPY apps/web/package.json apps/web/
+# Add packages/*/package.json here when packages/ stops being empty (Phase 7).
 
-# Install dependencies (excluding dev dependencies for production)
-RUN pnpm install --frozen-lockfile --prod=false
+# --ignore-scripts: the ROOT package.json runs "prepare": "lefthook install",
+# which would fail here — .git is excluded by .dockerignore and lefthook is not
+# part of a filtered production install. None of the bot's runtime dependencies
+# (discord.js, winston, node-cron, dotenv) have meaningful install scripts.
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter temple-raids-discord-bot...
 
-# Copy source code
-COPY . .
+# ---------------------------------------------------------------------- build
+FROM deps AS build
+COPY apps/bot apps/bot
+RUN pnpm --filter temple-raids-discord-bot build
 
-# Build TypeScript code
-RUN pnpm build
+# Collect the bot plus only its production dependencies into a standalone tree.
+# pnpm 9 semantics: `deploy` changed in pnpm 10 and needs --legacy there, which
+# is why packageManager is pinned to pnpm@9.15.1 at the root.
+RUN pnpm deploy --filter temple-raids-discord-bot --prod /out
 
-# Remove dev dependencies to reduce image size
-# Use --ignore-scripts to avoid running prepare script (husky) which is being removed
-RUN pnpm prune --prod --ignore-scripts
-
-# Expose port (if needed in future, currently not used)
-# EXPOSE 3000
-
-# Set non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
+# --------------------------------------------------------------------- runtime
+FROM base AS runner
+ENV NODE_ENV=production
+COPY --from=build /out /app
+RUN addgroup -g 1001 -S nodejs \
+ && adduser -S nodejs -u 1001 \
+ && chown -R nodejs:nodejs /app
 USER nodejs
 
-# Start the bot
+# The bot is a Discord gateway client: it holds an outbound WebSocket and
+# serves no inbound traffic, so no port is exposed and there is no HTTP health
+# check to hit. Northflank restarts it if the process exits.
 CMD ["node", "dist/index.js"]
-
