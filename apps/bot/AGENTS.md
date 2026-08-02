@@ -139,7 +139,20 @@ Optional variables:
 - `DISCORD_LOG_THREAD_CLEANUP_DAYS` - Days before thread deletion (default: `3`)
 - `DISCORD_LOG_THREAD_CLEANUP_CRON` - Cron schedule for cleanup (default: `0 1 * * *`)
 
-Copy `env.example` to `.env` and fill in values.
+Secrets live in Doppler (`temple-era-bot`). One-time setup:
+
+```bash
+doppler login && cd apps/bot && doppler setup --no-interactive
+```
+
+Unlike `apps/web`, the bot still keeps a local `.env` — Northflank has no native
+Doppler integration. In production, `DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN`
+come from a Northflank **secret group**, not the service's runtime environment;
+`.github/workflows/sync-bot-secrets.yml` pushes them from Doppler on deploy.
+
+That workflow compares before writing and skips when nothing changed, because a
+write redeploys the service and drops the gateway connection — and unlike Vercel
+there is no previous-deployment fallback.
 
 ## Code Organization
 

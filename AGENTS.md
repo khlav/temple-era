@@ -153,11 +153,56 @@ Single versions, pinned at root. Do not re-declare these in an app manifest.
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-## Environment variables — do not hoist
+## Secrets — Doppler is the source of truth
 
-**Each app keeps its own `.env`.** There is deliberately no root `.env`.
+**Both apps get their secrets from Doppler.** There is no root `.env`, and
+`apps/web` has no `.env` at all.
 
-The web app validates its environment at build time via `@t3-oss/env-nextjs` and throws on anything missing; the bot uses a bare `dotenv.config()` with its own required list. A merged root `.env` would make each app's failure mode depend on the other's variables. See `apps/*/.env.example` (web) and `apps/bot/env.example`.
+| Doppler project | Config | Feeds |
+|---|---|---|
+| `temple-era-web` | `dev` | local development (`doppler run`) |
+| | `stg` | Vercel **Preview** (native Doppler sync) |
+| | `prd` | Vercel **Production** (native Doppler sync) |
+| `temple-era-bot` | `dev` | local development |
+| | `prd` | Northflank secret group, via a GitHub Action |
+
+### First-time setup
+
+```bash
+doppler login                                    # browser, GitHub SSO
+cd apps/web && doppler setup --no-interactive    # reads doppler.yaml
+cd ../bot  && doppler setup --no-interactive
+```
+
+Nothing to obtain from a teammate. Then use the Doppler-backed scripts:
+
+```bash
+pnpm dev:doppler      # web dev server with secrets injected
+pnpm db:studio        # (and every other db:* script)
+```
+
+### Why the two apps differ
+
+Vercel has a native Doppler integration, so `apps/web` syncs automatically and
+its local `.env` was removed entirely. **Northflank has no such integration**, so
+`apps/bot` still keeps a local `.env` and its two secret-group values are pushed
+by `.github/workflows/sync-bot-secrets.yml` on deploy.
+
+### Adding a variable
+
+1. Update the schema in `apps/web/src/env.js` (web) or `apps/bot/src/config/env.ts` (bot)
+2. Add it to `apps/web/.env.example` or `apps/bot/env.example` — those stay as
+   documentation of what each variable is for, which Doppler's UI does not capture
+3. Set it in **every** Doppler config it applies to (`dev`, `stg`, `prd`)
+
+Do not create a local `.env` for `apps/web`. It still works — Next.js loads it —
+which is exactly the problem: the value then silently diverges from Doppler for
+everyone else.
+
+> **Never seed Doppler from `vercel env pull`.** It returns the literal string
+> `[SENSITIVE]` for variables of type `sensitive`, which then syncs back to Vercel
+> as though it were the real value. This corrupted four production secrets during
+> the migration. Always assert that no value equals `[SENSITIVE]` after an import.
 
 Three variables must agree across apps:
 

@@ -8,11 +8,18 @@ Guidance for coding agents working in the **web app**.
 
 **Maintenance Rule**: When making changes that affect this app's architecture, structure, commands, database schema, API endpoints, or common patterns, update this file. Workspace-level changes belong in the root `AGENTS.md` instead.
 
-**Running commands**: examples below use bare `pnpm <script>`. From the repo root, prefix with a filter:
+**Running commands**: most have a root alias (`pnpm dev`, `pnpm db:studio`). For
+anything without one: `pnpm web <script>`, or `cd apps/web` first.
+
+**Secrets come from Doppler — there is no `.env` here.** One-time setup:
 
 ```bash
-pnpm --filter temple-era-web <script>    # or cd apps/web first
+doppler login && cd apps/web && doppler setup --no-interactive
+pnpm dev:doppler
 ```
+
+`.env.example` remains as documentation of what each variable is for; do not copy
+it to `.env`. See the root `AGENTS.md` for the full picture.
 
 ## Project Overview
 
@@ -70,11 +77,21 @@ Hooks are managed by **lefthook** from the repo root (`lefthook.yml` + `.lefthoo
 
 **Important**: `pnpm db:deploy` runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Only check the exit code to determine success.
 
-`pnpm build` compiles only and never touches the database. It does still validate the environment via `@t3-oss/env-nextjs`, so it needs a populated `apps/web/.env`. To compile without one:
+`pnpm build` compiles only and never touches the database. It does still validate
+the environment via `@t3-oss/env-nextjs`, so run it under Doppler:
 
 ```bash
-SKIP_ENV_VALIDATION=1 pnpm --filter temple-era-web exec next build
+pnpm --filter temple-era-web exec doppler run -- pnpm exec next build
 ```
+
+To compile with no secrets at all (what the pre-push hook does):
+
+```bash
+SKIP_ENV_VALIDATION=1 pnpm build
+```
+
+That flag is declared in `turbo.json` as `globalPassThroughEnv` — Turborepo 2.x
+runs in `strict` env mode and would otherwise filter it out before the task sees it.
 
 ## Architecture Overview
 
@@ -451,6 +468,13 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `POST /api/v1/raid-templates/:zoneId/groups` - Create encounter group
 - `PUT /api/v1/raid-templates/:zoneId/groups/:groupId` - Rename encounter group
 - `DELETE /api/v1/raid-templates/:zoneId/groups/:groupId` - Delete encounter group
+
+### Admin
+
+- `POST /api/v1/admin/connections` - terminate idle Supavisor backends on demand.
+  Requires `userpermissions:manage`. The same cleanup runs on every deploy via
+  `pnpm db:deploy`; this covers the gap between deploys. Deliberately **not**
+  registered in the OpenAPI spec, so the Templar contract is unchanged.
 
 **Auth:** Personal API tokens (`tera_<32-hex>`), generated from the profile page by raid managers and admins. Passed as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes in the DB.
 
