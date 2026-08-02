@@ -4,10 +4,15 @@
 // (postbuild) so the issue self-heals instead of requiring a manual SQL fix in Supabase.
 import postgres from "postgres";
 
-const databaseUrl = process.env.DATABASE_URL;
+// Prefer the session-mode URL, matching drizzle.config.ts. Connecting through the
+// transaction pooler (DATABASE_URL) would put this script's own connection inside
+// the very pool of Supavisor backends it is terminating — it would survive only
+// because of the pg_backend_pid() filter below. Session mode gives it a dedicated
+// backend, so that filter stops being load-bearing.
+const databaseUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.warn("[kill-idle-connections] DATABASE_URL not set, skipping.");
+  console.warn("[kill-idle-connections] No DATABASE_MIGRATION_URL or DATABASE_URL set, skipping.");
   process.exit(0);
 }
 

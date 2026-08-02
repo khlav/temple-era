@@ -1,17 +1,34 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  "globalDependencies": [".nvmrc", ".npmrc", ".oxlintrc.json"],
+  "globalDependencies": [
+    ".nvmrc",
+    ".npmrc",
+    ".oxlintrc.json"
+  ],
+  "globalPassThroughEnv": [
+    "SKIP_ENV_VALIDATION"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "lint": {},
     "lint:fix": {

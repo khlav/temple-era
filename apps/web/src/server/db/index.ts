@@ -20,7 +20,13 @@ const conn =
     max: 10,
     connect_timeout: 10,
     max_lifetime: 60 * 5,
-    idle_timeout: 0,
+    // Close a pooled connection after 20s idle. This was 0 — meaning "never close" —
+    // which is the root cause of idle Supavisor backends accumulating: on Vercel each
+    // serverless instance holds up to `max` connections, and when the instance is
+    // frozen or reclaimed those sockets are not closed cleanly, so the backend lingers
+    // server-side until something reaps it. Closing them client-side while the instance
+    // is still alive means far fewer are ever orphaned.
+    idle_timeout: 20,
   });
 if (env.NODE_ENV !== "production") globalForDb.conn = conn;
 
