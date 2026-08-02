@@ -1,17 +1,20 @@
 name: PR Agent Review
 
 on:
-  # Commit-triggered only. issue_comment was dropped: Archon's own review
-  # flagged that any commenter (not just collaborators) could fire paid
-  # DeepSeek-backed slash commands (/review, /ask, etc.) against the repo's
-  # API key, since the old if: only filtered bot senders, not non-members.
-  # Dropping the trigger entirely removes that abuse surface rather than
-  # trying to allowlist commenters. opened/reopened/ready_for_review are
-  # also dropped in favor of a single, simpler rule: review runs when a
-  # commit lands (synchronize), full stop - handle_push_trigger below is
-  # what makes that actually fire the review.
+  # issue_comment was dropped: Archon's own review flagged that any
+  # commenter (not just collaborators) could fire paid DeepSeek-backed slash
+  # commands (/review, /ask, etc.) against the repo's API key, since the old
+  # if: only filtered bot senders, not non-members. Dropping the trigger
+  # entirely removes that abuse surface rather than trying to allowlist
+  # commenters.
+  #
+  # opened is back (reopened/ready_for_review still dropped): Archon's
+  # review also caught that synchronize-only meant a PR opened with all its
+  # commits already in place, then merged without any further push, never
+  # got reviewed at all - the single most common PR flow had zero coverage.
+  # Same fork/bot guards apply to both event types below.
   pull_request:
-    types: [synchronize]
+    types: [opened, synchronize]
 
 concurrency:
   group: pr-agent-${{ github.event.pull_request.number }}
