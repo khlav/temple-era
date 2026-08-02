@@ -29,7 +29,7 @@ A pnpm + Turborepo workspace holding two previously separate applications, both 
 
 | Path | Package | Deploys to |
 |---|---|---|
-| `apps/web` | Next.js 15 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
+| `apps/web` | Next.js 16 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
 | `apps/bot` | Discord gateway bot — a thin client over five `/api/discord/*` endpoints the web app owns | **Northflank** (Docker) |
 | `packages/contracts` | `@temple-era/contracts` — Zod schemas for the `/api/discord/*` wire contract, imported by both apps | — (compiled into each) |
 | `packages/wcl` | `@temple-era/wcl` — Warcraft Logs URL and report-ID parsing, imported by both apps | — (compiled into each) |
