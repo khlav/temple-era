@@ -41,8 +41,10 @@ export const UpdateRaidFailureSchema = z.object({
 /**
  * What the route emits with a 200. Annotate route payloads with this.
  *
- * Order matters: the no-change variant is tried first, because the updated variant would also
- * accept it (zod object schemas strip unknown keys rather than rejecting them).
+ * The two success variants are mutually exclusive — each requires a field the other lacks
+ * (`message` vs `raidName` and friends) — so exactly one can ever match and the order here is
+ * presentational. Keep it that way: giving the updated variant an optional `message` would make
+ * the union ambiguous and hand the outcome to declaration order.
  */
 export const UpdateRaidResultSchema = z.union([
   UpdateRaidNoChangeSchema,
