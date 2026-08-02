@@ -1,6 +1,8 @@
+import { buildReportUrl } from "@temple-era/wcl";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
-export const GenerateWCLReportUrl = (reportId: string) =>
-  `https://vanilla.warcraftlogs.com/reports/${reportId}`;
+
+/** Kept as a named re-export so the many existing call sites do not have to change. */
+export const GenerateWCLReportUrl = (reportId: string) => buildReportUrl(reportId);
 
 export const PrettyPrintDate = (date: Date, withWeekday?: boolean) =>
   date.toLocaleDateString("en-US", {

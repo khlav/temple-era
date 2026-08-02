@@ -23,7 +23,7 @@ it to `.env`. See the root `AGENTS.md` for the full picture.
 
 ## Project Overview
 
-Temple Raids is a comprehensive raid management and attendance tracking system for Temple, a Horde guild on the Ashkandi server in World of Warcraft Classic. Built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM, PostgreSQL), it provides a modern web interface for managing guild raids, tracking attendance over rolling 6-week periods, coordinating crafting resources, and planning raid compositions.
+Temple Raids is a comprehensive raid management and attendance tracking system for Temple, a Horde guild on the Ashkandi server in World of Warcraft Classic. Built with the T3 Stack (Next.js 16, tRPC, Drizzle ORM, PostgreSQL), it provides a modern web interface for managing guild raids, tracking attendance over rolling 6-week periods, coordinating crafting resources, and planning raid compositions.
 
 Live at: https://www.temple-era.com
 
@@ -32,8 +32,8 @@ Live at: https://www.temple-era.com
 ### Essential Commands
 
 ```bash
-pnpm dev              # Start development server with Turbo
-pnpm dev:standard     # Start development server without Turbo
+pnpm dev              # Start development server (Turbopack — the Next 16 default)
+pnpm dev:standard     # Start development server on Webpack instead (`next dev --webpack`)
 pnpm build            # Build for production
 pnpm start            # Start production server
 pnpm preview          # Build and start production server locally
@@ -97,7 +97,7 @@ runs in `strict` env mode and would otherwise filter it out before the task sees
 
 ### Tech Stack
 
-- **Next.js 15**: React framework with App Router (RSC)
+- **Next.js 16**: React framework with App Router (RSC), Turbopack by default
 - **tRPC**: End-to-end typesafe APIs between client and server
 - **Drizzle ORM**: Type-safe database operations with PostgreSQL
 - **NextAuth.js**: Authentication with Discord OAuth (v5 beta)
@@ -117,7 +117,7 @@ runs in `strict` env mode and would otherwise filter it out before the task sees
 
 ```
 src/
-├── app/                          # Next.js 15 App Router pages
+├── app/                          # Next.js 16 App Router pages
 │   ├── (dashboard)/             # Dashboard route group (home page)
 │   ├── api/                     # API routes (REST endpoints)
 │   │   ├── auth/               # NextAuth.js route handler
@@ -149,7 +149,7 @@ src/
 │   ├── dashboard/               # Dashboard components
 │   ├── debug/                   # Debug-related components
 │   ├── misc/                    # Miscellaneous components
-│   ├── nav/                     # Navigation (sidebar, header)
+│   ├── nav/                     # Navigation (header, breadcrumbs)
 │   ├── profile/                 # Profile components
 │   ├── raid-manager/            # Raid manager components
 │   ├── raid-planner/            # Raid composition planner components
@@ -177,7 +177,6 @@ src/
 │   │   │   ├── softres.ts      # SoftRes scan operations
 │   │   │   └── user.ts         # User operations
 │   │   ├── interfaces/         # TypeScript interfaces for external APIs
-│   │   │   ├── dashboard.ts
 │   │   │   ├── raid.ts
 │   │   │   ├── recipe.ts
 │   │   │   ├── softres.ts
@@ -203,8 +202,6 @@ src/
 │       │   ├── raid-plan-schema.ts # Raid plan tables
 │       │   ├── recipe-schema.ts # Recipe tables
 │       │   └── views-schema.ts # Database views for reporting
-│       ├── api/                 # Database query helpers
-│       │   └── helpers.ts      # Shared query utilities
 │       ├── schema.ts            # Main schema export
 │       ├── index.ts             # Database client
 │       └── helpers.ts           # Shared database utilities
@@ -236,7 +233,7 @@ src/
 │   └── query-client.ts          # TanStack Query client config
 ├── utils/                        # Utility functions
 │   └── posthog.ts               # PostHog analytics client
-├── middleware.ts                  # Next.js middleware (auth, redirects)
+├── proxy.ts                       # Next.js proxy (x-pathname header, noindex on non-prod)
 ├── constants.ts                  # Application constants (raid tracking labels)
 └── env.js                        # Environment variable validation (T3 Env)
 ```
@@ -291,7 +288,7 @@ src/
 
 #### Component Patterns
 
-- Server Components by default (Next.js 15 App Router)
+- Server Components by default (Next.js 16 App Router)
 - Client Components marked with `"use client"` directive
 - Streaming with React Suspense for data fetching
 - Skeleton loaders for loading states
@@ -346,7 +343,7 @@ When proposing a plan for a multi-layer feature, explicitly call out which work 
 
 **Prerequisites:**
 
-- Node.js 22.x (required: `>=22.0.0 <23.0.0`)
+- Node.js 24.x (required: `>=24.0.0 <25.0.0`, `.nvmrc` → 24.18.1)
 - pnpm 9.x (`packageManager: pnpm@9.15.1`)
 
 Required environment variables:
@@ -397,7 +394,8 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Define schemas in `src/server/db/models/`
 - Use database views for complex reporting queries
 - Prefer transactions for multi-step operations
-- Migrations run automatically on `postbuild` via `drizzle-kit migrate`
+- Migrations are **not** part of `build` — run them explicitly via `pnpm db:deploy`
+  (`drizzle-kit migrate`). See the `db:deploy` note above.
 
 #### Styling
 
@@ -532,7 +530,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 
 1. Add page in `src/app/` following App Router conventions
 2. Use Server Components for initial data loading
-3. Add to navigation in `src/components/nav/app-sidebar.tsx`
+3. Add to navigation in `src/components/nav/app-header.tsx`
 4. Update global search in `src/server/api/routers/search.ts` if needed
 
 ### Adding Database Columns

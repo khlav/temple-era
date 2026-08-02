@@ -6,10 +6,8 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  eslint: {
-    // ESLint removed in favour of oxlint (runs via lefthook, not next build)
-    ignoreDuringBuilds: true,
-  },
+  // Note: the `eslint` config option was removed in Next 16 and `next build` no
+  // longer lints. This repo lints with oxlint via lefthook and CI regardless.
   typescript: {
     // tsc runs in the pre-push hook; skipping the redundant Vercel check saves ~26s
     ignoreBuildErrors: !!process.env.VERCEL,

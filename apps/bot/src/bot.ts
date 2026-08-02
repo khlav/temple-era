@@ -79,7 +79,7 @@ export function createBot(): Client {
     // Only process if newMessage is a partial message (Discord.js behavior)
     if (newMessage.partial) {
       void newMessage.fetch().catch((error) => {
-        logger.error("Could not fetch the updated message:", error);
+        logger.error({ err: error }, "Could not fetch the updated message");
       });
       return;
     }
@@ -91,7 +91,7 @@ export function createBot(): Client {
   });
 
   client.on(Events.Error, (error) => {
-    logger.error("Discord client error:", error);
+    logger.error({ err: error }, "Discord client error");
   });
 
   return client;

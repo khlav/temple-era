@@ -15,7 +15,7 @@ const isEmptyObj = (obj: object) => {
 };
 
 const updateRaidLogRaidIds = async (db: DB, session: Session, raidId: number, raidData: Raid) => {
-  if (raidData.raidLogIds?.length ?? 0 > 0) {
+  if ((raidData.raidLogIds?.length ?? 0) > 0) {
     return db
       .update(raidLogs)
       .set({ raidId: raidId, createdById: session.user.id })

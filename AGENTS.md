@@ -29,9 +29,10 @@ A pnpm + Turborepo workspace holding two previously separate applications, both 
 
 | Path | Package | Deploys to |
 |---|---|---|
-| `apps/web` | Next.js 15 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
+| `apps/web` | Next.js 16 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
 | `apps/bot` | Discord gateway bot — a thin client over five `/api/discord/*` endpoints the web app owns | **Northflank** (Docker) |
 | `packages/contracts` | `@temple-era/contracts` — Zod schemas for the `/api/discord/*` wire contract, imported by both apps | — (compiled into each) |
+| `packages/wcl` | `@temple-era/wcl` — Warcraft Logs URL and report-ID parsing, imported by both apps | — (compiled into each) |
 
 The two apps deploy independently to different platforms. Nothing in this repo couples their release cycles.
 
@@ -85,7 +86,7 @@ pnpm install          # install the whole workspace
 pnpm build            # build both apps    ⚠️ see warning below
 pnpm typecheck        # tsc --noEmit in both apps
 pnpm lint             # oxlint across both apps
-pnpm test             # vitest (web only today; bot has no suite yet)
+pnpm test             # vitest across apps/web, apps/bot and packages/wcl
 pnpm format:fix       # oxfmt across both apps
 ```
 
@@ -141,7 +142,14 @@ Those are **not errors** — check the exit code, not the output.
 
 Single versions, pinned at root. Do not re-declare these in an app manifest.
 
-- **Node** `>=22.0.0 <23.0.0` (`.nvmrc` → 22.19.0), **pnpm** `9.15.1` via `packageManager`
+- **Node** `>=24.0.0 <25.0.0` (`.nvmrc` → 24.18.1), **pnpm** `9.15.1` via `packageManager`
+  - Node 24 "Krypton" is the Active LTS line; 22 "Jod" went into maintenance in Oct 2025.
+  - The `engines.node` range is what Vercel actually deploys on — it **overrides** the
+    Node version set in Vercel's project settings, so this field is the source of truth
+    and the dashboard does not need changing.
+  - Bumping the major means editing five manifests, `.nvmrc`, and `apps/bot/Dockerfile`
+    together. With `engine-strict=true` a missed one fails the install rather than
+    shipping a mismatch, which is the intent.
 - `engine-strict=true` in `.npmrc` — a wrong Node version fails the install rather than shipping a mismatch
 - **oxlint + oxfmt** for both apps, configured by the root `.oxlintrc.json`. The bot was migrated off ESLint + Prettier in Phase 2.
 - **lefthook** is the only git hook manager. The bot's husky setup was removed — if you reintroduce husky, the two will fight over `.git/hooks` and one will silently stop running.
@@ -289,6 +297,28 @@ authorize it up front, say so explicitly — "ship it and merge when ready",
 
 Greptile's feedback is advice, not instruction: fixes that are wrong or
 out-of-scope should be skipped and the reasoning reported.
+
+#### Skipping Greptile on a PR
+
+Add the **`no-greptile`** label. `greptile.json` at the repo root lists it under
+`disabledLabels`, so the review is skipped entirely.
+
+Two other ways, no config needed: **draft PRs are not reviewed** (`gh pr create
+--draft`, or `gh pr ready --undo`), and commenting **`@greptileai`** triggers a
+review on demand — including on a draft.
+
+> ⚠️ **`greptile.json` overrides the dashboard settings, field by field, and is
+> read from the PR's *source* branch** — so a change to it takes effect on the
+> very PR that introduces it.
+>
+> `triggerOnUpdates: true` is load-bearing and must stay. It defaults to
+> **false**, and `/fix-pr` depends on Greptile re-reviewing after each push:
+> without it the loop would read round one's feedback forever and never see a
+> fix land.
+
+`ignorePatterns` excludes `pnpm-lock.yaml` and `docs/baselines/**` — both are
+generated, and the baseline is deliberately frozen (see the Templar constraint),
+so review comments on either are noise.
 
 ## Where to look next
 

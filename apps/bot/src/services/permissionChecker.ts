@@ -49,12 +49,15 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
     });
 
     if (!response.ok) {
-      logger.error("API error checking user permissions", {
-        endpoint: "/api/discord/check-permissions",
-        userId: discordUserId,
-        statusCode: response.status,
-        error: `HTTP ${response.status}`,
-      });
+      logger.error(
+        {
+          endpoint: "/api/discord/check-permissions",
+          userId: discordUserId,
+          statusCode: response.status,
+          error: `HTTP ${response.status}`,
+        },
+        "API error checking user permissions",
+      );
       return {
         success: false,
         hasAccount: false,
@@ -66,12 +69,15 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
 
     const parsed = CheckPermissionsResponseSchema.safeParse(await response.json());
     if (!parsed.success) {
-      logger.error("Unexpected response shape from check-permissions", {
-        endpoint: "/api/discord/check-permissions",
-        userId: discordUserId,
-        statusCode: response.status,
-        error: parsed.error.message,
-      });
+      logger.error(
+        {
+          endpoint: "/api/discord/check-permissions",
+          userId: discordUserId,
+          statusCode: response.status,
+          error: parsed.error.message,
+        },
+        "Unexpected response shape from check-permissions",
+      );
       return {
         success: false,
         hasAccount: false,
@@ -87,11 +93,14 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
       canManageRaidLogs: resolveCanManageRaidLogs(parsed.data),
     };
   } catch (error) {
-    logger.error("Error checking user permissions", {
-      endpoint: "/api/discord/check-permissions",
-      userId: discordUserId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    logger.error(
+      {
+        endpoint: "/api/discord/check-permissions",
+        userId: discordUserId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Error checking user permissions",
+    );
     return {
       success: false,
       hasAccount: false,
