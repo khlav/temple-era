@@ -46,6 +46,7 @@ export const raids = tableCreator(
   },
   (table) => ({
     idIdx: uniqueIndex("raid__raid_id_idx").on(table.raidId),
+    dateIdx: index("raid__date_idx").on(table.date),
   }),
 );
 
@@ -83,6 +84,7 @@ export const raidLogs = tableCreator(
   (table) => ({
     idIdx: uniqueIndex("raid_log__raid_log_id_idx").on(table.raidLogId),
     discordMessageIdIdx: index("raid_log__discord_message_id_idx").on(table.discordMessageId),
+    raidIdIdx: index("raid_log__raid_id_idx").on(table.raidId),
   }),
 );
 
@@ -184,6 +186,10 @@ export const characters = tableCreator(
       foreignColumns: [table.characterId],
       name: "character__primary_character_id_fk",
     }),
+    isIgnoredIdx: index("character__is_ignored_idx").on(table.isIgnored),
+    primaryCharacterIdIdx: index("character__primary_character_id_idx").on(
+      table.primaryCharacterId,
+    ),
   }),
 );
 

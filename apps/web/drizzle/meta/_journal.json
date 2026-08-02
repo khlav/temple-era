@@ -190,6 +190,13 @@
       "when": 1785116321939,
       "tag": "0026_backfill_roles_permissions_data",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1785707061916,
+      "tag": "0027_fine_spiral",
+      "breakpoints": true
     }
   ]
 }
