@@ -86,7 +86,7 @@ pnpm install          # install the whole workspace
 pnpm build            # build both apps    ⚠️ see warning below
 pnpm typecheck        # tsc --noEmit in both apps
 pnpm lint             # oxlint across both apps
-pnpm test             # vitest (web only today; bot has no suite yet)
+pnpm test             # vitest across apps/web, apps/bot and packages/wcl
 pnpm format:fix       # oxfmt across both apps
 ```
 
