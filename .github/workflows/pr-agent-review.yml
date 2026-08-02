@@ -113,24 +113,17 @@ jobs:
           # adds no information beyond what the in-place edit already shows.
           # This flag controls only that extra comment, not the edit itself.
           PR_REVIEWER.FINAL_UPDATE_MESSAGE: "false"
-          # /describe (part of handle_push_trigger's default push_commands)
-          # was overwriting hand-written PR description content on every
-          # push - confirmed directly on this PR: a manual edit marking the
-          # opened-event gap resolved got silently reverted back to the
-          # stale text by the next /describe run. Not the specific mechanism
-          # Archon's review named (delete_previous_description isn't a real
-          # setting - checked, doesn't exist in PR-Agent's source), but the
-          # underlying concern was correct: add_original_user_description
-          # snapshots the description as it was at PR creation, so edits
-          # made afterward don't persist across regenerations.
-          # publish_description_as_comment moves /describe's output out of
-          # the actual PR description field entirely, into its own
-          # persistent comment instead (separate from the review comment -
-          # they're identified by different headers, name="describe" vs
-          # name="review", so they can't be merged into one). Already
-          # non-stacking: PR-Agent hardcodes final_update_message=false for
-          # this specific path.
-          PR_DESCRIPTION.PUBLISH_DESCRIPTION_AS_COMMENT: "true"
+          # Reverted publish_description_as_comment (tried briefly): posting
+          # /describe's output as a separate comment instead of editing the
+          # PR description in place was worse in practice than the problem it
+          # solved - in-place editing is preferred. Known, accepted tradeoff:
+          # /describe's add_original_user_description only snapshots the
+          # description as it was at PR creation, so manual edits made to
+          # the description after that point can still get overwritten by a
+          # later /describe run (confirmed once already on this PR). No
+          # extra permission needed either way - publish_description() is a
+          # plain PATCH /pulls/{number} via pull-requests: write, which is
+          # already granted above.
           # score is a free-text field, not a strict number. The base schema
           # instruction (not ours to edit without forking) still tells the
           # model to compute 0-100 - so rather than asking for a fresh,
