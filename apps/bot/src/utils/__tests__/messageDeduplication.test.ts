@@ -145,7 +145,8 @@ describe("MessageDeduplicator", () => {
 
     it("retains every unexpired entry, with no cap on how many", () => {
       // Documents actual behaviour: bounded by arrival rate over the timeout window, not by
-      // a size limit. apps/bot/AGENTS.md describes this as an "LRU cache", which it is not.
+      // a size limit. The class reads like an LRU cache and is not one — this test is what
+      // stops that assumption creeping back in.
       for (let i = 0; i < 5000; i++) {
         deduplicator.add(`message-${i}`);
       }

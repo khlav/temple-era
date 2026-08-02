@@ -94,7 +94,7 @@ The bot operates through three main message handlers:
 
 - **Thread Cleanup** (`threadCleanup.ts`): Optional cron job to delete bot-created threads older than configured days (disabled by default).
 
-- **Message Deduplication** (`messageDeduplication.ts`): LRU cache to prevent duplicate processing of messages.
+- **Message Deduplication** (`messageDeduplication.ts`): Prevents duplicate processing of messages. **Not an LRU cache**, despite how it reads — it is a `Map` of id → timestamp with a periodic sweep, so entries expire on a TTL and there is no size cap or eviction by access order. Memory is bounded by arrival rate × TTL window, not by a fixed capacity.
 
 ### API Integration
 
