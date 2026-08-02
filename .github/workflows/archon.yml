@@ -1,4 +1,4 @@
-name: PR Agent Review
+name: Archon
 
 on:
   # issue_comment was dropped: Archon's own review flagged that any
@@ -17,7 +17,7 @@ on:
     types: [opened, synchronize]
 
 concurrency:
-  group: pr-agent-${{ github.event.pull_request.number }}
+  group: archon-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -25,8 +25,8 @@ jobs:
   # Runs alongside Greptile, not instead of it - /fix-pr still drives off
   # Greptile's confidence score. This is a near-zero-incremental-cost second
   # opinion, not a replacement for the existing review gate.
-  pr_agent:
-    name: Archon
+  archon:
+    name: PR Review
     # Bot-sender guard, plus a fork guard Archon's own review flagged: PRs
     # from forks don't get repo secrets (DEEPSEEK_API_KEY comes back empty)
     # and GITHUB_TOKEN is read-only, so every external contribution would
