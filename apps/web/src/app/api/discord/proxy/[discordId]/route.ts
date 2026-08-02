@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { ProxyDiscordIdSchema, ProxyRequestSchema } from "@temple-era/contracts";
 import { decryptToken } from "~/server/api/token-crypto";
 import { db } from "~/server/db";
 import { users, accounts } from "~/server/db/schema";
@@ -7,41 +7,6 @@ import { and, eq } from "drizzle-orm";
 import { getBaseUrl } from "~/lib/get-base-url";
 import { env } from "~/env.js";
 import { logger } from "~/lib/logger";
-
-const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
-
-const API_VERSIONS = ["v1", "v2"] as const;
-
-const ProxySchema = z.object({
-  method: z
-    .string()
-    .toUpperCase()
-    .refine((m) => ALLOWED_METHODS.has(m), {
-      message: "method must be GET, POST, PUT, PATCH, or DELETE",
-    }),
-  apiVersion: z.enum(API_VERSIONS).default("v1"),
-  path: z
-    .string()
-    .min(1)
-    .startsWith("/")
-    .transform((p) => {
-      try {
-        const url = new URL(`http://x${p}`);
-        return `${url.pathname}${url.search}` || "/";
-      } catch {
-        return p;
-      }
-    })
-    .pipe(
-      z
-        .string()
-        .startsWith("/")
-        .refine((p) => !p.startsWith("/discord/proxy") && !p.startsWith("/admin/proxy"), {
-          message: "Recursive proxy calls are not allowed",
-        }),
-    ),
-  body: z.unknown().optional(),
-});
 
 export async function POST(
   request: Request,
@@ -71,7 +36,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const parsed = ProxySchema.safeParse(body);
+    const parsed = ProxyRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Validation error", issues: parsed.error.issues },
@@ -82,7 +47,7 @@ export async function POST(
     const { method, apiVersion, path, body: proxyBody } = parsed.data;
     const { discordId } = await params;
 
-    if (!/^\d{17,19}$/.test(discordId)) {
+    if (!ProxyDiscordIdSchema.safeParse(discordId).success) {
       return NextResponse.json({ error: "Invalid Discord user ID" }, { status: 400 });
     }
 

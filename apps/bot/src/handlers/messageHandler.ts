@@ -1,4 +1,5 @@
 import { type Message } from "discord.js";
+import { CreateRaidResponseSchema, type CreateRaidRequest } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { extractWarcraftLogsUrls, extractReportId } from "../services/wclDetector.js";
@@ -49,8 +50,8 @@ export async function handleMessage(message: Message) {
     return;
   }
 
-  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
-    logger.warn(`User ${message.author.tag} is not a raid manager`);
+  if (!permissionResult.hasAccount || !permissionResult.canManageRaidLogs) {
+    logger.warn(`User ${message.author.tag} cannot manage raid logs`);
     return;
   }
 
@@ -62,22 +63,24 @@ export async function handleMessage(message: Message) {
       messageId: message.id,
     });
 
+    const body: CreateRaidRequest = {
+      discordUserId: message.author.id,
+      wclUrl: firstUrl,
+      discordMessageId: message.id,
+    };
+
     const response = await fetch(`${config.apiBaseUrl}/api/discord/create-raid`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.templeWebApiToken}`,
       },
-      body: JSON.stringify({
-        discordUserId: message.author.id,
-        wclUrl: firstUrl,
-        discordMessageId: message.id,
-      }),
+      body: JSON.stringify(body),
     });
 
-    let result;
+    let payload: unknown;
     try {
-      result = await response.json();
+      payload = await response.json();
     } catch {
       logger.warn("API endpoint not available yet", {
         endpoint: "/api/discord/create-raid",
@@ -88,7 +91,20 @@ export async function handleMessage(message: Message) {
       return;
     }
 
-    if (result.success) {
+    const parsed = CreateRaidResponseSchema.safeParse(payload);
+    if (!parsed.success) {
+      logger.error("Unexpected response shape from create-raid", {
+        endpoint: "/api/discord/create-raid",
+        user: message.author.tag,
+        userId: message.author.id,
+        statusCode: response.status,
+        error: parsed.error.message,
+      });
+      return;
+    }
+    const result = parsed.data;
+
+    if ("success" in result && result.success) {
       const raidStatus = result.isNew ? "created" : "found existing";
       logger.info("Raid operation successful", {
         status: raidStatus,

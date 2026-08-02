@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  UpdateBenchRequestSchema,
+  firstIssueMessage,
+  type UpdateBenchResult,
+} from "@temple-era/contracts";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users, accounts, characters } from "~/server/db/schema";
@@ -41,34 +46,15 @@ export async function POST(request: Request) {
     }
 
     // 2. Validate request body
-    const { discordUserId, raidId, characterNames } = await request.json();
-
-    if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
+    const parsed = UpdateBenchRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      const response = await compressResponse({ error: firstIssueMessage(parsed.error) }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
       });
     }
-
-    if (!raidId || typeof raidId !== "number") {
-      const response = await compressResponse({ error: "Invalid raid ID" }, request);
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
-
-    if (!Array.isArray(characterNames) || characterNames.length === 0) {
-      const response = await compressResponse(
-        { error: "Character names array is required" },
-        request,
-      );
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
+    const { discordUserId, raidId, characterNames } = parsed.data;
 
     // 3. Fetch user data for session
     const userResult = await db
@@ -162,24 +148,33 @@ export async function POST(request: Request) {
     // 6. Get raid details for response
     const raidDetails = await caller.raid.getRaidById(raidId);
 
+    // `getRaidById` types raidId as optional, and the bot renders it into its reply. Guard
+    // rather than emit a response the contract cannot describe (previously this produced
+    // "Bench updated for undefined (#undefined)" in Discord).
+    if (!raidDetails?.raidId) {
+      const notFound: UpdateBenchResult = {
+        success: false,
+        error: "Associated raid not found",
+      };
+      return await compressResponse(notFound, request);
+    }
+
     // 7. Add characters to bench using tRPC mutation
     const benchResult = await caller.raid.addBenchCharacters({
       raidId,
       characterIds: matchedCharacterIds,
     });
 
-    return await compressResponse(
-      {
-        success: true,
-        raidId: raidDetails.raidId,
-        raidName: raidDetails.name,
-        raidUrl: `${getBaseUrl(request)}/raids/${raidDetails.raidId}`,
-        matchedCharacters: matchedCharacters,
-        unmatchedNames,
-        totalBenchCharacters: benchResult.length,
-      },
-      request,
-    );
+    const payload: UpdateBenchResult = {
+      success: true,
+      raidId: raidDetails.raidId,
+      raidName: raidDetails.name,
+      raidUrl: `${getBaseUrl(request)}/raids/${raidDetails.raidId}`,
+      matchedCharacters: matchedCharacters,
+      unmatchedNames,
+      totalBenchCharacters: benchResult.length,
+    };
+    return await compressResponse(payload, request);
   } catch (error) {
     logger.error({ err: error }, "Error updating bench");
     const response = await compressResponse(

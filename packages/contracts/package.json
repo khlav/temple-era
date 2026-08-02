@@ -1,0 +1,38 @@
+{
+  "name": "@temple-era/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Zod schemas for the /api/discord/* contract shared by apps/web and apps/bot",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src/",
+    "lint:fix": "oxlint --fix src/",
+    "format": "oxfmt --check src/",
+    "format:fix": "oxfmt src/"
+  },
+  "dependencies": {
+    "zod": "^4.1.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  }
+}

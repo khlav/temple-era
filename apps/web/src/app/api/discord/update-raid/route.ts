@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  UpdateRaidRequestSchema,
+  firstIssueMessage,
+  type UpdateRaidResult,
+} from "@temple-era/contracts";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users, accounts, raidLogs } from "~/server/db/schema";
@@ -42,31 +47,15 @@ export async function POST(request: Request) {
     }
 
     // 2. Validate request body
-    const { discordUserId, newWclUrl, discordMessageId } = await request.json();
-
-    if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
+    const parsed = UpdateRaidRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      const response = await compressResponse({ error: firstIssueMessage(parsed.error) }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
       });
     }
-
-    if (!newWclUrl || !newWclUrl.includes("warcraftlogs.com/reports/")) {
-      const response = await compressResponse({ error: "Invalid WarcraftLogs URL" }, request);
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
-
-    if (!discordMessageId || !/^\d{17,19}$/.test(discordMessageId)) {
-      const response = await compressResponse({ error: "Invalid Discord message ID" }, request);
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
+    const { discordUserId, newWclUrl, discordMessageId } = parsed.data;
 
     // 3. Fetch complete user data for session
     const userResult = await db
@@ -179,8 +168,10 @@ export async function POST(request: Request) {
     }
 
     // 6. Extract new report ID from WCL URL
-    const reportIdMatch = newWclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
-    if (!reportIdMatch) {
+    // `newWclUrl` is now typed `string` rather than `any`, so the capture group is correctly
+    // `string | undefined` under noUncheckedIndexedAccess — hence one guard rather than two.
+    const newReportId = newWclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/)?.[1];
+    if (!newReportId) {
       return await compressResponse(
         {
           success: false,
@@ -190,19 +181,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const newReportId = reportIdMatch[1];
-
     // 7. Check if it's the same report ID (no change needed)
     if (oldRaidLog.raidLogId === newReportId) {
-      return await compressResponse(
-        {
-          success: true,
-          isNew: false,
-          message: "No change detected - same WarcraftLogs report",
-          raidId: oldRaidLog.raidId,
-        },
-        request,
-      );
+      const payload: UpdateRaidResult = {
+        success: true,
+        isNew: false,
+        message: "No change detected - same WarcraftLogs report",
+        raidId: oldRaidLog.raidId,
+      };
+      return await compressResponse(payload, request);
     }
 
     // 8. Check if the new WCL report is already being used by another raid
@@ -294,21 +281,19 @@ export async function POST(request: Request) {
     const baseUrl = getBaseUrl(request);
     const raidUrl = `${baseUrl}/raids/${oldRaidLog.raidId}`;
 
-    return await compressResponse(
-      {
-        success: true,
-        isNew: false,
-        raidId: oldRaidLog.raidId,
-        raidName: newRaidName,
-        zone: newRaidZone,
-        date: newRaidDate,
-        participantCount: Object.keys(newRaidLog.participants || {}).length,
-        killCount: newRaidLog.kills?.length || 0,
-        raidUrl,
-        nameChanged: newRaidName !== oldRaidLog.name,
-      },
-      request,
-    );
+    const payload: UpdateRaidResult = {
+      success: true,
+      isNew: false,
+      raidId: oldRaidLog.raidId,
+      raidName: newRaidName,
+      zone: newRaidZone,
+      date: newRaidDate,
+      participantCount: Object.keys(newRaidLog.participants || {}).length,
+      killCount: newRaidLog.kills?.length || 0,
+      raidUrl,
+      nameChanged: newRaidName !== oldRaidLog.name,
+    };
+    return await compressResponse(payload, request);
   } catch (error) {
     logger.error({ err: error }, "Error updating raid");
     const response = await compressResponse(

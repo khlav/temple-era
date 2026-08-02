@@ -408,6 +408,13 @@ The website provides REST API endpoints for the Discord bot at `apps/bot`:
 - All require `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header
 - Helper functions in `src/server/api/discord-helpers.ts`
 
+**Request and response shapes live in `@temple-era/contracts`** (`packages/contracts`), not in
+the route files. Each handler parses its body with the request schema and annotates its 200
+payload with the matching `*Result` type, so a shape change that the bot has not been updated
+for is a typecheck failure rather than a runtime surprise. `check-permissions` returns `scopes`
+in addition to the legacy `isRaidManager` — new consumers should gate on `scopes`; see
+`docs/followups/legacy-access-booleans-cleanup.md`.
+
 ## External REST API
 
 The website provides a versioned public REST API at `/api/v1/`:

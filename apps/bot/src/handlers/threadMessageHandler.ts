@@ -1,4 +1,5 @@
 import { type Message } from "discord.js";
+import { UpdateBenchResponseSchema, type UpdateBenchRequest } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
@@ -50,8 +51,8 @@ export async function handleThreadMessage(message: Message) {
     return;
   }
 
-  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
-    logger.warn(`User ${message.author.tag} is not a raid manager`);
+  if (!permissionResult.hasAccount || !permissionResult.canManageRaidLogs) {
+    logger.warn(`User ${message.author.tag} cannot manage raid logs`);
     return;
   }
 
@@ -90,22 +91,37 @@ export async function handleThreadMessage(message: Message) {
     });
 
     // Call the API to update bench
+    const body: UpdateBenchRequest = {
+      discordUserId: message.author.id,
+      raidId: raidId,
+      characterNames: characterNames,
+    };
+
     const response = await fetch(`${config.apiBaseUrl}/api/discord/update-bench`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.templeWebApiToken}`,
       },
-      body: JSON.stringify({
-        discordUserId: message.author.id,
-        raidId: raidId,
-        characterNames: characterNames,
-      }),
+      body: JSON.stringify(body),
     });
 
-    const result = await response.json();
+    const parsed = UpdateBenchResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.error("Unexpected response shape from update-bench", {
+        endpoint: "/api/discord/update-bench",
+        user: message.author.tag,
+        userId: message.author.id,
+        threadId: message.channel.id,
+        statusCode: response.status,
+        error: parsed.error.message,
+      });
+      await message.reply("❌ An error occurred while updating the bench.");
+      return;
+    }
+    const result = parsed.data;
 
-    if (result.success) {
+    if ("success" in result && result.success) {
       const { raidId, raidName, matchedCharacters, unmatchedNames, totalBenchCharacters } = result;
 
       // Build success message
@@ -113,7 +129,7 @@ export async function handleThreadMessage(message: Message) {
 
       if (matchedCharacters.length > 0) {
         replyMessage += `**Added to bench:**\n`;
-        matchedCharacters.forEach((char: { name: string; class: string }) => {
+        matchedCharacters.forEach((char) => {
           replyMessage += `• ${char.name} (${char.class})\n`;
         });
         replyMessage += `\n`;
@@ -121,7 +137,7 @@ export async function handleThreadMessage(message: Message) {
 
       if (unmatchedNames.length > 0) {
         replyMessage += `**Could not find:**\n`;
-        unmatchedNames.forEach((name: string) => {
+        unmatchedNames.forEach((name) => {
           replyMessage += `• ${name}\n`;
         });
         replyMessage += `\n`;

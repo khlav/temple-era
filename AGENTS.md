@@ -31,9 +31,40 @@ A pnpm + Turborepo workspace holding two previously separate applications, both 
 |---|---|---|
 | `apps/web` | Next.js 15 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
 | `apps/bot` | Discord gateway bot — a thin client over five `/api/discord/*` endpoints the web app owns | **Northflank** (Docker) |
-| `packages/` | Empty until Phase 7. See `docs/monorepo-migration-plan.md` **R3** before adding anything here. | — |
+| `packages/contracts` | `@temple-era/contracts` — Zod schemas for the `/api/discord/*` wire contract, imported by both apps | — (compiled into each) |
 
 The two apps deploy independently to different platforms. Nothing in this repo couples their release cycles.
+
+## Shared packages must be compiled
+
+Anything in `packages/` is consumed as **built output** (`dist/`), never as raw TypeScript.
+This is not a style preference — the two apps disagree on module resolution:
+
+| App | `module` | `moduleResolution` | Emits |
+|---|---|---|---|
+| `apps/web` | `ESNext` | `Bundler` | `noEmit` |
+| `apps/bot` | `Node16` | `Node16` | `dist/` |
+
+The usual raw-source internal package works for Next.js via `transpilePackages` but **silently
+breaks the bot**, whose `tsc -p tsconfig.prod.json` emits only `src/`. So a shared package must:
+
+- compile with `tsc` to `dist/`, and set `"type": "module"`
+- expose an `exports` map with both `types` and `default`
+- use **`.js`-suffixed relative imports** in its own source — required by `Node16`, accepted by
+  `Bundler`
+
+Three consequences that are easy to miss:
+
+1. **Declare the dependency in the consuming app's `package.json`.** Vercel's Skip Deployments
+   reads the workspace graph; an undeclared import means web builds get skipped when only the
+   package changes.
+2. **Add the manifest to `apps/bot/Dockerfile`** (one `COPY` line per package — a glob would
+   flatten them into one directory) and make sure the build step filters with the `...` suffix
+   so the package compiles first.
+3. **Build packages before the per-app steps in CI.** Both app jobs invoke each app's script
+   directly rather than going through turbo, so nothing else honours `^build`.
+
+Background: `docs/monorepo-migration-plan.md` **R3**.
 
 ## Commands
 
@@ -165,6 +196,7 @@ Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`
 |---|---|---|
 | `apps/web/**` only | feature area | `feat(raids): add attendance export` |
 | `apps/bot/**` only | prefix with `bot/` | `fix(bot/handler): resolve thread parsing` |
+| `packages/**` | package name | `feat(contracts): add proxy request schema` |
 | Both, or root config | `repo` | `chore(repo): bump turbo` |
 
 ### Shipping
@@ -188,5 +220,6 @@ out-of-scope should be skipped and the reasoning reported.
 ## Where to look next
 
 - `docs/monorepo-migration-plan.md` — the migration this repo is the product of. Phases 3–7 are still open; the risk register (**R1**–**R10**) explains why several things here look the way they do.
+- `docs/followups/legacy-access-booleans-cleanup.md` — what still has to happen before `isRaidManager` can leave the `/api/discord/check-permissions` response
 - `apps/web/AGENTS.md` — web architecture, tRPC/Drizzle patterns, API surface, database schema
 - `apps/bot/AGENTS.md` — bot handlers, Discord.js patterns, gateway behaviour
