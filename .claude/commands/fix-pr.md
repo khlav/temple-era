@@ -84,8 +84,36 @@ fi
 Note the `cut -d/ -f2` above: `grep -o` returns `commit/<sha>`, and forgetting to
 strip that prefix produces the same never-matching comparison.
 
-Poll about every 30 seconds, up to ~10 minutes. If it never updates, report
-that Greptile did not review and stop — do not guess at feedback.
+### Poll in the BACKGROUND — never block the session
+
+Greptile takes 3–8 minutes. A foreground poll freezes the conversation for that
+whole time, which is unacceptable when the user may want to do something else.
+
+Run the wait loop with **`run_in_background: true`**. The harness re-invokes you
+when it exits, so nothing is lost by not watching it. While it runs:
+
+- Continue other work the user asked for, or
+- Report that the review is pending and hand control back
+
+Do **not** chain `sleep` calls in the foreground, and do not sit in a polling
+loop waiting. If the user asks about status mid-wait, read the task's output
+file rather than starting a second poll.
+
+Write the loop so its final line is the result, making the notification useful
+on its own:
+
+```bash
+# run_in_background: true
+for i in $(seq 1 20); do
+  ... poll ...
+  if [ current ]; then echo "REVIEW READY score=$SCORE"; exit 0; fi
+  sleep 30
+done
+echo "TIMEOUT — Greptile did not review within ~10 minutes"
+```
+
+If it never updates, report that Greptile did not review and stop — do not guess
+at feedback.
 
 ## Step 3: Read the feedback
 
