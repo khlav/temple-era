@@ -167,7 +167,7 @@ src/
 ├── bot.ts                        # Discord client setup and event handlers
 ├── config/
 │   ├── env.ts                    # Environment variable configuration
-│   └── logger.ts                 # Winston logger setup
+│   └── logger.ts                 # pino logger setup
 ├── handlers/
 │   ├── messageHandler.ts         # Main channel WCL link detection
 │   ├── messageUpdateHandler.ts   # Edited message handler
@@ -193,18 +193,35 @@ import { config } from "./config/env";     // Wrong
 
 ### Error Handling
 - All Discord API calls and external API calls are wrapped in try-catch
-- Errors are logged with structured context using Winston logger
+- Errors are logged with structured context using the pino logger
 - User-facing error messages never expose internal details
 - API failures are logged but don't crash the bot
 
 ### Logging
-Use the Winston logger from `config/logger.ts`:
+Use the pino logger from `config/logger.ts`, matching `apps/web`. **The context object comes
+first** — this is the opposite of the Winston order used before Phase 7, and passing it second
+silently discards it rather than failing:
+
 ```typescript
-logger.info("message", { context: "data" });
-logger.warn("warning", { userId: "123" });
-logger.error("error occurred", { error: error.message });
-logger.debug("debug info");
+logger.info({ context: "data" }, "message");     // correct
+logger.info("message", { context: "data" });     // context is DROPPED
 ```
+
+```typescript
+logger.warn({ userId: "123" }, "warning");
+logger.error({ err: error }, "error occurred");  // `err` gets pino's Error serializer
+logger.debug("debug info");                      // message-only calls are unchanged
+```
+
+Output is line-delimited JSON with ISO timestamps, written synchronously. Operators read it
+raw in the Northflank log view — `docs/phase-5-bot-cutover.md` uses the startup lines as the
+healthy-deploy signal — so there is no pretty-printer in the runtime path. For a readable
+local stream, pipe it: `pnpm dev | npx pino-pretty`.
+
+Uncaught exceptions and unhandled rejections are logged at `fatal` and then exit the process,
+which is what Winston's `handleExceptions` / `handleRejections` did. Northflank restarts the
+container; a bot left alive after an uncaught exception holds a gateway connection it may no
+longer be servicing.
 
 ### Message Deduplication
 Always check the deduplicator before processing messages:

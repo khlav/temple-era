@@ -51,7 +51,7 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
           "⏰ Raid edits are only allowed within 15 minutes of the original message.",
         );
       } catch (error) {
-        logger.error("Could not post 15-minute window message to thread:", error);
+        logger.error({ err: error }, "Could not post 15-minute window message to thread");
       }
     }
     return;
@@ -75,7 +75,7 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
           "❌ Invalid WarcraftLogs URL. Please check the link and try again.",
         );
       } catch (error) {
-        logger.error("Could not post invalid URL message to thread:", error);
+        logger.error({ err: error }, "Could not post invalid URL message to thread");
       }
     }
     return;
@@ -85,13 +85,16 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   const permissionResult = await checkUserPermissions(newMessage.author.id);
 
   if (!permissionResult.success) {
-    logger.error("Failed to check permissions - API unavailable", {
-      user: newMessage.author.tag,
-      userId: newMessage.author.id,
-      error: permissionResult.error,
-      statusCode: permissionResult.statusCode,
-      messageId: newMessage.id,
-    });
+    logger.error(
+      {
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        error: permissionResult.error,
+        statusCode: permissionResult.statusCode,
+        messageId: newMessage.id,
+      },
+      "Failed to check permissions - API unavailable",
+    );
     return;
   }
 
@@ -102,13 +105,16 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   }
 
   try {
-    logger.info("Attempting to update raid", {
-      user: newMessage.author.tag,
-      userId: newMessage.author.id,
-      newWclUrl: firstUrl,
-      messageId: newMessage.id,
-      oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
-    });
+    logger.info(
+      {
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        newWclUrl: firstUrl,
+        messageId: newMessage.id,
+        oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
+      },
+      "Attempting to update raid",
+    );
 
     const body: UpdateRaidRequest = {
       discordUserId: newMessage.author.id,
@@ -129,26 +135,32 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
     try {
       payload = await response.json();
     } catch {
-      logger.warn("API endpoint not available yet", {
-        endpoint: "/api/discord/update-raid",
-        user: newMessage.author.tag,
-        userId: newMessage.author.id,
-        statusCode: response.status,
-        messageId: newMessage.id,
-      });
+      logger.warn(
+        {
+          endpoint: "/api/discord/update-raid",
+          user: newMessage.author.tag,
+          userId: newMessage.author.id,
+          statusCode: response.status,
+          messageId: newMessage.id,
+        },
+        "API endpoint not available yet",
+      );
       return;
     }
 
     const parsed = UpdateRaidResponseSchema.safeParse(payload);
     if (!parsed.success) {
-      logger.error("Unexpected response shape from update-raid", {
-        endpoint: "/api/discord/update-raid",
-        user: newMessage.author.tag,
-        userId: newMessage.author.id,
-        statusCode: response.status,
-        messageId: newMessage.id,
-        error: parsed.error.message,
-      });
+      logger.error(
+        {
+          endpoint: "/api/discord/update-raid",
+          user: newMessage.author.tag,
+          userId: newMessage.author.id,
+          statusCode: response.status,
+          messageId: newMessage.id,
+          error: parsed.error.message,
+        },
+        "Unexpected response shape from update-raid",
+      );
       return;
     }
     const result = parsed.data;
@@ -156,23 +168,29 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
     if ("success" in result && result.success) {
       if ("message" in result) {
         // No change detected (same report ID)
-        logger.info("No change detected in raid update", {
-          message: result.message,
-          user: newMessage.author.tag,
-          userId: newMessage.author.id,
-          messageId: newMessage.id,
-        });
+        logger.info(
+          {
+            message: result.message,
+            user: newMessage.author.tag,
+            userId: newMessage.author.id,
+            messageId: newMessage.id,
+          },
+          "No change detected in raid update",
+        );
         return;
       }
 
-      logger.info("Raid updated successfully", {
-        raidName: result.raidName,
-        raidId: result.raidId,
-        nameChanged: result.nameChanged,
-        user: newMessage.author.tag,
-        userId: newMessage.author.id,
-        messageId: newMessage.id,
-      });
+      logger.info(
+        {
+          raidName: result.raidName,
+          raidId: result.raidId,
+          nameChanged: result.nameChanged,
+          user: newMessage.author.tag,
+          userId: newMessage.author.id,
+          messageId: newMessage.id,
+        },
+        "Raid updated successfully",
+      );
 
       // Post success message in thread
       if (newMessage.thread) {
@@ -183,12 +201,15 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
           }
           await newMessage.thread.send(message);
         } catch (error) {
-          logger.error("Could not post success message to thread", {
-            error: error instanceof Error ? error.message : String(error),
-            threadId: newMessage.thread.id,
-            raidId: result.raidId,
-            user: newMessage.author.tag,
-          });
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              threadId: newMessage.thread.id,
+              raidId: result.raidId,
+              user: newMessage.author.tag,
+            },
+            "Could not post success message to thread",
+          );
         }
       }
 
@@ -196,29 +217,38 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       if (result.nameChanged && newMessage.thread) {
         try {
           await newMessage.thread.setName(`Raid: ${result.raidName}`);
-          logger.info("Updated thread name", {
-            threadId: newMessage.thread.id,
-            oldName: newMessage.thread.name,
-            newName: `Raid: ${result.raidName}`,
-            raidId: result.raidId,
-          });
+          logger.info(
+            {
+              threadId: newMessage.thread.id,
+              oldName: newMessage.thread.name,
+              newName: `Raid: ${result.raidName}`,
+              raidId: result.raidId,
+            },
+            "Updated thread name",
+          );
         } catch (error) {
-          logger.error("Could not update thread name", {
-            error: error instanceof Error ? error.message : String(error),
-            threadId: newMessage.thread.id,
-            raidId: result.raidId,
-            user: newMessage.author.tag,
-          });
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              threadId: newMessage.thread.id,
+              raidId: result.raidId,
+              user: newMessage.author.tag,
+            },
+            "Could not update thread name",
+          );
         }
       }
     } else {
-      logger.error("Failed to update raid", {
-        error: result.error,
-        user: newMessage.author.tag,
-        userId: newMessage.author.id,
-        messageId: newMessage.id,
-        newWclUrl: firstUrl,
-      });
+      logger.error(
+        {
+          error: result.error,
+          user: newMessage.author.tag,
+          userId: newMessage.author.id,
+          messageId: newMessage.id,
+          newWclUrl: firstUrl,
+        },
+        "Failed to update raid",
+      );
 
       // Post error message in thread
       if (newMessage.thread) {
@@ -229,23 +259,29 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
           }
           await newMessage.thread.send(errorMessage);
         } catch (error) {
-          logger.error("Could not post error message to thread", {
-            error: error instanceof Error ? error.message : String(error),
-            threadId: newMessage.thread.id,
-            user: newMessage.author.tag,
-            messageId: newMessage.id,
-          });
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              threadId: newMessage.thread.id,
+              user: newMessage.author.tag,
+              messageId: newMessage.id,
+            },
+            "Could not post error message to thread",
+          );
         }
       }
     }
   } catch (error) {
-    logger.error("Error updating raid automatically", {
-      error: error instanceof Error ? error.message : String(error),
-      user: newMessage.author.tag,
-      userId: newMessage.author.id,
-      messageId: newMessage.id,
-      newWclUrl: firstUrl,
-    });
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        messageId: newMessage.id,
+        newWclUrl: firstUrl,
+      },
+      "Error updating raid automatically",
+    );
 
     // Post generic error message in thread
     if (newMessage.thread) {
@@ -254,12 +290,15 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
           "❌ An error occurred while updating the raid. Please try again.",
         );
       } catch (threadError) {
-        logger.error("Could not post error message to thread", {
-          error: threadError instanceof Error ? threadError.message : String(threadError),
-          threadId: newMessage.thread.id,
-          user: newMessage.author.tag,
-          messageId: newMessage.id,
-        });
+        logger.error(
+          {
+            error: threadError instanceof Error ? threadError.message : String(threadError),
+            threadId: newMessage.thread.id,
+            user: newMessage.author.tag,
+            messageId: newMessage.id,
+          },
+          "Could not post error message to thread",
+        );
       }
     }
   }

@@ -25,7 +25,7 @@ export async function extractRaidIdFromThread(thread: ThreadChannel): Promise<nu
 
     return null;
   } catch (error) {
-    logger.error("Error extracting raid ID from thread:", error);
+    logger.error({ err: error }, "Error extracting raid ID from thread");
     return null;
   }
 }
