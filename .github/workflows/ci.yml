@@ -56,7 +56,7 @@ jobs:
         run: node .github/scripts/check-filters.mjs
 
   web:
-    name: Web
+    name: Validate 'Web'
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -109,7 +109,7 @@ jobs:
         run: pnpm --filter temple-era-web build
 
   bot:
-    name: Bot
+    name: Validate 'Bot'
     needs: changes
     if: needs.changes.outputs.bot == 'true'
     runs-on: ubuntu-latest
@@ -192,7 +192,7 @@ jobs:
   # Single required status check for branch protection. Stays green when a job
   # is legitimately skipped by the path filter, but fails if one actually fails.
   ci:
-    name: CI
+    name: Review and finalize
     if: always()
     needs: [web, bot, filters]
     runs-on: ubuntu-latest

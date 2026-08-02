@@ -265,6 +265,8 @@ These apply repo-wide; the app-level `AGENTS.md` files defer to this section.
 
 **Never commit directly to `main`.** Branch names: `{type}/{kebab-description}` where type is `feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`, or `claude`. Enforced by the lefthook pre-push hook.
 
+Include the corresponding Plane ticket's lowercased identifier (project `TEMPLE`) right after the type: `{type}/{ticket-id}-{kebab-description}`, e.g. `chore/temple-10-rename-ci-job-display-names`. For ad hoc work with no filed ticket, use the literal placeholder `noticket` in the ticket-id slot, e.g. `chore/noticket-quick-fix`, rather than dropping the slot. Enforced by the same lefthook pre-push `branch-name` check as the `{type}/` prefix.
+
 Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`. Enforced by `.lefthook/commit-msg/commit-msg.sh`.
 
 **Scope commits to the app you touched**, since a reader cannot tell from the type alone:
