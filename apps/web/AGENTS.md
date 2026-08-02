@@ -23,7 +23,7 @@ it to `.env`. See the root `AGENTS.md` for the full picture.
 
 ## Project Overview
 
-Temple Raids is a comprehensive raid management and attendance tracking system for Temple, a Horde guild on the Ashkandi server in World of Warcraft Classic. Built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM, PostgreSQL), it provides a modern web interface for managing guild raids, tracking attendance over rolling 6-week periods, coordinating crafting resources, and planning raid compositions.
+Temple Raids is a comprehensive raid management and attendance tracking system for Temple, a Horde guild on the Ashkandi server in World of Warcraft Classic. Built with the T3 Stack (Next.js 16, tRPC, Drizzle ORM, PostgreSQL), it provides a modern web interface for managing guild raids, tracking attendance over rolling 6-week periods, coordinating crafting resources, and planning raid compositions.
 
 Live at: https://www.temple-era.com
 
@@ -32,8 +32,8 @@ Live at: https://www.temple-era.com
 ### Essential Commands
 
 ```bash
-pnpm dev              # Start development server with Turbo
-pnpm dev:standard     # Start development server without Turbo
+pnpm dev              # Start development server (Turbopack — the Next 16 default)
+pnpm dev:standard     # Start development server on Webpack instead (`next dev --webpack`)
 pnpm build            # Build for production
 pnpm start            # Start production server
 pnpm preview          # Build and start production server locally
@@ -97,7 +97,7 @@ runs in `strict` env mode and would otherwise filter it out before the task sees
 
 ### Tech Stack
 
-- **Next.js 15**: React framework with App Router (RSC)
+- **Next.js 16**: React framework with App Router (RSC), Turbopack by default
 - **tRPC**: End-to-end typesafe APIs between client and server
 - **Drizzle ORM**: Type-safe database operations with PostgreSQL
 - **NextAuth.js**: Authentication with Discord OAuth (v5 beta)
@@ -117,7 +117,7 @@ runs in `strict` env mode and would otherwise filter it out before the task sees
 
 ```
 src/
-├── app/                          # Next.js 15 App Router pages
+├── app/                          # Next.js 16 App Router pages
 │   ├── (dashboard)/             # Dashboard route group (home page)
 │   ├── api/                     # API routes (REST endpoints)
 │   │   ├── auth/               # NextAuth.js route handler
@@ -291,7 +291,7 @@ src/
 
 #### Component Patterns
 
-- Server Components by default (Next.js 15 App Router)
+- Server Components by default (Next.js 16 App Router)
 - Client Components marked with `"use client"` directive
 - Streaming with React Suspense for data fetching
 - Skeleton loaders for loading states
