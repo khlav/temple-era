@@ -1,0 +1,6 @@
+# Doppler project/config for apps/web. `doppler setup --no-interactive` reads this,
+# so a new developer runs `doppler login` then `doppler setup` and is done — no
+# .env file to obtain from anyone.
+setup:
+  project: temple-era-web
+  config: dev

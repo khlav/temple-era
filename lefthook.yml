@@ -53,7 +53,13 @@ pre-push:
     lint:
       run: pnpm turbo run lint
     build:
-      run: pnpm turbo run build
+      # SKIP_ENV_VALIDATION: this hook checks that the code COMPILES, not that a
+      # developer's environment is populated. Since apps/web moved to Doppler and
+      # apps/web/.env was removed, an unset-env build fails on @t3-oss/env-nextjs
+      # before it reaches a single type error. Requiring `doppler run` here would
+      # make the hook fail for anyone not yet authenticated. Vercel still performs
+      # real env validation at deploy time.
+      run: SKIP_ENV_VALIDATION=1 pnpm turbo run build
 
 commit-msg:
   scripts:

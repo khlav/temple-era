@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Temple Raids monorepo — Next.js web app (temple-era.com) and Discord bot",
+  "description": "Temple Raids monorepo \u2014 Next.js web app (temple-era.com) and Discord bot",
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -13,15 +13,12 @@
     "format:fix": "turbo run format:fix",
     "test": "turbo run test",
     "prepare": "lefthook install",
-
     "dev": "pnpm --filter temple-era-web dev",
     "dev:web": "pnpm --filter temple-era-web dev",
     "dev:bot": "pnpm --filter temple-era-bot dev",
     "dev:all": "turbo run dev",
-
     "web": "pnpm --filter temple-era-web",
     "bot": "pnpm --filter temple-era-bot",
-
     "db:generate": "pnpm --filter temple-era-web db:generate",
     "db:migrate": "pnpm --filter temple-era-web db:migrate",
     "db:deploy": "pnpm --filter temple-era-web db:deploy",
@@ -32,7 +29,8 @@
     "db:migration:dump:data": "pnpm --filter temple-era-web db:migration:dump:data",
     "db:migration:dump:full": "pnpm --filter temple-era-web db:migration:dump:full",
     "db:migration:preflight": "pnpm --filter temple-era-web db:migration:preflight",
-    "db:migration:restore": "pnpm --filter temple-era-web db:migration:restore"
+    "db:migration:restore": "pnpm --filter temple-era-web db:migration:restore",
+    "dev:doppler": "pnpm --filter temple-era-web dev:doppler"
   },
   "devDependencies": {
     "lefthook": "^2.1.6",
