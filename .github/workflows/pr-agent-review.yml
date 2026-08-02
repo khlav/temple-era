@@ -15,8 +15,14 @@ jobs:
   # Greptile's confidence score. This is a near-zero-incremental-cost second
   # opinion, not a replacement for the existing review gate.
   pr_agent:
-    name: PR-Agent (DeepSeek)
-    if: ${{ github.event.sender.type != 'Bot' }}
+    name: Deep Cheeks (PR-Agent)
+    # Skip bot-authored events, and skip issue_comment events on plain issues
+    # (no linked PR) - PR-Agent flagged this exact gap on its own first run:
+    # github.event.pull_request is null for a comment on a non-PR issue, and
+    # without this guard the action would misfire on every issue comment.
+    if: >-
+      ${{ github.event.sender.type != 'Bot' &&
+          (github.event_name != 'issue_comment' || github.event.issue.pull_request != null) }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -41,3 +47,21 @@ jobs:
           # overhead) - enough headroom for the next big dependency-upgrade
           # PR without going wide enough to invite long-context degradation.
           config.max_model_tokens: "256000"
+          # PR-Agent's own pr_actions default is opened/reopened/ready_for_review/
+          # review_requested - it silently ignores new commits (synchronize)
+          # unless this is explicitly turned on, even though the workflow
+          # trigger above already fires on synchronize. push_commands defaults
+          # to ['/describe', '/review'], so this also refreshes the PR
+          # description on every push, not just the review - trim it via
+          # github_action_config.push_commands if that's not wanted.
+          github_action_config.handle_push_trigger: "true"
+          # Adds a 0-100 PR-quality/readiness score (0=worst, 100=merge-ready
+          # production quality) to the review comment - off by default. The
+          # closest equivalent here to Greptile's X/5 confidence rating, just
+          # on a 0-100 scale rather than 0-5.
+          PR_REVIEWER.REQUIRE_SCORE_REVIEW: "true"
+          # Off: this repo doesn't consistently link PRs to GitHub Issues, and
+          # the ticket-compliance check mismatched this PR against an
+          # unrelated, already-merged PR/issue (#26) on its first live run -
+          # a false positive, not a real gap.
+          PR_REVIEWER.REQUIRE_TICKET_ANALYSIS_REVIEW: "false"
