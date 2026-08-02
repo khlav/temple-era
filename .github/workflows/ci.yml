@@ -48,7 +48,7 @@ jobs:
   # nothing. This job fails fast if any --filter names a package that no longer
   # exists. Path-based filters ("./apps/bot") are rename-proof and skipped.
   filters:
-    name: Filter names
+    name: Cross-check packages/filters
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
