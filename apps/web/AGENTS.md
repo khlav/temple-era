@@ -233,7 +233,7 @@ src/
 │   └── query-client.ts          # TanStack Query client config
 ├── utils/                        # Utility functions
 │   └── posthog.ts               # PostHog analytics client
-├── middleware.ts                  # Next.js middleware (auth, redirects)
+├── proxy.ts                       # Next.js proxy (x-pathname header, noindex on non-prod)
 ├── constants.ts                  # Application constants (raid tracking labels)
 └── env.js                        # Environment variable validation (T3 Env)
 ```
