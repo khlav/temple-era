@@ -25,15 +25,15 @@
     "format:fix": "oxfmt src/"
   },
   "dependencies": {
-    "zod": "^4.1.9"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.13.3",
     "oxfmt": "^0.47.0",
-    "oxlint": "^1.62.0",
-    "typescript": "^5.5.3"
+    "oxlint": "^1.76.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=24.0.0 <25.0.0"
   }
 }
