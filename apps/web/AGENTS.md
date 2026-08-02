@@ -343,7 +343,7 @@ When proposing a plan for a multi-layer feature, explicitly call out which work 
 
 **Prerequisites:**
 
-- Node.js 22.x (required: `>=22.0.0 <23.0.0`)
+- Node.js 24.x (required: `>=24.0.0 <25.0.0`, `.nvmrc` → 24.18.1)
 - pnpm 9.x (`packageManager: pnpm@9.15.1`)
 
 Required environment variables:
@@ -394,7 +394,8 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Define schemas in `src/server/db/models/`
 - Use database views for complex reporting queries
 - Prefer transactions for multi-step operations
-- Migrations run automatically on `postbuild` via `drizzle-kit migrate`
+- Migrations are **not** part of `build` — run them explicitly via `pnpm db:deploy`
+  (`drizzle-kit migrate`). See the `db:deploy` note above.
 
 #### Styling
 
