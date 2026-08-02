@@ -1,12 +1,6 @@
 pre-commit:
   parallel: true
   commands:
-    migrations:
-      run: |
-        if [ -d "apps/web/drizzle" ] && [ "$(git status --porcelain apps/web/drizzle/ | wc -l)" -gt 0 ]; then
-          echo "⚠️  Warning: Uncommitted database migrations detected"
-          echo "   Consider running 'pnpm --filter temple-era-web db:generate' and committing migrations"
-        fi
     lint:
       glob: "{apps,packages}/**/src/**/*.{ts,tsx,js,jsx}"
       run: pnpm exec oxlint --fix {staged_files}
@@ -17,40 +11,27 @@ pre-commit:
       stage_fixed: true
     typecheck:
       run: pnpm turbo run typecheck
+  # Inline multi-line `run:` blocks containing `$(...)` or a pipe corrupt in
+  # transit when *git itself* invokes the hook on Windows (reproduces even
+  # after lefthook 2.1.6 -> 2.1.10) - the identical script succeeds every
+  # time run manually via `lefthook run` or `sh .git/hooks/pre-commit`. Only
+  # file-based `scripts:` (already used below for commit-msg) are unaffected,
+  # so these three are converted rather than left as `run:` strings.
+  scripts:
     # Ported from the bot's husky pre-commit hook, removed in the monorepo
-    # migration (R2). Warn-only — these must never block a commit.
-    console-log:
+    # migration (R2). Warn-only — must never block a commit.
+    "migrations.sh":
+      runner: sh
+    "console-log.sh":
       glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
-      run: |
-        if grep -l 'console\.log' {staged_files} 2>/dev/null; then
-          echo "⚠️  Warning: console.log found in the files above"
-          echo "   Consider removing or replacing with the app's logger"
-        fi
-        exit 0
-    todo-comments:
+      runner: sh
+    "todo-comments.sh":
       glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
-      run: |
-        if grep -lE '(TODO|FIXME|HACK)' {staged_files} 2>/dev/null; then
-          echo "⚠️  Warning: TODO/FIXME/HACK comments found in the files above"
-          echo "   Consider addressing these before committing"
-        fi
-        exit 0
+      runner: sh
 
 pre-push:
   parallel: true
   commands:
-    branch-name:
-      run: |
-        current_branch=$(git branch --show-current)
-        if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev|claude)/(temple-[0-9]+|noticket)-.+'; then
-          echo "✅ Branch name follows convention: $current_branch"
-        else
-          echo "❌ Branch name does not follow convention: $current_branch"
-          echo "   Expected format: {type}/{ticket-id}-{description}"
-          echo "   Types: feature, fix, chore, refactor, hotfix, dev, claude"
-          echo "   Ticket ID: a Plane TEMPLE ticket (e.g. temple-10), or 'noticket' if none"
-          exit 1
-        fi
     lint:
       run: pnpm turbo run lint
     build:
@@ -61,6 +42,9 @@ pre-push:
       # make the hook fail for anyone not yet authenticated. Vercel still performs
       # real env validation at deploy time.
       run: SKIP_ENV_VALIDATION=1 pnpm turbo run build
+  scripts:
+    "branch-name.sh":
+      runner: sh
 
 commit-msg:
   scripts:
