@@ -15,7 +15,7 @@ jobs:
   # Greptile's confidence score. This is a near-zero-incremental-cost second
   # opinion, not a replacement for the existing review gate.
   pr_agent:
-    name: Deep Cheeks (PR-Agent)
+    name: Archon (PR-Agent)
     # Skip bot-authored events, and skip issue_comment events on plain issues
     # (no linked PR) - PR-Agent flagged this exact gap on its own first run:
     # github.event.pull_request is null for a comment on a non-PR issue, and
