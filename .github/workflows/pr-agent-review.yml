@@ -68,15 +68,30 @@ jobs:
           # unrelated, already-merged PR/issue (#26) on its first live run -
           # a false positive, not a real gap.
           PR_REVIEWER.REQUIRE_TICKET_ANALYSIS_REVIEW: "false"
-          # score is a free-text field, not a strict number - this reformats
-          # it to mirror Greptile's X/5 confidence rating (the scale /fix-pr
-          # already targets, "until the confidence score hits 5/5") instead
-          # of PR-Agent's default 0-100, with a star rating for scannability
-          # and a short label per level.
+          # score is a free-text field, not a strict number. The base schema
+          # instruction (not ours to edit without forking) still tells the
+          # model to compute 0-100 - so rather than asking for a fresh,
+          # undefined 1-5 judgment (which would map 0-100 to 1-5 differently
+          # every run), this keeps the 0-100 computation and adds a fixed,
+          # deterministic conversion to a star display, mirroring Greptile's
+          # X/5 confidence rating (also the scale /fix-pr already targets:
+          # "until the confidence score hits 5/5"). Both numbers are shown so
+          # the bucketing is checkable, not a black box.
+          #
+          # PLACEHOLDER BINS: equal-width quintiles, not tuned to anything -
+          # deliberately the least-arbitrary default rather than a real
+          # answer, since we only have one real score (85) to go on so far.
+          # Revisit once several real PRs have gone through: PR-Agent's own
+          # rubric sets a high bar for 100 ("no bugs, production-scale ready")
+          # while Greptile's 5/5 in this repo's /fix-pr loop is a regularly-
+          # reached "good enough, stop iterating" threshold, not "flawless" -
+          # these quintiles may not match that in practice.
           PR_REVIEWER.EXTRA_INSTRUCTIONS: >-
-            Format the 'score' field as a star rating out of 5, not a 0-100
-            number: filled/empty stars followed by "X/5" and a short
-            qualitative label, using exactly this scale: 1/5 = Needs
-            significant rework, 2/5 = Needs work, 3/5 = Getting there,
-            4/5 = Nearly ready, 5/5 = Ready to merge. Example format:
-            "★★★★☆ 4/5 - Nearly ready".
+            Compute the 'score' field as usual (0-100). Then format its
+            displayed value as: filled/empty stars, "X/5", the raw "(N/100)"
+            score, and a short qualitative label - using exactly this
+            conversion table: 0-19 = 1 star, Needs significant rework;
+            20-39 = 2 stars, Needs work; 40-59 = 3 stars, Getting there;
+            60-79 = 4 stars, Nearly ready; 80-100 = 5 stars, Ready to merge.
+            Example: a computed score of 85 becomes
+            "★★★★★ 5/5 (85/100) - Ready to merge".
