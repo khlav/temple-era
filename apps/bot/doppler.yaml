@@ -1,8 +1,9 @@
-# Doppler project/config for apps/bot. Run `doppler setup --no-interactive` here.
+# One project for the whole monorepo. Values shared between apps —
+# TEMPLE_WEB_API_TOKEN, DISCORD_BOT_TOKEN, DISCORD_RAID_LOGS_CHANNEL_ID — exist
+# once here, so they cannot drift between web and bot. They previously lived in
+# two projects and did drift.
 #
-# Unlike apps/web, the bot still keeps a local .env — Northflank has no native
-# Doppler integration, so Doppler is the source of truth and a GitHub Action
-# pushes the secret-group values on deploy.
+# Run `doppler setup --no-interactive` in this directory.
 setup:
-  project: temple-era-bot
+  project: temple-era
   config: dev

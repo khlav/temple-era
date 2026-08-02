@@ -158,20 +158,26 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 **Both apps get their secrets from Doppler.** There is no root `.env`, and
 `apps/web` has no `.env` at all.
 
-| Doppler project | Config | Feeds |
-|---|---|---|
-| `temple-era-web` | `dev` | local development (`doppler run`) |
-| | `stg` | Vercel **Preview** (native Doppler sync) |
-| | `prd` | Vercel **Production** (native Doppler sync) |
-| `temple-era-bot` | `dev` | local development |
-| | `prd` | Northflank secret group, via a GitHub Action |
+**One project, `temple-era`, for both apps.** Values shared between web and bot —
+`TEMPLE_WEB_API_TOKEN`, `DISCORD_BOT_TOKEN`, `DISCORD_RAID_LOGS_CHANNEL_ID` —
+exist once, so they cannot drift. They previously lived in two projects and did.
+
+| Config | Feeds |
+|---|---|
+| `dev` | local development for both apps (`doppler run`) |
+| `stg` | Vercel **Preview** (native Doppler sync) |
+| `prd` | Vercel **Production** (native sync) **and** the Northflank secret group (via GitHub Action) |
+
+`NORTHFLANK_ACCESS_TOKEN` is deliberately **not** in Doppler — it is CI
+infrastructure rather than app config, so it lives as a plain GitHub repo secret
+and never syncs into Vercel.
 
 ### First-time setup
 
 ```bash
 doppler login                                    # browser, GitHub SSO
 cd apps/web && doppler setup --no-interactive    # reads doppler.yaml
-cd ../bot  && doppler setup --no-interactive
+cd ../bot  && doppler setup --no-interactive     # same project, same config
 ```
 
 Nothing to obtain from a teammate. Then use the Doppler-backed scripts:
@@ -199,7 +205,9 @@ variables from Northflank, so a Doppler outage cannot prevent it from starting.
 1. Update the schema in `apps/web/src/env.js` (web) or `apps/bot/src/config/env.ts` (bot)
 2. Add it to `apps/web/.env.example` or `apps/bot/env.example` — those stay as
    documentation of what each variable is for, which Doppler's UI does not capture
-3. Set it in **every** Doppler config it applies to (`dev`, `stg`, `prd`)
+3. Set it in **every** Doppler config it applies to (`dev`, `stg`, `prd`). A value
+   used by both apps is set once and both get it — that is the point of the single
+   project.
 
 Do not create a local `.env` for `apps/web`. It still works — Next.js loads it —
 which is exactly the problem: the value then silently diverges from Doppler for

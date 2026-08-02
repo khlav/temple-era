@@ -1,6 +1,9 @@
-# Doppler project/config for apps/web. `doppler setup --no-interactive` reads this,
-# so a new developer runs `doppler login` then `doppler setup` and is done — no
-# .env file to obtain from anyone.
+# One project for the whole monorepo. Values shared between apps —
+# TEMPLE_WEB_API_TOKEN, DISCORD_BOT_TOKEN, DISCORD_RAID_LOGS_CHANNEL_ID — exist
+# once here, so they cannot drift between web and bot. They previously lived in
+# two projects and did drift.
+#
+# Run `doppler setup --no-interactive` in this directory.
 setup:
-  project: temple-era-web
+  project: temple-era
   config: dev
