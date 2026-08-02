@@ -21,15 +21,18 @@ const sql = postgres(databaseUrl, { max: 1 });
 try {
   // Deliberately excludes `active` — those are live queries (including current app traffic
   // routed through Supavisor) and must not be killed mid-deploy.
+  // pg_terminate_backend returns a boolean — false when the backend already exited
+  // between the scan and the signal, so filter rather than counting rows.
   const terminated = await sql`
-    select pg_terminate_backend(pid) as terminated
+    select pg_terminate_backend(pid) as ok
     from pg_stat_activity
     where application_name = 'Supavisor'
       and state in ('idle', 'idle in transaction', 'idle in transaction (aborted)')
       and pid <> pg_backend_pid()
   `;
 
-  console.log(`[kill-idle-connections] Terminated ${terminated.length} idle Supavisor connection(s).`);
+  const count = terminated.filter((r) => r.ok).length;
+  console.log(`[kill-idle-connections] Terminated ${count} idle Supavisor connection(s).`);
 } catch (error) {
   console.warn("[kill-idle-connections] Failed to terminate idle connections, continuing deploy:", error);
 } finally {

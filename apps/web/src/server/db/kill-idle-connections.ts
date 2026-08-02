@@ -25,14 +25,17 @@ export async function killIdleConnections(): Promise<number> {
   try {
     // Matches scripts/db/kill-idle-connections.mjs. Broader than plain `idle`:
     // `idle in transaction` is strictly worse, since it can still hold locks.
-    const terminated = await sql`
-      select pg_terminate_backend(pid)
+    // pg_terminate_backend returns a boolean — false when the backend already
+    // exited between the scan and the signal. Counting rows would report attempts
+    // rather than actual terminations.
+    const terminated = await sql<{ ok: boolean }[]>`
+      select pg_terminate_backend(pid) as ok
       from pg_stat_activity
       where application_name = 'Supavisor'
         and state in ('idle', 'idle in transaction', 'idle in transaction (aborted)')
         and pid <> pg_backend_pid()
     `;
-    return terminated.length;
+    return terminated.filter((r) => r.ok).length;
   } finally {
     await sql.end();
   }
