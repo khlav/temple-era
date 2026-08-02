@@ -25,18 +25,27 @@ COPY apps/bot/package.json apps/bot/
 # apps/web's manifest is required: pnpm validates the whole workspace against
 # the lockfile even when installing a filtered subset.
 COPY apps/web/package.json apps/web/
-# Add packages/*/package.json here when packages/ stops being empty (Phase 7).
+# One line per shared package. A glob cannot be used: COPY flattens matches into the
+# destination directory, so `COPY packages/*/package.json packages/` would collide.
+COPY packages/contracts/package.json packages/contracts/
 
 # --ignore-scripts: the ROOT package.json runs "prepare": "lefthook install",
 # which would fail here — .git is excluded by .dockerignore and lefthook is not
 # part of a filtered production install. None of the bot's runtime dependencies
 # (discord.js, winston, node-cron, dotenv) have meaningful install scripts.
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter "./apps/bot..."
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter "{./apps/bot}..."
 
 # ---------------------------------------------------------------------- build
 FROM deps AS build
 COPY apps/bot apps/bot
-RUN pnpm --filter "./apps/bot" build
+COPY packages packages
+# The "..." suffix means "and everything it depends on", so shared packages are compiled to
+# dist/ first. Without it the bot would build against a workspace package with no output.
+#
+# The BRACES are load-bearing. A directory filter only takes the "..." suffix in the
+# `{<dir>}...` form: `"./apps/bot..."` parses as a plain path, silently selects the bot alone,
+# and leaves packages/*/dist missing.
+RUN pnpm --filter "{./apps/bot}..." build
 
 # Collect the bot plus only its production dependencies into a standalone tree.
 # pnpm 9 semantics: `deploy` changed in pnpm 10 and needs --legacy there, which

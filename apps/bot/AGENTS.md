@@ -86,7 +86,7 @@ The bot operates through three main message handlers:
 
 - **Bot Initialization** (`bot.ts`): Sets up Discord client with aggressive cache limits to reduce memory usage. Configures event handlers and optional thread cleanup cron job.
 
-- **Permission Checking** (`permissionChecker.ts`): Validates that users have linked Discord accounts and raid manager permissions via Temple Ashkandi API.
+- **Permission Checking** (`permissionChecker.ts`): Validates that users have a linked Discord account and hold the `raidlog:manage` scope, via the Temple Ashkandi API. Exposes `canManageRaidLogs`, which reads the response's `scopes`. The older `isRaidManager` flag is broader than the gate the write routes actually enforce, so it is only a deploy-skew fallback — see `docs/followups/legacy-access-booleans-cleanup.md`.
 
 - **WCL Detection** (`wclDetector.ts`): Extracts Warcraft Logs URLs (supports both vanilla.warcraftlogs.com and classic.warcraftlogs.com) and report IDs.
 
@@ -100,13 +100,20 @@ The bot operates through three main message handlers:
 
 The web app that owns these endpoints lives in this monorepo at `apps/web` (handlers in `apps/web/src/app/api/discord/`). Changes to either side of this contract should land in the same PR.
 
-The bot communicates with three Temple Ashkandi API endpoints:
+The bot communicates with four Temple Ashkandi API endpoints:
 
-1. `POST /api/discord/check-permissions` - Verifies user has raid manager permissions
+1. `POST /api/discord/check-permissions` - Verifies the user holds `raidlog:manage`
 2. `POST /api/discord/create-raid` - Creates raid entry from WCL link
-3. `POST /api/discord/update-bench` - Updates raid bench with character names
+3. `POST /api/discord/update-raid` - Replaces the WCL report behind an edited message
+4. `POST /api/discord/update-bench` - Updates raid bench with character names
 
 All API calls require Bearer token authentication via `TEMPLE_WEB_API_TOKEN`.
+
+Request bodies are typed and responses are parsed with **`@temple-era/contracts`**
+(`packages/contracts`) rather than being read off an untyped `await response.json()`. That
+package is compiled — the bot resolves it from `dist/`, so `pnpm --filter "./apps/bot..." build`
+(note the `...`) is what builds it first. A handler that receives a body the schema does not
+describe logs and bails rather than acting on `undefined`.
 
 ### Memory Optimization
 

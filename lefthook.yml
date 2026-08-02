@@ -8,11 +8,11 @@ pre-commit:
           echo "   Consider running 'pnpm --filter temple-era-web db:generate' and committing migrations"
         fi
     lint:
-      glob: "apps/**/src/**/*.{ts,tsx,js,jsx}"
+      glob: "{apps,packages}/**/src/**/*.{ts,tsx,js,jsx}"
       run: pnpm exec oxlint --fix {staged_files}
       stage_fixed: true
     format:
-      glob: "apps/**/src/**/*.{ts,tsx,js,jsx}"
+      glob: "{apps,packages}/**/src/**/*.{ts,tsx,js,jsx}"
       run: pnpm exec oxfmt {staged_files}
       stage_fixed: true
     typecheck:
@@ -20,7 +20,7 @@ pre-commit:
     # Ported from the bot's husky pre-commit hook, removed in the monorepo
     # migration (R2). Warn-only — these must never block a commit.
     console-log:
-      glob: "apps/**/src/**/*.{ts,tsx}"
+      glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
       run: |
         if grep -l 'console\.log' {staged_files} 2>/dev/null; then
           echo "⚠️  Warning: console.log found in the files above"
@@ -28,7 +28,7 @@ pre-commit:
         fi
         exit 0
     todo-comments:
-      glob: "apps/**/src/**/*.{ts,tsx}"
+      glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
       run: |
         if grep -lE '(TODO|FIXME|HACK)' {staged_files} 2>/dev/null; then
           echo "⚠️  Warning: TODO/FIXME/HACK comments found in the files above"

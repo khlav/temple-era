@@ -83,6 +83,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Shared packages are consumed as COMPILED output (packages/*/dist), not raw TypeScript.
+      # The per-app steps below invoke each app's script directly rather than going through
+      # turbo, so nothing else here would honour the `^build` dependency. Each package's
+      # `prepare` script already builds it during install; this step is belt-and-braces and
+      # replays from the turbo cache.
+      - name: Build workspace packages
+        run: pnpm exec turbo run build --filter="./packages/*"
+
       - name: Lint
         run: pnpm --filter temple-era-web lint
 
@@ -127,6 +135,10 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      # See the equivalent step in the web job.
+      - name: Build workspace packages
+        run: pnpm exec turbo run build --filter="./packages/*"
 
       - name: Lint
         run: pnpm --filter temple-era-bot lint

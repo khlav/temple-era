@@ -1,4 +1,5 @@
 import { type Message } from "discord.js";
+import { UpdateRaidResponseSchema, type UpdateRaidRequest } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { extractWarcraftLogsUrls, extractReportId } from "../services/wclDetector.js";
@@ -95,7 +96,7 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   }
 
   // Only proceed if user is a raid manager
-  if (!permissionResult.hasAccount || !permissionResult.isRaidManager) {
+  if (!permissionResult.hasAccount || !permissionResult.canManageRaidLogs) {
     // Return silently (same as create flow - no permission spam)
     return;
   }
@@ -109,22 +110,24 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       oldWclUrl: extractWarcraftLogsUrls(oldMessage.content)[0] || "none",
     });
 
+    const body: UpdateRaidRequest = {
+      discordUserId: newMessage.author.id,
+      newWclUrl: firstUrl,
+      discordMessageId: newMessage.id,
+    };
+
     const response = await fetch(`${config.apiBaseUrl}/api/discord/update-raid`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.templeWebApiToken}`,
       },
-      body: JSON.stringify({
-        discordUserId: newMessage.author.id,
-        newWclUrl: firstUrl,
-        discordMessageId: newMessage.id,
-      }),
+      body: JSON.stringify(body),
     });
 
-    let result;
+    let payload: unknown;
     try {
-      result = await response.json();
+      payload = await response.json();
     } catch {
       logger.warn("API endpoint not available yet", {
         endpoint: "/api/discord/update-raid",
@@ -136,8 +139,22 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       return;
     }
 
-    if (result.success) {
-      if (result.message) {
+    const parsed = UpdateRaidResponseSchema.safeParse(payload);
+    if (!parsed.success) {
+      logger.error("Unexpected response shape from update-raid", {
+        endpoint: "/api/discord/update-raid",
+        user: newMessage.author.tag,
+        userId: newMessage.author.id,
+        statusCode: response.status,
+        messageId: newMessage.id,
+        error: parsed.error.message,
+      });
+      return;
+    }
+    const result = parsed.data;
+
+    if ("success" in result && result.success) {
+      if ("message" in result) {
         // No change detected (same report ID)
         logger.info("No change detected in raid update", {
           message: result.message,

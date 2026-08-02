@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  CreateRaidRequestSchema,
+  firstIssueMessage,
+  type CreateRaidResult,
+} from "@temple-era/contracts";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users, accounts, raidLogs, raidLogAttendeeMap } from "~/server/db/schema";
@@ -43,31 +48,15 @@ export async function POST(request: Request) {
     }
 
     // 2. Validate request body
-    const { discordUserId, wclUrl, discordMessageId } = await request.json();
-
-    if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
+    const parsed = CreateRaidRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      const response = await compressResponse({ error: firstIssueMessage(parsed.error) }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
       });
     }
-
-    if (!wclUrl || !wclUrl.includes("warcraftlogs.com/reports/")) {
-      const response = await compressResponse({ error: "Invalid WarcraftLogs URL" }, request);
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
-
-    if (discordMessageId && !/^\d{17,19}$/.test(discordMessageId)) {
-      const response = await compressResponse({ error: "Invalid Discord message ID" }, request);
-      return new NextResponse(response.body, {
-        status: 400,
-        headers: response.headers,
-      });
-    }
+    const { discordUserId, wclUrl, discordMessageId } = parsed.data;
 
     // 3. Fetch complete user data for session
     const userResult = await db
@@ -120,8 +109,10 @@ export async function POST(request: Request) {
     const caller = createDiscordRouteCaller({ ...user, ...access });
 
     // 4. Extract report ID from WCL URL
-    const reportIdMatch = wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/);
-    if (!reportIdMatch) {
+    // `wclUrl` is now typed `string` rather than `any`, so the capture group is correctly
+    // `string | undefined` under noUncheckedIndexedAccess — hence one guard rather than two.
+    const reportId = wclUrl.match(/\/reports\/([a-zA-Z0-9]{16})/)?.[1];
+    if (!reportId) {
       return await compressResponse(
         {
           success: false,
@@ -130,8 +121,6 @@ export async function POST(request: Request) {
         request,
       );
     }
-
-    const reportId = reportIdMatch[1];
 
     // 5. Check if raid log already exists
     const existingRaidLog = await db
@@ -174,20 +163,18 @@ export async function POST(request: Request) {
         const participantCount = participantCountResult[0]?.count || 0;
         const killCount = raid.kills?.length || 0;
 
-        return await compressResponse(
-          {
-            success: true,
-            isNew: false,
-            raidId: raid.raidId,
-            raidName: raid.name,
-            zone: raid.zone,
-            date: raid.date,
-            participantCount,
-            killCount,
-            raidUrl,
-          },
-          request,
-        );
+        const payload: CreateRaidResult = {
+          success: true,
+          isNew: false,
+          raidId: raid.raidId,
+          raidName: raid.name,
+          zone: raid.zone,
+          date: raid.date,
+          participantCount,
+          killCount,
+          raidUrl,
+        };
+        return await compressResponse(payload, request);
       }
     }
 
@@ -244,20 +231,18 @@ export async function POST(request: Request) {
     const baseUrl = getBaseUrl(request);
     const raidUrl = `${baseUrl}/raids/${result.raid?.raidId}`;
 
-    return await compressResponse(
-      {
-        success: true,
-        isNew: true,
-        raidId: result.raid?.raidId,
-        raidName: result.raid?.name,
-        zone: raidLog.zone ?? "Unknown",
-        date: getEasternDate(raidLog.startTimeUTC),
-        participantCount,
-        killCount,
-        raidUrl,
-      },
-      request,
-    );
+    const payload: CreateRaidResult = {
+      success: true,
+      isNew: true,
+      raidId: result.raid?.raidId,
+      raidName: result.raid?.name,
+      zone: raidLog.zone ?? "Unknown",
+      date: getEasternDate(raidLog.startTimeUTC),
+      participantCount,
+      killCount,
+      raidUrl,
+    };
+    return await compressResponse(payload, request);
   } catch (error) {
     logger.error({ err: error }, "Error creating raid");
     const response = await compressResponse(

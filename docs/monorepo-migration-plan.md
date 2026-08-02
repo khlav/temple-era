@@ -69,7 +69,7 @@ temple-raids/
 │       ├── src/
 │       ├── Dockerfile          # rewritten in Phase 5
 │       ├── package.json tsconfig.json tsconfig.prod.json .gitignore CLAUDE.md
-├── packages/         # empty until Phase 7
+├── packages/         # contracts (Phase 7); see R3 — compiled, never raw TS
 ├── .github/workflows/
 ├── .lefthook/  lefthook.yml  .oxlintrc.json  .npmrc  .nvmrc
 ├── pnpm-workspace.yaml  pnpm-lock.yaml  turbo.json
@@ -162,7 +162,7 @@ payoff work rather than migration.
 | 4 Web cutover | ✅ | Live from monorepo; migrations run via Build Command; OpenAPI byte-identical; Templar gate 200 |
 | 5 Bot cutover | ✅ | Live from monorepo; real raid post: gateway → API → thread |
 | 6 Archive | ✅ | Both old repos archived (not deleted) |
-| 7 Packages | ⬜ | Optional |
+| 7 Packages | 🟨 | `packages/contracts` shipped; `packages/wcl`, bot tests, and the pino convergence remain |
 
 **What differs from this plan as written** — corrections found while executing:
 
@@ -352,7 +352,11 @@ Archiving is reversible: unarchive from the repo's settings page, or
 repo is read-only.
 
 ### Phase 7 — Collect the payoff `[AGENT]`, one PR each
-- **`packages/contracts`** — one Zod schema per `/api/discord/*` request/response, compiled per **R3**. Web handlers parse with it; bot fetch wrappers type against it. Replaces the bot's hand-declared `PermissionCheckResult` and the routes' untyped `await request.json()`. **Must not alter any wire format** — Templar depends on the proxy route. Wire formats are stable, but the *authorization meaning* behind them is not: as of 2026-07, all five `/api/discord/*` endpoints gate on scopes (e.g. `raidlog:manage`) rather than the legacy `isRaidManager`/`isAdmin` booleans. Contract schemas authored against the old semantics would be wrong even though the JSON shape hasn't moved.
+- ✅ **`packages/contracts` — done.** `@temple-era/contracts`, compiled per **R3**. Both apps
+  depend on it; the bot now gates on `raidlog:manage` from `scopes` rather than on
+  `isRaidManager`. No wire format changed — `scopes` was added alongside the existing fields.
+  Remaining deprecation steps: `docs/followups/legacy-access-booleans-cleanup.md`.
+- Original brief: **`packages/contracts`** — one Zod schema per `/api/discord/*` request/response, compiled per **R3**. Web handlers parse with it; bot fetch wrappers type against it. Replaces the bot's hand-declared `PermissionCheckResult` and the routes' untyped `await request.json()`. **Must not alter any wire format** — Templar depends on the proxy route. Wire formats are stable, but the *authorization meaning* behind them is not: as of 2026-07, all five `/api/discord/*` endpoints gate on scopes (e.g. `raidlog:manage`) rather than the legacy `isRaidManager`/`isAdmin` booleans. Contract schemas authored against the old semantics would be wrong even though the JSON shape hasn't moved.
   - The bot's hand-declared `PermissionCheckResult` still includes `isRaidManager`/`isAdmin`, and `check-permissions` still returns them for compatibility. Removing those fields (tracked as issue #285 in the web repo) is a **cross-repo breaking change** — the bot must migrate to reading `scopes` before the fields are dropped. Do this here, in Phase 7, where both apps' code is visible in the same PR, not as a solo web-side change. See `docs/followups/legacy-access-booleans-cleanup.md` for the deprecation's full history.
 - **`packages/wcl`** — shared URL/report-ID parsing, deduplicating `apps/bot/src/services/wclDetector.ts` against `apps/web/src/server/api/wcl-helpers.ts`.
 - Converge the bot onto pino; delete winston and the console shim.

@@ -13,11 +13,21 @@
  *
  * Run from the repo root:  node .github/scripts/check-filters.mjs
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, normalize } from "node:path";
 
 const SELF = normalize(".github/scripts/check-filters.mjs");
-const MANIFESTS = ["package.json", "apps/web/package.json", "apps/bot/package.json"];
+
+/** Every workspace manifest. packages/* is discovered so adding one needs no edit here. */
+function workspaceManifests() {
+  const packageDirs = readdirSync("packages", { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => `packages/${e.name}/package.json`)
+    .filter((f) => existsSync(f));
+  return ["package.json", "apps/web/package.json", "apps/bot/package.json", ...packageDirs];
+}
+
+const MANIFESTS = workspaceManifests();
 
 function walk(dir) {
   const out = [];
@@ -42,8 +52,9 @@ const SEARCH = [
   "apps/web/package.json",
   "apps/bot/package.json",
   "apps/bot/Dockerfile",
+  ...MANIFESTS,
   ...walk(".github"),
-].filter((f) => normalize(f) !== SELF);
+].filter((f, i, all) => normalize(f) !== SELF && all.indexOf(f) === i);
 
 /** Strip comments so prose mentioning --filter is not treated as a real call. */
 function stripComments(file, text) {
@@ -60,10 +71,12 @@ const packages = new Set(MANIFESTS.map((f) => JSON.parse(readFileSync(f, "utf8")
 console.log("workspace packages:");
 for (const p of packages) console.log("  " + p);
 
-const RE = /--filter\s+["']?([^\s"',]+)["']?/g;
-// A real reference is a package name or a relative path. Anything with angle
+// Both spellings pnpm accepts: `--filter <name>` and `--filter=<name>`. Missing the `=` form
+// would let a stale name through the very guard this script exists to be.
+const RE = /--filter[\s=]+["']?([^\s"',]+)["']?/g;
+// A real reference is a package name or a relative path (which may glob). Anything with angle
 // brackets or backticks is placeholder prose that survived comment-stripping.
-const LOOKS_REAL = /^[@A-Za-z0-9._/-]+(\.\.\.)?$/;
+const LOOKS_REAL = /^[@A-Za-z0-9._/*{}-]+(\.\.\.)?$/;
 
 const refs = new Map();
 for (const file of SEARCH) {

@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  CheckPermissionsRequestSchema,
+  RAIDLOG_MANAGE_SCOPE,
+  firstIssueMessage,
+  type CheckPermissionsResponse,
+} from "@temple-era/contracts";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import { users, accounts } from "~/server/db/schema";
@@ -6,6 +12,14 @@ import { eq, and } from "drizzle-orm";
 import { env } from "~/env.js";
 import { compressResponse } from "~/lib/compression";
 import { resolveUserAccess } from "~/server/services/access-service";
+import type { SCOPE } from "~/lib/scopes";
+
+// The contracts package cannot import ~/lib/scopes (it is tied to a Postgres enum and is
+// web-only), so it carries `raidlog:manage` as its own literal. This assignment is the
+// compile-time proof that the two never drift: if either literal changes, this line stops
+// typechecking.
+const _scopeLiteralsAgree: typeof SCOPE.RAIDLOG_MANAGE = RAIDLOG_MANAGE_SCOPE;
+void _scopeLiteralsAgree;
 
 export async function POST(request: Request) {
   try {
@@ -39,14 +53,15 @@ export async function POST(request: Request) {
     }
 
     // 2. Validate request body
-    const { discordUserId } = await request.json();
-    if (!/^\d{17,19}$/.test(discordUserId)) {
-      const response = await compressResponse({ error: "Invalid Discord user ID" }, request);
+    const parsed = CheckPermissionsRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      const response = await compressResponse({ error: firstIssueMessage(parsed.error) }, request);
       return new NextResponse(response.body, {
         status: 400,
         headers: response.headers,
       });
     }
+    const { discordUserId } = parsed.data;
 
     // 3. Check user permissions
     const result = await db
@@ -61,24 +76,25 @@ export async function POST(request: Request) {
 
     const matchedUser = result[0];
     if (!matchedUser) {
-      return await compressResponse(
-        {
-          hasAccount: false,
-          isRaidManager: false,
-        },
-        request,
-      );
+      const payload: CheckPermissionsResponse = {
+        hasAccount: false,
+        isRaidManager: false,
+        scopes: [],
+      };
+      return await compressResponse(payload, request);
     }
 
     const access = await resolveUserAccess(matchedUser.id);
 
-    return await compressResponse(
-      {
-        hasAccount: true,
-        isRaidManager: access.isRaidManager,
-      },
-      request,
-    );
+    // `scopes` is the field callers should gate on. `isRaidManager` is kept only because the
+    // deployed bot and any other consumer still read it — see
+    // docs/followups/legacy-access-booleans-cleanup.md for what has to happen before it goes.
+    const payload: CheckPermissionsResponse = {
+      hasAccount: true,
+      isRaidManager: access.isRaidManager,
+      scopes: access.scopes,
+    };
+    return await compressResponse(payload, request);
   } catch (error) {
     logger.error({ err: error }, "Error checking user permissions");
     const response = await compressResponse({ error: "Internal server error" }, request);
