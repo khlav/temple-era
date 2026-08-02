@@ -149,7 +149,7 @@ src/
 │   ├── dashboard/               # Dashboard components
 │   ├── debug/                   # Debug-related components
 │   ├── misc/                    # Miscellaneous components
-│   ├── nav/                     # Navigation (sidebar, header)
+│   ├── nav/                     # Navigation (header, breadcrumbs)
 │   ├── profile/                 # Profile components
 │   ├── raid-manager/            # Raid manager components
 │   ├── raid-planner/            # Raid composition planner components
@@ -177,7 +177,6 @@ src/
 │   │   │   ├── softres.ts      # SoftRes scan operations
 │   │   │   └── user.ts         # User operations
 │   │   ├── interfaces/         # TypeScript interfaces for external APIs
-│   │   │   ├── dashboard.ts
 │   │   │   ├── raid.ts
 │   │   │   ├── recipe.ts
 │   │   │   ├── softres.ts
@@ -203,8 +202,6 @@ src/
 │       │   ├── raid-plan-schema.ts # Raid plan tables
 │       │   ├── recipe-schema.ts # Recipe tables
 │       │   └── views-schema.ts # Database views for reporting
-│       ├── api/                 # Database query helpers
-│       │   └── helpers.ts      # Shared query utilities
 │       ├── schema.ts            # Main schema export
 │       ├── index.ts             # Database client
 │       └── helpers.ts           # Shared database utilities
