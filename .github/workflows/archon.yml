@@ -25,7 +25,7 @@ jobs:
   # Runs alongside Greptile, not instead of it - /fix-pr still drives off
   # Greptile's confidence score. This is a near-zero-incremental-cost second
   # opinion, not a replacement for the existing review gate.
-  archon:
+  pr_review:
     name: PR Review
     # Bot-sender guard, plus a fork guard Archon's own review flagged: PRs
     # from forks don't get repo secrets (DEEPSEEK_API_KEY comes back empty)
