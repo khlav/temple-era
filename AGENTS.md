@@ -219,6 +219,10 @@ that comments on every PR, applies the feedback worth applying, pushes, and
 repeats until the confidence score hits 5/5 or five rounds elapse. It can be run
 on its own against an existing PR.
 
+**Its waits run in the background.** Greptile takes 3–8 minutes per round; the
+loop must not block the session. Ask about status any time — it reads the
+pending task rather than starting a second poll.
+
 **Merging is not automatic.** `/fix-pr` stops with the PR ready and asks. To
 authorize it up front, say so explicitly — "ship it and merge when ready",
 "merge when clear", "merge if it looks good" — which permits merging **only** at
