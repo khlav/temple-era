@@ -27,7 +27,13 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
-      contents: write
+      # read, not write: Archon's own review flagged contents:write as overly
+      # permissive. Everything we actually use (posting review comments,
+      # /describe updating the PR description, adding labels) goes through
+      # the issues/pull-requests API, not contents. Read is only needed for
+      # PR-Agent to fetch repo context files like AGENTS.md - nothing here
+      # commits code.
+      contents: read
       checks: write
     steps:
       # No checkout step: PR-Agent reads the diff via the GitHub API directly
@@ -41,8 +47,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          config.model: "deepseek/deepseek-v4-pro"
-          config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # Flash primary, Pro fallback: Flash is ~3x cheaper ($0.14/$0.28 vs
+          # $0.435/$0.87 per 1M tokens) and now beats Pro-Preview on most
+          # agent benchmarks after its July 2026 retrain (SWE-bench Verified
+          # 79%). This was backwards in the original draft (Pro primary,
+          # copied from an early Aider example) and never revisited - cost
+          # matters more now that handle_push_trigger runs this on every
+          # push, not just PR open.
+          config.model: "deepseek/deepseek-v4-flash"
+          config.fallback_models: '["deepseek/deepseek-v4-pro"]'
           # PR-Agent's own default caps every model at 32K tokens regardless
           # of capability (pr_agent/algo/utils.py get_max_tokens()), which
           # would waste deepseek-v4's registered 1M-token limit. 256K is
