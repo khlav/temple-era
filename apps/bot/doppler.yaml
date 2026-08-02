@@ -1,0 +1,8 @@
+# Doppler project/config for apps/bot. Run `doppler setup --no-interactive` here.
+#
+# Unlike apps/web, the bot still keeps a local .env — Northflank has no native
+# Doppler integration, so Doppler is the source of truth and a GitHub Action
+# pushes the secret-group values on deploy.
+setup:
+  project: temple-era-bot
+  config: dev
