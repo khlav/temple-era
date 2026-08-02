@@ -67,12 +67,12 @@ export async function cleanupOldThreads(client: Client) {
 
         logger.info(`Deleted thread: "${threadName}" (created: ${createdDate})`);
       } catch (error) {
-        logger.error(`Failed to delete thread "${thread.name}":`, error);
+        logger.error({ err: error, threadName: thread.name }, "Failed to delete thread");
       }
     }
 
     logger.info(`Thread cleanup completed: ${deletedCount}/${oldThreads.length} threads deleted`);
   } catch (error) {
-    logger.error("Thread cleanup failed:", error);
+    logger.error({ err: error }, "Thread cleanup failed");
   }
 }

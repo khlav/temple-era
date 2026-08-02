@@ -28,11 +28,12 @@ COPY apps/web/package.json apps/web/
 # One line per shared package. A glob cannot be used: COPY flattens matches into the
 # destination directory, so `COPY packages/*/package.json packages/` would collide.
 COPY packages/contracts/package.json packages/contracts/
+COPY packages/wcl/package.json packages/wcl/
 
 # --ignore-scripts: the ROOT package.json runs "prepare": "lefthook install",
 # which would fail here — .git is excluded by .dockerignore and lefthook is not
 # part of a filtered production install. None of the bot's runtime dependencies
-# (discord.js, winston, node-cron, dotenv) have meaningful install scripts.
+# (discord.js, pino, node-cron, dotenv) have meaningful install scripts.
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter "{./apps/bot}..."
 
 # ---------------------------------------------------------------------- build

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    /* Node16 rather than Bundler: apps/bot resolves with Node16 and would reject a package
+       whose emitted imports lack .js extensions. apps/web's Bundler resolution accepts the
+       Node16 output, so Node16 is the only setting that satisfies both consumers. */
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  /* Tests are excluded from the EMIT so dist/ stays free of vitest imports — the bot's
+     Docker image installs this package's output. They are still typechecked, via
+     tsconfig.typecheck.json. */
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+}

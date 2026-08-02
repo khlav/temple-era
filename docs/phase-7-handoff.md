@@ -1,6 +1,11 @@
 # Phase 7 handoff
 
-Copy everything below the line into a fresh agent session.
+**Phase 7 is complete.** All three remaining work items shipped together on one
+branch; what each one turned up is recorded under "Work items" below.
+
+This file is kept because the constraints, verification steps and hard-won
+gotchas below are not Phase 7 specific — they apply to any change in this repo,
+and several are not discoverable from the code.
 
 ---
 
@@ -8,13 +13,9 @@ You are working in `khlav/temple-era`, a pnpm + Turborepo monorepo with two
 deployed apps. **Read `AGENTS.md` at the root first**, then `apps/web/AGENTS.md`
 or `apps/bot/AGENTS.md` for whichever app you touch.
 
-**Task: finish Phase 7 of the monorepo migration.** Phases 0–6 are complete, both
-apps deploy from this repo, and the first Phase 7 item (`packages/contracts`) has
-shipped. Three items remain, listed below in value order.
-
-Ship each as its own PR. Say "ship it" to use `/ship`, which opens the PR and
-hands off to `/fix-pr` for the Greptile review loop. **Do not merge without
-explicit authorization from the user.**
+Say "ship it" to use `/ship`, which opens a PR and hands off to `/fix-pr` for the
+Greptile review loop. **Do not merge without explicit authorization from the
+user.**
 
 ## Environment setup (do this first)
 
@@ -87,46 +88,54 @@ to make a check pass defeats its purpose.
 <unknown-name>` prints a warning and **exits 0**, so a stale name is a green build
 that does nothing. `.github/scripts/check-filters.mjs` enforces this in CI.
 
-## Work items
+## Work items — all three complete
 
-### 1. `packages/wcl` — deduplicate WCL parsing
+Shipped together on one branch rather than three PRs. Recorded here because each
+one turned up something the original plan had wrong.
 
-Two implementations of Warcraft Logs URL / report-ID parsing:
+### 1. `packages/wcl` — deduplicate WCL parsing ✅
 
-- `apps/bot/src/services/wclDetector.ts` (19 lines)
-- `apps/web/src/server/api/wcl-helpers.ts` (113 lines — also does API calls; extract
-  only the parsing)
+**There were three copies, not two, and the plan named the wrong web file.**
+`apps/web/src/server/api/wcl-helpers.ts` contains no URL parsing at all — it does
+WCL GraphQL calls and report shaping. The actual copies were:
 
-**Check for behavioural drift before merging them.** The bot's version was patched
-to match `warcraftlogs.com` URLs without a `vanilla`/`classic` subdomain; the web's
-may not have been. Write tests covering both variants *before* consolidating, so a
-regression is visible.
+- `apps/bot/src/services/wclDetector.ts` (now deleted)
+- `apps/web/src/server/api/discord-helpers.ts`
+- `apps/web/src/components/raids/discord-warcraft-logs.tsx`
 
-### 2. Bot tests
+Tests written before consolidating found **three** divergences, not the one the
+plan anticipated. `packages/wcl/README.md` records each and how it was resolved.
+Beyond the expected subdomain drift, the web copy's greedy `.*` suffix made the
+clickable-link renderer swallow trailing prose into the anchor, and *both* copies
+silently truncated a 17-character report code to a nonexistent 16-character ID.
 
-`apps/bot` has no tests. Add Vitest, matching the web app's setup
-(`apps/web/vitest.config.ts`, one suite at `src/lib/__tests__/`).
+### 2. Bot tests ✅
 
-Pure functions, highest value first:
+Vitest added, mirroring `apps/web`. Suites cover `benchParser.ts` and
+`utils/messageDeduplication.ts`; WCL parsing is tested in `packages/wcl` instead,
+since `wclDetector.ts` no longer exists. `tsconfig.prod.json` excludes tests from
+the emit so they do not ship in the Docker image.
 
-- `src/services/wclDetector.ts` — URL variants, malformed input
-- `src/services/benchParser.ts` — name parsing, raid-ID extraction from thread messages
-- `src/utils/messageDeduplication.ts` — TTL expiry, LRU bound
+Two findings recorded in tests rather than fixed, both being behaviour changes
+rather than test coverage:
 
-Then add `test` to the bot's `package.json` so `pnpm test` picks it up — CI already
-runs `turbo run test` and will include it automatically.
+- `MessageDeduplicator` has **no size cap**. It is bounded by arrival rate over
+  the timeout window. `apps/bot/AGENTS.md` called it an "LRU cache"; it is not one.
+- `add()` after `destroy()` silently resumes tracking with no cleanup interval.
 
-### 3. Bot logging: winston → pino
+### 3. Bot logging: winston → pino ✅
 
-Lowest value; purely consistency with `apps/web`.
+Both required behaviours preserved and verified by running the code:
+`handleExceptions` / `handleRejections` became explicit `uncaughtException` /
+`unhandledRejection` handlers that log at `fatal` and exit 1 (winston's
+`exitOnError` default), and `isoTime` replaces pino's epoch-millisecond default
+so the startup lines stay human-readable in Northflank.
 
-Start from the **current** `apps/bot/src/config/logger.ts` — a dead
-`RAILWAY_ENVIRONMENT` branch and its console shim were removed. Preserve:
-
-- `handleExceptions` / `handleRejections` behaviour
-- timestamped output — `docs/phase-5-bot-cutover.md` treats timestamps as the
-  healthy-startup signal, and the Northflank deploy doc tells operators to look
-  for them
+**The trap was the call-site argument order.** winston takes `(message, meta)`,
+pino takes `(meta, message)`, and pino does not error on the winston order — it
+silently drops the metadata. All 41 two-argument call sites had to be flipped.
+Anyone adding a log line should read the argument-order note in
+`apps/bot/AGENTS.md` first.
 
 ## Verification
 

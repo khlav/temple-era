@@ -32,6 +32,7 @@ A pnpm + Turborepo workspace holding two previously separate applications, both 
 | `apps/web` | Next.js 15 web app — the database owner and every API surface. Live at [temple-era.com](https://www.temple-era.com) | **Vercel** |
 | `apps/bot` | Discord gateway bot — a thin client over five `/api/discord/*` endpoints the web app owns | **Northflank** (Docker) |
 | `packages/contracts` | `@temple-era/contracts` — Zod schemas for the `/api/discord/*` wire contract, imported by both apps | — (compiled into each) |
+| `packages/wcl` | `@temple-era/wcl` — Warcraft Logs URL and report-ID parsing, imported by both apps | — (compiled into each) |
 
 The two apps deploy independently to different platforms. Nothing in this repo couples their release cycles.
 
@@ -85,7 +86,7 @@ pnpm install          # install the whole workspace
 pnpm build            # build both apps    ⚠️ see warning below
 pnpm typecheck        # tsc --noEmit in both apps
 pnpm lint             # oxlint across both apps
-pnpm test             # vitest (web only today; bot has no suite yet)
+pnpm test             # vitest across apps/web, apps/bot and packages/wcl
 pnpm format:fix       # oxfmt across both apps
 ```
 

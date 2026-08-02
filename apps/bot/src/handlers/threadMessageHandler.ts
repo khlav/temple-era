@@ -41,13 +41,16 @@ export async function handleThreadMessage(message: Message) {
   const permissionResult = await checkUserPermissions(message.author.id);
 
   if (!permissionResult.success) {
-    logger.error("Failed to check permissions - API unavailable", {
-      user: message.author.tag,
-      userId: message.author.id,
-      error: permissionResult.error,
-      statusCode: permissionResult.statusCode,
-      threadId: message.channel.id,
-    });
+    logger.error(
+      {
+        user: message.author.tag,
+        userId: message.author.id,
+        error: permissionResult.error,
+        statusCode: permissionResult.statusCode,
+        threadId: message.channel.id,
+      },
+      "Failed to check permissions - API unavailable",
+    );
     return;
   }
 
@@ -60,11 +63,14 @@ export async function handleThreadMessage(message: Message) {
     // Extract raid ID from thread messages
     const raidId = await extractRaidIdFromThread(message.channel);
     if (!raidId) {
-      logger.warn("Could not find raid ID in thread", {
-        threadId: message.channel.id,
-        user: message.author.tag,
-        userId: message.author.id,
-      });
+      logger.warn(
+        {
+          threadId: message.channel.id,
+          user: message.author.tag,
+          userId: message.author.id,
+        },
+        "Could not find raid ID in thread",
+      );
       await message.reply(
         "❌ Could not find raid ID in this thread. Make sure a raid URL was posted.",
       );
@@ -74,21 +80,27 @@ export async function handleThreadMessage(message: Message) {
     // Parse character names from the message
     const characterNames = parseCharacterNames(message.content);
     if (characterNames.length === 0) {
-      logger.warn("No character names found in message", {
-        threadId: message.channel.id,
-        user: message.author.tag,
-        userId: message.author.id,
-        messageContent: message.content,
-      });
+      logger.warn(
+        {
+          threadId: message.channel.id,
+          user: message.author.tag,
+          userId: message.author.id,
+          messageContent: message.content,
+        },
+        "No character names found in message",
+      );
       await message.reply("❌ No character names found in your message.");
       return;
     }
 
-    logger.debug("Found character names", {
-      characterNames: characterNames.join(", "),
-      threadId: message.channel.id,
-      user: message.author.tag,
-    });
+    logger.debug(
+      {
+        characterNames: characterNames.join(", "),
+        threadId: message.channel.id,
+        user: message.author.tag,
+      },
+      "Found character names",
+    );
 
     // Call the API to update bench
     const body: UpdateBenchRequest = {
@@ -108,14 +120,17 @@ export async function handleThreadMessage(message: Message) {
 
     const parsed = UpdateBenchResponseSchema.safeParse(await response.json());
     if (!parsed.success) {
-      logger.error("Unexpected response shape from update-bench", {
-        endpoint: "/api/discord/update-bench",
-        user: message.author.tag,
-        userId: message.author.id,
-        threadId: message.channel.id,
-        statusCode: response.status,
-        error: parsed.error.message,
-      });
+      logger.error(
+        {
+          endpoint: "/api/discord/update-bench",
+          user: message.author.tag,
+          userId: message.author.id,
+          threadId: message.channel.id,
+          statusCode: response.status,
+          error: parsed.error.message,
+        },
+        "Unexpected response shape from update-bench",
+      );
       await message.reply("❌ An error occurred while updating the bench.");
       return;
     }
@@ -146,32 +161,41 @@ export async function handleThreadMessage(message: Message) {
       replyMessage += `**Total benched characters:** ${totalBenchCharacters}`;
 
       await message.reply(replyMessage);
-      logger.info("Successfully updated bench", {
-        raidId: raidId,
-        matchedCharacters: matchedCharacters.length,
-        unmatchedNames: unmatchedNames.length,
-        totalBenchCharacters: totalBenchCharacters,
-        user: message.author.tag,
-        userId: message.author.id,
-        threadId: message.channel.id,
-      });
+      logger.info(
+        {
+          raidId: raidId,
+          matchedCharacters: matchedCharacters.length,
+          unmatchedNames: unmatchedNames.length,
+          totalBenchCharacters: totalBenchCharacters,
+          user: message.author.tag,
+          userId: message.author.id,
+          threadId: message.channel.id,
+        },
+        "Successfully updated bench",
+      );
     } else {
-      logger.error("Failed to update bench", {
-        error: result.error,
-        raidId: raidId,
-        user: message.author.tag,
-        userId: message.author.id,
-        threadId: message.channel.id,
-      });
+      logger.error(
+        {
+          error: result.error,
+          raidId: raidId,
+          user: message.author.tag,
+          userId: message.author.id,
+          threadId: message.channel.id,
+        },
+        "Failed to update bench",
+      );
       await message.reply(`❌ Failed to update bench: ${result.error}`);
     }
   } catch (error) {
-    logger.error("Error handling thread message", {
-      error: error instanceof Error ? error.message : String(error),
-      user: message.author.tag,
-      userId: message.author.id,
-      threadId: message.channel.id,
-    });
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        user: message.author.tag,
+        userId: message.author.id,
+        threadId: message.channel.id,
+      },
+      "Error handling thread message",
+    );
     await message.reply("❌ An error occurred while updating the bench.");
   }
 }

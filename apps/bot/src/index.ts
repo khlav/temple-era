@@ -10,7 +10,7 @@ async function main() {
   try {
     await bot.login(config.discordBotToken);
   } catch (error) {
-    logger.error("Failed to start bot:", error);
+    logger.error({ err: error }, "Failed to start bot");
     process.exit(1);
   }
 }

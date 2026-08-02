@@ -1,3 +1,4 @@
+import { extractWarcraftLogsUrls as parseWarcraftLogsUrls } from "@temple-era/wcl";
 import { env } from "~/env.js";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
@@ -79,21 +80,12 @@ export interface DiscordMessageWithChannel extends DiscordMessage {
 /**
  * Extract Warcraft Logs URLs from Discord message content
  * Normalizes URLs by stripping query params and fragments
+ *
+ * Parsing lives in @temple-era/wcl so this and apps/bot cannot drift again — the copy that
+ * used to live here rejected `www.` and bare-domain report links that the bot accepted.
  */
 export function extractWarcraftLogsUrls(content: string): string[] {
-  // Match vanilla and classic warcraftlogs.com URLs
-  const wclUrlRegex =
-    /https?:\/\/(?:vanilla|classic)\.warcraftlogs\.com\/reports\/([a-zA-Z0-9]{16})(?:[?#].*)?/g;
-
-  const urls: string[] = [];
-  let match;
-
-  while ((match = wclUrlRegex.exec(content)) !== null) {
-    // Reconstruct clean URL without query params or fragments
-    const reportId = match[1];
-    const cleanUrl = `https://vanilla.warcraftlogs.com/reports/${reportId}`;
-    urls.push(cleanUrl);
-  }
+  const urls = parseWarcraftLogsUrls(content);
 
   if (urls.length > 0) {
     logger.debug(`Found WCL URLs in message: ${urls.join(", ")}`);

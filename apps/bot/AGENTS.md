@@ -88,13 +88,13 @@ The bot operates through three main message handlers:
 
 - **Permission Checking** (`permissionChecker.ts`): Validates that users have a linked Discord account and hold the `raidlog:manage` scope, via the Temple Ashkandi API. Exposes `canManageRaidLogs`, which reads the response's `scopes`. The older `isRaidManager` flag is broader than the gate the write routes actually enforce, so it is only a deploy-skew fallback — see `docs/followups/legacy-access-booleans-cleanup.md`.
 
-- **WCL Detection** (`wclDetector.ts`): Extracts Warcraft Logs URLs (supports both vanilla.warcraftlogs.com and classic.warcraftlogs.com) and report IDs.
+- **WCL Detection** (**`@temple-era/wcl`**, not a local module): Extracts Warcraft Logs URLs and report IDs. This used to be `services/wclDetector.ts`; it moved to `packages/wcl` because `apps/web` had its own copy that had drifted — see that package's README for the divergences. Import it as a package (`from "@temple-era/wcl"`), and add tests there rather than here.
 
 - **Bench Parser** (`benchParser.ts`): Parses character names from bench messages and extracts raid IDs from thread messages.
 
 - **Thread Cleanup** (`threadCleanup.ts`): Optional cron job to delete bot-created threads older than configured days (disabled by default).
 
-- **Message Deduplication** (`messageDeduplication.ts`): LRU cache to prevent duplicate processing of messages.
+- **Message Deduplication** (`messageDeduplication.ts`): Prevents duplicate processing of messages. **Not an LRU cache**, despite how it reads — it is a `Map` of id → timestamp with a periodic sweep, so entries expire on a TTL and there is no size cap or eviction by access order. Memory is bounded by arrival rate × TTL window, not by a fixed capacity.
 
 ### API Integration
 
@@ -167,14 +167,13 @@ src/
 ├── bot.ts                        # Discord client setup and event handlers
 ├── config/
 │   ├── env.ts                    # Environment variable configuration
-│   └── logger.ts                 # Winston logger setup
+│   └── logger.ts                 # pino logger setup
 ├── handlers/
 │   ├── messageHandler.ts         # Main channel WCL link detection
 │   ├── messageUpdateHandler.ts   # Edited message handler
 │   └── threadMessageHandler.ts   # Thread bench message handler
 ├── services/
 │   ├── permissionChecker.ts      # User permission validation
-│   ├── wclDetector.ts            # WCL URL extraction
 │   ├── benchParser.ts            # Character name parsing
 │   └── threadCleanup.ts          # Thread cleanup cron job
 ├── responses/
@@ -194,18 +193,35 @@ import { config } from "./config/env";     // Wrong
 
 ### Error Handling
 - All Discord API calls and external API calls are wrapped in try-catch
-- Errors are logged with structured context using Winston logger
+- Errors are logged with structured context using the pino logger
 - User-facing error messages never expose internal details
 - API failures are logged but don't crash the bot
 
 ### Logging
-Use the Winston logger from `config/logger.ts`:
+Use the pino logger from `config/logger.ts`, matching `apps/web`. **The context object comes
+first** — this is the opposite of the Winston order used before Phase 7, and passing it second
+silently discards it rather than failing:
+
 ```typescript
-logger.info("message", { context: "data" });
-logger.warn("warning", { userId: "123" });
-logger.error("error occurred", { error: error.message });
-logger.debug("debug info");
+logger.info({ context: "data" }, "message");     // correct
+logger.info("message", { context: "data" });     // context is DROPPED
 ```
+
+```typescript
+logger.warn({ userId: "123" }, "warning");
+logger.error({ err: error }, "error occurred");  // `err` gets pino's Error serializer
+logger.debug("debug info");                      // message-only calls are unchanged
+```
+
+Output is line-delimited JSON with ISO timestamps, written synchronously. Operators read it
+raw in the Northflank log view — `docs/phase-5-bot-cutover.md` uses the startup lines as the
+healthy-deploy signal — so there is no pretty-printer in the runtime path. For a readable
+local stream, pipe it: `pnpm dev | npx pino-pretty`.
+
+Uncaught exceptions and unhandled rejections are logged at `fatal` and then exit the process,
+which is what Winston's `handleExceptions` / `handleRejections` did. Northflank restarts the
+container; a bot left alive after an uncaught exception holds a gateway connection it may no
+longer be servicing.
 
 ### Message Deduplication
 Always check the deduplicator before processing messages:

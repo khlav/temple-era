@@ -1,5 +1,6 @@
 "use client";
 
+import { createWclUrlRegex } from "@temple-era/wcl";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Clock, Loader } from "lucide-react";
@@ -14,8 +15,11 @@ interface DiscordWarcraftLogsProps {
 
 // Helper function to make WCL URLs clickable in message content
 function renderMessageWithClickableLinks(content: string) {
-  const wclUrlRegex =
-    /https?:\/\/(?:vanilla|classic)\.warcraftlogs\.com\/reports\/([a-zA-Z0-9]{16})(?:[?#].*)?/g;
+  // The match span is the anchor text here, not just a source for the report ID, so this
+  // needs the regex rather than extractWarcraftLogsUrls. The local copy it replaced ended
+  // in a greedy `.*`, which ran to end-of-line and pulled every word typed after the link
+  // into the anchor.
+  const wclUrlRegex = createWclUrlRegex();
 
   const result = [];
   let lastIndex = 0;
