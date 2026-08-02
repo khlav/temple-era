@@ -532,7 +532,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 
 1. Add page in `src/app/` following App Router conventions
 2. Use Server Components for initial data loading
-3. Add to navigation in `src/components/nav/app-sidebar.tsx`
+3. Add to navigation in `src/components/nav/app-header.tsx`
 4. Update global search in `src/server/api/routers/search.ts` if needed
 
 ### Adding Database Columns
