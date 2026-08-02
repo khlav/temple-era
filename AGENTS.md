@@ -53,16 +53,26 @@ breaks the bot**, whose `tsc -p tsconfig.prod.json` emits only `src/`. So a shar
 - use **`.js`-suffixed relative imports** in its own source — required by `Node16`, accepted by
   `Bundler`
 
-Three consequences that are easy to miss:
+Four consequences that are easy to miss:
 
-1. **Declare the dependency in the consuming app's `package.json`.** Vercel's Skip Deployments
+1. **Give the package a `prepare` script that compiles it.** pnpm runs `prepare` for every
+   workspace project on `pnpm install`, and that is the *only* thing that builds `dist/` on
+   Vercel. Vercel's Root Directory is `apps/web`, so its Build Command's `pnpm build` resolves
+   to that app's `next build` — **not** the root turbo task — and nothing else in the pipeline
+   would compile the package. Without `prepare` the deploy fails with
+   `Module not found: Can't resolve '@temple-era/contracts'`.
+2. **Declare the dependency in the consuming app's `package.json`.** Vercel's Skip Deployments
    reads the workspace graph; an undeclared import means web builds get skipped when only the
    package changes.
-2. **Add the manifest to `apps/bot/Dockerfile`** (one `COPY` line per package — a glob would
-   flatten them into one directory) and make sure the build step filters with the `...` suffix
-   so the package compiles first.
-3. **Build packages before the per-app steps in CI.** Both app jobs invoke each app's script
-   directly rather than going through turbo, so nothing else honours `^build`.
+3. **Add the manifest to `apps/bot/Dockerfile`** (one `COPY` line per package — a glob would
+   flatten them into one directory) and make sure the build step filters with `{./apps/bot}...`.
+   The braces are load-bearing: `"./apps/bot..."` parses as a plain path and silently selects
+   the bot alone. The Docker install runs `--ignore-scripts`, so `prepare` does **not** cover
+   this one.
+4. **Build packages before the per-app steps in CI.** Both app jobs invoke each app's script
+   directly rather than going through turbo, so nothing else honours `^build`. `prepare` also
+   covers this, but the explicit step keeps the dependency visible and survives anyone adding
+   `--ignore-scripts` to the install.
 
 Background: `docs/monorepo-migration-plan.md` **R3**.
 
