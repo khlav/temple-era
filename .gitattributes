@@ -1,0 +1,8 @@
+# lefthook embeds shell scripts directly in this file's `run: |` blocks, and
+# invokes .lefthook/**/*.sh and .github/scripts/*.sh via `sh`. CRLF line
+# endings in any of those corrupt the script for the shell (a stray \r before
+# `fi`/`then` breaks parsing), which fails every git hook on a Windows
+# checkout with core.autocrlf=true - not something `--no-verify` should paper
+# over, since it also breaks for the next person who clones on Windows.
+lefthook.yml text eol=lf
+*.sh text eol=lf

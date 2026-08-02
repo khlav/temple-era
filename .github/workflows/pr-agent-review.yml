@@ -1,0 +1,43 @@
+name: PR Agent Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Self-hosted, DeepSeek-backed AI reviewer (github.com/The-PR-Agent/pr-agent).
+  # Runs alongside Greptile, not instead of it - /fix-pr still drives off
+  # Greptile's confidence score. This is a near-zero-incremental-cost second
+  # opinion, not a replacement for the existing review gate.
+  pr_agent:
+    name: PR-Agent (DeepSeek)
+    if: ${{ github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+      checks: write
+    steps:
+      # No checkout step: PR-Agent reads the diff via the GitHub API directly
+      # from the event payload, it doesn't need the code on disk.
+      - name: PR Agent action step
+        uses: the-pr-agent/pr-agent@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          config.model: "deepseek/deepseek-v4-pro"
+          config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # PR-Agent's own default caps every model at 32K tokens regardless
+          # of capability (pr_agent/algo/utils.py get_max_tokens()), which
+          # would waste deepseek-v4's registered 1M-token limit. 256K is
+          # ~2.5-3x this repo's largest real PR to date (#26, ~3,878 lines
+          # changed, ~90-100K estimated tokens including diff + repo-context
+          # overhead) - enough headroom for the next big dependency-upgrade
+          # PR without going wide enough to invite long-context degradation.
+          config.max_model_tokens: "256000"
