@@ -1,0 +1,180 @@
+name: Archon
+
+on:
+  # issue_comment was dropped: Archon's own review flagged that any
+  # commenter (not just collaborators) could fire paid DeepSeek-backed slash
+  # commands (/review, /ask, etc.) against the repo's API key, since the old
+  # if: only filtered bot senders, not non-members. Dropping the trigger
+  # entirely removes that abuse surface rather than trying to allowlist
+  # commenters.
+  #
+  # opened is back (reopened/ready_for_review still dropped): Archon's
+  # review also caught that synchronize-only meant a PR opened with all its
+  # commits already in place, then merged without any further push, never
+  # got reviewed at all - the single most common PR flow had zero coverage.
+  # Same fork/bot guards apply to both event types below.
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: archon-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Self-hosted, DeepSeek-backed AI reviewer (github.com/The-PR-Agent/pr-agent).
+  # Runs alongside Greptile, not instead of it - /fix-pr still drives off
+  # Greptile's confidence score. This is a near-zero-incremental-cost second
+  # opinion, not a replacement for the existing review gate.
+  pr_review:
+    name: PR Review
+    # Bot-sender guard, plus a fork guard Archon's own review flagged: PRs
+    # from forks don't get repo secrets (DEEPSEEK_API_KEY comes back empty)
+    # and GITHUB_TOKEN is read-only, so every external contribution would
+    # show a failed/red check rather than just skipping cleanly. Restricting
+    # to same-repo PRs avoids that instead of trying to handle it gracefully.
+    if: >-
+      ${{ github.event.sender.type != 'Bot' &&
+          github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      # read, not write: Archon's own review flagged contents:write as overly
+      # permissive. Everything we actually use (posting review comments,
+      # /describe updating the PR description, adding labels) goes through
+      # the issues/pull-requests API, not contents. Read is only needed for
+      # PR-Agent to fetch repo context files like AGENTS.md - nothing here
+      # commits code.
+      contents: read
+      # checks: write dropped - Archon's own review flagged it as unused.
+      # Confirmed: we never set publish_as_check_run, the one setting that
+      # would route any PR-Agent output through the Checks API instead of
+      # regular PR comments. Everything enabled here (review, description-
+      # as-comment, labels) goes through issues/pull-requests. Unused scope
+      # only widens the blast radius of the third-party action the SHA
+      # pinning was meant to contain.
+    steps:
+      # No checkout step: PR-Agent reads the diff via the GitHub API directly
+      # from the event payload, it doesn't need the code on disk.
+      - name: PR Agent action step
+        # Pinned to v0.41.1 by commit SHA rather than @main - Archon's own
+        # first review on this PR flagged @main as a supply-chain risk: a
+        # compromised upstream push would execute immediately with this
+        # workflow's write permissions (issues, PRs, contents, checks).
+        uses: the-pr-agent/pr-agent@743f52d80f3513193dfc7626f778c73478df6d0a # v0.41.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # Pro primary, Flash fallback: switched back after Flash produced
+          # four incorrect technical claims in a row during this PR's own
+          # review cycle - an env var name claimed invalid that wasn't, a
+          # CLI flag claimed undocumented that was, a config setting that
+          # doesn't exist in PR-Agent's source, and exit-code semantics
+          # claimed inverted that directly contradicted both Turborepo's own
+          # docs and an empirical test run in this same session. Flash is
+          # still ~3x cheaper ($0.14/$0.28 vs $0.435/$0.87 per 1M tokens) and
+          # benchmarks well on general coding/agent tasks, but the pattern
+          # here suggests it's less reliable specifically at careful
+          # technical review - the accuracy cost of chasing down false
+          # positives outweighed the token savings for this use case.
+          config.model: "deepseek/deepseek-v4-pro"
+          config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # PR-Agent's own default caps every model at 32K tokens regardless
+          # of capability (pr_agent/algo/utils.py get_max_tokens()), which
+          # would waste deepseek-v4's registered 1M-token limit. 256K is
+          # ~2.5-3x this repo's largest real PR to date (#26, ~3,878 lines
+          # changed, ~90-100K estimated tokens including diff + repo-context
+          # overhead) - enough headroom for the next big dependency-upgrade
+          # PR without going wide enough to invite long-context degradation.
+          config.max_model_tokens: "256000"
+          # PR-Agent's own pr_actions default is opened/reopened/ready_for_review/
+          # review_requested - it silently ignores new commits (synchronize)
+          # unless this is explicitly turned on, even though the workflow
+          # trigger above already fires on synchronize. push_commands defaults
+          # to ['/describe', '/review'], so this also refreshes the PR
+          # description on every push, not just the review - trim it via
+          # github_action_config.push_commands if that's not wanted.
+          github_action_config.handle_push_trigger: "true"
+          # Adds a PR-quality/readiness score to the review comment - off by
+          # default, and 0-100 by default when on. Reformatted to X/5 below
+          # via EXTRA_INSTRUCTIONS to mirror Greptile's confidence rating.
+          PR_REVIEWER.REQUIRE_SCORE_REVIEW: "true"
+          # Off: this repo doesn't consistently link PRs to GitHub Issues, and
+          # the ticket-compliance check mismatched this PR against an
+          # unrelated, already-merged PR/issue (#26) on its first live run -
+          # a false positive, not a real gap.
+          PR_REVIEWER.REQUIRE_TICKET_ANALYSIS_REVIEW: "false"
+          # Off: enable_review_labels_effort auto-adds a "Review effort N/5"
+          # label to every PR, redundant with the effort line already in the
+          # review comment body. enable_review_labels_security (default true,
+          # untouched) stays - a security-flagged label is a useful at-a-
+          # glance signal in the PR list; an effort label is not.
+          PR_REVIEWER.ENABLE_REVIEW_LABELS_EFFORT: "false"
+          # Off: PR-Agent's persistent-comment mechanism (git_provider.py
+          # publish_persistent_comment_full) edits the main review comment in
+          # place on every push - that part is fine and stays - but also
+          # posts a SEPARATE new comment each time ("Persistent review
+          # updated to latest commit ..."), which stacks with every push and
+          # adds no information beyond what the in-place edit already shows.
+          # This flag controls only that extra comment, not the edit itself.
+          PR_REVIEWER.FINAL_UPDATE_MESSAGE: "false"
+          # Reverted publish_description_as_comment (tried briefly): posting
+          # /describe's output as a separate comment instead of editing the
+          # PR description in place was worse in practice than the problem it
+          # solved - in-place editing is preferred. Known, accepted tradeoff:
+          # /describe's add_original_user_description only snapshots the
+          # description as it was at PR creation, so manual edits made to
+          # the description after that point can still get overwritten by a
+          # later /describe run (confirmed once already on this PR). No
+          # extra permission needed either way - publish_description() is a
+          # plain PATCH /pulls/{number} via pull-requests: write, which is
+          # already granted above.
+          # score is a free-text field, not a strict number. The base schema
+          # instruction (not ours to edit without forking) still tells the
+          # model to compute 0-100 - so rather than asking for a fresh,
+          # undefined 1-5 judgment (which would map 0-100 to 1-5 differently
+          # every run), this keeps the 0-100 computation and adds a fixed,
+          # deterministic conversion to a star display, mirroring Greptile's
+          # X/5 confidence rating (also the scale /fix-pr already targets:
+          # "until the confidence score hits 5/5"). Both numbers are shown so
+          # the bucketing is checkable, not a black box.
+          #
+          # CALIBRATION ADDED: switching to deepseek-v4-flash as primary
+          # measurably dropped real scores on this PR's own history (85, 95
+          # under Pro vs 74, 78 under Flash on the same kind of low-risk,
+          # well-documented config-only changes) - Flash appears to read the
+          # base rubric's "0=worst, 100=production-perfect" literally, where
+          # Pro was more lenient. The paragraph below doesn't change what
+          # counts as a bug, it clarifies what the scale is FOR in this repo:
+          # "safe to merge", the same bar /fix-pr already uses for Greptile's
+          # 5/5, not "flawless". This is recalibration, not score inflation -
+          # it still expects concrete issues to be named when found.
+          #
+          # PLACEHOLDER BINS: equal-width quintiles, not tuned to anything -
+          # deliberately the least-arbitrary default rather than a real
+          # answer. Revisit once this calibration change has its own run
+          # history to look at - don't tune bins and scoring philosophy in
+          # the same change, or a future score shift won't tell you which
+          # one moved it.
+          PR_REVIEWER.EXTRA_INSTRUCTIONS: >-
+            When computing the 'score' field, calibrate against this repo's
+            actual merge bar, not an abstract "flawless" standard: a score in
+            the 80-100 range should mean "no material bugs, security issues,
+            or correctness problems found - safe to merge as-is", not
+            "literally perfect code". Weight deductions toward genuine bugs,
+            security issues, missing tests on risky logic, or unclear
+            reasoning - not toward PR size, number of commits, or minor style
+            preferences. A well-documented, low-risk config/CI/infra change
+            with no concrete issue found should typically score 80+ even if
+            large. If you do find a concrete issue, name it plainly in
+            key_issues_to_review or security_concerns and score accordingly -
+            this instruction calibrates the scale, it does not mean withhold
+            or soften findings.
+            Then format the 'score' field's displayed value with "X/5" as the
+            leftmost content, followed by filled/empty stars, the raw
+            "(N/100)" score, and a short qualitative label - using exactly
+            this conversion table: 0-19 = 1 star, Needs significant rework;
+            20-39 = 2 stars, Needs work; 40-59 = 3 stars, Getting there;
+            60-79 = 4 stars, Nearly ready; 80-100 = 5 stars, Ready to merge.
+            Example: a computed score of 85 becomes
+            "5/5 ★★★★★ (85/100) - Ready to merge".
