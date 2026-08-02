@@ -1,5 +1,11 @@
 import dotenv from "dotenv";
-dotenv.config();
+
+// quiet: required from dotenv 17 onward. It otherwise prints a promotional banner to
+// stdout on every startup, which lands as a non-JSON line in the middle of the bot's
+// structured log stream — precisely where operators look for the startup signal after a
+// Northflank deploy. There is normally no .env here at all; secrets come from Doppler
+// locally and from a Northflank secret group in production.
+dotenv.config({ quiet: true });
 
 export const config = {
   discordBotToken: process.env.DISCORD_BOT_TOKEN!,

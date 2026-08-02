@@ -1,0 +1,6 @@
+{
+  "disabledLabels": ["no-greptile"],
+  "triggerOnUpdates": true,
+  "statusCheck": true,
+  "ignorePatterns": "pnpm-lock.yaml\ndocs/baselines/**"
+}

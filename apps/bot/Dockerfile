@@ -13,7 +13,7 @@
 # apps/bot/ cannot resolve the install. Northflank must be configured with
 # build context "/" and Dockerfile path "/apps/bot/Dockerfile".
 
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable
 WORKDIR /app
 

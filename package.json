@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Temple Raids monorepo \u2014 Next.js web app (temple-era.com) and Discord bot",
+  "description": "Temple Raids monorepo — Next.js web app (temple-era.com) and Discord bot",
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -33,13 +33,13 @@
     "dev:doppler": "pnpm --filter temple-era-web dev:doppler"
   },
   "devDependencies": {
-    "lefthook": "^2.1.6",
+    "lefthook": "^2.1.10",
     "oxfmt": "^0.47.0",
-    "oxlint": "^1.62.0",
-    "turbo": "^2.10.7"
+    "oxlint": "^1.76.0",
+    "turbo": "^2.10.8"
   },
   "packageManager": "pnpm@9.15.1",
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=24.0.0 <25.0.0"
   }
 }
