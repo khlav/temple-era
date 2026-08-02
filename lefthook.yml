@@ -42,12 +42,13 @@ pre-push:
     branch-name:
       run: |
         current_branch=$(git branch --show-current)
-        if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev|claude)/.+'; then
+        if echo "$current_branch" | grep -qE '^(feature|fix|chore|refactor|hotfix|dev|claude)/(temple-[0-9]+|unfiled)-.+'; then
           echo "✅ Branch name follows convention: $current_branch"
         else
           echo "❌ Branch name does not follow convention: $current_branch"
-          echo "   Expected format: {type}/{description}"
+          echo "   Expected format: {type}/{ticket-id}-{description}"
           echo "   Types: feature, fix, chore, refactor, hotfix, dev, claude"
+          echo "   Ticket ID: a Plane TEMPLE ticket (e.g. temple-10), or 'unfiled' if none"
           exit 1
         fi
     lint:
