@@ -183,10 +183,16 @@ pnpm db:studio        # (and every other db:* script)
 
 ### Why the two apps differ
 
-Vercel has a native Doppler integration, so `apps/web` syncs automatically and
-its local `.env` was removed entirely. **Northflank has no such integration**, so
-`apps/bot` still keeps a local `.env` and its two secret-group values are pushed
-by `.github/workflows/sync-bot-secrets.yml` on deploy.
+Locally they behave identically: both run under `doppler run` and neither has a
+`.env`.
+
+They differ only in **how production gets its secrets**. Vercel has a native
+Doppler integration and syncs automatically. **Northflank has none**, so
+`apps/bot`'s two secret-group values are pushed by
+`.github/workflows/sync-bot-secrets.yml` on deploy.
+
+The bot's container has no Doppler dependency — it reads plain environment
+variables from Northflank, so a Doppler outage cannot prevent it from starting.
 
 ### Adding a variable
 

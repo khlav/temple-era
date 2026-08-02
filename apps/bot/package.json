@@ -5,14 +5,15 @@
   "description": "Discord bot for Temple Raids WCL link detection and raid creation",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.prod.json",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit",
+    "dev": "doppler run -- tsx watch src/index.ts",
+    "dev:env": "tsx watch src/index.ts",
+    "format": "oxfmt --check src/",
+    "format:fix": "oxfmt src/",
     "lint": "oxlint src/",
     "lint:fix": "oxlint --fix src/",
-    "format": "oxfmt --check src/",
-    "format:fix": "oxfmt src/"
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "discord",

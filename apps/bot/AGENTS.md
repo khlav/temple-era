@@ -145,9 +145,14 @@ Secrets live in Doppler (`temple-era-bot`). One-time setup:
 doppler login && cd apps/bot && doppler setup --no-interactive
 ```
 
-Unlike `apps/web`, the bot still keeps a local `.env` — Northflank has no native
-Doppler integration. In production, `DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN`
-come from a Northflank **secret group**, not the service's runtime environment;
+Local development uses Doppler, same as `apps/web` — there is no `.env` here.
+`pnpm dev` runs under `doppler run`; `pnpm dev:env` is an escape hatch that reads
+whatever is already in the environment.
+
+Northflank's lack of a Doppler integration is a **production** constraint only,
+and does not affect local development. In production, `DISCORD_BOT_TOKEN` and
+`TEMPLE_WEB_API_TOKEN` come from a Northflank **secret group**, not the service's
+runtime environment;
 `.github/workflows/sync-bot-secrets.yml` pushes them from Doppler on deploy.
 
 That workflow compares before writing and skips when nothing changed, because a
