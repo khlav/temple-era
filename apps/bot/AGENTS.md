@@ -176,8 +176,6 @@ src/
 │   ├── permissionChecker.ts      # User permission validation
 │   ├── benchParser.ts            # Character name parsing
 │   └── threadCleanup.ts          # Thread cleanup cron job
-├── responses/
-│   └── ephemeralBuilder.ts       # Discord ephemeral response builder
 └── utils/
     └── messageDeduplication.ts   # LRU-based message deduplication
 ```
