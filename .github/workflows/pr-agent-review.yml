@@ -46,7 +46,13 @@ jobs:
       # PR-Agent to fetch repo context files like AGENTS.md - nothing here
       # commits code.
       contents: read
-      checks: write
+      # checks: write dropped - Archon's own review flagged it as unused.
+      # Confirmed: we never set publish_as_check_run, the one setting that
+      # would route any PR-Agent output through the Checks API instead of
+      # regular PR comments. Everything enabled here (review, description-
+      # as-comment, labels) goes through issues/pull-requests. Unused scope
+      # only widens the blast radius of the third-party action the SHA
+      # pinning was meant to contain.
     steps:
       # No checkout step: PR-Agent reads the diff via the GitHub API directly
       # from the event payload, it doesn't need the code on disk.
