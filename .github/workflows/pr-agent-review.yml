@@ -115,10 +115,10 @@ jobs:
           # these quintiles may not match that in practice.
           PR_REVIEWER.EXTRA_INSTRUCTIONS: >-
             Compute the 'score' field as usual (0-100). Then format its
-            displayed value as: filled/empty stars, "X/5", the raw "(N/100)"
-            score, and a short qualitative label - using exactly this
-            conversion table: 0-19 = 1 star, Needs significant rework;
-            20-39 = 2 stars, Needs work; 40-59 = 3 stars, Getting there;
-            60-79 = 4 stars, Nearly ready; 80-100 = 5 stars, Ready to merge.
-            Example: a computed score of 85 becomes
-            "★★★★★ 5/5 (85/100) - Ready to merge".
+            displayed value with "X/5" as the leftmost content, followed by
+            filled/empty stars, the raw "(N/100)" score, and a short
+            qualitative label - using exactly this conversion table: 0-19 =
+            1 star, Needs significant rework; 20-39 = 2 stars, Needs work;
+            40-59 = 3 stars, Getting there; 60-79 = 4 stars, Nearly ready;
+            80-100 = 5 stars, Ready to merge. Example: a computed score of
+            85 becomes "5/5 ★★★★★ (85/100) - Ready to merge".
