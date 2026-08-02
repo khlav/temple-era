@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "npx turbo query affected --base=$VERCEL_GIT_PREVIOUS_SHA --packages temple-era-web --exit-code"
+  "ignoreCommand": "npx turbo query affected --base=\"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" --packages temple-era-web --exit-code"
 }
