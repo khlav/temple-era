@@ -62,6 +62,7 @@
     "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.50.0",
     "@temple-era/contracts": "workspace:*",
+    "@temple-era/wcl": "workspace:*",
     "@trpc/client": "^11.0.0-rc.446",
     "@trpc/react-query": "^11.0.0-rc.446",
     "@trpc/server": "^11.0.0-rc.446",

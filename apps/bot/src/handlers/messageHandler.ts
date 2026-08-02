@@ -1,8 +1,8 @@
 import { type Message } from "discord.js";
 import { CreateRaidResponseSchema, type CreateRaidRequest } from "@temple-era/contracts";
+import { extractReportId, extractWarcraftLogsUrls } from "@temple-era/wcl";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
-import { extractWarcraftLogsUrls, extractReportId } from "../services/wclDetector.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 

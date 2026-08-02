@@ -25,6 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "@temple-era/contracts": "workspace:*",
+    "@temple-era/wcl": "workspace:*",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
     "node-cron": "^4.2.1",

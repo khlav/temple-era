@@ -88,7 +88,7 @@ The bot operates through three main message handlers:
 
 - **Permission Checking** (`permissionChecker.ts`): Validates that users have a linked Discord account and hold the `raidlog:manage` scope, via the Temple Ashkandi API. Exposes `canManageRaidLogs`, which reads the response's `scopes`. The older `isRaidManager` flag is broader than the gate the write routes actually enforce, so it is only a deploy-skew fallback — see `docs/followups/legacy-access-booleans-cleanup.md`.
 
-- **WCL Detection** (`wclDetector.ts`): Extracts Warcraft Logs URLs (supports both vanilla.warcraftlogs.com and classic.warcraftlogs.com) and report IDs.
+- **WCL Detection** (**`@temple-era/wcl`**, not a local module): Extracts Warcraft Logs URLs and report IDs. This used to be `services/wclDetector.ts`; it moved to `packages/wcl` because `apps/web` had its own copy that had drifted — see that package's README for the divergences. Import it as a package (`from "@temple-era/wcl"`), and add tests there rather than here.
 
 - **Bench Parser** (`benchParser.ts`): Parses character names from bench messages and extracts raid IDs from thread messages.
 
@@ -174,7 +174,6 @@ src/
 │   └── threadMessageHandler.ts   # Thread bench message handler
 ├── services/
 │   ├── permissionChecker.ts      # User permission validation
-│   ├── wclDetector.ts            # WCL URL extraction
 │   ├── benchParser.ts            # Character name parsing
 │   └── threadCleanup.ts          # Thread cleanup cron job
 ├── responses/
