@@ -1,19 +1,22 @@
 # Cursor Rules — temple-era monorepo
 
-## CRITICAL: Read CLAUDE.md first
+## CRITICAL: Read AGENTS.md first
 
 **MANDATORY — ALWAYS APPLY:**
 
-1. **Before exploring the codebase**, read `CLAUDE.md` at the repo root. It is the
+1. **Before exploring the codebase**, read `AGENTS.md` at the repo root. It is the
    primary reference for workspace layout, tooling, and cross-app constraints.
    Then read the app-level file for whichever app you are working in:
-   - `apps/web/CLAUDE.md` — Next.js app: architecture, tRPC/Drizzle, API surface
-   - `apps/bot/CLAUDE.md` — Discord bot: handlers, gateway patterns
+   - `apps/web/AGENTS.md` — Next.js app: architecture, tRPC/Drizzle, API surface
+   - `apps/bot/AGENTS.md` — Discord bot: handlers, gateway patterns
 
-2. **When making repository updates**, update the CLAUDE.md at the right level:
-   - Workspace layout, root tooling, cross-app contracts → root `CLAUDE.md`
+   `CLAUDE.md` files are one-line pointers at the `AGENTS.md` beside them; never
+   edit a `CLAUDE.md`.
+
+2. **When making repository updates**, update the AGENTS.md at the right level:
+   - Workspace layout, root tooling, cross-app contracts → root `AGENTS.md`
    - Architecture, structure, commands, schema, endpoints, patterns for one app
-     → that app's `CLAUDE.md`
+     → that app's `AGENTS.md`
    Keep them synchronized with the actual codebase state.
 
 3. **These rules apply to ALL interactions** — no exceptions.

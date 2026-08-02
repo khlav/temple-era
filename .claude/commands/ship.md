@@ -73,7 +73,7 @@ git push origin $(git branch --show-current) -u
 
 Never use `--no-verify` for actual lint, type, or build failures.
 
-Note: `pnpm build` no longer runs migrations — `drizzle-kit migrate` moved to an explicit `db:deploy` script in Phase 2 — so a push can no longer mutate a database, and PostgreSQL `NOTICE` output should not appear in hook output at all.
+Note: `pnpm build` does not run migrations — those live in `pnpm db:deploy`, which only deploy pipelines call. A push therefore cannot mutate a database, and PostgreSQL `NOTICE` output should never appear in hook output.
 
 ### Step 5: Create PR (skip if an open PR already exists for this branch)
 
@@ -81,7 +81,7 @@ Read `.github/pull_request_template.md` for the expected structure.
 
 **Title**: Concise and user-friendly — not a raw commit message.
 
-**Description**: Follow PR description guidelines from CLAUDE.md:
+**Description**: Follow PR description guidelines from `AGENTS.md`:
 
 - _Italics_ for inline code/file references (not backticks)
 - 2–4 bullet points max per section
@@ -93,7 +93,7 @@ Read `.github/pull_request_template.md` for the expected structure.
 
 - Apply `user-facing` label for `feature/` and `fix/` branches
 - Skip for `chore/`, `dev/`, `refactor/` branches
-- Exception: skip even on feature/fix if changes are exclusively to config files (package.json, .env, lefthook.yml, turbo.json, .claude/, etc.) with no user-visible functionality changed
+- Exception: skip even on feature/fix if changes are exclusively to config files (package.json, .env, lefthook.yml, turbo.json, AGENTS.md, .claude/, etc.) with no user-visible functionality changed
 - **Monorepo exception**: `apps/bot/**`-only changes are almost never `user-facing` — the bot has no UI. Label these only when guild members will notice a behaviour change in Discord (e.g. a different reply, a new thread format), not for internal refactors.
 
 Detect which app(s) a PR touches with:
@@ -110,13 +110,35 @@ gh pr create --title "..." --body "..." --label "user-facing"
 gh pr create --title "..." --body "..."
 ```
 
-### Step 6: Return the PR link
+### Step 6: Hand off to `/fix-pr`
+
+Once the PR is open, **invoke `/fix-pr`**, passing along any merge authorization
+from $ARGUMENTS.
+
+`/fix-pr` waits for Greptile's review of the pushed commit, applies the feedback
+worth applying, pushes, and repeats until the confidence score reaches 5/5 or
+five rounds elapse.
+
+**Pass merge authorization through verbatim.** If the user said "ship it and
+merge when ready" (or "merge when clear", "merge if it looks good"), forward that
+to `/fix-pr` — it is what permits merging at 5/5. A bare "ship it" is **not**
+authorization: `/fix-pr` will stop with the PR ready and ask.
+
+Skip this step only if the user explicitly asked to open the PR without review
+iteration.
+
+### Step 7: Return the PR link
 
 ```
 [PR #{number}: {title}]({url})
 ```
 
-Confirm whether the `user-facing` label was applied and why.
+Report:
+
+- Whether the `user-facing` label was applied, and why
+- The final Greptile score and rounds taken
+- Anything `/fix-pr` deliberately skipped
+- Whether it was merged, and under what authorization
 
 ## Error handling
 
