@@ -149,7 +149,7 @@ src/
 │   ├── dashboard/               # Dashboard components
 │   ├── debug/                   # Debug-related components
 │   ├── misc/                    # Miscellaneous components
-│   ├── nav/                     # Navigation (sidebar, header)
+│   ├── nav/                     # Navigation (header, breadcrumbs)
 │   ├── profile/                 # Profile components
 │   ├── raid-manager/            # Raid manager components
 │   ├── raid-planner/            # Raid composition planner components
@@ -177,7 +177,6 @@ src/
 │   │   │   ├── softres.ts      # SoftRes scan operations
 │   │   │   └── user.ts         # User operations
 │   │   ├── interfaces/         # TypeScript interfaces for external APIs
-│   │   │   ├── dashboard.ts
 │   │   │   ├── raid.ts
 │   │   │   ├── recipe.ts
 │   │   │   ├── softres.ts
@@ -203,8 +202,6 @@ src/
 │       │   ├── raid-plan-schema.ts # Raid plan tables
 │       │   ├── recipe-schema.ts # Recipe tables
 │       │   └── views-schema.ts # Database views for reporting
-│       ├── api/                 # Database query helpers
-│       │   └── helpers.ts      # Shared query utilities
 │       ├── schema.ts            # Main schema export
 │       ├── index.ts             # Database client
 │       └── helpers.ts           # Shared database utilities
@@ -346,7 +343,7 @@ When proposing a plan for a multi-layer feature, explicitly call out which work 
 
 **Prerequisites:**
 
-- Node.js 22.x (required: `>=22.0.0 <23.0.0`)
+- Node.js 24.x (required: `>=24.0.0 <25.0.0`, `.nvmrc` → 24.18.1)
 - pnpm 9.x (`packageManager: pnpm@9.15.1`)
 
 Required environment variables:
@@ -397,7 +394,8 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Define schemas in `src/server/db/models/`
 - Use database views for complex reporting queries
 - Prefer transactions for multi-step operations
-- Migrations run automatically on `postbuild` via `drizzle-kit migrate`
+- Migrations are **not** part of `build` — run them explicitly via `pnpm db:deploy`
+  (`drizzle-kit migrate`). See the `db:deploy` note above.
 
 #### Styling
 
@@ -532,7 +530,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 
 1. Add page in `src/app/` following App Router conventions
 2. Use Server Components for initial data loading
-3. Add to navigation in `src/components/nav/app-sidebar.tsx`
+3. Add to navigation in `src/components/nav/app-header.tsx`
 4. Update global search in `src/server/api/routers/search.ts` if needed
 
 ### Adding Database Columns

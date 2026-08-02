@@ -37,11 +37,11 @@ than living with it indefinitely.
 
 ## Work items
 
-### 1. Display-only reads (~40) — swap to scope checks
+### 1. Display-only reads (~38) — swap to scope checks
 These decide what UI to render. Over-permissive today (see wart above): a user holding only
 `templar:access` sees raid-manager nav entries and edit buttons whose actions correctly fail.
 
-- `components/nav/app-header.tsx` (5), `components/nav/app-sidebar.tsx` (2)
+- `components/nav/app-header.tsx` (5)
 - `components/ui/global-quick-launcher.tsx` (4)
 - `components/raids/raids-table.tsx` (4), `components/characters/characters-table.tsx` (5)
 - `components/raid-planner/public-plans-table.tsx` (2), `raid-plan-public-view.tsx` (3)
