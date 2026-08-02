@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "db:clone-prod": "bash scripts/db/clone-prod.sh",
+    "db:clone-prod:doppler": "doppler run -- bash scripts/db/clone-prod.sh",
+    "db:deploy": "drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:clone-prod": "bash scripts/db/clone-prod.sh",
     "db:migration:compare": "bash scripts/db/compare-row-counts.sh",
     "db:migration:dump:data": "bash scripts/db/dump.sh data-only",
     "db:migration:dump:full": "bash scripts/db/dump.sh full",
@@ -15,7 +17,9 @@
     "db:migration:restore": "bash scripts/db/restore.sh",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:studio:doppler": "doppler run -- drizzle-kit studio",
     "dev": "next dev --turbo",
+    "dev:doppler": "doppler run -- next dev --turbo",
     "dev:standard": "next dev",
     "format": "oxfmt --check src/",
     "format:fix": "oxfmt src/",
@@ -25,8 +29,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "db:deploy": "drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
