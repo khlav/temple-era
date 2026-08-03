@@ -24,17 +24,14 @@ export interface PermissionCheckResult {
 }
 
 /**
- * `scopes` is absent when this bot build is talking to a web build that predates it. The two
- * apps deploy from the same merge but through different pipelines (Northflank vs Vercel), so
- * there is a window where they disagree; falling back to the legacy flag beats locking every
- * raid manager out for the length of a deploy. Removed together with `isRaidManager` itself —
- * see docs/followups/legacy-access-booleans-cleanup.md.
+ * `scopes` is still typed optional in the contract (the deploy-skew window between web and
+ * bot pipelines), but the web route has sent it unconditionally since it shipped, so the
+ * `isRaidManager` fallback was dead code and has been removed. `?? []` is only a type-level
+ * guard, not a real fallback path — see docs/followups/legacy-access-booleans-cleanup.md for
+ * the remaining step (dropping `isRaidManager` from the schema/response itself).
  */
 function resolveCanManageRaidLogs(response: CheckPermissionsResponse): boolean {
-  if (response.scopes) {
-    return response.scopes.includes(RAIDLOG_MANAGE_SCOPE);
-  }
-  return response.isRaidManager;
+  return (response.scopes ?? []).includes(RAIDLOG_MANAGE_SCOPE);
 }
 
 export async function checkUserPermissions(discordUserId: string): Promise<PermissionCheckResult> {

@@ -86,7 +86,7 @@ The bot operates through three main message handlers:
 
 - **Bot Initialization** (`bot.ts`): Sets up Discord client with aggressive cache limits to reduce memory usage. Configures event handlers and optional thread cleanup cron job.
 
-- **Permission Checking** (`permissionChecker.ts`): Validates that users have a linked Discord account and hold the `raidlog:manage` scope, via the Temple Ashkandi API. Exposes `canManageRaidLogs`, which reads the response's `scopes`. The older `isRaidManager` flag is broader than the gate the write routes actually enforce, so it is only a deploy-skew fallback — see `docs/followups/legacy-access-booleans-cleanup.md`.
+- **Permission Checking** (`permissionChecker.ts`): Validates that users have a linked Discord account and hold the `raidlog:manage` scope, via the Temple Ashkandi API. Exposes `canManageRaidLogs`, which reads the response's `scopes` (defaulting to `[]` if absent — a type-level guard only, since the web route always sends it). The older `isRaidManager` flag is broader than the gate the write routes actually enforce and is no longer read here; it still exists in the response for now — see `docs/followups/legacy-access-booleans-cleanup.md`.
 
 - **WCL Detection** (**`@temple-era/wcl`**, not a local module): Extracts Warcraft Logs URLs and report IDs. This used to be `services/wclDetector.ts`; it moved to `packages/wcl` because `apps/web` had its own copy that had drifted — see that package's README for the divergences. Import it as a package (`from "@temple-era/wcl"`), and add tests there rather than here.
 
