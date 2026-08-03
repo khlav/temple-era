@@ -371,14 +371,20 @@ export const softres = createTRPCRouter({
       } as const;
 
       results.sort((a, b) => {
+        // "inactive" rules are hidden from the UI by default (only shown with
+        // ?debug), so they're excluded here to keep sort order matching what's
+        // actually visible on screen.
+        const aVisibleRules = a.matchingRules.filter((r) => r.level !== "inactive");
+        const bVisibleRules = b.matchingRules.filter((r) => r.level !== "inactive");
+
         // Get highest severity for each result
         const aMaxSeverity =
-          a.matchingRules.length > 0
-            ? Math.max(...a.matchingRules.map((r) => severityOrder[r.level]))
+          aVisibleRules.length > 0
+            ? Math.max(...aVisibleRules.map((r) => severityOrder[r.level]))
             : 0;
         const bMaxSeverity =
-          b.matchingRules.length > 0
-            ? Math.max(...b.matchingRules.map((r) => severityOrder[r.level]))
+          bVisibleRules.length > 0
+            ? Math.max(...bVisibleRules.map((r) => severityOrder[r.level]))
             : 0;
 
         // Sort by highest severity first (descending)
@@ -388,10 +394,10 @@ export const softres = createTRPCRouter({
 
         // If same max severity, sort by count of rules at that severity
         if (aMaxSeverity > 0) {
-          const aCountAtMax = a.matchingRules.filter(
+          const aCountAtMax = aVisibleRules.filter(
             (r) => severityOrder[r.level] === aMaxSeverity,
           ).length;
-          const bCountAtMax = b.matchingRules.filter(
+          const bCountAtMax = bVisibleRules.filter(
             (r) => severityOrder[r.level] === bMaxSeverity,
           ).length;
 
@@ -401,8 +407,8 @@ export const softres = createTRPCRouter({
         }
 
         // Then sort by total rule count (descending)
-        if (b.matchingRules.length !== a.matchingRules.length) {
-          return b.matchingRules.length - a.matchingRules.length;
+        if (bVisibleRules.length !== aVisibleRules.length) {
+          return bVisibleRules.length - aVisibleRules.length;
         }
 
         // Finally, sort alphabetically by character name (case-insensitive)

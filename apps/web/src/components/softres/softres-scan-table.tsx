@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Info, AlertTriangle, XCircle } from "lucide-react";
 import type { SoftResScanResult } from "~/server/api/routers/softres";
 import { CharacterLink } from "~/components/ui/character-link";
@@ -31,6 +32,9 @@ const levelColors = {
 };
 
 export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) {
+  const searchParams = useSearchParams();
+  const showInactiveFlags = searchParams.has("debug");
+
   if (results.length === 0) {
     return (
       <div className="rounded-md border p-4 text-center text-muted-foreground">
@@ -140,51 +144,53 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {result.matchingRules.map((rule) => {
-                      const IconComponent = iconMap[rule.icon as keyof typeof iconMap] ?? Info;
-                      return (
-                        <Tooltip key={rule.id} delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className={`cursor-help ${levelColors[rule.level]}`}
+                    {result.matchingRules
+                      .filter((rule) => showInactiveFlags || rule.level !== "inactive")
+                      .map((rule) => {
+                        const IconComponent = iconMap[rule.icon as keyof typeof iconMap] ?? Info;
+                        return (
+                          <Tooltip key={rule.id} delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={`cursor-help ${levelColors[rule.level]}`}
+                              >
+                                <IconComponent className="mr-1 h-3 w-3" />
+                                {rule.name}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
                             >
-                              <IconComponent className="mr-1 h-3 w-3" />
-                              {rule.name}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
-                          >
-                            {(() => {
-                              // Parse description to highlight item names
-                              // Use red for error rules, yellow for warning rules, matching the label colors
-                              const itemNameColor =
-                                rule.level === "error"
-                                  ? "text-red-700 dark:text-red-400"
-                                  : rule.level === "inactive"
-                                    ? "text-orange-700 dark:text-orange-400"
-                                    : rule.level === "warning"
-                                      ? "text-yellow-700 dark:text-yellow-400"
-                                      : "text-muted-foreground";
-                              const parts = rule.description.split(/`([^`]+)`/g);
-                              return parts.map((part, index) => {
-                                // Odd indices are the quoted item names
-                                if (index % 2 === 1) {
-                                  return (
-                                    <span key={index} className={`${itemNameColor} font-medium`}>
-                                      {part}
-                                    </span>
-                                  );
-                                }
-                                return <span key={index}>{part}</span>;
-                              });
-                            })()}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
+                              {(() => {
+                                // Parse description to highlight item names
+                                // Use red for error rules, yellow for warning rules, matching the label colors
+                                const itemNameColor =
+                                  rule.level === "error"
+                                    ? "text-red-700 dark:text-red-400"
+                                    : rule.level === "inactive"
+                                      ? "text-orange-700 dark:text-orange-400"
+                                      : rule.level === "warning"
+                                        ? "text-yellow-700 dark:text-yellow-400"
+                                        : "text-muted-foreground";
+                                const parts = rule.description.split(/`([^`]+)`/g);
+                                return parts.map((part, index) => {
+                                  // Odd indices are the quoted item names
+                                  if (index % 2 === 1) {
+                                    return (
+                                      <span key={index} className={`${itemNameColor} font-medium`}>
+                                        {part}
+                                      </span>
+                                    );
+                                  }
+                                  return <span key={index}>{part}</span>;
+                                });
+                              })()}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
                   </div>
                 </TableCell>
               </TableRow>
