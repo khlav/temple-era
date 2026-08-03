@@ -58,7 +58,9 @@ export interface SoftResScanResponse {
  * Fetch SoftRes raid data from the API
  */
 async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidData> {
-  const response = await fetch(`https://softres.it/api/raid/${raidId}`);
+  // softres.it/raid/{id} 302-redirects here for the actual raid data; the bare
+  // API path on the main domain returns a plain 404 rather than redirecting.
+  const response = await fetch(`https://legacy.softres.it/api/raid/${raidId}`);
 
   if (!response.ok) {
     if (response.status === 404) {
