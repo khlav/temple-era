@@ -71,6 +71,24 @@ strip_archon_appendix() {
     '
 }
 
+# Archon also prepends a "### **User description**" heading directly above the
+# original description before its own appended sections (stripped above). It's
+# only ever the first line Archon has touched the PR at all, so this only fires
+# when the heading is literally line 1 — a human-authored description that
+# happens to contain that text further down is left alone.
+strip_user_description_heading() {
+    awk '
+        NR == 1 && $0 ~ /^### \*\*User description\*\*[[:space:]]*$/ {
+            heading_stripped = 1
+            next
+        }
+        NR == 2 && heading_stripped == 1 && $0 ~ /^[[:space:]]*$/ {
+            next
+        }
+        { print }
+    '
+}
+
 # Function to convert GitHub markdown to Discord format
 convert_to_discord() {
     local input="$1"
@@ -108,8 +126,9 @@ truncate_text() {
 if [ -z "$PR_DESCRIPTION" ] || [ "$(echo "$PR_DESCRIPTION" | tr -d '[:space:]')" = "" ]; then
     DESCRIPTION="No description provided"
 else
-    # Drop Archon's appended PR-Agent sections (raw HTML included) before anything else
-    DESCRIPTION=$(echo "$PR_DESCRIPTION" | strip_archon_appendix)
+    # Drop Archon's "User description" heading and its appended PR-Agent sections
+    # (raw HTML included) before anything else
+    DESCRIPTION=$(echo "$PR_DESCRIPTION" | strip_user_description_heading | strip_archon_appendix)
     # Convert GitHub markdown to Discord format
     DESCRIPTION=$(convert_to_discord "$DESCRIPTION")
     # Truncate if necessary

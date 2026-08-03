@@ -160,7 +160,9 @@ export async function POST(request: Request) {
           .from(raidLogAttendeeMap)
           .where(eq(raidLogAttendeeMap.raidLogId, reportId));
 
-        const participantCount = participantCountResult[0]?.count || 0;
+        // `count(*)` comes back from postgres as a bigint, which the `pg` driver returns as a
+        // string at runtime — `sql<number>` is only a compile-time assertion, not a cast.
+        const participantCount = Number(participantCountResult[0]?.count ?? 0);
         const killCount = raid.kills?.length || 0;
 
         const payload: CreateRaidResult = {

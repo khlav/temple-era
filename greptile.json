@@ -1,5 +1,5 @@
 {
-  "disabledLabels": ["no-greptile"],
+  "labels": ["greptile"],
   "triggerOnUpdates": true,
   "statusCheck": true,
   "ignorePatterns": "pnpm-lock.yaml\ndocs/baselines/**"

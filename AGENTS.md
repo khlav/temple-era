@@ -283,10 +283,10 @@ Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`
 Say **"ship it"** to invoke `/ship` (`.claude/commands/ship.md`): branch, commit,
 push, open the PR with the right label, then hand off to `/fix-pr`.
 
-`/fix-pr` (`.claude/commands/fix-pr.md`) waits for **Greptile**, the AI reviewer
-that comments on every PR, applies the feedback worth applying, pushes, and
-repeats until the confidence score hits 5/5 or five rounds elapse. It can be run
-on its own against an existing PR.
+`/fix-pr` (`.claude/commands/fix-pr.md`) waits for **Greptile**, the AI reviewer,
+applies the feedback worth applying, pushes, and repeats until the confidence
+score hits 5/5 or five rounds elapse. It can be run on its own against an
+existing PR.
 
 **Its waits run in the background.** Greptile takes 3–8 minutes per round; the
 loop must not block the session. Ask about status any time — it reads the
@@ -300,14 +300,18 @@ authorize it up front, say so explicitly — "ship it and merge when ready",
 Greptile's feedback is advice, not instruction: fixes that are wrong or
 out-of-scope should be skipped and the reasoning reported.
 
-#### Skipping Greptile on a PR
+#### Triggering Greptile on a PR
 
-Add the **`no-greptile`** label. `greptile.json` at the repo root lists it under
-`disabledLabels`, so the review is skipped entirely.
+Greptile review is **opt-in**, not automatic. Add the **`greptile`** label to
+get a review; without it, no review runs and no check appears at all —
+`/fix-pr` should treat that as an inactive reviewer, not as an unavailable one.
+`greptile.json` at the repo root lists it under `labels`, the include-filter
+field. **`no-greptile` is no longer a valid label** — it did nothing under the
+old opt-out config and does nothing now.
 
-Two other ways, no config needed: **draft PRs are not reviewed** (`gh pr create
---draft`, or `gh pr ready --undo`), and commenting **`@greptileai`** triggers a
-review on demand — including on a draft.
+One other way, no label needed: commenting **`@greptileai`** triggers a review
+on demand, including on a draft (draft PRs are otherwise never auto-reviewed,
+label or not).
 
 > ⚠️ **`greptile.json` overrides the dashboard settings, field by field, and is
 > read from the PR's *source* branch** — so a change to it takes effect on the
