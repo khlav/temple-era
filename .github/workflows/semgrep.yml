@@ -22,7 +22,9 @@ jobs:
     name: Semgrep scan
     runs-on: ubuntu-latest
     container:
-      image: semgrep/semgrep
+      # Pinned rather than `semgrep/semgrep` (implicit `latest`), so a new
+      # semgrep release can't silently change scan behaviour without a PR.
+      image: semgrep/semgrep:1.172.0
     permissions:
       contents: read
       security-events: write
@@ -42,8 +44,12 @@ jobs:
             --sarif \
             --output semgrep.sarif
 
+      # hashFiles guards the case where semgrep crashes before writing the
+      # file (e.g. network error fetching a ruleset) - without it, `if:
+      # always()` still runs the upload and it errors on a missing file,
+      # showing as a persistent code-scanning error instead of just no run.
       - name: Upload SARIF to code scanning
-        if: always()
+        if: always() && hashFiles('semgrep.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif

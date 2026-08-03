@@ -11,6 +11,13 @@ pre-commit:
       stage_fixed: true
     typecheck:
       run: pnpm turbo run typecheck
+    # `scripts:` entries never receive staged files as arguments - lefthook
+    # only uses their glob to decide whether to run them, not to populate
+    # "$@". {staged_files} is a `commands:`-only substitution, so this has to
+    # live here (invoking the file, not inlining the logic) to actually scan
+    # staged files only instead of falling back to a full-repo scan.
+    semgrep-secrets:
+      run: sh .lefthook/pre-commit/semgrep-secrets.sh {staged_files}
   # Inline multi-line `run:` blocks containing `$(...)` or a pipe corrupt in
   # transit when *git itself* invokes the hook on Windows (reproduces even
   # after lefthook 2.1.6 -> 2.1.10) - the identical script succeeds every
@@ -27,8 +34,6 @@ pre-commit:
       runner: sh
     "todo-comments.sh":
       glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
-      runner: sh
-    "semgrep-secrets.sh":
       runner: sh
 
 pre-push:
