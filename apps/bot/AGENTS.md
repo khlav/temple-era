@@ -161,24 +161,9 @@ there is no previous-deployment fallback.
 
 ## Code Organization
 
-```
-src/
-├── index.ts                      # Entry point
-├── bot.ts                        # Discord client setup and event handlers
-├── config/
-│   ├── env.ts                    # Environment variable configuration
-│   └── logger.ts                 # pino logger setup
-├── handlers/
-│   ├── messageHandler.ts         # Main channel WCL link detection
-│   ├── messageUpdateHandler.ts   # Edited message handler
-│   └── threadMessageHandler.ts   # Thread bench message handler
-├── services/
-│   ├── permissionChecker.ts      # User permission validation
-│   ├── benchParser.ts            # Character name parsing
-│   └── threadCleanup.ts          # Thread cleanup cron job
-└── utils/
-    └── messageDeduplication.ts   # LRU-based message deduplication
-```
+See `src/` for the directory layout — `handlers/` (message handlers), `services/`
+(permission checking, bench parsing, thread cleanup), `utils/` (deduplication),
+`config/` (env, logger).
 
 ## Important Patterns
 
