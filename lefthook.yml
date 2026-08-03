@@ -28,6 +28,8 @@ pre-commit:
     "todo-comments.sh":
       glob: "{apps,packages}/**/src/**/*.{ts,tsx}"
       runner: sh
+    "semgrep-secrets.sh":
+      runner: sh
 
 pre-push:
   parallel: true
