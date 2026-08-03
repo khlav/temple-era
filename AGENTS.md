@@ -326,5 +326,6 @@ so review comments on either are noise.
 
 - `docs/monorepo-migration-plan.md` — the migration this repo is the product of. Phases 3–7 are still open; the risk register (**R1**–**R10**) explains why several things here look the way they do.
 - `docs/followups/legacy-access-booleans-cleanup.md` — what still has to happen before `isRaidManager` can leave the `/api/discord/check-permissions` response
+- `docs/followups/pr-review-quality-log.md` — running record of what Greptile and Archon have actually gotten right or wrong across real PRs; check before taking a `/fix-pr` finding on faith
 - `apps/web/AGENTS.md` — web architecture, tRPC/Drizzle patterns, API surface, database schema
 - `apps/bot/AGENTS.md` — bot handlers, Discord.js patterns, gateway behaviour

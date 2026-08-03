@@ -231,6 +231,16 @@ gh api "repos/$REPO/issues/$PR/comments" \
 - **Out of scope** → skip. A PR that fixes a doc should not grow a refactor
   because a reviewer noticed something adjacent.
 
+Before taking a finding on faith either way, check
+`docs/followups/pr-review-quality-log.md` for a prior entry on the same kind
+of claim (structural/YAML claims, ticket-linking, test-coverage callouts) —
+this repo's own review history, not a general reputation for either bot.
+After judging, append an entry there if something is actually worth
+recording: a finding you independently verified as correct (especially if
+non-obvious), one you disproved, or a reviewer being notably shallow or deep
+relative to its score. A routine clean round with nothing surprising doesn't
+need an entry.
+
 Then verify, using the repo's real gate:
 
 ```bash
