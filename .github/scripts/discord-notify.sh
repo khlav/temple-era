@@ -37,6 +37,40 @@ esac
 
 echo "Processing Discord notification for ${TITLE_PREFIX}PR #$PR_NUMBER"
 
+# Archon (PR-Agent) rewrites the PR body on every push: it wraps the original
+# description under a "### **User description**" heading, then appends its own
+# "### **PR Type**" / "### **Description**" sections followed by a raw-HTML
+# "File Walkthrough" block meant for GitHub's renderer, not Discord's. Anchor on
+# the "___" horizontal rule immediately preceding "### **PR Type**" specifically
+# (not "the first hr") because a human-authored description could legitimately
+# contain its own "___"/"---", and truncating on that alone would cut real
+# content. "### **PR Type**" is Archon's fixed marker, so pairing the two is a
+# reliable anchor for where Archon's appendix begins.
+strip_archon_appendix() {
+    awk '
+        {
+            lines[NR] = $0
+            if ($0 ~ /^___[[:space:]]*$/) {
+                last_hr = NR
+            }
+            if ($0 ~ /^### \*\*PR Type\*\*[[:space:]]*$/ && pr_type_line == 0) {
+                pr_type_line = NR
+                hr_line = last_hr
+            }
+        }
+        END {
+            limit = (pr_type_line > 0 && hr_line > 0) ? hr_line - 1 : NR
+            # Trim trailing blank lines left over from the cut
+            while (limit > 0 && lines[limit] ~ /^[[:space:]]*$/) {
+                limit--
+            }
+            for (i = 1; i <= limit; i++) {
+                print lines[i]
+            }
+        }
+    '
+}
+
 # Function to convert GitHub markdown to Discord format
 convert_to_discord() {
     local input="$1"
@@ -74,8 +108,10 @@ truncate_text() {
 if [ -z "$PR_DESCRIPTION" ] || [ "$(echo "$PR_DESCRIPTION" | tr -d '[:space:]')" = "" ]; then
     DESCRIPTION="No description provided"
 else
+    # Drop Archon's appended PR-Agent sections (raw HTML included) before anything else
+    DESCRIPTION=$(echo "$PR_DESCRIPTION" | strip_archon_appendix)
     # Convert GitHub markdown to Discord format
-    DESCRIPTION=$(convert_to_discord "$PR_DESCRIPTION")
+    DESCRIPTION=$(convert_to_discord "$DESCRIPTION")
     # Truncate if necessary
     DESCRIPTION=$(truncate_text "$DESCRIPTION" $MAX_DESCRIPTION_LENGTH)
 fi
