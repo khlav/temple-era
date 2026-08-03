@@ -115,3 +115,11 @@ compiled `globals.css` output contains `--color-gray-200: #e5e7eb` exactly as ex
 Rejected, no change made. See the "Patterns observed" note above — this is the second
 confirmed case where the fix was to verify the compiled/generated output rather than
 reason about the framework from memory.
+
+**Round 2** (after the `TableFooter` fix) — Greptile: 5/5, no remaining issue block (the
+summary prose sloppily referenced the now-fixed `TableFooter` finding by name without
+re-verifying it, but there was no actionable `### Issue` entry backing that mention — the
+score and the absence of a fix-it block are the authoritative signal, not the narration).
+Archon: 92/100, "Ready to merge," no major issues detected — did not re-raise the
+`--color-gray-200` finding, consistent with it having been a genuine false positive rather
+than something it was simply waiting to see fixed. Both clean.
