@@ -147,7 +147,7 @@ export function RaidDetailSkeleton() {
       {/* Attendees and Bench sections */}
       <div className="flex gap-2 xl:flex-nowrap">
         <div className="w-full xl:w-1/2">
-          <div className="rounded-xl border bg-card p-3 shadow">
+          <div className="rounded-xl border bg-card p-3 shadow-sm">
             <Skeleton className="mb-3 h-6 w-48" />
             <div className="my-1 flex justify-center">
               <Skeleton className="h-32 w-full" />
@@ -182,7 +182,7 @@ export function RaidDetailSkeleton() {
           </div>
         </div>
         <div className="w-full xl:w-1/2">
-          <div className="rounded-xl border bg-card p-3 shadow">
+          <div className="rounded-xl border bg-card p-3 shadow-sm">
             <Skeleton className="mb-3 h-6 w-24" />
             <div className="mb-2">
               <Table>

@@ -195,7 +195,7 @@ export function AttendanceReportClient({
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 pb-3 pt-1 backdrop-blur-sm supports-backdrop-filter:bg-background/80">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <DateRangeFilter

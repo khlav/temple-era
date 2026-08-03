@@ -85,7 +85,7 @@ export function AllCharacters({
                 onDebouncedChange={(v) => setSearchTerm(v)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+            <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
               <Badge variant="secondary">{Object.keys(filteredPlayers).length} characters</Badge>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>

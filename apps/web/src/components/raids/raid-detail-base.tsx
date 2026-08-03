@@ -167,7 +167,7 @@ export function RaidDetailBase({
       <Separator className="my-3" />
       <div className="flex flex-wrap gap-2 py-1 xl:flex-nowrap">
         <div className="w-full xl:w-1/2">
-          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
+          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow-sm">
             <div className="text-xl">Attendees from logs:</div>
             <div className="my-1 flex justify-center">
               <CharacterSummaryGrid
@@ -188,7 +188,7 @@ export function RaidDetailBase({
           </div>
         </div>
         <div className="w-full xl:w-1/2">
-          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow">
+          <div className="rounded-xl border bg-card p-3 text-card-foreground shadow-sm">
             <div className="text-xl">Bench:</div>
             <CharactersTable characters={raidData.bench} showRaidColumns={false} />
             <Separator className="m-auto my-3" />

@@ -118,9 +118,9 @@ export const CharacterCard = memo(function CharacterCard({
         {isWowClass ? (
           <ClassIcon characterClass={character.class!} px={14} />
         ) : StatusIcon ? (
-          <StatusIcon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" />
+          <StatusIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
         ) : (
-          <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center text-[10px] font-bold text-muted-foreground/50">
+          <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[10px] font-bold text-muted-foreground/50">
             ?
           </span>
         )}

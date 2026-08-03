@@ -127,7 +127,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
               log.raidId ? "italic text-muted-foreground opacity-40" : ""
             }`}
           >
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               {log.raidId && log.raidName ? (
                 <Link href={`/raids/${log.raidId}`}>
                   <Button variant="outline" size="sm" className="w-24">

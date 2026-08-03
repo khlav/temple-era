@@ -74,7 +74,7 @@ export function AllRaids({
                 onDebouncedChange={(v) => setSearchTerms(v ?? "")}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+            <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
               <Badge variant="secondary">{filteredRaids?.length ?? 0} raids</Badge>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>

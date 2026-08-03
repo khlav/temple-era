@@ -34,7 +34,7 @@ const ROLE_NAME_COLOR_OVERRIDES: Record<string, string> = {
   // Superadmin is env-granted and outranks everything, so it gets a multi-color gradient that
   // can't be mistaken for any hashed palette entry or the gold system-role shades.
   Superadmin:
-    "bg-gradient-to-r from-fuchsia-500/25 via-violet-500/25 to-cyan-500/25 text-violet-700 dark:text-violet-200 border-violet-500/50",
+    "bg-linear-to-r from-fuchsia-500/25 via-violet-500/25 to-cyan-500/25 text-violet-700 dark:text-violet-200 border-violet-500/50",
   Admin: "bg-yellow-400/15 text-yellow-600 dark:text-yellow-300 border-yellow-400/50",
   "Raid Manager": "bg-amber-800/15 text-amber-800 dark:text-amber-500 border-amber-800/50",
 };
@@ -61,4 +61,4 @@ export function roleColorClasses(roleName: string): string {
 // Shared pill styling so a role reads identically wherever it's rendered (User Permissions and
 // Roles tabs).
 export const ROLE_PILL_BASE_CLASSES =
-  "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors";
+  "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest transition-colors";

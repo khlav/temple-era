@@ -247,7 +247,7 @@ function DroppableGroupArea({ groupId, isEmpty }: { groupId: string; isEmpty: bo
     <div
       ref={setNodeRef}
       className={cn(
-        "ml-4 min-h-[1.5rem] rounded border border-dashed text-center text-xs leading-6 text-muted-foreground/30 transition-colors",
+        "ml-4 min-h-6 rounded border border-dashed text-center text-xs leading-6 text-muted-foreground/30 transition-colors",
         isOver && "border-primary/40 bg-accent/20 text-muted-foreground/50",
       )}
     >
@@ -1184,7 +1184,7 @@ export function ManageEncountersDialog({
                 </Button>
               </DialogFooter>
 
-              <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </DialogPrimitive.Close>

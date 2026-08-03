@@ -232,7 +232,7 @@ function CharacterColumn({
             <button
               type="button"
               onClick={onUnpin}
-              className="flex-shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-label={`Remove ${character.characterName} from compare`}
             >
               <X className="h-3 w-3" />
@@ -310,7 +310,7 @@ export function CompareTray({ defaultZone, defaultDay, raidDate }: CompareTrayPr
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 shadow-lg backdrop-blur-sm">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 shadow-lg backdrop-blur-xs">
         {/* Header row */}
         <div className="flex flex-col gap-1 border-b border-border/40 px-4 py-1.5 md:flex-row md:items-center md:gap-3">
           <div className="flex items-center gap-3">
@@ -369,7 +369,7 @@ export function CompareTray({ defaultZone, defaultDay, raidDate }: CompareTrayPr
           </div>
         </div>
         {/* Character columns */}
-        <div className="mx-auto grid max-w-screen-xl grid-cols-3 items-stretch gap-2 px-4 py-2 md:grid-cols-6">
+        <div className="mx-auto grid max-w-(--breakpoint-xl) grid-cols-3 items-stretch gap-2 px-4 py-2 md:grid-cols-6">
           {pinnedCharacters.map((char) => (
             <CharacterColumn
               key={char.planCharacterId}

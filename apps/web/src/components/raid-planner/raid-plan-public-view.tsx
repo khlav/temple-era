@@ -313,7 +313,7 @@ export function RaidPlanPublicView({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,_1fr)]">
+          <div className="mt-2 grid gap-6 lg:grid-cols-[165px_minmax(0,1fr)]">
             {/* Sidebar column */}
             <EncounterSidebar
               planId={planId}

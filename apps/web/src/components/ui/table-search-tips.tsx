@@ -23,7 +23,7 @@ export function TableSearchTips({
       <TooltipContent
         side={side}
         align={align}
-        className="max-w-xs rounded-2xl border-border/80 bg-popover/95 p-3 text-xs text-muted-foreground backdrop-blur"
+        className="max-w-xs rounded-2xl border-border/80 bg-popover/95 p-3 text-xs text-muted-foreground backdrop-blur-sm"
       >
         {children}
       </TooltipContent>

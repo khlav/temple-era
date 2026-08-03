@@ -66,7 +66,7 @@ export function PublicPlansTable() {
                 key={plan.id}
                 className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
               >
-                <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="w-px whitespace-nowrap p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <div className="flex items-center gap-1">
                     <Button variant="secondary" size="sm" className="w-20" asChild>
                       <Link href={`/raid-plans/${plan.id}`}>View Plan</Link>
@@ -80,7 +80,7 @@ export function PublicPlansTable() {
                     )}
                   </div>
                 </td>
-                <td className="w-full p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="w-full p-2 align-middle font-medium has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <div className="min-w-0">
                     <div className="truncate">{plan.name}</div>
                     <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -89,7 +89,7 @@ export function PublicPlansTable() {
                     </div>
                   </div>
                 </td>
-                <td className="hidden p-2 text-center align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="hidden p-2 text-center align-middle md:table-cell has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <a
@@ -104,7 +104,7 @@ export function PublicPlansTable() {
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+                      className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
                     >
                       Raid Helper
                     </TooltipContent>

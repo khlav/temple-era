@@ -66,7 +66,7 @@ export const TableSearchInput = React.forwardRef<HTMLInputElement, TableSearchIn
         {isLoading && (
           <div className="pointer-events-none absolute inset-0 rounded-xl bg-muted/30">
             <div className="absolute left-10 right-0 top-1/2 h-4 -translate-y-1/2 overflow-hidden rounded">
-              <div className="h-full w-2/3 animate-pulse bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60" />
+              <div className="h-full w-2/3 animate-pulse bg-linear-to-r from-muted/60 via-muted/40 to-muted/60" />
             </div>
           </div>
         )}

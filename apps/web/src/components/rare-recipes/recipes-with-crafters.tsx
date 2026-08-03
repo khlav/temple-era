@@ -175,7 +175,7 @@ export const RecipesWithCrafters = () => {
             isLoading={isLoading}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{filteredRecipes.length} matches</Badge>
             <TableSearchTips>
@@ -322,7 +322,7 @@ export const RecipesWithCrafters = () => {
                           key={recipe.recipeSpellId}
                           className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                         >
-                          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                          <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                             <div>
                               <Link
                                 href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
@@ -334,10 +334,10 @@ export const RecipesWithCrafters = () => {
                             </div>
                             <div className="text-xs text-muted-foreground">{recipe.notes}</div>
                           </td>
-                          <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                          <td className="hidden p-2 align-middle md:table-cell has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                             {recipe.profession}
                           </td>
-                          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                          <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                             <div className="my-auto flex flex-wrap gap-1">
                               {recipe.isCommon ? (
                                 <Tooltip>
@@ -358,7 +358,7 @@ export const RecipesWithCrafters = () => {
                               )}
                             </div>
                           </td>
-                          <td className="hidden p-2 align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                          <td className="hidden p-2 align-middle md:table-cell has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                             <div className="flex flex-wrap gap-1.5">
                               {recipe.tags?.map((tag, index) => (
                                 <Button

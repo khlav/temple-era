@@ -106,13 +106,13 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
           key={character.characterId}
           className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
         >
-          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
               <ClassIcon characterClass={character.class} px={20} />
               <div className="grow">{character.name}</div>
             </div>
           </td>
-          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-2">
               {Object.values(character?.secondaryCharacters ?? {})
                 .sort(SortRaiders)
@@ -123,7 +123,7 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
                 ))}
             </div>
           </td>
-          <td className="flex flex-row justify-end gap-2 p-2 text-right align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="flex flex-row justify-end gap-2 p-2 text-right align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <Button
               variant="secondary"
               size="sm"
@@ -162,7 +162,7 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
               </TooltipTrigger>
               <TooltipContent
                 side="top"
-                className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+                className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
               >
                 Remove character from dashboards + recipe tools.
               </TooltipContent>
@@ -175,13 +175,13 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
           key={character.characterId}
           className="group border-b bg-primary-foreground transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
         >
-          <td className="p-2 align-middle font-bold [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="p-2 align-middle font-bold has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
               <ClassIcon characterClass={character.class} px={20} />
               <div className="grow">{character.name}</div>
             </div>
           </td>
-          <td className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-2">
               {(Object.values(localSecondaryCharacters) ?? [])
                 .sort(SortRaiders)
@@ -219,7 +219,7 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
               </div>
             </div>
           </td>
-          <td className="flex flex-row flex-nowrap p-2 text-right align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+          <td className="flex flex-row flex-nowrap p-2 text-right align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="grow" />
             <Button
               variant="outline"

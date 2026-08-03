@@ -47,7 +47,7 @@ export function PollingIndicator({
                 <div className="relative">
                   <WifiOff className="h-4 w-4" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-[1px] w-5 rotate-45 bg-muted-foreground group-hover:bg-foreground"></div>
+                    <div className="h-px w-5 rotate-45 bg-muted-foreground group-hover:bg-foreground"></div>
                   </div>
                 </div>
               )}
