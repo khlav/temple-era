@@ -242,15 +242,10 @@ A third bot — separate from this repo, and **not** joining it — consumes `/a
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every PR and on pushes to `main`.
-
-A `changes` job uses `dorny/paths-filter` to decide which app jobs run:
-
-| Changed | Runs |
-|---|---|
-| `apps/web/**` | web job only |
-| `apps/bot/**` | bot job only |
-| `packages/**`, `pnpm-lock.yaml`, `package.json`, `turbo.json`, `.oxlintrc.json`, `.nvmrc`, `.npmrc`, `ci.yml` | **both** |
+`.github/workflows/ci.yml` runs on every PR and on pushes to `main`. A `changes`
+job uses `dorny/paths-filter` to decide which app jobs run — see the workflow
+file for the exact path list; anything shared (`packages/**`, the lockfile,
+root config, or the workflow itself) forces both apps to run.
 
 - **web**: lint → typecheck → test → build. Runs with `SKIP_ENV_VALIDATION=1` and **no database credentials** — possible only because `build` no longer migrates (see above). Vercel does the real env validation.
 - **bot**: lint → typecheck → build → verify `dist/index.js` exists → import the built entrypoint to prove every module resolves. That last check matters because the bot uses `Node16` resolution with mandatory `.js` import extensions and `tsc` emits only `src/`, so a missing runtime dependency does not surface at build time.
@@ -280,25 +275,10 @@ Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`
 
 ### Shipping
 
-Say **"ship it"** to invoke `/ship` (`.claude/commands/ship.md`): branch, commit,
-push, open the PR with the right label, then hand off to `/fix-pr`.
-
-`/fix-pr` (`.claude/commands/fix-pr.md`) waits for **Greptile**, the AI reviewer,
-applies the feedback worth applying, pushes, and repeats until the confidence
-score hits 5/5 or five rounds elapse. It can be run on its own against an
-existing PR.
-
-**Its waits run in the background.** Greptile takes 3–8 minutes per round; the
-loop must not block the session. Ask about status any time — it reads the
-pending task rather than starting a second poll.
-
-**Merging is not automatic.** `/fix-pr` stops with the PR ready and asks. To
-authorize it up front, say so explicitly — "ship it and merge when ready",
-"merge when clear", "merge if it looks good" — which permits merging **only** at
-5/5.
-
-Greptile's feedback is advice, not instruction: fixes that are wrong or
-out-of-scope should be skipped and the reasoning reported.
+Say **"ship it"** to invoke `/ship` (`.claude/commands/ship.md`), which hands off
+to `/fix-pr` (`.claude/commands/fix-pr.md`) for review iteration — see those
+files for the full process, merge-authorization rules, and Greptile/Archon
+handling.
 
 #### Triggering Greptile on a PR
 
