@@ -69,12 +69,22 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                         />
                         <div className="grow-0">{result.characterName}</div>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-400"
-                      >
-                        Not Found
-                      </Badge>
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="cursor-help border-orange-500/20 bg-orange-500/10 px-2 text-orange-700 dark:text-orange-400"
+                          >
+                            ?
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="bg-muted text-xs text-muted-foreground"
+                        >
+                          Character not found
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   ) : (
                     <div>
