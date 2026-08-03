@@ -1,0 +1,55 @@
+name: Semgrep
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+concurrency:
+  group: semgrep-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Runs repo-wide rather than gated on `changes`/paths-filter, since a secret
+  # or an injection sink can land in either app and the scan is cheap.
+  #
+  # Deliberately kept out of ci.yml's `ci` aggregator (the required status
+  # check): this is landing non-blocking for an initial tuning period, and a
+  # separate workflow file keeps it fully revertible without touching the
+  # aggregator's `needs` list.
+  semgrep:
+    name: Semgrep scan
+    runs-on: ubuntu-latest
+    container:
+      # Pinned rather than `semgrep/semgrep` (implicit `latest`), so a new
+      # semgrep release can't silently change scan behaviour without a PR.
+      image: semgrep/semgrep:1.172.0
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned rulesets rather than --config=auto: auto resolves over the
+      # network and is less predictable in CI. continue-on-error keeps this
+      # non-blocking while rules get tuned against real findings.
+      - name: Run Semgrep
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/react \
+            --config p/secrets \
+            --sarif \
+            --output semgrep.sarif
+
+      # hashFiles guards the case where semgrep crashes before writing the
+      # file (e.g. network error fetching a ruleset) - without it, `if:
+      # always()` still runs the upload and it errors on a missing file,
+      # showing as a persistent code-scanning error instead of just no run.
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
