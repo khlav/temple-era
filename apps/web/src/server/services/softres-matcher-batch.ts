@@ -43,70 +43,83 @@ export async function matchCharactersBatch(
     return new Map();
   }
 
-  // Build OR conditions for all character names
-  const nameConditions = softresChars.map(
-    (c) => sql`LOWER(f_unaccent(${characters.name})) = LOWER(f_unaccent(${c.name}))`,
+  const names = softresChars.map((c) => c.name);
+
+  // Broad candidate fetch: any character whose name is diacritic-equivalent
+  // (via Postgres's unaccent) to any SoftRes reservation name.
+  const nameConditions = names.map(
+    (name) => sql`LOWER(f_unaccent(${characters.name})) = LOWER(f_unaccent(${name}))`,
   );
 
-  // Single query to get all potential matches
   const allMatches = await database
     .select({
       characterId: characters.characterId,
       name: characters.name,
       class: characters.class,
       primaryCharacterId: characters.primaryCharacterId,
+      normalizedName: sql<string>`LOWER(f_unaccent(${characters.name}))`,
     })
     .from(characters)
     .where(and(or(...nameConditions), eq(characters.isIgnored, false)));
 
-  // Helper function to normalize names (unaccent + lowercase)
-  // This matches what the SQL query does with f_unaccent
-  function normalizeName(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize("NFD") // Decompose accented characters (ä -> a + ̈)
-      .replace(/[\u0300-\u036f]/g, ""); // Remove diacritical marks
-  }
+  // Normalize the incoming SoftRes names through the same unaccent() Postgres
+  // just used for the candidate query, in one round trip. A JS-side
+  // reimplementation (e.g. NFD decomposition) diverges on stroke letters like
+  // ø/ł — those aren't "combining" accents under Unicode, so NFD leaves them
+  // untouched while unaccent() correctly maps them to o/l. Re-deriving the key
+  // in JS silently dropped otherwise-correct SQL matches.
+  const namesArrayLiteral = sql.join(
+    names.map((name) => sql`${name}`),
+    sql.raw(", "),
+  );
+  const normalizedSoftresRows = await database.execute<{
+    original: string;
+    normalized: string;
+  }>(
+    sql`SELECT name AS original, LOWER(f_unaccent(name)) AS normalized
+        FROM unnest(ARRAY[${namesArrayLiteral}]::text[]) AS name`,
+  );
+  const normalizedByOriginal = new Map(
+    normalizedSoftresRows.map((r) => [r.original, r.normalized]),
+  );
 
-  // Create a map for quick lookup: normalized name -> matches
-  const matchesByNormalizedName = new Map<
-    string,
-    Array<{
-      characterId: number;
-      name: string;
-      class: string;
-      primaryCharacterId: number | null;
-    }>
-  >();
-
+  const candidatesByNormalizedName = new Map<string, typeof allMatches>();
   for (const match of allMatches) {
-    const normalizedName = normalizeName(match.name);
-    if (!matchesByNormalizedName.has(normalizedName)) {
-      matchesByNormalizedName.set(normalizedName, []);
-    }
-    matchesByNormalizedName.get(normalizedName)!.push(match);
+    const bucket = candidatesByNormalizedName.get(match.normalizedName) ?? [];
+    bucket.push(match);
+    candidatesByNormalizedName.set(match.normalizedName, bucket);
   }
 
-  // Match each SoftRes character to database character
+  // Match each SoftRes character to a database character with a priority
+  // waterfall: an exact (literal) name match wins outright, since it's the
+  // strongest possible signal; otherwise fall back to a diacritic-free name
+  // match, preferring a same-class candidate before matching on name alone.
   const result = new Map<string, number | null>();
 
   for (const softresChar of softresChars) {
-    const normalizedName = normalizeName(softresChar.name);
-    const candidates = matchesByNormalizedName.get(normalizedName) ?? [];
+    const normalizedName = normalizedByOriginal.get(softresChar.name);
+    const candidates = normalizedName ? (candidatesByNormalizedName.get(normalizedName) ?? []) : [];
 
     if (candidates.length === 0) {
       result.set(softresChar.name, null);
       continue;
     }
 
-    // Filter by class if multiple matches
+    // Tier 1: exact name match
+    const exactMatches = candidates.filter((c) => c.name === softresChar.name);
+    if (exactMatches.length > 0) {
+      exactMatches.sort((a, b) => a.name.localeCompare(b.name));
+      result.set(softresChar.name, exactMatches[0]!.characterId);
+      continue;
+    }
+
+    // Tier 2: diacritic-free name + class match, falling back to
+    // Tier 3: diacritic-free name only
     const classMatches = candidates.filter(
       (c) => c.class.toLowerCase() === softresChar.class.toLowerCase(),
     );
-
     const finalCandidates = classMatches.length > 0 ? classMatches : candidates;
 
-    // Sort alphabetically and take first
     finalCandidates.sort((a, b) => a.name.localeCompare(b.name));
     result.set(softresChar.name, finalCandidates[0]?.characterId ?? null);
   }

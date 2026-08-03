@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Info, AlertTriangle, XCircle } from "lucide-react";
 import type { SoftResScanResult } from "~/server/api/routers/softres";
 import { CharacterLink } from "~/components/ui/character-link";
@@ -26,11 +27,14 @@ const levelColors = {
   info: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
   highlight: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   warning: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  inactive: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  inactive: "bg-transparent italic text-orange-700 dark:text-orange-400 border-orange-500/20",
   error: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
 
 export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) {
+  const searchParams = useSearchParams();
+  const showInactiveFlags = searchParams.has("debug");
+
   if (results.length === 0) {
     return (
       <div className="rounded-md border p-4 text-center text-muted-foreground">
@@ -69,12 +73,22 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                         />
                         <div className="grow-0">{result.characterName}</div>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-400"
-                      >
-                        Not Found
-                      </Badge>
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="cursor-help border-orange-500/20 bg-orange-500/10 px-2 text-orange-700 dark:text-orange-400"
+                          >
+                            ?
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="bg-muted text-xs text-muted-foreground"
+                        >
+                          Character not found
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   ) : (
                     <div>
@@ -130,51 +144,53 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {result.matchingRules.map((rule) => {
-                      const IconComponent = iconMap[rule.icon as keyof typeof iconMap] ?? Info;
-                      return (
-                        <Tooltip key={rule.id} delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className={`cursor-help ${levelColors[rule.level]}`}
+                    {result.matchingRules
+                      .filter((rule) => showInactiveFlags || rule.level !== "inactive")
+                      .map((rule) => {
+                        const IconComponent = iconMap[rule.icon as keyof typeof iconMap] ?? Info;
+                        return (
+                          <Tooltip key={rule.id} delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={`cursor-help ${levelColors[rule.level]}`}
+                              >
+                                <IconComponent className="mr-1 h-3 w-3" />
+                                {rule.name}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
                             >
-                              <IconComponent className="mr-1 h-3 w-3" />
-                              {rule.name}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-xs bg-muted p-3 text-xs text-muted-foreground"
-                          >
-                            {(() => {
-                              // Parse description to highlight item names
-                              // Use red for error rules, yellow for warning rules, matching the label colors
-                              const itemNameColor =
-                                rule.level === "error"
-                                  ? "text-red-700 dark:text-red-400"
-                                  : rule.level === "inactive"
-                                    ? "text-orange-700 dark:text-orange-400"
-                                    : rule.level === "warning"
-                                      ? "text-yellow-700 dark:text-yellow-400"
-                                      : "text-muted-foreground";
-                              const parts = rule.description.split(/`([^`]+)`/g);
-                              return parts.map((part, index) => {
-                                // Odd indices are the quoted item names
-                                if (index % 2 === 1) {
-                                  return (
-                                    <span key={index} className={`${itemNameColor} font-medium`}>
-                                      {part}
-                                    </span>
-                                  );
-                                }
-                                return <span key={index}>{part}</span>;
-                              });
-                            })()}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
+                              {(() => {
+                                // Parse description to highlight item names
+                                // Use red for error rules, yellow for warning rules, matching the label colors
+                                const itemNameColor =
+                                  rule.level === "error"
+                                    ? "text-red-700 dark:text-red-400"
+                                    : rule.level === "inactive"
+                                      ? "text-orange-700 dark:text-orange-400"
+                                      : rule.level === "warning"
+                                        ? "text-yellow-700 dark:text-yellow-400"
+                                        : "text-muted-foreground";
+                                const parts = rule.description.split(/`([^`]+)`/g);
+                                return parts.map((part, index) => {
+                                  // Odd indices are the quoted item names
+                                  if (index % 2 === 1) {
+                                    return (
+                                      <span key={index} className={`${itemNameColor} font-medium`}>
+                                        {part}
+                                      </span>
+                                    );
+                                  }
+                                  return <span key={index}>{part}</span>;
+                                });
+                              })()}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
                   </div>
                 </TableCell>
               </TableRow>
