@@ -51,30 +51,35 @@ gh pr checks "$PR" --json name,bucket
 - `Greptile Review` — Greptile's own check-run (linked to greptile.com).
 - `PR review` — Archon's GitHub Actions job (the workflow *is* the check).
 
-A `no-greptile` label or a draft PR (both make Greptile skip entirely) or a
-fork PR (Archon's fork guard in `archon.yml`) are worth a quick look first —
-they tell you *not* to expect the check at all, rather than to wait for it:
+Greptile is **opt-in**: it only reviews a PR that carries the **`greptile`**
+label (`greptile.json`'s `labels` field — see the root `AGENTS.md`). No label
+means no check will ever appear, by design — that's a normal "not expected",
+not something to wait out. `no-greptile` is not a real label anymore; ignore
+it if you see it lying around on an old PR. A draft PR also skips Greptile
+regardless of the label. Archon has its own, unrelated gate — a fork PR trips
+its fork guard in `archon.yml`:
 
 ```bash
 LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
 IS_DRAFT=$(gh pr view "$PR" --json isDraft --jq .isDraft)
 IS_FORK=$(gh pr view "$PR" --json isCrossRepository --jq .isCrossRepository)
 
-GREPTILE_EXPECTED=true
-echo "$LABELS" | grep -qx "no-greptile" && GREPTILE_EXPECTED=false
+GREPTILE_EXPECTED=false
+echo "$LABELS" | grep -qx "greptile" && GREPTILE_EXPECTED=true
 [ "$IS_DRAFT" = "true" ] && GREPTILE_EXPECTED=false
 
 ARCHON_EXPECTED=true
 [ "$IS_FORK" = "true" ] && ARCHON_EXPECTED=false
 ```
 
-But even with `GREPTILE_EXPECTED=true`, the check can still just never show
-up — that **is** the out-of-credits/app-error signal, and Step 3's poll treats
-it that way: if `Greptile Review` hasn't appeared in `gh pr checks` within a
-short grace window (~90s, well before any legitimate review would even start
-resolving), stop waiting on it and proceed without it. This is a much harder
-signal than a comment never posting, since a check-run is either registered
-against the commit or it isn't — no ambiguity about which push it covers.
+With `GREPTILE_EXPECTED=true` (the `greptile` label is present and it's not a
+draft), the check can still just never show up — that **is** the out-of-
+credits/app-error signal, and Step 3's poll treats it that way: if `Greptile
+Review` hasn't appeared in `gh pr checks` within a short grace window (~90s,
+well before any legitimate review would even start resolving), stop waiting
+on it and proceed without it. This is a much harder signal than a comment
+never posting, since a check-run is either registered against the commit or
+it isn't — no ambiguity about which push it covers.
 
 ## Step 3: Wait for a review of the *current* commit
 

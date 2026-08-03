@@ -117,7 +117,9 @@ from $ARGUMENTS.
 
 `/fix-pr` waits for Greptile's review of the pushed commit, applies the feedback
 worth applying, pushes, and repeats until the confidence score reaches 5/5 or
-five rounds elapse.
+five rounds elapse. Greptile only reviews PRs carrying the `greptile` label
+(opt-in, not automatic — see the root `AGENTS.md`); without it, `/fix-pr` will
+correctly treat Greptile as inactive and proceed on Archon alone.
 
 **Pass merge authorization through verbatim.** If the user said "ship it and
 merge when ready" (or "merge when clear", "merge if it looks good"), forward that
