@@ -41,7 +41,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build and send pr_merged payload
         env:
@@ -53,8 +53,8 @@ jobs:
           MERGED_AT: ${{ github.event.inputs.merged_at || github.event.pull_request.merged_at }}
           REPOSITORY: ${{ github.repository }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-          WEBHOOK_TOKEN: ${{ secrets.WEBHOOK_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.ISSUE_WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.ISSUE_WEBHOOK_TOKEN }}
         run: |
           chmod +x .github/scripts/notify-webhook.sh
           jq -n \

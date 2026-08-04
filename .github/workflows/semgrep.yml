@@ -29,7 +29,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Pinned rulesets rather than --config=auto: auto resolves over the
       # network and is less predictable in CI. continue-on-error keeps this

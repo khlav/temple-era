@@ -180,12 +180,17 @@ exist once, so they cannot drift. They previously lived in two projects and did.
 infrastructure rather than app config, so it lives as a plain GitHub repo secret
 and never syncs into Vercel.
 
-`WEBHOOK_URL` and `WEBHOOK_TOKEN` follow the same reasoning: they back
-`.github/workflows/pr-merged-webhook.yml`'s generic delivery mechanism
-(`.github/scripts/notify-webhook.sh`), consumed by neither app at runtime, so
-they're plain GitHub repo secrets rather than Doppler entries. They're
-intentionally generic — reusable by any future workflow that relays a GitHub
-event through the same script — not scoped to PR-merge notifications alone.
+`ISSUE_WEBHOOK_URL` and `ISSUE_WEBHOOK_TOKEN` follow the same reasoning: they
+back `pr-merged-webhook.yml` and `pr-opened-webhook.yml`'s shared delivery
+mechanism (`.github/scripts/notify-webhook.sh`), consumed by neither app at
+runtime, so they're plain GitHub repo secrets rather than Doppler entries.
+The `ISSUE_` prefix names what these two workflows actually feed today (the
+Plane ticket-sync automation) — `notify-webhook.sh` itself stays fully
+generic, since each workflow maps the secret into its own local
+`WEBHOOK_URL`/`WEBHOOK_TOKEN` env vars before invoking it, so a future,
+unrelated event type can still reuse the same script under its own
+appropriately-named secret pair rather than being forced under the `ISSUE_`
+name.
 
 ### First-time setup
 

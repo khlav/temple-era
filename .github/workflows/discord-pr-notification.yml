@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Monorepo: derive a title prefix from which app the PR touched, so a bot
       # PR is not announced as "Website PR #N".
