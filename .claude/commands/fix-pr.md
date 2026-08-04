@@ -83,18 +83,22 @@ it isn't — no ambiguity about which push it covers.
 
 ## Step 3: Wait for a review of the *current* commit
 
-Two things to wait for, per active reviewer: **the check leaving `pending`**,
-then **the matching PR comment actually containing the feedback** (checks
-confirm completion; comments carry the content).
+Freshness and completion are **one signal, not two**: query check-runs scoped
+directly to the current commit SHA. A check-run's `head_sha` is set by GitHub
+itself, not inferred from bot-authored comment text, so there is no separate
+"is this comment about my commit" step to get wrong:
 
 ```bash
-gh pr checks "$PR" --json name,bucket \
-  --jq '.[] | select(.name=="Greptile Review" or .name=="PR review")'
+HEAD=$(git rev-parse HEAD)
+gh api "repos/$REPO/commits/$HEAD/check-runs" \
+  --jq '.check_runs[] | select(.name=="Greptile Review" or .name=="PR review") | {name, status, conclusion}'
 ```
 
-- Present with `bucket` other than `pending` → that reviewer is done; go read
-  its comment (Step 4).
-- Present and still `pending` → still running, keep polling.
+- `status: "completed"` → that reviewer is done *for this exact commit*; go
+  read its comment (Step 4) — no additional freshness check needed on the
+  comment itself.
+- `status` present but not `"completed"` (`"in_progress"`/`"queued"`) → still
+  running, keep polling.
 - **Absent entirely after the ~90s grace window** (and `*_EXPECTED=true`) →
   treat as unavailable for this round. Do not keep waiting — proceed on
   whichever reviewer(s) did produce a check, and say so explicitly in the
@@ -102,58 +106,26 @@ gh pr checks "$PR" --json name,bucket \
   we don't get told why, but the missing check tells us reliably *that* it
   didn't.
 
-Both bots edit a single PR comment in place on later pushes rather than
-posting a new one each time, so once the check is non-pending, confirm the
-comment actually names the current commit before trusting its content:
+Once a reviewer's check-run is `completed` for `$HEAD`, its comment is safe to
+read at face value:
 
-**Greptile** posts as `greptile-apps[bot]`, ending with a marker:
+- **Greptile** posts as `greptile-apps[bot]`, one comment, edited in place on
+  later pushes.
+- **Archon** posts as `github-actions[bot]`, in **two separate comments** — a
+  reviewer guide and a code-suggestions list, also edited in place.
 
-```
-<sub>Reviews (1): Last reviewed commit: ["dev(bot): rewrite..."](https://github.com/khlav/temple-era/commit/13b959e...)
-```
-
-```bash
-REVIEWED_GREPTILE=$(gh api "repos/$REPO/issues/$PR/comments" \
-  --jq '.[] | select(.user.login=="greptile-apps[bot]") | .body' \
-  | grep -o 'commit/[0-9a-f]\{7,40\}' | tail -1 | cut -d/ -f2)
-```
-
-**Archon** posts as `github-actions[bot]`, in **two separate comments** — a
-reviewer guide and a code-suggestions list. Only the reviewer guide carries
-the reviewed-commit marker:
-
-```
-#### (Review updated until commit https://github.com/khlav/temple-era/commit/2c0888a60fa2...)
-```
-
-```bash
-REVIEWED_ARCHON=$(gh api "repos/$REPO/issues/$PR/comments" \
-  --jq '.[] | select(.user.login=="github-actions[bot]" and (.body | startswith("## PR Reviewer Guide"))) | .body' \
-  | tail -1 | grep -o 'commit/[0-9a-f]\{7,40\}' | tail -1 | cut -d/ -f2)
-```
-
-Compare **by prefix, not equality** — `headRefOid` is the full 40-character
-SHA, the marker URL may carry an abbreviated one:
+> Do **not** rely on comment-body commit markers for freshness (Greptile's
+> `Last reviewed commit: ...`, Archon's `Review updated until commit ...`).
+> Archon in particular only writes that marker starting on a **re-review**
+> (round 2+) — a first-round comment carries no marker at all, so a check
+> keyed on it finds an empty string forever and polls out the full window
+> even though the review completed within seconds. The check-run SHA above
+> doesn't have this gap; use it exclusively for staleness.
 
 ```bash
 # Use the LOCAL SHA, not `gh pr view --json headRefOid` — GitHub's API lags a
-# push by a few seconds, so reading it immediately after `git push` returns
-# the PREVIOUS commit, which was already reviewed, and the poll matches
-# instantly on stale feedback.
-HEAD=$(git rev-parse HEAD)
-
-# Guard the empty case FIRST. With $REVIEWED empty (no comment posted yet —
-# the normal state on a fresh PR), the case pattern becomes ""* which matches
-# any input, so unguarded this reports "current" on a review that doesn't
-# exist yet.
-is_current() {
-  reviewed="$1"
-  [ -z "$reviewed" ] && return 1
-  case "$HEAD" in
-    "$reviewed"*) return 0 ;;
-    *)            return 1 ;;
-  esac
-}
+# push by a few seconds, so reading it immediately after `git push` can
+# return the PREVIOUS commit.
 ```
 
 ### Poll in the BACKGROUND — never block the session
@@ -167,12 +139,15 @@ task, one notification) rather than two separate ones:
 
 ```bash
 # run_in_background: true
+HEAD=$(git rev-parse HEAD)
 grace_elapsed=0
 for i in $(seq 1 20); do
-  checks=$(gh pr checks "$PR" --json name,bucket)
-  ... for each *_EXPECTED reviewer: if its check is absent and grace_elapsed
-      >= 90, mark unavailable and drop it from the wait set; if present and
-      non-pending, check is_current on its comment ...
+  runs=$(gh api "repos/$REPO/commits/$HEAD/check-runs" \
+    --jq '.check_runs[] | select(.name=="Greptile Review" or .name=="PR review") | "\(.name)=\(.status)"')
+  ... for each *_EXPECTED reviewer: if its check-run is absent from $runs and
+      grace_elapsed >= 90, mark unavailable and drop it from the wait set;
+      if present with status=="completed", it's done — drop it from the wait
+      set (no comment-marker check needed, head_sha already ties it to $HEAD) ...
   if [ wait set empty ]; then echo "REVIEWS READY (or unavailable)"; exit 0; fi
   sleep 30; grace_elapsed=$((grace_elapsed + 30))
 done
