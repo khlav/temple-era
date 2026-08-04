@@ -1,0 +1,76 @@
+name: PR opened webhook
+
+# Notifies an external webhook whenever a PR is opened or its body is edited.
+# Same generic delivery mechanism as pr-merged-webhook.yml (TEMPLE-15):
+# this workflow owns the pr_opened trigger and payload shape, delivery goes
+# through .github/scripts/notify-webhook.sh. `edited` is included alongside
+# `opened` because a ticket ID can be added to the body after the PR already
+# exists, not only at creation time.
+#
+# No label gate, unlike discord-pr-notification.yml — every opened/edited PR
+# fires, because whatever's on the receiving end needs to see all of them to
+# find the ones referencing a ticket. What the receiving end does with the
+# payload (ticket parsing, state-advancement logic, anything else) is
+# intentionally out of scope here — see AGENTS.md's "Auto-advancing Plane
+# tickets on PR open" section for the contract.
+
+on:
+  pull_request:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number (fake by default — this is a plumbing test, not a real PR)"
+        default: "0"
+      pr_title:
+        description: "PR title"
+        default: "FAKE TEST PAYLOAD - ignore"
+      pr_body:
+        description: "PR body"
+        default: "FAKE TEST PAYLOAD - references TEMPLE-0"
+      pr_url:
+        description: "PR URL"
+        default: "https://example.invalid/fake-pr"
+      branch_name:
+        description: "Head branch name"
+        default: "chore/temple-0-fake-test"
+      opened_at:
+        description: "Opened-at timestamp"
+        default: "1970-01-01T00:00:00Z"
+
+jobs:
+  notify-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and send pr_opened payload
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.inputs.pr_title || github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.inputs.pr_body || github.event.pull_request.body }}
+          PR_URL: ${{ github.event.inputs.pr_url || github.event.pull_request.html_url }}
+          BRANCH_NAME: ${{ github.event.inputs.branch_name || github.event.pull_request.head.ref }}
+          OPENED_AT: ${{ github.event.inputs.opened_at || github.event.pull_request.created_at }}
+          REPOSITORY: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.WEBHOOK_TOKEN }}
+        run: |
+          chmod +x .github/scripts/notify-webhook.sh
+          jq -n \
+            --arg action_type "pr_opened" \
+            --arg repository "$REPOSITORY" \
+            --argjson pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_body "$PR_BODY" \
+            --arg pr_url "$PR_URL" \
+            --arg branch_name "$BRANCH_NAME" \
+            --arg opened_at "$OPENED_AT" \
+            --arg author "${AUTHOR:-}" \
+            '{action_type: $action_type, repository: $repository, data: {
+                pr_number: $pr_number, pr_title: $pr_title, pr_body: $pr_body,
+                pr_url: $pr_url, branch_name: $branch_name,
+                opened_at: $opened_at, author: $author
+              }}' \
+          | .github/scripts/notify-webhook.sh

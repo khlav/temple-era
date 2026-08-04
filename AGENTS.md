@@ -284,6 +284,28 @@ what the receiving end implements, documented here so it stays discoverable:
   one. `/ship` (`.claude/commands/ship.md`) does this automatically when it
   can infer that a PR resolves a ticket beyond its own branch's.
 
+#### Auto-advancing Plane tickets to In Progress on PR open
+
+`.github/workflows/pr-opened-webhook.yml` (TEMPLE-23) relays the same
+branch-name/body metadata on `opened` and `edited` PR events (`edited` because
+a ticket ID can be added to the body after the PR already exists) to an
+external webhook that advances the referenced Plane ticket to "In Progress" —
+the open-side counterpart to the close-on-merge pipeline above. As with that
+pipeline, nothing in this repo parses the payload; the contract below is what
+the receiving end implements:
+
+- **Guard against regressing a ticket**: only advance a ticket that is
+  currently in an earlier stage. Determine this from Plane's `list_states`
+  data at call time, not hardcoded state IDs or names — each state carries a
+  numeric `sequence` field that is a single monotonic ordering across every
+  group in the project (confirmed in TEMPLE: Backlog 15000 < Todo 25000 <
+  In Progress 35000 < Done 45000 < Cancelled 55000). Find the destination
+  state (the one with `group == "started"`), then only transition a ticket
+  whose current state has a lower `sequence` than the destination's. A pure
+  `group` bucket check (e.g. "is it backlog or unstarted") is not enough if a
+  project ever has multiple states sharing the `started` group — raw sequence
+  comparison is the total order that still gets that right.
+
 Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`. Enforced by `.lefthook/commit-msg/commit-msg.sh`.
 
 **Scope commits to the app you touched**, since a reader cannot tell from the type alone:
