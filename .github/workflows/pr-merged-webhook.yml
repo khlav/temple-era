@@ -1,0 +1,75 @@
+name: PR merged webhook
+
+# Notifies an external webhook whenever a PR merges to main. Deliberately
+# generic: this workflow owns the pr_merged trigger and payload shape, but
+# delivery itself goes through .github/scripts/notify-webhook.sh, a thin
+# event-agnostic POST-with-auth building block shared by any future event
+# type this repo might want to relay (see that script for details).
+#
+# No label gate, unlike discord-pr-notification.yml — every merged PR fires,
+# because whatever's on the receiving end needs to see all of them to find
+# the ones referencing a ticket. What the receiving end does with the payload
+# (ticket parsing, closing logic, anything else) is intentionally out of
+# scope here.
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number (fake by default — this is a plumbing test, not a real PR)"
+        default: "0"
+      pr_title:
+        description: "PR title"
+        default: "FAKE TEST PAYLOAD - ignore"
+      pr_body:
+        description: "PR body"
+        default: "FAKE TEST PAYLOAD - Closes TEMPLE-0"
+      pr_url:
+        description: "PR URL"
+        default: "https://example.invalid/fake-pr"
+      branch_name:
+        description: "Head branch name"
+        default: "chore/temple-0-fake-test"
+      merged_at:
+        description: "Merged-at timestamp"
+        default: "1970-01-01T00:00:00Z"
+
+jobs:
+  notify-webhook:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and send pr_merged payload
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.inputs.pr_title || github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.inputs.pr_body || github.event.pull_request.body }}
+          PR_URL: ${{ github.event.inputs.pr_url || github.event.pull_request.html_url }}
+          BRANCH_NAME: ${{ github.event.inputs.branch_name || github.event.pull_request.head.ref }}
+          MERGED_AT: ${{ github.event.inputs.merged_at || github.event.pull_request.merged_at }}
+          REPOSITORY: ${{ github.repository }}
+          MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.WEBHOOK_TOKEN }}
+        run: |
+          chmod +x .github/scripts/notify-webhook.sh
+          jq -n \
+            --arg action_type "pr_merged" \
+            --arg repository "$REPOSITORY" \
+            --argjson pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_body "$PR_BODY" \
+            --arg pr_url "$PR_URL" \
+            --arg branch_name "$BRANCH_NAME" \
+            --arg merged_at "$MERGED_AT" \
+            --arg merged_by "${MERGED_BY:-}" \
+            '{action_type: $action_type, repository: $repository, data: {
+                pr_number: $pr_number, pr_title: $pr_title, pr_body: $pr_body,
+                pr_url: $pr_url, branch_name: $branch_name,
+                merged_at: $merged_at, merged_by: $merged_by
+              }}' \
+          | .github/scripts/notify-webhook.sh

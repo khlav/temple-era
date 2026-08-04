@@ -180,6 +180,13 @@ exist once, so they cannot drift. They previously lived in two projects and did.
 infrastructure rather than app config, so it lives as a plain GitHub repo secret
 and never syncs into Vercel.
 
+`WEBHOOK_URL` and `WEBHOOK_TOKEN` follow the same reasoning: they back
+`.github/workflows/pr-merged-webhook.yml`'s generic delivery mechanism
+(`.github/scripts/notify-webhook.sh`), consumed by neither app at runtime, so
+they're plain GitHub repo secrets rather than Doppler entries. They're
+intentionally generic — reusable by any future workflow that relays a GitHub
+event through the same script — not scoped to PR-merge notifications alone.
+
 ### First-time setup
 
 ```bash
@@ -261,6 +268,21 @@ These apply repo-wide; the app-level `AGENTS.md` files defer to this section.
 **Never commit directly to `main`.** Branch names: `{type}/{kebab-description}` where type is `feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`, or `claude`. Enforced by the lefthook pre-push hook.
 
 Include the corresponding Plane ticket's lowercased identifier (project `TEMPLE`) right after the type: `{type}/{ticket-id}-{kebab-description}`, e.g. `chore/temple-10-rename-ci-job-display-names`. For ad hoc work with no filed ticket, use the literal placeholder `noticket` in the ticket-id slot, e.g. `chore/noticket-quick-fix`, rather than dropping the slot. Enforced by the same lefthook pre-push `branch-name` check as the `{type}/` prefix.
+
+#### Auto-closing Plane tickets on merge
+
+`.github/workflows/pr-merged-webhook.yml` relays every merged PR's metadata
+(title, body, branch name) to an external webhook that closes the
+corresponding Plane ticket — mirroring GitHub's "Closes #123" behavior, but
+for Plane. Nothing in this repo parses the payload; the contract below is
+what the receiving end implements, documented here so it stays discoverable:
+
+- **Single ticket** (the common case): nothing to do. The ticket ID already
+  embedded in the branch name closes automatically on merge.
+- **Additional ticket(s)** beyond the one in the branch: write
+  `Closes TEMPLE-N` (or `Fixes`/`Resolves`, any tense) in the PR body for each
+  one. `/ship` (`.claude/commands/ship.md`) does this automatically when it
+  can infer that a PR resolves a ticket beyond its own branch's.
 
 Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`. Enforced by `.lefthook/commit-msg/commit-msg.sh`.
 

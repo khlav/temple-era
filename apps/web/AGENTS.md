@@ -390,6 +390,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 
 - **PR Template**: `.github/pull_request_template.md` structures PR descriptions
 - **Discord Notifications**: `.github/workflows/discord-pr-notification.yml` sends notifications for merged PRs with the `user-facing` label
+- **PR Merged Webhook**: `.github/workflows/pr-merged-webhook.yml` posts every merged PR's metadata (`action_type: "pr_merged"`) to an external webhook — no label gate, no app-side awareness of what consumes it. Currently powers Plane ticket auto-close; see the root `AGENTS.md` Git conventions section for the PR-body convention that drives it.
 
 ## Common Patterns
 

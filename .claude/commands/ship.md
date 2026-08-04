@@ -89,6 +89,13 @@ Read `.github/pull_request_template.md` for the expected structure.
 - Omit empty sections
 - Do not restate the title
 
+**Closing additional tickets**: the branch's own Plane ticket (from its
+`{ticket-id}` slot) closes automatically on merge — no action needed. If
+`$ARGUMENTS` or the conversation makes clear this PR *also* resolves a
+different ticket (e.g. "this also closes TEMPLE-9"), add a `Closes TEMPLE-9`
+line to the PR body for each one. See the root `AGENTS.md` Git conventions
+section for the full convention.
+
 **User-facing label logic**:
 
 - Apply `user-facing` label for `feature/` and `fix/` branches
