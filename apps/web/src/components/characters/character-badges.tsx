@@ -49,7 +49,7 @@ function BadgeItem({ badge, earned }: { badge: BadgeDefinition; earned: boolean 
                 : "border-gray-300 bg-gray-100 text-gray-400 opacity-20 grayscale dark:border-gray-700 dark:bg-gray-800",
             )}
           >
-            <Icon className="h-5 w-5 flex-shrink-0" />
+            <Icon className="h-5 w-5 shrink-0" />
             <div className="text-xs font-semibold">{badge.name}</div>
           </div>
         </TooltipTrigger>

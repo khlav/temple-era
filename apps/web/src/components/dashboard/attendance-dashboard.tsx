@@ -39,7 +39,7 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
 
         {!currentUserSession && (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-lg border bg-card/80 p-6 text-center shadow-lg backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-lg border bg-card/80 p-6 text-center shadow-lg backdrop-blur-xs">
               <div className="flex flex-col items-center gap-4">
                 <Button
                   onClick={() => signIn("discord", { redirectTo: "/?signin=1" })}
@@ -59,7 +59,7 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
 
       {/* Bottom Section: 2/3 + 1/3 layout */}
       <div className="flex flex-col gap-4 lg:flex-row">
-        <div className="flex flex-grow flex-col gap-4 lg:w-2/3">
+        <div className="flex grow flex-col gap-4 lg:w-2/3">
           <div>
             <CurrentLockoutAllRaids />
           </div>
@@ -67,7 +67,7 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
             <RecentTrackedRaids />
           </div>
         </div>
-        <div className="flex-shrink-0 lg:w-1/3">
+        <div className="shrink-0 lg:w-1/3">
           <AttendanceReport currentUserCharacterId={currentUserSession?.user?.characterId} />
         </div>
       </div>

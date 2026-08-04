@@ -52,7 +52,7 @@ const renderAttendanceWithTooltips = (attendee: number, bench: number) => {
       </TooltipTrigger>
       <TooltipContent
         side="top"
-        className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+        className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
       >
         {tooltipContent}
       </TooltipContent>

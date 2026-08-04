@@ -49,7 +49,7 @@ export function AttendanceProgressBar({
         </TooltipContent>
       </Tooltip>
       {showEligibility && (
-        <div className="mt-[1px] flex justify-end text-xs text-muted-foreground">
+        <div className="mt-px flex justify-end text-xs text-muted-foreground">
           {isAboveThreshold ? (
             <span>
               <span className="text-primary">Eligible</span> to SR{" "}

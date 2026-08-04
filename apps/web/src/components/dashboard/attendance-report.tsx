@@ -123,7 +123,7 @@ export function AttendanceReport({ currentUserCharacterId }: { currentUserCharac
                               />
 
                               {/* 50% Reference Line - always displayed */}
-                              <div className="pointer-events-none absolute left-[50%] top-0 z-[1] h-4 border-l-2 border-dotted border-foreground/40" />
+                              <div className="pointer-events-none absolute left-[50%] top-0 z-1 h-4 border-l-2 border-dotted border-foreground/40" />
 
                               {/* Percentage Label */}
                               {raider.attendancePercent > 0 && (

@@ -29,15 +29,20 @@ different axis and doesn't belong in a workflow file's comments.
 - **Greptile has been consistently substantive**, including one genuinely subtle catch
   (PR #45) that took manual empirical testing to confirm was real — not a style nit, an
   actual behavioral bug the agent had itself just written and believed was correct.
-- **Archon's verdicts have been accurate in every entry below** (no confirmed false
-  positive *in this log* yet), but engagement depth swings widely: sharp and detailed
-  when reviewing infra it has a strong prior on (PR #32, reviewing its own workflow), thin
-  to the point of "no code suggestions" on straightforward application-logic diffs
-  (PR #46) even where Greptile found more to say about the same diff.
+- **Archon's verdicts have mostly been accurate**, but engagement depth swings widely:
+  sharp and detailed when reviewing infra it has a strong prior on (PR #32, reviewing its
+  own workflow), thin to the point of "no code suggestions" on straightforward
+  application-logic diffs (PR #46) even where Greptile found more to say about the same
+  diff. **PR #52 is the first confirmed false positive captured in this log**: a claimed
+  Tailwind v4 API-removal (`--color-gray-200` no longer exists) that was factually wrong
+  and took under a minute to disprove against the actual compiled CSS.
 - **One confirmed Archon false positive predates this log** and is captured directly in
   `.claude/commands/fix-pr.md`'s Step 5 guidance instead of here: a claimed YAML
   indentation bug on structurally valid, already-working config, surfaced on a 65/100-
-  scored review. No PR number was recorded for it at the time.
+  scored review. No PR number was recorded for it at the time. Both of Archon's confirmed
+  false positives so far are the same shape: a confident claim about the *shape or
+  existence* of something (config validity, an API surface) that a 10-second empirical
+  check — run the compiler, grep the compiled output — would have disproven.
 - **No false negative has been confirmed yet either way** — every discrepancy so far is
   "Archon said less," not "Archon missed a bug that was later proven to exist."
 
@@ -89,3 +94,32 @@ sequence diagram of the real code path.
 Archon: 98/100, ready to merge. Correct but thin — its only observation was "no relevant
 tests" (true: `permissionChecker.ts` has no test file), with no deeper engagement with
 the logic change itself and no per-file breakdown.
+
+### PR #52 — `chore(web): upgrade Tailwind CSS 3.4.19 -> 4.3.3`
+The official `@tailwindcss/upgrade` codemod did the mechanical lift across ~50 files.
+
+Greptile: 4/5, one valid finding — the codemod reordered the `TableFooter` variant stack
+from `[&>tr]:last:border-b-0` to `last:[&>tr]:border-b-0`. These are not equivalent:
+verified by grepping the actual compiled CSS output, the rewritten version compiles to
+`.last\:\[\&\>tr\]\:border-b-0:last-child > tr`, which strips the border from *every* `tr`
+child once `tfoot` itself is `:last-child` (always true), instead of only the actual last
+`tr`. No visible regression today since `tfoot` is always single-row in this codebase, but
+a real divergence from the original v3 intent and a one-line fix with no downside — fixed.
+
+Archon: 75/100, one finding — claimed Tailwind v4 "no longer exposes `--color-gray-200`
+as a custom property," so the codemod's border-color compatibility shim would silently
+fall through to `currentcolor` and visibly darken every unstyled border. **False positive,
+confirmed in under a minute**: Tailwind v4 ships its full default color palette as CSS
+custom properties unless a project explicitly opts out (this one doesn't), and the actual
+compiled `globals.css` output contains `--color-gray-200: #e5e7eb` exactly as expected.
+Rejected, no change made. See the "Patterns observed" note above — this is the second
+confirmed case where the fix was to verify the compiled/generated output rather than
+reason about the framework from memory.
+
+**Round 2** (after the `TableFooter` fix) — Greptile: 5/5, no remaining issue block (the
+summary prose sloppily referenced the now-fixed `TableFooter` finding by name without
+re-verifying it, but there was no actionable `### Issue` entry backing that mention — the
+score and the absence of a fix-it block are the authoritative signal, not the narration).
+Archon: 92/100, "Ready to merge," no major issues detected — did not re-raise the
+`--color-gray-200` finding, consistent with it having been a genuine false positive rather
+than something it was simply waiting to see fixed. Both clean.

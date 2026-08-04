@@ -94,7 +94,7 @@ export function RaidEditor({
           <Separator className="my-3" />
           <div className="flex gap-4 xl:flex-nowrap">
             <div className="grow-0 text-nowrap text-sm">WCL logs:</div>
-            <div className="shrink overflow-ellipsis">
+            <div className="shrink text-ellipsis">
               {(raidData.raidLogIds ?? []).map((raidLogId) => {
                 const reportUrl = GenerateWCLReportUrl(raidLogId);
                 return (

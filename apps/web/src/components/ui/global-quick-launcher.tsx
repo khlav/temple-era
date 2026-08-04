@@ -179,10 +179,10 @@ export function GlobalQuickLauncher() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col border p-0 shadow-lg">
         <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
-        <div className="flex flex-shrink-0 items-center border-b bg-background px-4 py-2 pr-12">
+        <div className="flex shrink-0 items-center border-b bg-background px-4 py-2 pr-12">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
-            className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 w-full rounded-md bg-transparent py-2 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Jump to raids, characters, or pages..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -410,15 +410,11 @@ export function GlobalQuickLauncher() {
                           }`}
                         >
                           {result.type === "page" ? (
-                            <result.icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                            <result.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                           ) : result.type === "raid" ? (
-                            <Calendar className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
                           ) : (
-                            <ClassIcon
-                              characterClass={result.class}
-                              px={16}
-                              className="flex-shrink-0"
-                            />
+                            <ClassIcon characterClass={result.class} px={16} className="shrink-0" />
                           )}
                           <div className="flex min-w-0 flex-1 items-center gap-1">
                             <span className="truncate text-sm font-medium">{result.name}</span>
@@ -430,7 +426,7 @@ export function GlobalQuickLauncher() {
                                   : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
                             </span>
                           </div>
-                          <div className="flex-shrink-0 text-xs text-muted-foreground">
+                          <div className="shrink-0 text-xs text-muted-foreground">
                             {result.type === "page"
                               ? "Page"
                               : result.type === "raid"

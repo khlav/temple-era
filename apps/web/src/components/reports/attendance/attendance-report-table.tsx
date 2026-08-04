@@ -164,12 +164,12 @@ export function AttendanceReportTable({
         <div className="h-[min(68svh,42rem)] overflow-x-auto overflow-y-auto md:h-[min(72svh,52rem)]">
           <div className="relative w-full">
             <table className="w-full caption-bottom text-sm">
-              <thead className="sticky top-0 z-[15] border-b bg-background shadow-[0_1px_0_0_hsl(var(--border))] [&_tr]:border-b">
+              <thead className="sticky top-0 z-15 border-b bg-background shadow-[0_1px_0_0_hsl(var(--border))] [&_tr]:border-b">
                 <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                  <th className="sticky left-0 top-0 z-[15] h-10 w-[75px] min-w-[75px] max-w-[75px] border-r bg-background px-2 text-center align-middle font-medium text-muted-foreground first:rounded-tl-xl">
+                  <th className="sticky left-0 top-0 z-15 h-10 w-[75px] min-w-[75px] max-w-[75px] border-r bg-background px-2 text-center align-middle font-medium text-muted-foreground first:rounded-tl-xl">
                     Lockout
                   </th>
-                  <th className="sticky left-[75px] top-0 z-[15] h-10 w-[170px] min-w-[170px] max-w-[170px] border-r bg-background px-2 text-left align-middle font-medium text-muted-foreground">
+                  <th className="sticky left-[75px] top-0 z-15 h-10 w-[170px] min-w-[170px] max-w-[170px] border-r bg-background px-2 text-left align-middle font-medium text-muted-foreground">
                     Raids {raids ? `(${raids.length})` : ""}
                   </th>
                   {characters.map((char) => (
@@ -233,7 +233,7 @@ export function AttendanceReportTable({
                         {isFirstInWeek && (
                           <td
                             rowSpan={rowspan}
-                            className={`lockout-cell-${lockoutKey} sticky left-0 z-10 w-[75px] min-w-[75px] max-w-[75px] border-r bg-background p-2 text-center align-middle transition-colors group-hover:bg-transparent [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]`}
+                            className={`lockout-cell-${lockoutKey} sticky left-0 z-10 w-[75px] min-w-[75px] max-w-[75px] border-r bg-background p-2 text-center align-middle transition-colors group-hover:bg-transparent has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]`}
                           >
                             <div className="flex h-full items-center justify-center">
                               <span className="text-xs text-muted-foreground">
@@ -242,7 +242,7 @@ export function AttendanceReportTable({
                             </div>
                           </td>
                         )}
-                        <td className="sticky left-[75px] z-10 w-[170px] min-w-[170px] max-w-[170px] border-r bg-background p-2 align-middle font-medium group-hover:bg-transparent [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        <td className="sticky left-[75px] z-10 w-[170px] min-w-[170px] max-w-[170px] border-r bg-background p-2 align-middle font-medium group-hover:bg-transparent has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                           <Link
                             className="group w-full transition-all hover:text-primary"
                             target="_self"
@@ -268,7 +268,7 @@ export function AttendanceReportTable({
                           return (
                             <td
                               key={char.characterId}
-                              className={`min-w-[150px] max-w-[300px] p-2 text-center align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] ${bgClass}`}
+                              className={`min-w-[150px] max-w-[300px] p-2 text-center align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px] ${bgClass}`}
                             >
                               <div className="relative overflow-hidden">
                                 <div
@@ -334,7 +334,7 @@ export function AttendanceReportTable({
                           );
                         })}
                         {/* Empty cell for add character column */}
-                        <td className="w-full p-2 text-left align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                        <td className="w-full p-2 text-left align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                           {/* Empty - add column is header only */}
                         </td>
                       </tr>

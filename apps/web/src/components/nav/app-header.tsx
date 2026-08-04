@@ -331,7 +331,7 @@ export const AppHeader = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-2xl border-border/75 bg-popover/95 p-2 backdrop-blur"
+                className="w-56 rounded-2xl border-border/75 bg-popover/95 p-2 backdrop-blur-sm"
               >
                 <DropdownMenuLabel className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Account

@@ -16,7 +16,7 @@ export function CharacterManagerRowSkeleton({ rows = 12 }: { rows?: number }) {
             return (
               <td
                 key={cellIndex}
-                className="p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]"
+                className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]"
               >
                 <Skeleton className="my-1 h-7 px-4" style={{ width: `${pseudoRandomWidth}%` }} />
               </td>
@@ -24,7 +24,7 @@ export function CharacterManagerRowSkeleton({ rows = 12 }: { rows?: number }) {
           })}
           <td
             key={rowIndex * 100}
-            className="p-2 text-right align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]"
+            className="p-2 text-right align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]"
           >
             <Skeleton className="ml-auto h-6 w-6" />
           </td>

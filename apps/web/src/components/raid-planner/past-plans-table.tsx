@@ -40,7 +40,7 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
       <table className="w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
           <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <th className="h-10 w-[1px] px-2 text-left align-middle font-medium text-muted-foreground">
+            <th className="h-10 w-px px-2 text-left align-middle font-medium text-muted-foreground">
               <span className="sr-only">Action</span>
             </th>
             <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
@@ -78,12 +78,12 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                 key={plan.id}
                 className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
               >
-                <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="w-px whitespace-nowrap p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <Button variant="secondary" size="sm" className="w-20" asChild>
                     <Link href={`/raid-manager/raid-planner/${plan.id}`}>View Plan</Link>
                   </Button>
                 </td>
-                <td className="w-full p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="w-full p-2 align-middle font-medium has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <div className="min-w-0">
                     <div className="truncate">{plan.name}</div>
                     <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -100,7 +100,7 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                     {lastEditedText}
                   </div>
                 </td>
-                <td className="hidden p-2 text-center align-middle md:table-cell [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <td className="hidden p-2 text-center align-middle md:table-cell has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <a
@@ -115,7 +115,7 @@ export function PastPlansTable({ plans }: PastPlansTableProps) {
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+                      className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
                     >
                       Raid Helper
                     </TooltipContent>

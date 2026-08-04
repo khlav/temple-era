@@ -655,7 +655,7 @@ export function EncounterSidebar({
               <button
                 onClick={() => onTabChange("default")}
                 className={cn(
-                  "group/item relative flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-xs font-medium outline-none transition-all",
+                  "group/item relative flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-xs font-medium outline-hidden transition-all",
                   activeTab === "default"
                     ? "bg-accent text-accent-foreground"
                     : "hover:bg-accent/50",
@@ -940,7 +940,7 @@ function RenameEditor({
       onBlur={onConfirm}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
-      className="min-w-0 w-full rounded border border-border bg-background px-1 py-0.5 text-xs outline-none focus:border-primary"
+      className="min-w-0 w-full rounded border border-border bg-background px-1 py-0.5 text-xs outline-hidden focus:border-primary"
     />
   );
 }
@@ -1081,7 +1081,7 @@ function SortableEncounterRow({
         <TooltipTrigger asChild>
           <div
             className={cn(
-              "relative flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1.5 py-1 text-xs outline-none transition-all",
+              "relative flex min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1.5 py-1 text-xs outline-hidden transition-all",
               enc.useDefaultGroups && "italic text-muted-foreground",
               enc.id === activeTab ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
               !isRenaming && (readOnly ? "cursor-pointer" : "cursor-grab"),
@@ -1151,7 +1151,7 @@ function SortableEncounterRow({
             <ContextMenuTrigger className="flex min-w-0 flex-1">
               {encounterContent}
             </ContextMenuTrigger>
-            <ContextMenuContent className="min-w-[6rem] p-0.5">
+            <ContextMenuContent className="min-w-24 p-0.5">
               <ContextMenuItem
                 className="px-2 py-1 text-xs"
                 onSelect={() => onStartRename(itemId, localNames[enc.id] ?? enc.encounterName)}
@@ -1286,7 +1286,7 @@ function SortableGroupRow({
         ) : (
           <ContextMenu>
             <ContextMenuTrigger className="flex w-full">{header}</ContextMenuTrigger>
-            <ContextMenuContent className="min-w-[6rem] p-0.5">
+            <ContextMenuContent className="min-w-24 p-0.5">
               <ContextMenuItem
                 className="px-2 py-1 text-xs"
                 onSelect={() => onStartRename(itemId, localNames[group.id] ?? group.groupName)}
@@ -1333,7 +1333,7 @@ function SortableGroupRow({
           <div
             ref={setDropRef}
             className={cn(
-              "min-h-[0.625rem] rounded border border-dashed pl-3 text-[10px] leading-[0.625rem] text-muted-foreground/30 transition-colors",
+              "min-h-2.5 rounded border border-dashed pl-3 text-[10px] leading-2.5 text-muted-foreground/30 transition-colors",
               isOver && "border-primary/40 bg-accent/20 text-muted-foreground/50",
               groupEncs.length > 0 && !isOver && "border-transparent",
             )}

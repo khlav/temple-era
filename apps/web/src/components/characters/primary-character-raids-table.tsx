@@ -112,7 +112,7 @@ export function PrimaryCharacterRaidsTable({
             onDebouncedChange={(v) => setSearchTerms(v ?? "")}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
           <Badge variant="secondary">{raidStats.total} raids</Badge>
           <div className="whitespace-nowrap text-sm text-muted-foreground">
             {raidStats.attended} attended, {raidStats.benched} benched

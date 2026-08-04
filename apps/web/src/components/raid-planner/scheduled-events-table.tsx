@@ -71,7 +71,7 @@ export function ScheduledEventsTable({
       <table className="w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
           <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <th className="h-10 w-[1px] px-2 text-left align-middle font-medium text-muted-foreground">
+            <th className="h-10 w-px px-2 text-left align-middle font-medium text-muted-foreground">
               <span className="sr-only">Action</span>
             </th>
             <th className="h-10 w-[50%] px-2 text-left align-middle font-medium text-muted-foreground">
@@ -187,7 +187,7 @@ function EventRow({
 
   return (
     <tr className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-      <td className="w-[1px] whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+      <td className="w-px whitespace-nowrap p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
         {existingPlan ? (
           <Button variant="secondary" size="sm" className="w-20" asChild>
             <Link href={`/raid-manager/raid-planner/${existingPlan.id}`}>View Plan</Link>
@@ -203,7 +203,7 @@ function EventRow({
           </Button>
         )}
       </td>
-      <td className="w-[50%] p-2 align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+      <td className="w-[50%] p-2 align-middle font-medium has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
         <div className="min-w-0">
           <div className="truncate">{event.displayTitle ?? event.title}</div>
           <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -221,7 +221,7 @@ function EventRow({
           <div className="truncate text-xs font-normal text-muted-foreground">{lastEditedText}</div>
         ) : null}
       </td>
-      <td className="w-[50%] p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+      <td className="w-[50%] p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
         <div className="flex items-center justify-start gap-3">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -242,7 +242,7 @@ function EventRow({
             </TooltipTrigger>
             <TooltipContent
               side="top"
-              className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+              className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
             >
               Find Gamers
             </TooltipContent>
@@ -258,7 +258,7 @@ function EventRow({
           />
         </div>
       </td>
-      <td className="p-2 text-center align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+      <td className="p-2 text-center align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
         <Tooltip>
           <TooltipTrigger asChild>
             <a
@@ -273,7 +273,7 @@ function EventRow({
           </TooltipTrigger>
           <TooltipContent
             side="top"
-            className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow transition-all"
+            className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
           >
             Raid Helper
           </TooltipContent>
