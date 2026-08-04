@@ -20,7 +20,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       bot: ${{ steps.filter.outputs.bot }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dorny/paths-filter@v3
         id: filter
@@ -51,7 +51,7 @@ jobs:
     name: Cross-check packages/filters
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Every --filter <name> must match a real workspace package
         run: node .github/scripts/check-filters.mjs
 
@@ -61,7 +61,7 @@ jobs:
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -114,7 +114,7 @@ jobs:
     if: needs.changes.outputs.bot == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
