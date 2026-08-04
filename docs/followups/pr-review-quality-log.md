@@ -123,3 +123,16 @@ score and the absence of a fix-it block are the authoritative signal, not the na
 Archon: 92/100, "Ready to merge," no major issues detected — did not re-raise the
 `--color-gray-200` finding, consistent with it having been a genuine false positive rather
 than something it was simply waiting to see fixed. Both clean.
+
+### PR #53 — `chore(repo): add generic PR-merged webhook for external ticket automation`
+Greptile: not run — PR has no `greptile` label.
+
+Archon: 85/100, one suggestion — claimed `pr_number` "can be a string... the downstream
+consumer expects a numeric value," proposing to switch `--argjson pr_number "$PR_NUMBER"`
+to `--arg` + `| tonumber`. **Self-contradicting on inspection**: `--argjson` already parses
+the env var as a JSON number today (`PR_NUMBER` is always a bare digit string, from either
+`workflow_dispatch`'s default or the real event's `.number`), so the payload is already
+numeric — and Archon's own "Suggestion importance" footnote says exactly that, rating its
+own suggestion 2/10 and calling the change "unnecessary... negligible impact." Rejected, no
+change made. Notable mainly for the shape: a top-level finding and its own nested rationale
+disagreeing with each other, rather than the finding itself being subtle either way.
