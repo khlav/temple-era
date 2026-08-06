@@ -136,3 +136,16 @@ numeric — and Archon's own "Suggestion importance" footnote says exactly that,
 own suggestion 2/10 and calling the change "unnecessary... negligible impact." Rejected, no
 change made. Notable mainly for the shape: a top-level finding and its own nested rationale
 disagreeing with each other, rather than the finding itself being subtle either way.
+
+### PR #59 — `chore(repo): trial GPT-5.6 Luna as Archon's primary review model` (TEMPLE-38)
+First PR reviewed under GPT-5.6 Luna as Archon's primary model, swapped in from
+`deepseek/deepseek-v4-pro` (see `.github/workflows/archon.yml`).
+
+Archon: 88/100, "Ready to merge," no findings, no code suggestions.
+
+**Not a meaningful depth test** — same caveat as PR #43: the diff is the model-swap
+config change itself, with essentially no application logic for a reviewer to engage
+with either way. TEMPLE-38's actual "done when" bar (a real application-code PR
+reviewed by both, to compare depth against the DeepSeek baseline) is still open; this
+entry is only a baseline data point that Luna produces a plausible score on a trivial
+diff, not evidence either way on the review-depth question the ticket exists to answer.
