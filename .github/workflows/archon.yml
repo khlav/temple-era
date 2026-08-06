@@ -21,16 +21,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Self-hosted, DeepSeek-backed AI reviewer (github.com/The-PR-Agent/pr-agent).
-  # Runs alongside Greptile, not instead of it - /fix-pr still drives off
-  # Greptile's confidence score. This is a near-zero-incremental-cost second
-  # opinion, not a replacement for the existing review gate.
+  # Self-hosted AI reviewer (github.com/The-PR-Agent/pr-agent), primary model
+  # set via config.model below (TEMPLE-38: trialing GPT-5.6 Luna in place of
+  # the original DeepSeek Pro). Runs alongside Greptile, not instead of it -
+  # /fix-pr still drives off Greptile's confidence score. This is a near-
+  # zero-incremental-cost second opinion, not a replacement for the existing
+  # review gate.
   pr_review:
     name: PR review
     # Bot-sender guard, plus a fork guard Archon's own review flagged: PRs
-    # from forks don't get repo secrets (DEEPSEEK_API_KEY comes back empty)
-    # and GITHUB_TOKEN is read-only, so every external contribution would
-    # show a failed/red check rather than just skipping cleanly. Restricting
+    # from forks don't get repo secrets (OPENAI_KEY/DEEPSEEK_API_KEY come back
+    # empty) and GITHUB_TOKEN is read-only, so every external contribution
+    # would show a failed/red check rather than just skipping cleanly. Restricting
     # to same-repo PRs avoids that instead of trying to handle it gracefully.
     if: >-
       ${{ github.event.sender.type != 'Bot' &&
@@ -64,20 +66,29 @@ jobs:
         uses: the-pr-agent/pr-agent@743f52d80f3513193dfc7626f778c73478df6d0a # v0.41.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Kept alongside OPENAI_KEY below so deepseek-v4-flash still works
+          # as a cross-provider fallback - unrelated to which model is primary.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # Pro primary, Flash fallback: switched back after Flash produced
-          # four incorrect technical claims in a row during this PR's own
-          # review cycle - an env var name claimed invalid that wasn't, a
-          # CLI flag claimed undocumented that was, a config setting that
-          # doesn't exist in PR-Agent's source, and exit-code semantics
-          # claimed inverted that directly contradicted both Turborepo's own
-          # docs and an empirical test run in this same session. Flash is
-          # still ~3x cheaper ($0.14/$0.28 vs $0.435/$0.87 per 1M tokens) and
-          # benchmarks well on general coding/agent tasks, but the pattern
-          # here suggests it's less reliable specifically at careful
-          # technical review - the accuracy cost of chasing down false
-          # positives outweighed the token savings for this use case.
-          config.model: "deepseek/deepseek-v4-pro"
+          # TEMPLE-38: trying GPT-5.6 Luna (OpenAI) as primary in place of
+          # DeepSeek Pro, to see whether it closes the review-depth gap noted
+          # against Greptile in docs/followups/pr-review-quality-log.md -
+          # Archon's verdicts have been accurate but consistently thinner.
+          # Requires a new OPENAI_KEY repo secret (see AGENTS.md's Secrets
+          # section - this one deliberately lives outside Doppler, same as
+          # DEEPSEEK_API_KEY, since it's CI infra rather than app config).
+          # No provider prefix on the model id: unlike deepseek/..., OpenAI is
+          # litellm's default provider, and PR-Agent's own GitHub Action docs
+          # (docs.pr-agent.ai/installation/github) show config.model set to a
+          # bare "gpt-4o"-style string with OPENAI_KEY, not OPENAI.KEY.
+          # deepseek-v4-flash stays as fallback (existing, working, and
+          # orthogonal to this comparison) rather than an untested same-
+          # provider Luna fallback - despite deepseek-v4-flash's own known
+          # reliability gap (four incorrect technical claims in a row during
+          # PR #32's own review cycle, the reason it was demoted from primary
+          # originally). Acceptable here since fallback only fires when Luna
+          # itself errors, not on every review.
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          config.model: "gpt-5.6-luna"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
           # PR-Agent's own default caps every model at 32K tokens regardless
           # of capability (pr_agent/algo/utils.py get_max_tokens()), which
