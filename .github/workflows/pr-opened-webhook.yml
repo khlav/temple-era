@@ -37,6 +37,9 @@ on:
       opened_at:
         description: "Opened-at timestamp"
         default: "1970-01-01T00:00:00Z"
+      is_draft:
+        description: "Whether the fake PR is a draft"
+        default: "false"
 
 jobs:
   notify-webhook:
@@ -52,6 +55,7 @@ jobs:
           PR_URL: ${{ github.event.inputs.pr_url || github.event.pull_request.html_url }}
           BRANCH_NAME: ${{ github.event.inputs.branch_name || github.event.pull_request.head.ref }}
           OPENED_AT: ${{ github.event.inputs.opened_at || github.event.pull_request.created_at }}
+          IS_DRAFT: ${{ github.event.inputs.is_draft || github.event.pull_request.draft }}
           REPOSITORY: ${{ github.repository }}
           AUTHOR: ${{ github.event.pull_request.user.login }}
           WEBHOOK_URL: ${{ secrets.ISSUE_WEBHOOK_URL }}
@@ -68,9 +72,10 @@ jobs:
             --arg branch_name "$BRANCH_NAME" \
             --arg opened_at "$OPENED_AT" \
             --arg author "${AUTHOR:-}" \
+            --argjson is_draft "$IS_DRAFT" \
             '{action_type: $action_type, repository: $repository, data: {
                 pr_number: $pr_number, pr_title: $pr_title, pr_body: $pr_body,
                 pr_url: $pr_url, branch_name: $branch_name,
-                opened_at: $opened_at, author: $author
+                opened_at: $opened_at, author: $author, is_draft: $is_draft
               }}' \
           | .github/scripts/notify-webhook.sh
