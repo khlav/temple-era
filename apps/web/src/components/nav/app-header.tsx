@@ -42,6 +42,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
+import { SCOPE } from "~/lib/scopes";
 
 const primaryNav = [
   { label: "Dashboard", href: "/" },
@@ -52,24 +53,30 @@ const primaryNav = [
   { label: "Reports", href: "/reports/attendance" },
 ];
 
+// Each entry's requiredScope must match its destination's own layout/route guard — gating on
+// the coarse isRaidManager/isAdmin booleans instead would show a link to whoever holds ANY
+// scope bundled into that boolean, not necessarily the one the destination actually checks.
 const managerNav = [
-  { label: "Create raid", href: "/raids/new", icon: FilePlus },
+  { label: "Create raid", href: "/raids/new", icon: FilePlus, requiredScope: SCOPE.RAIDLOG_MANAGE },
   {
     label: "Raid planner",
     href: "/raid-manager/raid-planner",
     icon: DraftingCompass,
+    requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
     label: "Manage mains/alts",
     href: "/raid-manager/characters",
     icon: Users,
+    requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
     label: "Refresh WCL log",
     href: "/raid-manager/log-refresh",
     icon: ListRestart,
+    requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
-  { label: "SoftRes scan", href: "/softres", icon: ScanLine },
+  { label: "SoftRes scan", href: "/softres", icon: ScanLine, requiredScope: SCOPE.SOFTRES_ACCESS },
 ];
 
 const adminNav = [
@@ -77,6 +84,7 @@ const adminNav = [
     label: "User permissions",
     href: "/admin/user-management",
     icon: ShieldCheck,
+    requiredScope: SCOPE.USERPERMISSIONS_MANAGE,
   },
 ];
 
@@ -91,12 +99,18 @@ export const AppHeader = () => {
   const { data: session } = useSession();
   const { setOpen } = useGlobalQuickLauncher();
 
+  const scopes = session?.user?.scopes;
+  const visibleManagerNav = useMemo(
+    () => managerNav.filter((item) => scopes?.includes(item.requiredScope) ?? false),
+    [scopes],
+  );
+  const visibleAdminNav = useMemo(
+    () => adminNav.filter((item) => scopes?.includes(item.requiredScope) ?? false),
+    [scopes],
+  );
   const utilityLinks = useMemo(
-    () => [
-      ...(session?.user?.isRaidManager ? managerNav : []),
-      ...(session?.user?.isAdmin ? adminNav : []),
-    ],
-    [session?.user?.isAdmin, session?.user?.isRaidManager],
+    () => [...visibleManagerNav, ...visibleAdminNav],
+    [visibleManagerNav, visibleAdminNav],
   );
 
   const handleSignIn = () =>
@@ -203,13 +217,13 @@ export const AppHeader = () => {
                   <SheetDescription>Manager and Site Admin tools.</SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-6">
-                  {session?.user?.isRaidManager ? (
+                  {visibleManagerNav.length > 0 ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">Raid Manager</Badge>
                       </div>
                       <div className="grid gap-2">
-                        {managerNav.map((item) => (
+                        {visibleManagerNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
                               href={item.href}
@@ -224,13 +238,13 @@ export const AppHeader = () => {
                     </div>
                   ) : null}
 
-                  {session?.user?.isAdmin ? (
+                  {visibleAdminNav.length > 0 ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">Admin</Badge>
                       </div>
                       <div className="grid gap-2">
-                        {adminNav.map((item) => (
+                        {visibleAdminNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
                               href={item.href}

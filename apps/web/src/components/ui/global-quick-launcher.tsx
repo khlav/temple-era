@@ -1,19 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  Search,
-  Home,
-  Users,
-  BookOpen,
-  FilePlus,
-  ListRestart,
-  ShieldCheck,
-  HelpCircle,
-  ScanLine,
-} from "lucide-react";
+import { Calendar, Search, HelpCircle } from "lucide-react";
 import { useDebounce } from "use-debounce";
 import { useSession } from "next-auth/react";
 
@@ -23,6 +12,7 @@ import { ClassIcon } from "~/components/ui/class-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
+import { getVisiblePages } from "~/lib/app-pages";
 
 export function GlobalQuickLauncher() {
   const { open, setOpen } = useGlobalQuickLauncher();
@@ -36,6 +26,13 @@ export function GlobalQuickLauncher() {
   const { data, isLoading } = api.search.global.useQuery(
     { query: debouncedQuery },
     { enabled: debouncedQuery.length > 0 },
+  );
+
+  // Single source of truth for navigable pages, filtered to what this user's scopes permit.
+  // Shared with the header's "Guild Tools" menu via ~/lib/app-pages so the two can't drift.
+  const visiblePages = useMemo(
+    () => getVisiblePages(session?.user?.scopes),
+    [session?.user?.scopes],
   );
 
   // Reset selection when query changes
@@ -63,73 +60,13 @@ export function GlobalQuickLauncher() {
     if (!data || (!data.raids && !data.characters)) return;
 
     // Get all results for navigation
-    const staticPages = [
-      { name: "Dashboard", path: "/", icon: Home, type: "page" as const },
-      { name: "Raids", path: "/raids", icon: Calendar, type: "page" as const },
-      {
-        name: "Raiding characters",
-        path: "/characters",
-        icon: Users,
-        type: "page" as const,
-      },
-      {
-        name: "Rare recipes & crafters",
-        path: "/rare-recipes",
-        icon: BookOpen,
-        type: "page" as const,
-      },
-      // Raid Manager pages
-      ...(session?.user?.isRaidManager
-        ? [
-            {
-              name: "Create new raid",
-              path: "/raids/new",
-              icon: FilePlus,
-              type: "page" as const,
-              role: "Raid Manager",
-            },
-            {
-              name: "Manage mains v. alts",
-              path: "/raid-manager/characters",
-              icon: Users,
-              type: "page" as const,
-              role: "Raid Manager",
-            },
-            {
-              name: "Refresh WCL log",
-              path: "/raid-manager/log-refresh",
-              icon: ListRestart,
-              type: "page" as const,
-              role: "Raid Manager",
-            },
-            {
-              name: "SoftRes Scan",
-              path: "/softres",
-              icon: ScanLine,
-              type: "page" as const,
-              role: "Raid Manager",
-            },
-          ]
-        : []),
-      // Admin pages
-      ...(session?.user?.isAdmin
-        ? [
-            {
-              name: "User permissions",
-              path: "/admin/user-management",
-              icon: ShieldCheck,
-              type: "page" as const,
-              role: "Admin",
-            },
-          ]
-        : []),
-    ];
-
-    const matchedStaticPages = staticPages.filter(
-      (page) =>
-        page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
-    );
+    const matchedStaticPages = visiblePages
+      .filter(
+        (page) =>
+          page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+          page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
+      )
+      .map((page) => ({ ...page, type: "page" as const }));
 
     const allResults = [
       ...matchedStaticPages.map((page) => ({ ...page, priority: 0 })),
@@ -177,7 +114,7 @@ export function GlobalQuickLauncher() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col border p-0 shadow-lg">
+      <DialogContent className="left-[50%] top-[15vh] flex max-h-[70vh] w-full max-w-2xl translate-x-[-50%] translate-y-0 flex-col overflow-hidden border p-0 shadow-lg">
         <DialogTitle className="sr-only">Quick Launcher</DialogTitle>
         <div className="flex shrink-0 items-center border-b bg-background px-4 py-2 pr-12">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -243,86 +180,20 @@ export function GlobalQuickLauncher() {
             <>
               {/* Combine and sort all results by date (most recent first), limit to 10 total */}
               {(() => {
-                // Static page results - only show if they match the search
-                const staticPages = [
-                  {
-                    name: "Dashboard",
-                    path: "/",
-                    icon: Home,
+                // Static page results - only show if they match the search. sortDate counts
+                // down from visiblePages' own order, so list position (not a hand-maintained
+                // number per entry) determines display order among matched pages.
+                const matchedStaticPages = visiblePages
+                  .filter(
+                    (page) =>
+                      page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+                      page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
+                  )
+                  .map((page, index) => ({
+                    ...page,
                     type: "page" as const,
-                    sortDate: Number.MAX_SAFE_INTEGER, // Always appear first when matched
-                  },
-                  {
-                    name: "Raids",
-                    path: "/raids",
-                    icon: Calendar,
-                    type: "page" as const,
-                    sortDate: Number.MAX_SAFE_INTEGER - 1,
-                  },
-                  {
-                    name: "Raiding characters",
-                    path: "/characters",
-                    icon: Users,
-                    type: "page" as const,
-                    sortDate: Number.MAX_SAFE_INTEGER - 2,
-                  },
-                  {
-                    name: "Rare recipes & crafters",
-                    path: "/rare-recipes",
-                    icon: BookOpen,
-                    type: "page" as const,
-                    sortDate: Number.MAX_SAFE_INTEGER - 3,
-                  },
-                  // Raid Manager pages
-                  ...(session?.user?.isRaidManager
-                    ? [
-                        {
-                          name: "Create new raid",
-                          path: "/raids/new",
-                          icon: FilePlus,
-                          type: "page" as const,
-                          sortDate: Number.MAX_SAFE_INTEGER - 4,
-                          role: "Raid Manager",
-                        },
-                        {
-                          name: "Manage mains v. alts",
-                          path: "/raid-manager/characters",
-                          icon: Users,
-                          type: "page" as const,
-                          sortDate: Number.MAX_SAFE_INTEGER - 5,
-                          role: "Raid Manager",
-                        },
-                        {
-                          name: "Refresh WCL log",
-                          path: "/raid-manager/log-refresh",
-                          icon: ListRestart,
-                          type: "page" as const,
-                          sortDate: Number.MAX_SAFE_INTEGER - 6,
-                          role: "Raid Manager",
-                        },
-                      ]
-                    : []),
-                  // Admin pages
-                  ...(session?.user?.isAdmin
-                    ? [
-                        {
-                          name: "User permissions",
-                          path: "/admin/user-management",
-                          icon: ShieldCheck,
-                          type: "page" as const,
-                          sortDate: Number.MAX_SAFE_INTEGER - 7,
-                          role: "Admin",
-                        },
-                      ]
-                    : []),
-                ];
-
-                // Filter static pages based on search query
-                const matchedStaticPages = staticPages.filter(
-                  (page) =>
-                    page.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-                    page.path.toLowerCase().includes(debouncedQuery.toLowerCase()),
-                );
+                    sortDate: Number.MAX_SAFE_INTEGER - index,
+                  }));
 
                 // Combine results while preserving database ordering
                 // Add priority to maintain proper ordering
@@ -420,7 +291,7 @@ export function GlobalQuickLauncher() {
                             <span className="truncate text-sm font-medium">{result.name}</span>
                             <span className="text-xs text-muted-foreground">
                               {result.type === "page"
-                                ? result.role || ""
+                                ? result.area || ""
                                 : result.type === "raid"
                                   ? `${result.zone} • ${formatRaidDate(result.date)} • ${formatRaidCompletion(result.zone, result.killCount || 0)}`
                                   : `${result.class} • ${result.server}${result.primaryCharacterName ? ` (${result.primaryCharacterName})` : ""}`}
