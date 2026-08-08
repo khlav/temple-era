@@ -19,6 +19,12 @@ COMMENT ON ROLE reports_readonly IS
 -- Keep a bad ad hoc query from tying up the Supavisor pooler.
 ALTER ROLE reports_readonly SET statement_timeout = '30s';
 
+-- Postgres grants CREATE on public/views to the PUBLIC pseudo-role by default, and that's
+-- additive on top of any role-specific grants — without revoking it, "read-only" would be a lie:
+-- reports_readonly could still create objects in either schema via that implicit grant.
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA views FROM PUBLIC;
+
 GRANT USAGE ON SCHEMA public TO reports_readonly;
 GRANT USAGE ON SCHEMA views TO reports_readonly;
 
