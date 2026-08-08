@@ -31,8 +31,13 @@ commit_subject=$(printf '%s\n' "$commit_msg" | head -n 1)
 #
 # POSIX classes rather than \b: \b is a GNU extension and is not reliable in
 # the BSD grep that ships with macOS, where these hooks mostly run.
+#
+# Underscore is in the word-character set on purpose. [^[:alnum:]] alone would
+# treat `_` as a boundary, so identifiers like `fix(tmp_config): ...` or
+# `add temp_dir handling` would warn - reintroducing the same class of false
+# positive this check was rewritten to remove.
 if printf '%s' "$commit_subject" \
-  | grep -qiE '(^|[^[:alnum:]])(wip|tmp|temp|temporary|work in progress|do not merge|dnm)([^[:alnum:]]|$)'; then
+  | grep -qiE '(^|[^[:alnum:]_])(wip|tmp|temp|temporary|work in progress|do not merge|dnm)([^[:alnum:]_]|$)'; then
   echo "⚠️  Warning: Commit subject contains WIP/temporary language"
 fi
 
