@@ -149,3 +149,44 @@ with either way. TEMPLE-38's actual "done when" bar (a real application-code PR
 reviewed by both, to compare depth against the DeepSeek baseline) is still open; this
 entry is only a baseline data point that Luna produces a plausible score on a trivial
 diff, not evidence either way on the review-depth question the ticket exists to answer.
+
+### PR #61 — `chore(repo): make Archon the primary reviewer, not a thin second opinion` (TEMPLE-44)
+
+**Config generation marker — `gen-2`.** Everything below this line was reviewed under:
+`gpt-5.6` primary / `model_weak=gpt-5.6-luna` / `reasoning_effort=high` /
+`num_max_findings=5` / no score (`require_score_review` off) / four repo-domain rules in
+`EXTRA_INSTRUCTIONS` / `repo_context_files` = root `AGENTS.md` + `docs/archon-review-context.md`.
+Entries above this line are `gen-1` (DeepSeek Pro → Flash → Luna, score-calibrated,
+generic instructions, root `AGENTS.md` only) and are **not** comparable — several
+variables moved at once, deliberately. Add a marker line like this one whenever the
+config changes again.
+
+Round 1, two findings, **both valid, both fixed**. No false positives. No score emitted,
+confirming `require_score_review` is off end-to-end.
+
+1. **Wire-contract rule contradicted its own context file.** `EXTRA_INSTRUCTIONS` still said
+   the bot is "a thin client over five `/api/discord/*` endpoints" and demanded a
+   three-sided edit, while `docs/archon-review-context.md` — added in the same PR — says
+   four, with `proxy` carved out as Templar's with no bot call site. Archon read both
+   halves of the diff and caught that they disagreed. Correct, and non-obvious: it
+   required holding a new prompt and a new context file side by side and noticing the
+   contradiction between them.
+2. **Authz rule was broader than its own context file.** Instructions made any public
+   *read* of raid/attendance data a finding; the context file says much of the site is
+   public by design and only writes or user-specific reads warrant scrutiny. Left as-is,
+   this would have generated exactly the false positives the PR set out to reduce.
+
+Both were self-inflicted inconsistencies introduced while writing the PR, in the half of
+the change (the prompt) that ships separately from the half that documents it (the context
+file). Worth noting as a maintenance hazard: those two files now have to agree, and nothing
+enforces that automatically.
+
+Fixing (1) also surfaced a third error the reviewer did *not* catch — the first fix
+attempt pointed proxy changes at "rule (3)", which is MIGRATIONS, not the Templar freeze.
+Found by re-reading the rendered instruction block before committing.
+
+**First genuinely useful Archon round in this log.** Every prior entry is either "no
+findings on a trivial diff" or a false positive. Caveat on how much to read into it: the
+diff was a reviewer prompt plus its own documentation, which is unusually well-suited to a
+reviewer that reasons over text. Still not a test on application logic — that bar, carried
+over from TEMPLE-38, remains open.

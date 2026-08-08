@@ -235,13 +235,20 @@ jobs:
             Prioritise findings in this order.
             (1) AUTHZ. apps/web/src/server/api exposes publicProcedure,
             protectedProcedure, adminProcedure and scopedProcedure(...scopes).
-            A new or modified procedure that reads or writes user, raid or
-            attendance data on publicProcedure is a finding unless the PR
-            explicitly justifies public access.
-            (2) WIRE CONTRACT. apps/bot is a thin client over five
-            /api/discord/* endpoints typed by @temple-era/contracts. A change
-            to a route handler, its Zod schema, or a bot call site that does
-            not change the other two sides is a finding.
+            A new or modified publicProcedure that WRITES user, raid or
+            attendance data, or that reads user-specific or otherwise
+            sensitive data, is a finding unless the PR explicitly justifies
+            public access. Public READS of raid or attendance data are not
+            findings on their own - much of this site is public by design.
+            (2) WIRE CONTRACT. apps/bot is a thin client over FOUR bot-facing
+            /api/discord/* endpoints typed by @temple-era/contracts:
+            check-permissions, create-raid, update-raid, update-bench. The
+            fifth, proxy, serves Templar and has NO bot call site - judge it
+            under the Templar freeze in docs/archon-review-context.md, never
+            as a missing bot update. A semantic request
+            or response change to one of the four is a finding when an
+            affected handler, schema, or bot call site is not updated in the
+            same PR.
             (3) MIGRATIONS. apps/web/drizzle. Flag destructive DDL (DROP,
             ALTER ... TYPE, NOT NULL on a populated column) with no backfill
             or guard, a schema change with no generated migration committed
