@@ -3,6 +3,11 @@
 -- is granted membership in it. Templar connects as itself, not as reports_readonly directly, so
 -- a future second consumer of the same reporting scope gets its own LOGIN role and its own
 -- audit trail instead of sharing this credential.
+--
+-- Safe to disable reports_readonly's login in the same migration that creates templar: 0029
+-- never set a password on reports_readonly, so nothing has ever been able to authenticate as it
+-- — there is no live consumer to interrupt. templar's own password is set out-of-band post-merge
+-- (TEMPLE-55), same as reports_readonly's would have been.
 ALTER ROLE reports_readonly NOLOGIN;
 
 DO $$
