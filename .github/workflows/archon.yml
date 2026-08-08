@@ -235,11 +235,12 @@ jobs:
             Prioritise findings in this order.
             (1) AUTHZ. apps/web/src/server/api exposes publicProcedure,
             protectedProcedure, adminProcedure and scopedProcedure(...scopes).
-            A new or modified publicProcedure that WRITES user, raid or
-            attendance data, or that reads user-specific or otherwise
+            A new or modified publicProcedure that WRITES user, raid, character
+            or attendance data, or that reads user-specific or otherwise
             sensitive data, is a finding unless the PR explicitly justifies
-            public access. Public READS of raid or attendance data are not
-            findings on their own - much of this site is public by design.
+            public access. Public READS of raid, character or attendance data
+            are not findings on their own - much of this site is public by
+            design.
             (2) WIRE CONTRACT. apps/bot is a thin client over FOUR bot-facing
             /api/discord/* endpoints typed by @temple-era/contracts:
             check-permissions, create-raid, update-raid, update-bench. The

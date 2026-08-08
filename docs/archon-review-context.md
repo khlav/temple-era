@@ -41,17 +41,17 @@ Postgres enum: `raidlog:manage`, `raidplan:manage`, `character:manage`,
 `resolveUserAccess()` in `apps/web/src/server/services/access-service.ts` is
 the single chokepoint resolving a user's effective scopes.
 
-**What a finding looks like:** a new or modified procedure that reads or writes
-user, raid, character or attendance data on `publicProcedure`; a mutation on
-`protectedProcedure` where an equivalent neighbouring mutation uses
-`scopedProcedure`; a scope string that is not in the list above; a new use of
-`adminProcedure` outside `recipe.ts`; authorization logic that bypasses
-`resolveUserAccess()` and derives permissions itself.
+**What a finding looks like:** a `publicProcedure` that **writes** user, raid,
+character or attendance data, or that **reads** user-specific or otherwise
+sensitive data; a mutation on `protectedProcedure` where an equivalent
+neighbouring mutation uses `scopedProcedure`; a scope string that is not in the
+list above; a new use of `adminProcedure` outside `recipe.ts`; authorization
+logic that bypasses `resolveUserAccess()` and derives permissions itself.
 
-**Not a finding:** `publicProcedure` on genuinely public read surfaces — much
-of the site is public by design, and 41 existing uses are legitimate. Absence
-of a scope is only suspicious when the data is user-specific or the operation
-writes.
+**Not a finding:** `publicProcedure` on a genuinely public **read** surface —
+much of the site is public by design, and 41 existing uses are legitimate. A
+public read of raid, character or attendance data is not suspicious on its own.
+The trigger is a write, or a read of data scoped to a specific user.
 
 ## The Discord contract triangle
 
