@@ -276,3 +276,21 @@ Adding `/improve` to `github_action_config.push_commands` would fix it, at per-p
 because the default `Merge branch 'main' into ...` message is not conventional format. Local
 branch updates need a hand-written conforming message; `gh pr update-branch` avoids it by
 merging server-side where no hook runs.
+
+### PR #66 — `chore(web): split templar login identity from reports_readonly`
+
+Both Archon comments (reviewer guide + code suggestions) raised the identical finding:
+disabling `reports_readonly`'s login in the same migration that creates `templar` risks an
+outage, since `templar` has no password yet when the old login is revoked. **Plausible in
+general, but factually wrong here** — verified directly against prod (`SELECT rolname,
+rolcanlogin FROM pg_roles`) that `reports_readonly` was never given a password by the prior
+migration (#64), so nothing has ever authenticated as it. There is no live consumer to
+interrupt. Archon has no visibility into runtime prod state and reasoned from a generically-
+sound assumption that didn't hold in this specific case — a different failure shape than the
+prior confirmed false positives (which were wrong about static code/config shape), but the
+same root cause: a confident claim that a quick empirical check (here, a live DB query rather
+than a compiler run) disproved. Skipped the suggested two-migration split; added an inline
+comment explaining why the single-migration order is safe here instead.
+
+Also reconfirms the `push_commands` gap from PR #62: the code-suggestions comment stayed
+pinned to the opening commit's marker through this round, only the reviewer guide updated.
