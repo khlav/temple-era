@@ -153,9 +153,15 @@ diff, not evidence either way on the review-depth question the ticket exists to 
 ### PR #61 — `chore(repo): make Archon the primary reviewer, not a thin second opinion` (TEMPLE-44)
 
 **Config generation marker — `gen-2`.** Everything below this line was reviewed under:
-`gpt-5.6` primary / `model_weak=gpt-5.6-luna` / `reasoning_effort=high` /
+`gpt-5.6-terra` primary / `model_weak=gpt-5.6-luna` / `reasoning_effort=high` /
 `num_max_findings=5` / no score (`require_score_review` off) / four repo-domain rules in
 `EXTRA_INSTRUCTIONS` / `repo_context_files` = root `AGENTS.md` + `docs/archon-review-context.md`.
+
+> ⚠️ **The rounds recorded in this entry ran on full `gpt-5.6`, not Terra.** The primary was
+> dropped to `gpt-5.6-terra` on cost near the end of this PR, after those rounds had already
+> happened. So the four findings below are evidence about **gpt-5.6**, and are an upper bound
+> on what `gen-2` produces, not a measurement of it. The first real `gen-2` data point is the
+> next PR reviewed after this one merges. Do not read this entry as a Terra baseline.
 Entries above this line are `gen-1` (DeepSeek Pro → Flash → Luna, score-calibrated,
 generic instructions, root `AGENTS.md` only) and are **not** comparable — several
 variables moved at once, deliberately. Add a marker line like this one whenever the

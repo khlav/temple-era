@@ -71,9 +71,9 @@ jobs:
           # Kept alongside OPENAI_KEY below so deepseek-v4-flash still works
           # as a cross-provider fallback - unrelated to which model is primary.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # TEMPLE-44: GPT-5.6 (OpenAI) as primary. This supersedes TEMPLE-38,
-          # which trialed GPT-5.6 Luna in the same slot to close the review-
-          # depth gap noted against Greptile in
+          # TEMPLE-44: GPT-5.6 Terra (OpenAI) as primary. This supersedes
+          # TEMPLE-38, which trialed GPT-5.6 Luna in the same slot to close the
+          # review-depth gap noted against Greptile in
           # docs/followups/pr-review-quality-log.md. That trial was aimed at
           # the wrong target: upstream's own configuration.toml lists
           # gpt-5.6-luna as the commented-out example for `model_weak` - "a
@@ -82,6 +82,16 @@ jobs:
           # Luna was three consecutive moves along the cheap axis with none
           # along the capable one. Luna keeps its intended job below via
           # config.model_weak.
+          #
+          # Terra rather than full GPT-5.6, on cost. Terra is the middle tier -
+          # upstream ships it as the default fallback beside gpt-5.6 - so this
+          # is still a genuine move along the capable axis relative to Luna,
+          # which is the point of the change, just not all the way to the top.
+          # Archon runs on every opened and synchronize event, so the primary
+          # model's per-review cost is multiplied by pushes per PR, not by PR
+          # count. If review depth turns out to regress against the four valid
+          # findings Terra's predecessor produced on this PR, the escalation
+          # path is gpt-5.6 - not another step down.
           # Requires the OPENAI_KEY repo secret (see AGENTS.md's Secrets
           # section - this one deliberately lives outside Doppler, same as
           # DEEPSEEK_API_KEY, since it's CI infra rather than app config).
@@ -97,7 +107,7 @@ jobs:
           # originally). Acceptable here since fallback only fires when the
           # primary itself errors, not on every review.
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          config.model: "gpt-5.6"
+          config.model: "gpt-5.6-terra"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
           # Previously unset, so PR-Agent used the primary model for the
           # cheaper sub-tasks too. Luna is upstream's own example weak model,
