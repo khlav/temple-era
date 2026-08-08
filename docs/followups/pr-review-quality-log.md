@@ -190,3 +190,37 @@ findings on a trivial diff" or a false positive. Caveat on how much to read into
 diff was a reviewer prompt plus its own documentation, which is unusually well-suited to a
 reviewer that reasons over text. Still not a test on application logic — that bar, carried
 over from TEMPLE-38, remains open.
+
+**Rounds 2–3 (same PR).** Round 2 produced two more findings, both valid, both fixed:
+
+3. **Authz gap — `character` missing from the flagged writes.** The round-1 fix narrowed the
+   authz rule to writes, but listed only "user, raid or attendance". `character:manage` is a
+   real scope and `docs/archon-review-context.md` already named character data, so a new
+   unauthenticated character mutation would have fallen outside the filter entirely. This is
+   the only finding in this log so far that describes a real *miss* rather than a wording
+   problem — a class of bug the reviewer exists to catch.
+4. **The context file contradicted itself.** Round 1's fix was applied to the prompt only.
+   The context file still called every public read of raid data a finding, two lines above a
+   "Not a finding" paragraph saying the opposite — partially undoing the round-1 fix.
+
+Round 3: **no major issues, no security concerns.** Gate green (`typecheck`, `lint`, `test`,
+plus all PR checks). Loop exited clean in 3 rounds.
+
+**Pattern to watch: prompt/context drift.** Three of the four findings were the same defect —
+`EXTRA_INSTRUCTIONS` in `archon.yml` and `docs/archon-review-context.md` disagreeing with each
+other. That is a structural cost of the split introduced by TEMPLE-44 (short behavioural prompt
+in the workflow, versioned knowledge in a doc read from `main`). The split is still right, but
+the two files must now be edited as a pair and *nothing enforces that*. Candidate follow-up: a
+CI check asserting both name the same procedure types, scopes and data kinds.
+
+**How much to read into this round.** Four valid findings, zero false positives, is by a wide
+margin the best Archon showing in this log — but every one of them was in reviewer guidance and
+its own documentation, i.e. prose, which is what a text-reasoning model is best at. It is
+evidence the config change worked; it is **not** yet evidence on the open question from
+TEMPLE-38, which needs a real application-logic diff reviewed under `gen-2`.
+
+Also observed: Archon's **code-suggestions comment went stale** while the reviewer guide
+updated. At round 3 the guide carried `56a4491` but the suggestions comment still carried
+`a464d4f`, re-showing a suggestion already applied in round 2. `/fix-pr`'s rule of keying
+freshness on the check-run SHA rather than comment bodies is what caught this — do not read
+the suggestions comment as current without checking its marker.
