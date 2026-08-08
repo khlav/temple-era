@@ -113,11 +113,11 @@ jobs:
           # cheaper sub-tasks too. Luna is upstream's own example weak model,
           # which is the role it should have had all along.
           config.model_weak: "gpt-5.6-luna"
-          # Previously unset, so this ran at PR-Agent's default of "medium".
-          # "high" is justified on a repo with a four-tier authz model and a
-          # live migration history - and unlike a model swap it costs nothing
-          # to reverse if the reviews get slower without getting better.
-          config.reasoning_effort: "high"
+          # Reverted from "high" back to PR-Agent's default of "medium":
+          # cheap to reverse, as noted when "high" was tried, and the trial
+          # didn't show a review-depth improvement that justified the extra
+          # cost over the default.
+          config.reasoning_effort: "medium"
           # PR-Agent's own default caps every model at 32K tokens regardless
           # of capability (pr_agent/algo/utils.py get_max_tokens()), which
           # would waste deepseek-v4's registered 1M-token limit. 256K is
