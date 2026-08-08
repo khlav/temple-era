@@ -471,8 +471,14 @@ The SoftRes Scan feature validates character soft reserves against guild policie
 
 ## Testing
 
-The project currently does not have a formal test suite. When adding tests:
+Vitest is set up and runs in CI: `pnpm --filter temple-era-web test` (or
+`pnpm test` from the root, which fans out to `apps/web`, `apps/bot` and
+`packages/wcl`). Coverage is thin rather than absent — add to it rather than
+treating the app as untested.
 
-- Consider using Vitest for unit tests
-- Use Playwright for E2E tests
-- Focus on critical paths: authentication, raid creation, attendance calculation
+When adding tests:
+
+- Vitest for unit tests, colocated in `__tests__/` beside the code under test
+- Playwright for E2E, if and when an E2E layer is introduced — there is none today
+- Focus on critical paths: authentication and scope resolution, raid creation,
+  attendance calculation

@@ -22,10 +22,12 @@ concurrency:
 
 jobs:
   # Self-hosted AI reviewer (github.com/The-PR-Agent/pr-agent), primary model
-  # set via config.model below (TEMPLE-38: trialing GPT-5.6 Luna in place of
-  # the original DeepSeek Pro). Runs alongside Greptile, not instead of it -
-  # /fix-pr still drives off Greptile's confidence score. This is a near-
-  # zero-incremental-cost second opinion, not a replacement for the existing
+  # set via config.model below. TEMPLE-44 restarts the primary-model trial
+  # (again): TEMPLE-38's Luna run is abandoned, and GPT-5.6 proper takes the
+  # primary slot - see the config.model comment for why Luna was the wrong
+  # thing to be trialing. Runs alongside Greptile, not instead of it - /fix-pr
+  # still drives off Greptile's confidence score. This is a near-zero-
+  # incremental-cost second opinion, not a replacement for the existing
   # review gate.
   pr_review:
     name: PR review
@@ -69,11 +71,18 @@ jobs:
           # Kept alongside OPENAI_KEY below so deepseek-v4-flash still works
           # as a cross-provider fallback - unrelated to which model is primary.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # TEMPLE-38: trying GPT-5.6 Luna (OpenAI) as primary in place of
-          # DeepSeek Pro, to see whether it closes the review-depth gap noted
-          # against Greptile in docs/followups/pr-review-quality-log.md -
-          # Archon's verdicts have been accurate but consistently thinner.
-          # Requires a new OPENAI_KEY repo secret (see AGENTS.md's Secrets
+          # TEMPLE-44: GPT-5.6 (OpenAI) as primary. This supersedes TEMPLE-38,
+          # which trialed GPT-5.6 Luna in the same slot to close the review-
+          # depth gap noted against Greptile in
+          # docs/followups/pr-review-quality-log.md. That trial was aimed at
+          # the wrong target: upstream's own configuration.toml lists
+          # gpt-5.6-luna as the commented-out example for `model_weak` - "a
+          # weaker model to use for some easier tasks" - so Luna was never a
+          # candidate for closing a DEPTH gap, and DeepSeek Pro -> Flash ->
+          # Luna was three consecutive moves along the cheap axis with none
+          # along the capable one. Luna keeps its intended job below via
+          # config.model_weak.
+          # Requires the OPENAI_KEY repo secret (see AGENTS.md's Secrets
           # section - this one deliberately lives outside Doppler, same as
           # DEEPSEEK_API_KEY, since it's CI infra rather than app config).
           # No provider prefix on the model id: unlike deepseek/..., OpenAI is
@@ -82,14 +91,23 @@ jobs:
           # bare "gpt-4o"-style string with OPENAI_KEY, not OPENAI.KEY.
           # deepseek-v4-flash stays as fallback (existing, working, and
           # orthogonal to this comparison) rather than an untested same-
-          # provider Luna fallback - despite deepseek-v4-flash's own known
+          # provider fallback - despite deepseek-v4-flash's own known
           # reliability gap (four incorrect technical claims in a row during
           # PR #32's own review cycle, the reason it was demoted from primary
-          # originally). Acceptable here since fallback only fires when Luna
-          # itself errors, not on every review.
+          # originally). Acceptable here since fallback only fires when the
+          # primary itself errors, not on every review.
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          config.model: "gpt-5.6-luna"
+          config.model: "gpt-5.6"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # Previously unset, so PR-Agent used the primary model for the
+          # cheaper sub-tasks too. Luna is upstream's own example weak model,
+          # which is the role it should have had all along.
+          config.model_weak: "gpt-5.6-luna"
+          # Previously unset, so this ran at PR-Agent's default of "medium".
+          # "high" is justified on a repo with a four-tier authz model and a
+          # live migration history - and unlike a model swap it costs nothing
+          # to reverse if the reviews get slower without getting better.
+          config.reasoning_effort: "high"
           # PR-Agent's own default caps every model at 32K tokens regardless
           # of capability (pr_agent/algo/utils.py get_max_tokens()), which
           # would waste deepseek-v4's registered 1M-token limit. 256K is
@@ -98,6 +116,27 @@ jobs:
           # overhead) - enough headroom for the next big dependency-upgrade
           # PR without going wide enough to invite long-context degradation.
           config.max_model_tokens: "256000"
+          # repo_context_files defaults to ["AGENTS.md"] - repo-RELATIVE, so
+          # only the root file was ever loaded and apps/web/AGENTS.md (478
+          # lines of tRPC/Drizzle/API detail) was invisible to the reviewer.
+          # That is most of why Archon reviewed generically.
+          # Deliberately NOT just adding the two app files: all three total
+          # ~1,090 lines, roughly half of which is commands, Doppler setup and
+          # git conventions - noise on every review, and worse, process rules
+          # lefthook already hard-enforces are exactly the false-positive bait
+          # this change is trying to remove. docs/archon-review-context.md is
+          # the reviewer-facing subset instead: only invariants that are
+          # checkable from a diff and not already caught deterministically.
+          # NOTE: repo_context_from_default_branch defaults to true, so these
+          # are read from main - a PR that edits them is NOT reviewed under its
+          # own version. This one takes effect on merge, not on itself.
+          config.repo_context_files: '["AGENTS.md", "docs/archon-review-context.md"]'
+          # Default is 500 rendered lines total, including wrapper tags - the
+          # root file alone is 364, so the pair would be truncated mid-file
+          # without this. 900 fits both (~560) with headroom for the context
+          # file to grow, while staying well under the point where the diff
+          # itself starts competing for attention.
+          config.repo_context_max_lines: "900"
           # PR-Agent's own pr_actions default is opened/reopened/ready_for_review/
           # review_requested - it silently ignores new commits (synchronize)
           # unless this is explicitly turned on, even though the workflow
@@ -106,15 +145,38 @@ jobs:
           # description on every push, not just the review - trim it via
           # github_action_config.push_commands if that's not wanted.
           github_action_config.handle_push_trigger: "true"
-          # Adds a PR-quality/readiness score to the review comment - off by
-          # default, and 0-100 by default when on. Reformatted to X/5 below
-          # via EXTRA_INSTRUCTIONS to mirror Greptile's confidence rating.
-          PR_REVIEWER.REQUIRE_SCORE_REVIEW: "true"
+          # SCORE REMOVED (TEMPLE-44). require_score_review was on, rendered
+          # as "X/5 ★★★★★ (N/100)" to mirror Greptile's confidence rating, and
+          # read by /fix-pr as an auto-exit condition (>90/100). All three of
+          # those are now gone, for three reasons:
+          #   1. It borrowed Greptile's exact glyphs for a DIFFERENT scale.
+          #      /fix-pr consumes both; identical display, different meaning,
+          #      in the one place that acts on them automatically.
+          #   2. It was never load-bearing on its own - /fix-pr already
+          #      required "no valid unfixed finding" AND a green gate
+          #      alongside it, and those two are the real signal.
+          #   3. Keeping it forced a permanent calibration-tuning problem
+          #      (TEMPLE-11's bins, TEMPLE-38's score drift). With the score
+          #      gone, a model swap changes the findings, not a number that
+          #      then needs re-fitting.
+          # /fix-pr's Step 6 exit condition is updated in the same change -
+          # the two must move together, or the loop waits for a score that is
+          # never emitted.
           # Off: this repo doesn't consistently link PRs to GitHub Issues, and
           # the ticket-compliance check mismatched this PR against an
           # unrelated, already-merged PR/issue (#26) on its first live run -
           # a false positive, not a real gap.
           PR_REVIEWER.REQUIRE_TICKET_ANALYSIS_REVIEW: "false"
+          # Previously unset, so PR-Agent's default of 3 applied - a hard cap
+          # on the exact symptom the quality log records ("thin to the point
+          # of no code suggestions"). A monorepo PR can legitimately touch
+          # apps/web, apps/bot and a shared package at once, which is already
+          # three areas before any one of them has two things worth saying.
+          # 5 rather than a rounder 6 deliberately: Archon's only two
+          # confirmed failures are false positives, not misses, so headroom
+          # is the thing to be stingy with. Raise it only if a real review
+          # is observed hitting the cap with the 5th finding still valid.
+          PR_REVIEWER.NUM_MAX_FINDINGS: "5"
           # Off: enable_review_labels_effort auto-adds a "Review effort N/5"
           # label to every PR, redundant with the effort line already in the
           # review comment body. enable_review_labels_security (default true,
@@ -140,52 +202,55 @@ jobs:
           # extra permission needed either way - publish_description() is a
           # plain PATCH /pulls/{number} via pull-requests: write, which is
           # already granted above.
-          # score is a free-text field, not a strict number. The base schema
-          # instruction (not ours to edit without forking) still tells the
-          # model to compute 0-100 - so rather than asking for a fresh,
-          # undefined 1-5 judgment (which would map 0-100 to 1-5 differently
-          # every run), this keeps the 0-100 computation and adds a fixed,
-          # deterministic conversion to a star display, mirroring Greptile's
-          # X/5 confidence rating (also the scale /fix-pr already targets:
-          # "until the confidence score hits 5/5"). Both numbers are shown so
-          # the bucketing is checkable, not a black box.
+          # These instructions now carry only two things: what to look for,
+          # and what to stay silent about. The scoring/star-formatting half
+          # is gone with require_score_review above (which also retires
+          # TEMPLE-11's bin-calibration follow-up - there are no bins left to
+          # calibrate).
           #
-          # CALIBRATION ADDED: switching to deepseek-v4-flash as primary
-          # measurably dropped real scores on this PR's own history (85, 95
-          # under Pro vs 74, 78 under Flash on the same kind of low-risk,
-          # well-documented config-only changes) - Flash appears to read the
-          # base rubric's "0=worst, 100=production-perfect" literally, where
-          # Pro was more lenient. The paragraph below doesn't change what
-          # counts as a bug, it clarifies what the scale is FOR in this repo:
-          # "safe to merge", the same bar /fix-pr already uses for Greptile's
-          # 5/5, not "flawless". This is recalibration, not score inflation -
-          # it still expects concrete issues to be named when found.
+          # WHY DOMAIN RULES AT ALL: the quality log records Archon as
+          # accurate but "thin to the point of no code suggestions on
+          # straightforward application-logic diffs". Nothing in the prompt
+          # told it what matters in THIS repo, so it reviewed generically.
+          # These four rules are the things Greptile cannot know and CI
+          # cannot check.
           #
-          # PLACEHOLDER BINS: equal-width quintiles, not tuned to anything -
-          # deliberately the least-arbitrary default rather than a real
-          # answer. Revisit once this calibration change has its own run
-          # history to look at - don't tune bins and scoring philosophy in
-          # the same change, or a future score shift won't tell you which
-          # one moved it.
+          # WHY SO FEW: every mechanical rule handed to a single-shot
+          # reviewer is a free chance at a false positive in exchange for
+          # coverage that already exists. Deliberately NOT included, because
+          # each already hard-fails deterministically: stale `pnpm --filter
+          # <name>` (the always-on `filters` job in ci.yml), missing .js
+          # import suffixes in packages/* (the bot job's "Verify production
+          # entrypoint resolves all modules" step), formatting and lint
+          # (oxlint/oxfmt/lefthook), types (tsc), secrets (Semgrep). Archon
+          # has no tool loop and cannot read a file outside the diff - asking
+          # it to check any of the above can only produce a guess, which is
+          # the shape of both confirmed false positives to date.
           PR_REVIEWER.EXTRA_INSTRUCTIONS: >-
-            When computing the 'score' field, calibrate against this repo's
-            actual merge bar, not an abstract "flawless" standard: a score in
-            the 80-100 range should mean "no material bugs, security issues,
-            or correctness problems found - safe to merge as-is", not
-            "literally perfect code". Weight deductions toward genuine bugs,
-            security issues, missing tests on risky logic, or unclear
-            reasoning - not toward PR size, number of commits, or minor style
-            preferences. A well-documented, low-risk config/CI/infra change
-            with no concrete issue found should typically score 80+ even if
-            large. If you do find a concrete issue, name it plainly in
-            key_issues_to_review or security_concerns and score accordingly -
-            this instruction calibrates the scale, it does not mean withhold
-            or soften findings.
-            Then format the 'score' field's displayed value with "X/5" as the
-            leftmost content, followed by filled/empty stars, the raw
-            "(N/100)" score, and a short qualitative label - using exactly
-            this conversion table: 0-19 = 1 star, Needs significant rework;
-            20-39 = 2 stars, Needs work; 40-59 = 3 stars, Getting there;
-            60-79 = 4 stars, Nearly ready; 80-100 = 5 stars, Ready to merge.
-            Example: a computed score of 85 becomes
-            "5/5 ★★★★★ (85/100) - Ready to merge".
+            CI already runs oxlint, oxfmt, tsc --noEmit, vitest, Semgrep and a
+            full build, and lefthook runs lint/format/typecheck pre-commit.
+            Never spend a finding on formatting, naming, import order,
+            console.log, TODO comments, or anything a linter or the compiler
+            already catches.
+            Prioritise findings in this order.
+            (1) AUTHZ. apps/web/src/server/api exposes publicProcedure,
+            protectedProcedure, adminProcedure and scopedProcedure(...scopes).
+            A new or modified procedure that reads or writes user, raid or
+            attendance data on publicProcedure is a finding unless the PR
+            explicitly justifies public access.
+            (2) WIRE CONTRACT. apps/bot is a thin client over five
+            /api/discord/* endpoints typed by @temple-era/contracts. A change
+            to a route handler, its Zod schema, or a bot call site that does
+            not change the other two sides is a finding.
+            (3) MIGRATIONS. apps/web/drizzle. Flag destructive DDL (DROP,
+            ALTER ... TYPE, NOT NULL on a populated column) with no backfill
+            or guard, a schema change with no generated migration committed
+            alongside it, and any data backfill that is not idempotent.
+            (4) SHARED PACKAGES. packages/* compile to dist/ and are consumed
+            as built output by apps/bot under Node16 module resolution. An
+            exports map missing types or default is a finding.
+            These four are a FILTER, not a checklist. Most PRs will trigger
+            none of them, and finding nothing is the expected outcome - do not
+            manufacture a finding per category. If a change is safe, say
+            nothing; silence is a valid review. Never assert something about a
+            file that is not in this diff.
