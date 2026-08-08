@@ -204,6 +204,20 @@
       "when": 1785848018288,
       "tag": "0028_skinny_mystique",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1786199329373,
+      "tag": "0029_add-templar-readonly-role",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1786202620027,
+      "tag": "0030_convert-reports-readonly-to-group-role",
+      "breakpoints": true
     }
   ]
 }

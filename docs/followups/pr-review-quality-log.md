@@ -230,3 +230,67 @@ updated. At round 3 the guide carried `56a4491` but the suggestions comment stil
 `a464d4f`, re-showing a suggestion already applied in round 2. `/fix-pr`'s rule of keying
 freshness on the check-run SHA rather than comment bodies is what caught this — do not read
 the suggestions comment as current without checking its marker.
+
+### PR #62 — `fix(repo): stop the commit-msg WIP check firing on every TEMPLE ticket` (TEMPLE-45)
+
+**Round 1 ran under `gen-1`, not `gen-2`.** The branch was cut from `main` before TEMPLE-44
+merged, so this review used the old config — Luna primary, score on (it reported
+`4/5 ★★★★☆ (92/100)`). That matters for what follows.
+
+One finding, **valid, and the best single finding in this log to date**: the new WIP pattern
+used `[^[:alnum:]]` as its word boundary, which treats `_` as a separator — so
+`fix(tmp_config): update loader` and `feat(api): add temp_dir handling` would still warn,
+reintroducing the exact false-positive class the PR existed to remove, via a different
+separator. Verified empirically before fixing (both warned under the old pattern, both clean
+with `_` added, all five genuine markers still firing). Fixed by adding `_` to both boundary
+classes.
+
+Precision caveat: its second illustration, `rename_work_in_progress_flag`, does **not**
+actually trigger — "work in progress" requires spaces and that string has underscores. The
+finding and its primary example are right; one of its two examples was wrong.
+
+**This revises a standing claim in this log.** "Archon is accurate but thin on real
+application logic" was the premise behind TEMPLE-38 and TEMPLE-44. Here it caught a genuine
+logic bug in shell code — regex boundary semantics, not config shape — under the *old*
+config. So the thinness pattern is weaker evidence than it looked, and `gen-2` cannot take
+credit for this catch.
+
+**Round 2 was the first `gen-2` (Terra) review of a real code diff.** After merging `main` in
+(the branch was `BEHIND`, and strict protection requires it), Terra reviewed the underscore
+fix: no major issues, no security concerns, effort 1/5, and **no score emitted** — confirming
+`require_score_review` is off end-to-end on a branch that carried the old config minutes
+earlier. Clean, but a two-line regex fix is not a depth test either. The open question from
+TEMPLE-38 — how `gen-2` handles a substantial application-logic diff — is still open.
+
+**Confirmed across two PRs: `/improve` runs on `opened` only, never on `synchronize`.**
+`push_commands` defaults to `['/describe', '/review']`. Evidence: on #61 the suggestions
+comment stayed frozen at the opening commit's marker (`<!-- a464d4f -->`) through four later
+pushes; on #62 it is timestamped at the `opened` event (`02:16:12`) while the reviewer guide
+updated at `02:26:18` for round 2. #62's comment reads "No code suggestions found" because it
+was empty at open, not because it re-ran. Consequences: code suggestions only ever describe a
+PR's opening commit and silently go stale, and `best_practices.md`,
+`suggestions_score_threshold` and `persistent_inline_comments` are inert after the first push.
+Adding `/improve` to `github_action_config.push_commands` would fix it, at per-push cost.
+
+**Unrelated friction worth recording:** `git merge origin/main` fails the `commit-msg` hook,
+because the default `Merge branch 'main' into ...` message is not conventional format. Local
+branch updates need a hand-written conforming message; `gh pr update-branch` avoids it by
+merging server-side where no hook runs.
+
+### PR #66 — `chore(web): split templar login identity from reports_readonly`
+
+Both Archon comments (reviewer guide + code suggestions) raised the identical finding:
+disabling `reports_readonly`'s login in the same migration that creates `templar` risks an
+outage, since `templar` has no password yet when the old login is revoked. **Plausible in
+general, but factually wrong here** — verified directly against prod (`SELECT rolname,
+rolcanlogin FROM pg_roles`) that `reports_readonly` was never given a password by the prior
+migration (#64), so nothing has ever authenticated as it. There is no live consumer to
+interrupt. Archon has no visibility into runtime prod state and reasoned from a generically-
+sound assumption that didn't hold in this specific case — a different failure shape than the
+prior confirmed false positives (which were wrong about static code/config shape), but the
+same root cause: a confident claim that a quick empirical check (here, a live DB query rather
+than a compiler run) disproved. Skipped the suggested two-migration split; added an inline
+comment explaining why the single-migration order is safe here instead.
+
+Also reconfirms the `push_commands` gap from PR #62: the code-suggestions comment stayed
+pinned to the opening commit's marker through this round, only the reviewer guide updated.
