@@ -187,11 +187,11 @@ gh api "repos/$REPO/issues/$PR/comments" \
 
 **Archon** — two comments:
 
-- **Reviewer guide** — a `Score: N/100` figure (sometimes also rendered as
-  `X/5 ★★★☆☆ (N/100)`, sometimes as bare `N` without the conversion — parse
-  the `/100` number, it's the reliably-present one). `Recommended focus
-  areas for review` contains one `<details>` block per finding: a title, a
-  file/line link, and a rationale paragraph.
+- **Reviewer guide** — `Recommended focus areas for review` contains one
+  `<details>` block per finding: a title, a file/line link, and a rationale
+  paragraph. This is the whole signal. Since TEMPLE-44 there is no `Score:
+  N/100` line; reviews predating that change still show one (sometimes as
+  `X/5 ★★★☆☆ (N/100)`) — ignore it, it is not comparable to anything current.
 - **Code suggestions** — a separate comment, one `<details>` block per
   suggestion with a title, a \`\`\`diff\`\`\` fence (the actual proposed
   change), and an "importance" score 1–10. Only the diff fence is the
@@ -244,27 +244,31 @@ unavailable one never blocks; treat it as satisfied and say why in the
 report):
 
 - **Greptile**, if active: confidence score is **5/5**.
-- **Archon**, if active: score is **> 90/100** — a *candidate* for being done,
-  not an automatic pass — **and** no valid, unfixed finding remains, **and**
-  the gate (Step 5) is green. All three, not the score alone: a 92 with an
-  unresolved valid issue still isn't done. 90 is stricter than Archon's own
-  self-calibration (see `.github/workflows/archon.yml`'s `EXTRA_INSTRUCTIONS`,
-  which treats 80+ as "ready to merge") — this repo's bar for *this loop's*
-  auto-exit is higher than what Archon considers clean on its own.
+- **Archon**, if active: **no valid, unfixed finding remains** *and* the gate
+  (Step 5) is green. Archon no longer emits a score at all — TEMPLE-44 turned
+  off `require_score_review` (see `.github/workflows/archon.yml` for why), so
+  the old "> 90/100" condition is gone. Do not wait for a number, and do not
+  read one out of the comment body if a stale review happens to contain one.
+  The two remaining conditions were always the real signal; the score was a
+  candidate-flag layered on top of them.
 
 Also stop early when any of these is true, same as before:
 
-- **Both active scores stop improving across two consecutive rounds** → stop.
-  Something is not landing; report rather than burning rounds.
+- **Progress stalls across two consecutive rounds** → stop. For Greptile that
+  is a confidence score that stops improving; for Archon it is the same
+  findings coming back unchanged after you pushed a fix for them. Something
+  is not landing; report rather than burning rounds.
 - **The only remaining issues are ones you deliberately rejected** → stop and
-  report. Do not "fix" things you judged wrong just to move the number.
+  report. Do not "fix" things you judged wrong just to close a finding.
 - **The gate fails and you cannot fix it** → stop and report.
 
 ## Step 7: Report
 
 Always report:
 
-- Final score(s), per active reviewer, and how many rounds it took
+- Final state per active reviewer, and how many rounds it took — Greptile's
+  confidence score if it ran; for Archon, the count of findings raised and
+  resolved (it emits no score)
 - Which reviewer(s) were skipped or went unavailable, and why (label, draft,
   fork, or timeout)
 - What you changed, per round
@@ -297,10 +301,12 @@ Then wait for checks again before merging.
   the path filter excludes that app, which is correct, not a failure.
 - Greptile also renders "Fix All in Claude Code" / "Fix All in Codex" badges.
   Ignore them — they hand off to an external session. Do the work here.
-- A below-max score is not automatically a blocker for either bot. Both score
+- A below-max Greptile score is not automatically a blocker. It scores
   confidence, not correctness, and a low-risk config/doc PR with a nitpick can
-  be perfectly mergeable. Use judgement and say what you think — this applies
-  per-reviewer, not just in aggregate.
+  be perfectly mergeable. Use judgement and say what you think. The same
+  applies to an Archon finding: a raised finding is not proof of a defect, and
+  Archon's only two confirmed failures to date are false positives, not
+  misses — verify before you fix.
 - There is no explicit "out of credits" message from either bot — Step 2/3's
   check-run-absence detection exists specifically because that failure mode
   is silent. If a run ever *does* surface an explicit error (e.g. a failed
