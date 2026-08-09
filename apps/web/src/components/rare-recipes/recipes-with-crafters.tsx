@@ -7,10 +7,11 @@ import Link from "next/link";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
+import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
+import { matchesSearchQuery } from "~/lib/table-search";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
-// import { SearchHelperText } from "~/components/rare-recipes/search-helper-text";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import { Checkbox } from "~/components/ui/checkbox";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
@@ -31,6 +32,7 @@ const SAMPLE_SEARCHES = [
   "#qol Bottomless -enchanting",
   "Brilliant Oil #caster -drake",
   "#chest #naxx -leather",
+  "#caster|#healer Bloodvine",
 ];
 
 export const RecipesWithCrafters = () => {
@@ -83,43 +85,18 @@ export const RecipesWithCrafters = () => {
   const filteredRecipes: RecipeWithCharacters[] =
     recipes
       ?.filter((recipe) => {
-        // Apply search filtering if search terms exist
         if (!searchTerms.trim()) return true;
 
-        // Split search terms and convert to lowercase
-        const allTerms = searchTerms.toLowerCase().split(/\s+/);
-
-        // Separate inclusion and exclusion terms
-        const includeTerms = allTerms.filter((term) => !term.startsWith("-"));
-        const excludeTerms = allTerms
-          .filter((term) => term.startsWith("-"))
-          .map((term) => term.substring(1)); // Remove the '-' prefix
-
-        // Convert recipe details to searchable string
         const searchableString = [
-          recipe.recipe.toLowerCase(),
-          recipe.profession.toLowerCase(),
+          recipe.recipe,
+          recipe.profession,
           recipe.isCommon ? "common most crafters" : "",
-          recipe.tags
-            ?.map((tag) => "#" + tag)
-            .join(" ")
-            .toLowerCase() ?? "",
-          recipe.characters?.map((c) => c.name?.toLowerCase()).join(" ") || "",
-          (recipe.notes ?? "").toLowerCase(),
+          recipe.tags?.map((tag) => "#" + tag).join(" ") ?? "",
+          recipe.characters?.map((c) => c.name).join(" ") ?? "",
+          recipe.notes ?? "",
         ].join(" ");
 
-        // Check if ANY exclusion term is present (if so, exclude this recipe)
-        if (excludeTerms.some((term) => term && searchableString.includes(term))) {
-          return false;
-        }
-
-        // If no inclusion terms, all non-excluded items match
-        if (includeTerms.length === 0) {
-          return true;
-        }
-
-        // Check if ALL inclusion terms are present
-        return includeTerms.every((term) => searchableString.includes(term));
+        return matchesSearchQuery(searchableString, searchTerms);
       })
       .map((recipe) => ({
         ...recipe,
@@ -180,17 +157,13 @@ export const RecipesWithCrafters = () => {
             <Badge variant="secondary">{filteredRecipes.length} matches</Badge>
             <TableSearchTips>
               <p className="mb-1 font-medium">Search tips:</p>
-              <ul className="list-disc space-y-1 pl-4">
-                <li>Type multiple terms to match ALL terms</li>
+              <ul className="mb-1 list-disc space-y-1 pl-4">
                 <li>
                   Use <span className="font-mono text-chart-3">#tag</span> to search by tag
                 </li>
-                <li>
-                  Use <span className="font-mono text-chart-3">-term</span> to exclude (e.g.{" "}
-                  <span className="font-mono text-chart-3">-leather</span>)
-                </li>
                 <li>Click tags to add them to your search</li>
               </ul>
+              <SearchSyntaxTips />
             </TableSearchTips>
           </div>
           <div className="flex items-center gap-2">

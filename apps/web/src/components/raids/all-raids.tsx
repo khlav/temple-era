@@ -6,6 +6,8 @@ import { RaidsTableSkeleton } from "~/components/raids/skeletons";
 import type { Session } from "next-auth";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
+import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
+import { matchesSearchQuery } from "~/lib/table-search";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrettyPrintDate } from "~/lib/helpers";
@@ -41,17 +43,15 @@ export function AllRaids({
   }, [searchTerms]);
 
   const filteredRaids = useMemo(() => {
-    if (!raids) return raids;
-    const terms = searchTerms.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return raids;
+    if (!raids || !searchTerms.trim()) return raids;
     return raids.filter((r) => {
       const searchable = [
-        r.name?.toLowerCase() ?? "",
-        r.zone?.toLowerCase() ?? "",
-        PrettyPrintDate(new Date(r.date), true).toLowerCase(),
-        r.creator?.name?.toLowerCase() ?? "",
+        r.name ?? "",
+        r.zone ?? "",
+        PrettyPrintDate(new Date(r.date), true),
+        r.creator?.name ?? "",
       ].join(" ");
-      return terms.every((t) => searchable.includes(t));
+      return matchesSearchQuery(searchable, searchTerms);
     });
   }, [raids, searchTerms]);
 
@@ -78,10 +78,10 @@ export function AllRaids({
               <Badge variant="secondary">{filteredRaids?.length ?? 0} raids</Badge>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>
-                <ul className="list-disc space-y-1 pl-4">
+                <ul className="mb-1 list-disc space-y-1 pl-4">
                   <li>Search by raid name, zone, date text, or creator name</li>
-                  <li>Enter multiple terms to narrow results (AND search)</li>
                 </ul>
+                <SearchSyntaxTips />
               </TableSearchTips>
             </div>
           </div>
