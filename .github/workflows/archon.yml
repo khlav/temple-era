@@ -295,6 +295,17 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
+      # Archon's own review on this PR caught it: the job has no checkout
+      # (see the comment on the steps: block above - PR-Agent never needed
+      # one), so without this, publish-archon-check.sh doesn't exist on the
+      # runner and the step below fails at chmod every time, silently, since
+      # continue-on-error hides it. Scoped to just this one script, not
+      # moved earlier - the App-token and PR-Agent steps still don't need it.
+      - name: Check out publish script
+        if: always()
+        continue-on-error: true
+        uses: actions/checkout@v7
+
       - name: Publish Archon check run
         if: always()
         continue-on-error: true
