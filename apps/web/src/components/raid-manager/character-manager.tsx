@@ -8,6 +8,8 @@ import { CharacterManagerRowSkeleton } from "~/components/raid-manager/skeletons
 import { useEffect, useState } from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
+import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
+import { matchesSearchQuery } from "~/lib/table-search";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "~/components/ui/badge";
 
@@ -36,31 +38,22 @@ export function CharacterManager() {
 
   const { data: characterData, isSuccess } = api.character.getCharactersWithSecondaries.useQuery();
 
-  // Function to normalize text (remove non-ASCII characters and convert to lowercase)
-  const normalizeText = (text: string) => {
-    return (
-      text
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove accents
-        // eslint-disable-next-line no-control-regex
-        .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
-        .toLowerCase()
-    ); // Convert to lowercase
-  };
-
   // Filter characters based on search term
   const filteredPlayers = characterData
     ? characterData.sort(SortRaiders).filter((player) => {
-        return Object.values({
-          ...player,
-          secondaryCharacterNames: player.secondaryCharacters.map((c) => c.name),
-          secondaryCharacterClasses: player.secondaryCharacters.map((c) => c.class),
-          isIgnored: player.isIgnored ? "ignored" : "",
-        }).some((value) => {
-          // Normalize and check if any field contains the search term
-          const stringValue = Array.isArray(value) ? value.map(String).join(" ") : String(value);
-          return normalizeText(stringValue).includes(normalizeText(searchTerm));
-        });
+        const searchableText = [
+          player.name,
+          player.server,
+          player.class,
+          player.classDetail,
+          ...player.secondaryCharacters.map((c) => c.name),
+          ...player.secondaryCharacters.map((c) => c.class),
+          player.isIgnored ? "ignored" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        return matchesSearchQuery(searchableText, searchTerm);
       })
     : [];
 
@@ -79,13 +72,14 @@ export function CharacterManager() {
           <Badge variant="secondary">{filteredPlayers.length} mains</Badge>
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
-            <ul className="list-disc space-y-1 pl-4">
+            <ul className="mb-1 list-disc space-y-1 pl-4">
               <li>Search across primary and secondary character names/classes</li>
               <li>
                 Includes status keywords like{" "}
                 <span className="font-mono text-chart-3">ignored</span>
               </li>
             </ul>
+            <SearchSyntaxTips />
           </TableSearchTips>
         </div>
       </div>

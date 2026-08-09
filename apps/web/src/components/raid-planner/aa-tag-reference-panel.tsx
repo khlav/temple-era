@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/component
 import { getAATagRegistry } from "~/lib/aa-tag-registry";
 import type { AATagEntry, AATagCategory } from "~/lib/aa-tag-registry";
 import type { AAIconType } from "~/lib/aa-formatting";
+import { matchesSearchQuery } from "~/lib/table-search";
 
 interface AATagReferencePanelProps {
   onSelectTag: (tag: string) => void;
@@ -30,15 +31,12 @@ export function AATagReferencePanel({ onSelectTag }: AATagReferencePanelProps) {
     });
   };
 
-  const filterLower = filter.toLowerCase();
-  const filteredRegistry: AATagCategory[] = filterLower
+  const filteredRegistry: AATagCategory[] = filter.trim()
     ? registry
         .map((cat) => ({
           ...cat,
-          entries: cat.entries.filter(
-            (e) =>
-              e.tag.toLowerCase().includes(filterLower) ||
-              e.displayName.toLowerCase().includes(filterLower),
+          entries: cat.entries.filter((e) =>
+            matchesSearchQuery(`${e.tag} ${e.displayName}`, filter),
           ),
         }))
         .filter((cat) => cat.entries.length > 0)
@@ -84,7 +82,7 @@ export function AATagReferencePanel({ onSelectTag }: AATagReferencePanelProps) {
           <CategorySection
             key={cat.key}
             category={cat}
-            isOpen={filterLower.length > 0 || openCategories.has(cat.key)}
+            isOpen={filter.trim().length > 0 || openCategories.has(cat.key)}
             onToggle={() => toggleCategory(cat.key)}
             onSelectTag={onSelectTag}
           />

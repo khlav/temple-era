@@ -18,6 +18,8 @@ import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-we
 import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/characters/skeletons";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
+import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
+import { matchesSearchQuery } from "~/lib/table-search";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
@@ -69,25 +71,17 @@ export function PrimaryCharacterRaidsTable({
       return raids;
     }
 
-    // Split search terms and convert to lowercase
-    const terms = searchTerms
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((term) => term);
-
     return raids.filter((raid) => {
-      // Create searchable string from raid data
       const searchableString = [
-        raid.name?.toLowerCase() ?? "",
-        raid.zone?.toLowerCase() ?? "",
-        PrettyPrintDate(new Date(raid.date), true).toLowerCase(),
+        raid.name ?? "",
+        raid.zone ?? "",
+        PrettyPrintDate(new Date(raid.date), true),
         raid.attendanceWeight?.toString() ?? "",
-        raid.attendeeOrBench?.toLowerCase() ?? "",
-        ...(raid.allCharacters?.map((c) => c.name?.toLowerCase()) ?? []),
+        raid.attendeeOrBench ?? "",
+        ...(raid.allCharacters?.map((c) => c.name ?? "") ?? []),
       ].join(" ");
 
-      // Check if ALL terms are present (AND search)
-      return terms.every((term) => searchableString.includes(term));
+      return matchesSearchQuery(searchableString, searchTerms);
     });
   }, [raids, searchTerms]);
 
@@ -119,10 +113,10 @@ export function PrimaryCharacterRaidsTable({
           </div>
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
-            <ul className="list-disc space-y-1 pl-4">
+            <ul className="mb-1 list-disc space-y-1 pl-4">
               <li>Search by raid name, zone, date text, or character names</li>
-              <li>Enter multiple terms to narrow results (AND search)</li>
             </ul>
+            <SearchSyntaxTips />
           </TableSearchTips>
         </div>
       </div>

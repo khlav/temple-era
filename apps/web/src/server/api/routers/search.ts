@@ -3,40 +3,14 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { raids, characters, raidLogs, raidLogAttendeeMap } from "~/server/db/schema";
 import { ilike, or, sql, eq, and, not } from "drizzle-orm";
-
-// Helper function to parse search terms with OR logic and grouped negative terms
-function parseSearchTerms(query: string) {
-  const terms = query.trim().split(/\s+/).filter(Boolean);
-  const positiveTerms: string[] = [];
-  const negativeTerms: string[] = [];
-
-  for (const term of terms) {
-    if (term.startsWith("-")) {
-      // Handle grouped negative terms like -(ashkandi windseeker)
-      if (term.startsWith("-(") && term.endsWith(")")) {
-        const groupContent = term.slice(2, -1);
-        const groupTerms = groupContent.split(/\s+/).filter(Boolean);
-        negativeTerms.push(...groupTerms);
-      } else {
-        negativeTerms.push(term.slice(1));
-      }
-    } else {
-      // Handle OR terms with pipe separator like warrior|mage
-      if (term.includes("|")) {
-        const orTerms = term.split("|").filter(Boolean);
-        // For OR terms, we need to create a special structure
-        positiveTerms.push(`OR:${orTerms.join("|")}`);
-      } else {
-        positiveTerms.push(term);
-      }
-    }
-  }
-
-  return { positiveTerms, negativeTerms };
-}
+import { parseSearchQuery } from "~/lib/table-search";
 
 // Helper function to build raid search conditions
-function buildRaidSearchConditions(positiveTerms: string[], negativeTerms: string[]) {
+function buildRaidSearchConditions(
+  positiveTerms: string[],
+  orGroups: string[][],
+  negativeTerms: string[],
+) {
   const conditions = [];
 
   // Build searchable text that includes name, zone, month, day, date formats, and zone acronyms
@@ -75,16 +49,14 @@ function buildRaidSearchConditions(positiveTerms: string[], negativeTerms: strin
     END
   )`;
 
-  // Add positive term conditions (AND logic across terms, OR logic within terms)
+  // Add positive term conditions (ANDed together)
   for (const term of positiveTerms) {
-    if (term.startsWith("OR:")) {
-      // Handle OR terms like "OR:warrior|mage"
-      const orTerms = term.slice(3).split("|").filter(Boolean);
-      const orConditions = orTerms.map((orTerm) => ilike(searchableText, `%${orTerm}%`));
-      conditions.push(or(...orConditions));
-    } else {
-      conditions.push(ilike(searchableText, `%${term}%`));
-    }
+    conditions.push(ilike(searchableText, `%${term}%`));
+  }
+
+  // Add OR-group conditions (each group ANDed in, alternatives within a group ORed)
+  for (const group of orGroups) {
+    conditions.push(or(...group.map((term) => ilike(searchableText, `%${term}%`))));
   }
 
   // Add negative term conditions (NOT logic)
@@ -96,7 +68,11 @@ function buildRaidSearchConditions(positiveTerms: string[], negativeTerms: strin
 }
 
 // Helper function to build character search conditions
-function buildCharacterSearchConditions(positiveTerms: string[], negativeTerms: string[]) {
+function buildCharacterSearchConditions(
+  positiveTerms: string[],
+  orGroups: string[][],
+  negativeTerms: string[],
+) {
   const conditions = [];
 
   // Build searchable text for characters
@@ -114,16 +90,14 @@ function buildCharacterSearchConditions(positiveTerms: string[], negativeTerms: 
     ), '')
   )`;
 
-  // Add positive term conditions (AND logic across terms, OR logic within terms)
+  // Add positive term conditions (ANDed together)
   for (const term of positiveTerms) {
-    if (term.startsWith("OR:")) {
-      // Handle OR terms like "OR:warrior|mage"
-      const orTerms = term.slice(3).split("|").filter(Boolean);
-      const orConditions = orTerms.map((orTerm) => ilike(searchableText, `%${orTerm}%`));
-      conditions.push(or(...orConditions));
-    } else {
-      conditions.push(ilike(searchableText, `%${term}%`));
-    }
+    conditions.push(ilike(searchableText, `%${term}%`));
+  }
+
+  // Add OR-group conditions (each group ANDed in, alternatives within a group ORed)
+  for (const group of orGroups) {
+    conditions.push(or(...group.map((term) => ilike(searchableText, `%${term}%`))));
   }
 
   // Add negative term conditions (NOT logic)
@@ -136,15 +110,15 @@ function buildCharacterSearchConditions(positiveTerms: string[], negativeTerms: 
 
 export const searchRouter = createTRPCRouter({
   global: publicProcedure.input(z.object({ query: z.string().min(1) })).query(async ({ input }) => {
-    const { positiveTerms, negativeTerms } = parseSearchTerms(input.query);
+    const { positiveTerms, orGroups, negativeTerms } = parseSearchQuery(input.query);
 
-    // If no positive terms, return empty results
-    if (positiveTerms.length === 0 && negativeTerms.length === 0) {
+    // If no terms, return empty results
+    if (positiveTerms.length === 0 && orGroups.length === 0 && negativeTerms.length === 0) {
       return { raids: [], characters: [] };
     }
 
     // Build search conditions for raids
-    const raidSearchConditions = buildRaidSearchConditions(positiveTerms, negativeTerms);
+    const raidSearchConditions = buildRaidSearchConditions(positiveTerms, orGroups, negativeTerms);
 
     // Search raids (fetch 51 to check if there are more results)
     const allRaidResults = await db
@@ -166,7 +140,11 @@ export const searchRouter = createTRPCRouter({
     const raidsHasMore = allRaidResults.length > 50;
 
     // Build search conditions for characters
-    const characterSearchConditions = buildCharacterSearchConditions(positiveTerms, negativeTerms);
+    const characterSearchConditions = buildCharacterSearchConditions(
+      positiveTerms,
+      orGroups,
+      negativeTerms,
+    );
 
     // Search characters with last raid attended date (fetch 51 to check if there are more results)
     // Include primary character name in search
