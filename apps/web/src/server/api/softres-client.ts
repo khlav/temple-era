@@ -28,11 +28,27 @@ interface SoftResApiRaidResponse {
   }>;
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Fetch SoftRes raid data from the API and normalize it to `SoftResRaidData`.
  */
 export async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidData> {
-  const response = await fetch(`https://softres.it/api/raid/${raidId}`);
+  let response: Response;
+  try {
+    // A bare fetch() has no default timeout - if softres.it stalls rather than
+    // erroring, this would otherwise hang indefinitely, and callers awaiting
+    // several of these concurrently (e.g. Promise.all over scheduled events)
+    // would hang their entire response on this one call.
+    response = await fetch(`https://softres.it/api/raid/${raidId}`, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Failed to fetch SoftRes data: ${err instanceof Error ? err.message : "request failed"}`,
+    });
+  }
 
   if (!response.ok) {
     if (response.status === 404) {
