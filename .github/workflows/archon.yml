@@ -60,6 +60,27 @@ jobs:
     steps:
       # No checkout step: PR-Agent reads the diff via the GitHub API directly
       # from the event payload, it doesn't need the code on disk.
+
+      # TEMPLE-9: minted first so PR-Agent's comment posts under the Archon
+      # App's own identity (custom avatar) instead of the generic
+      # github-actions[bot]. continue-on-error: true because this must never
+      # block the actual review - if minting fails (app not installed,
+      # secrets misconfigured, GitHub API hiccup), the empty token output
+      # falls through to secrets.GITHUB_TOKEN below and the review still
+      # posts, just unbranded. Requires the Archon App to hold Issues: R&W
+      # and Pull requests: R&W (Metadata: Read-only is automatic) - the
+      # Checks: R&W it already had only covers the badge step further down.
+      - name: Mint Archon App token
+        if: always()
+        continue-on-error: true
+        id: archon_app_token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.ARCHON_APP_ID }}
+          private-key: ${{ secrets.ARCHON_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
       - name: PR Agent action step
         # Pinned to v0.41.1 by commit SHA rather than @main - Archon's own
         # first review on this PR flagged @main as a supply-chain risk: a
@@ -68,7 +89,9 @@ jobs:
         id: pr_agent
         uses: the-pr-agent/pr-agent@743f52d80f3513193dfc7626f778c73478df6d0a # v0.41.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Archon App token first, GITHUB_TOKEN as fallback - see the mint
+          # step above for why the fallback exists.
+          GITHUB_TOKEN: ${{ steps.archon_app_token.outputs.token || secrets.GITHUB_TOKEN }}
           # Kept alongside OPENAI_KEY below so deepseek-v4-flash still works
           # as a cross-provider fallback - unrelated to which model is primary.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -275,25 +298,16 @@ jobs:
             file that is not in this diff.
 
       # TEMPLE-9: cosmetic-only. The step above is what actually reviews the
-      # PR; everything below just gives that result a branded check run. A
-      # GitHub App has no API to reskin "Archon / PR review" itself (that
-      # check is owned by the GitHub Actions app identity) - it can only add
-      # a second, separate check run under its own avatar. if: always() on
-      # both steps below so the badge still posts (as a failure) when the PR
-      # Agent step above errors, rather than silently vanishing alongside it.
-      # continue-on-error: true on both - a badge failing to post (missing
-      # secrets, app not yet installed, GitHub API hiccup) must never fail
-      # the actual review job above it.
-      - name: Mint Archon App token
-        if: always()
-        continue-on-error: true
-        id: archon_app_token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ secrets.ARCHON_APP_ID }}
-          private-key: ${{ secrets.ARCHON_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
+      # PR (now under the Archon App's own identity, via the token minted at
+      # the top of this job); everything below just gives that result a
+      # branded check run too. A GitHub App has no API to reskin "Archon /
+      # PR review" itself (that check is owned by the GitHub Actions app
+      # identity) - it can only add a second, separate check run under its
+      # own avatar. if: always() so the badge still posts (as a failure)
+      # when the PR Agent step above errors, rather than silently vanishing
+      # alongside it. continue-on-error: true - a badge failing to post
+      # (missing secrets, app not yet installed, GitHub API hiccup) must
+      # never fail the actual review job above it.
 
       # Archon's own review on this PR caught it: the job has no checkout
       # (see the comment on the steps: block above - PR-Agent never needed
