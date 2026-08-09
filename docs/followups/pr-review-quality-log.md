@@ -311,5 +311,18 @@ into `matchesSearchQuery`'s comparison step, so the server keeps getting terms i
 original casing/accents (matching its pre-existing, correct behavior) while the client
 matcher still normalizes both sides. Round 2 came back clean ("No major issues detected").
 
+**Round 3 found a second, independent bug in the same normalization step** after the doc-log
+commit re-triggered a review: `normalizeSearchText` strips all non-ASCII, so a term made up
+entirely of characters outside its scope (CJK, Cyrillic, emoji) normalizes to `""` —
+and `"".includes("")` is always `true`. A positive query like `中文` would silently match
+every row; a negative query `-中文` would exclude every row. Archon correctly noted this was a
+**regression specifically for the AA tag reference panel**, which previously did plain
+`.toLowerCase().includes()` with no non-ASCII stripping and so never had this bug — one of the
+two boxes I added to the PR beyond the ticket's original five. Valid and non-obvious: two real
+bugs from two separate rounds of review on the same ~80-line utility function, both requiring
+reasoning about a specific edge case (SQL collation semantics, then string-emptiness) rather
+than surface pattern-matching. Fixed by dropping terms that normalize to empty instead of
+letting them silently force a match or an exclusion.
+
 No `greptile` label on this PR, so Greptile was inactive — Archon was the only reviewer in
 play.
