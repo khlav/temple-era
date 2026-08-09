@@ -112,4 +112,11 @@ describe("matchesSearchQuery", () => {
     expect(matchesSearchQuery("Ashkandi warrior", "中文 mage")).toBe(false);
     expect(matchesSearchQuery("Ashkandi warrior", "中文 warrior")).toBe(true);
   });
+
+  it("treats a wholly-unsupported positive query as no match, not as an empty query", () => {
+    // Unlike an actually-empty query, the user expressed positive intent here — showing
+    // every row unfiltered would look like the search silently did nothing.
+    expect(matchesSearchQuery("Ashkandi warrior", "中文")).toBe(false);
+    expect(matchesSearchQuery("Ashkandi warrior", "中文|日本語")).toBe(false);
+  });
 });

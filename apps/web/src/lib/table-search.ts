@@ -75,13 +75,23 @@ export function matchesSearchQuery(searchableText: string, query: string): boole
 
   // normalizeSearchText strips all non-ASCII, so a term made up entirely of characters
   // outside its scope (CJK, Cyrillic, emoji, ...) normalizes to "" — and "".includes("")
-  // is always true. Drop such terms rather than letting them silently force a match
-  // (positive term) or exclude everything (negative term/OR group).
+  // is always true. Drop such terms rather than letting them silently exclude everything
+  // (negative term) or force a match (OR alternative alongside a term that does survive).
   const normalizedPositive = positiveTerms.map(normalizeSearchText).filter(Boolean);
   const normalizedNegative = negativeTerms.map(normalizeSearchText).filter(Boolean);
   const normalizedOrGroups = orGroups
     .map((group) => group.map(normalizeSearchText).filter(Boolean))
     .filter((group) => group.length > 0);
+
+  // If the query expressed positive intent (a plain term or an OR group) but none of it
+  // survived normalization, there's nothing left to match against — treat it as no match
+  // rather than falling through to "no positive constraint" (which would show every row,
+  // silently, as if the query had been empty).
+  const hadPositiveIntent = positiveTerms.length > 0 || orGroups.length > 0;
+  const survivedPositiveIntent = normalizedPositive.length > 0 || normalizedOrGroups.length > 0;
+  if (hadPositiveIntent && !survivedPositiveIntent) {
+    return false;
+  }
 
   if (normalizedNegative.some((term) => haystack.includes(term))) {
     return false;
