@@ -294,3 +294,22 @@ comment explaining why the single-migration order is safe here instead.
 
 Also reconfirms the `push_commands` gap from PR #62: the code-suggestions comment stayed
 pinned to the opening commit's marker through this round, only the reviewer guide updated.
+
+### PR #69 — `feat(search): unify AND/OR search syntax across filter boxes` (TEMPLE-57)
+
+One finding, **valid and genuinely subtle** — real application logic, not config shape. The
+new shared `parseSearchQuery` normalized (lowercased, stripped accents) at parse time, before
+tokenizing. The client-side matcher normalizes both the query and the haystack together, so
+that was invisible there — but the server-side global-search router feeds the same parsed
+terms straight into a Postgres `ILIKE` built from un-normalized database text. `ILIKE` is
+case-insensitive but not accent-folding, so a query like `Élan` was silently reduced to
+`elan` and stopped matching the equally-accented stored name. Archon flagged the exact line
+(`parseSearchQuery(input.query)` in `search.ts`) and named the mechanism precisely (ILIKE's
+case- vs. accent-insensitivity, and the client/server behavioral divergence it created) with
+no prompting toward that specific angle. Fixed by moving normalization out of parsing and
+into `matchesSearchQuery`'s comparison step, so the server keeps getting terms in their
+original casing/accents (matching its pre-existing, correct behavior) while the client
+matcher still normalizes both sides. Round 2 came back clean ("No major issues detected").
+
+No `greptile` label on this PR, so Greptile was inactive — Archon was the only reviewer in
+play.
