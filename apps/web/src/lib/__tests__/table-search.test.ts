@@ -97,4 +97,19 @@ describe("matchesSearchQuery", () => {
     expect(matchesSearchQuery("elan", "ÉLAN")).toBe(true);
     expect(matchesSearchQuery("Élan", "ÉLAN")).toBe(true);
   });
+
+  it("does not let a negative term that normalizes to empty exclude everything", () => {
+    // "中文" is entirely non-ASCII, so it normalizes to "" — it must be dropped rather
+    // than making "".includes("") == true wipe out every row.
+    expect(matchesSearchQuery("Ashkandi warrior", "-中文")).toBe(true);
+  });
+
+  it("does not let an OR group that normalizes to empty force a match", () => {
+    expect(matchesSearchQuery("Ashkandi warrior", "warrior 中文|日本語")).toBe(true);
+  });
+
+  it("still ANDs a real term alongside one that normalizes to empty", () => {
+    expect(matchesSearchQuery("Ashkandi warrior", "中文 mage")).toBe(false);
+    expect(matchesSearchQuery("Ashkandi warrior", "中文 warrior")).toBe(true);
+  });
 });

@@ -73,13 +73,21 @@ export function matchesSearchQuery(searchableText: string, query: string): boole
 
   const haystack = normalizeSearchText(searchableText);
 
-  if (negativeTerms.some((term) => haystack.includes(normalizeSearchText(term)))) {
+  // normalizeSearchText strips all non-ASCII, so a term made up entirely of characters
+  // outside its scope (CJK, Cyrillic, emoji, ...) normalizes to "" — and "".includes("")
+  // is always true. Drop such terms rather than letting them silently force a match
+  // (positive term) or exclude everything (negative term/OR group).
+  const normalizedPositive = positiveTerms.map(normalizeSearchText).filter(Boolean);
+  const normalizedNegative = negativeTerms.map(normalizeSearchText).filter(Boolean);
+  const normalizedOrGroups = orGroups
+    .map((group) => group.map(normalizeSearchText).filter(Boolean))
+    .filter((group) => group.length > 0);
+
+  if (normalizedNegative.some((term) => haystack.includes(term))) {
     return false;
   }
-  if (!positiveTerms.every((term) => haystack.includes(normalizeSearchText(term)))) {
+  if (!normalizedPositive.every((term) => haystack.includes(term))) {
     return false;
   }
-  return orGroups.every((group) =>
-    group.some((term) => haystack.includes(normalizeSearchText(term))),
-  );
+  return normalizedOrGroups.every((group) => group.some((term) => haystack.includes(term)));
 }
