@@ -174,11 +174,16 @@ jobs:
           # PR-Agent's own pr_actions default is opened/reopened/ready_for_review/
           # review_requested - it silently ignores new commits (synchronize)
           # unless this is explicitly turned on, even though the workflow
-          # trigger above already fires on synchronize. push_commands defaults
-          # to ['/describe', '/review'], so this also refreshes the PR
-          # description on every push, not just the review - trim it via
-          # github_action_config.push_commands if that's not wanted.
+          # trigger above already fires on synchronize.
           github_action_config.handle_push_trigger: "true"
+          # Default push_commands is ['/describe', '/review'] - re-running
+          # /describe on every push burns a full LLM cycle just to refresh
+          # the PR description, which /fix-pr and everything downstream
+          # ignores; only /review's output is ever consumed after the first
+          # push. Trimmed to /review alone to cut that cost. pr_commands
+          # (the opened-event set, unset - upstream default) is untouched,
+          # so /describe still runs once, on PR open.
+          github_action_config.push_commands: '["/review"]'
           # SCORE REMOVED (TEMPLE-44). require_score_review was on, rendered
           # as "X/5 ★★★★★ (N/100)" to mirror Greptile's confidence rating, and
           # read by /fix-pr as an auto-exit condition (>90/100). All three of
