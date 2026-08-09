@@ -207,7 +207,10 @@ export const softres = createTRPCRouter({
           matchedCharacterId: matchedId,
           stats,
           srItems,
-          classDetail: getClassDetail(reservedChar.class, reservedChar.spec),
+          // Use the matched character's own DB class, not the SoftRes-derived one -
+          // it's the canonical source now that we have a real match, whereas the
+          // SoftRes side is only a spec-id-derived guess (see softres-client.ts).
+          classDetail: getClassDetail(stats.characterClass, reservedChar.spec),
         });
       }
 
@@ -255,7 +258,11 @@ export const softres = createTRPCRouter({
         results.push({
           characterId: data.stats.characterId,
           characterName: data.reservedChar.name, // SoftRes name (main display)
-          characterClass: data.reservedChar.class, // Use SoftRes class, not database class
+          // Previously preferred SoftRes's own reported class over the DB's. SoftRes's
+          // current API doesn't return a class at all anymore (see softres-client.ts) -
+          // reservedChar.class is now just our own spec-id-derived guess, so for a
+          // matched character the DB's real class is the more trustworthy value.
+          characterClass: data.stats.characterClass,
           primaryCharacterId: data.stats.primaryCharacterId,
           primaryCharacterName: data.stats.primaryCharacterName, // Database primary character name (shown in parentheses)
           classDetail: data.classDetail,

@@ -285,10 +285,19 @@ export const CLASS_SPECS: ClassSpecs = {
  */
 const SPEC_BY_ID_MAP = new Map<number, ClassSpec>();
 
-// Build the map from CLASS_SPECS
-for (const specs of Object.values(CLASS_SPECS)) {
+/**
+ * Map of spec ID to its owning class name (the CLASS_SPECS key), for O(1) lookup.
+ * Built once at module load time
+ */
+const CLASS_NAME_BY_SPEC_ID_MAP = new Map<number, keyof ClassSpecs>();
+
+// Build the maps from CLASS_SPECS
+for (const [className, specs] of Object.entries(CLASS_SPECS) as Array<
+  [keyof ClassSpecs, ClassSpec[]]
+>) {
   for (const spec of specs) {
     SPEC_BY_ID_MAP.set(spec.id, spec);
+    CLASS_NAME_BY_SPEC_ID_MAP.set(spec.id, className);
   }
 }
 
@@ -297,6 +306,15 @@ for (const specs of Object.values(CLASS_SPECS)) {
  */
 export function getSpecById(id: number): ClassSpec | undefined {
   return SPEC_BY_ID_MAP.get(id);
+}
+
+/**
+ * Get the owning class name for a spec ID (O(1) lookup). SoftRes's current API only
+ * returns a reserved character's spec id, not their class name directly - this recovers
+ * it from the same CLASS_SPECS taxonomy the spec id itself came from.
+ */
+export function getClassNameBySpecId(id: number): string | undefined {
+  return CLASS_NAME_BY_SPEC_ID_MAP.get(id);
 }
 
 /**
