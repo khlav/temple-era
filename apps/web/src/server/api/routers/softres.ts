@@ -15,8 +15,8 @@ import {
 import { mapSoftResInstanceToDb } from "~/lib/softres-zone-mapping";
 import { getMatchingRules } from "~/server/services/softres-rules";
 import type { RuleEvaluationContext } from "~/server/services/softres-rule-types";
-import { getAllItemsForZone, getAllItems } from "~/lib/item-mappings";
-import { getSpecNameById } from "~/lib/class-specs";
+import { getAllItemsForZone, getAllItems, type ItemQuality } from "~/lib/item-mappings";
+import { getSpecNameBySoftResSpecId } from "~/lib/softres-spec-ids";
 import { getDiscordSoftResLinks } from "~/server/api/discord-helpers";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
 import { SCOPE } from "~/lib/scopes";
@@ -31,6 +31,7 @@ export interface SoftResScanResult {
   srItems: Array<{
     itemId: number;
     itemName: string | undefined;
+    itemQuality: ItemQuality | undefined;
   }>;
   matchingRules: Array<{
     id: string;
@@ -60,7 +61,7 @@ export interface SoftResScanResponse {
  * Formats as "Class - Spec" (e.g., "Warrior - Protection")
  */
 function getClassDetail(className: string, spec: number): string {
-  const specName = getSpecNameById(spec);
+  const specName = getSpecNameBySoftResSpecId(spec);
   if (specName) {
     return `${className} - ${specName}`;
   }
@@ -143,6 +144,7 @@ export const softres = createTRPCRouter({
         srItems: Array<{
           itemId: number;
           itemName: string | undefined;
+          itemQuality: ItemQuality | undefined;
         }>;
       }> = [];
 
@@ -153,6 +155,7 @@ export const softres = createTRPCRouter({
           const srItems = reservedChar.items.map((itemId) => ({
             itemId,
             itemName: zoneItems[itemId]?.name,
+            itemQuality: zoneItems[itemId]?.quality,
           }));
 
           unmatched.push({
@@ -183,6 +186,7 @@ export const softres = createTRPCRouter({
         srItems: Array<{
           itemId: number;
           itemName: string | undefined;
+          itemQuality: ItemQuality | undefined;
         }>;
         classDetail: string;
       }
@@ -200,6 +204,7 @@ export const softres = createTRPCRouter({
         const srItems = reservedChar.items.map((itemId) => ({
           itemId,
           itemName: zoneItems[itemId]?.name,
+          itemQuality: zoneItems[itemId]?.quality,
         }));
 
         characterDataset.push({

@@ -18,14 +18,14 @@ export function SoftResScanSkeleton() {
       </div>
 
       {/* Table skeleton */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="w-fit rounded-md border">
+        <Table className="w-auto whitespace-nowrap">
           <TableHeader>
             <TableRow>
-              <TableHead>Character</TableHead>
-              <TableHead>Class - Specialization</TableHead>
-              <TableHead>Items SR'd</TableHead>
-              <TableHead>Matching Rules</TableHead>
+              <TableHead className="min-w-[160px]">Character</TableHead>
+              <TableHead className="min-w-[160px]">Class</TableHead>
+              <TableHead className="min-w-[160px]">Soft Reserves</TableHead>
+              <TableHead className="min-w-[160px]">Flags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -39,7 +39,7 @@ export function SoftResScanSkeleton() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-col gap-1">
                     <Skeleton className="h-4 w-16" />
                     <Skeleton className="h-3 w-12" />
                   </div>
@@ -53,12 +53,12 @@ export function SoftResScanSkeleton() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-col items-start gap-0.5">
                     {/* Variable number of rule badges */}
                     {Array.from({
                       length: i % 4 === 0 ? 2 : i % 4 === 1 ? 1 : 0,
                     }).map((_, j) => (
-                      <Skeleton key={j} className="h-5 w-24 rounded-full" />
+                      <Skeleton key={j} className="h-4 w-20 rounded-full" />
                     ))}
                     {i % 4 === 3 && <Skeleton className="h-3 w-20" />}
                   </div>
