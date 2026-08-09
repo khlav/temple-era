@@ -100,8 +100,8 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
   }
 
   return (
-    <div className="w-fit rounded-md border">
-      <Table className="w-auto whitespace-nowrap">
+    <div className="max-w-full overflow-x-auto rounded-md border">
+      <Table className="w-max whitespace-nowrap">
         <TableHeader>
           <TableRow>
             <TableHead className="min-w-[160px]">Character</TableHead>
@@ -189,10 +189,10 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`flex items-center gap-1.5 hover:underline ${
-                          item.itemQuality ? qualityColors[item.itemQuality] : "text-primary"
+                          qualityColors[item.itemQuality ?? ""] ?? "text-primary"
                         }`}
                       >
-                        <SoftResItemIcon itemId={item.itemId} />
+                        <SoftResItemIcon key={item.itemId} itemId={item.itemId} />
                         {item.itemName ?? `Item ${item.itemId}`}
                       </Link>
                     ))}
