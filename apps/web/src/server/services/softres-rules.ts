@@ -93,7 +93,7 @@ function getEndgameItemNames(ctx: RuleEvaluationContext, itemSet: Set<number>): 
  */
 const firstRaidInZoneRule: SoftResRule = {
   id: "first-raid-zone",
-  name: "First raid in this zone",
+  name: "First Temple raid in zone",
   description: "Character found, but no previous guild raids in this zone.",
   level: "highlight",
   evaluate: (ctx) =>
@@ -172,11 +172,11 @@ const restrictedItemAttendanceIneligibleRule: SoftResRule = {
 };
 
 /**
- * Rule 4.5: Warning - Restricted item, below 4 zone raids (Future)
+ * Rule 4.5: Warning - Restricted item, below 4 zone raids
  */
 const restrictedItemRaidCountIneligibleRule: SoftResRule = {
   id: "restricted-item-raid-count-ineligible",
-  name: "(Inactive) Restricted SR - Not eligible",
+  name: "Restricted SR - Newer Character",
   description: (ctx) => {
     const restrictedItems = ctx.srItems
       .filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId))
@@ -185,11 +185,14 @@ const restrictedItemRaidCountIneligibleRule: SoftResRule = {
 
     const naxxCount = ctx.zoneRaidsAttended ?? 0;
 
-    return `(Inactive) Reserved \`${restrictedItems.join(", ")}\` — ${ctx.characterName} does not meet requirements: 4+ Naxx raids (has ${naxxCount} on ${ctx.characterName}).`;
+    return `Reserved \`${restrictedItems.join(", ")}\` — suggested minimum is 4 Naxx raids before SRing (has ${naxxCount} on ${ctx.characterName}).`;
   },
-  level: "inactive",
+  level: "warning",
   evaluate: (ctx) =>
-    hasRestrictedNaxxItem(ctx) && (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
+    hasRestrictedNaxxItem(ctx) &&
+    ctx.primaryAttendancePct !== null &&
+    ctx.primaryAttendancePct >= 0.5 &&
+    (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
   icon: "AlertTriangle",
 };
 
@@ -231,7 +234,7 @@ const endgameItemOkRule: SoftResRule = {
  */
 const newerCharacterEndgameItemRule: SoftResRule = {
   id: "newer-character-endgame-item",
-  name: "(Inactive) End-game SR - Not eligible",
+  name: "End-game SR - Newer Character",
   description: (ctx) => {
     const raidCount = ctx.zoneRaidsAttended ?? 0;
     let itemNames: string[] = [];
@@ -243,12 +246,12 @@ const newerCharacterEndgameItemRule: SoftResRule = {
     }
 
     if (ctx.characterId === null) {
-      return `(Inactive) Reserved end-game item \`${itemNames.join(", ")}\` — ${ctx.characterName} not found in database.`;
+      return `Reserved end-game item \`${itemNames.join(", ")}\` — ${ctx.characterName} not found in database.`;
     }
 
-    return `(Inactive) Reserved end-game item \`${itemNames.join(", ")}\` — requires 4+ ${ctx.zone} raids (has ${raidCount} on ${ctx.characterName}).`;
+    return `Reserved end-game item \`${itemNames.join(", ")}\` — suggested minimum is 4 ${ctx.zone} raids before SRing (has ${raidCount} on ${ctx.characterName}).`;
   },
-  level: "inactive",
+  level: "warning",
   evaluate: (ctx) => {
     // Skip if character has 4+ attended raids in zone
     if (ctx.zoneRaidsAttended !== null && ctx.zoneRaidsAttended >= 4) {

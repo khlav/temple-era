@@ -6,7 +6,7 @@
 
 import { TRPCError } from "@trpc/server";
 import type { SoftResRaidData } from "~/server/api/interfaces/softres";
-import { getClassNameBySpecId } from "~/lib/class-specs";
+import { getClassNameBySoftResSpecId } from "~/lib/softres-spec-ids";
 
 /**
  * Raw shape of `GET https://softres.it/api/raid/{id}`, trimmed to the fields
@@ -74,7 +74,7 @@ export async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidD
     raidDate: new Date(raw.raid_date * 1000).toISOString(),
     reserved: (raw.reserves ?? []).map((r) => ({
       name: r.name,
-      class: getClassNameBySpecId(r.spec) ?? "Unknown",
+      class: getClassNameBySoftResSpecId(r.spec) ?? "Unknown",
       spec: r.spec,
       items: r.items,
       note: r.note ?? null,

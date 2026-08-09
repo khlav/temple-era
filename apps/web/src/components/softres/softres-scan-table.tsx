@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,16 +12,24 @@ import {
 import { Badge } from "~/components/ui/badge";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Info, AlertTriangle, XCircle } from "lucide-react";
+import { Info, AlertTriangle, XCircle, HelpCircle } from "lucide-react";
 import type { SoftResScanResult } from "~/server/api/routers/softres";
 import { CharacterLink } from "~/components/ui/character-link";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { useItemIcon, getItemIconUrl } from "~/hooks/use-item-icon";
 
 const iconMap = {
   Info,
   AlertTriangle,
   XCircle,
+};
+
+// Standard WoW item-quality text colors
+const qualityColors: Record<string, string> = {
+  Epic: "text-purple-600 dark:text-purple-400",
+  Rare: "text-blue-600 dark:text-blue-400",
+  Uncommon: "text-green-600 dark:text-green-500",
 };
 
 const levelColors = {
@@ -30,6 +39,53 @@ const levelColors = {
   inactive: "bg-transparent italic text-orange-700 dark:text-orange-400 border-orange-500/20",
   error: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
 };
+
+/**
+ * Small item icon fetched from Wowhead's tooltip API, mirroring the
+ * spell-icon loading pattern in ui/aa-icons.tsx (placeholder while loading,
+ * fallback icon on error).
+ */
+function SoftResItemIcon({ itemId }: { itemId: number }) {
+  const { icon, loading } = useItemIcon(itemId);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgErrored, setImgErrored] = useState(false);
+
+  const size = 18;
+  const showPlaceholder = loading || !icon || (!imgLoaded && !imgErrored);
+
+  if (!loading && (!icon || imgErrored)) {
+    return (
+      <HelpCircle
+        className="shrink-0 text-muted-foreground"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  return (
+    <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
+      {showPlaceholder && (
+        <HelpCircle
+          className="absolute inset-0 text-muted-foreground"
+          style={{ width: size, height: size }}
+        />
+      )}
+      {icon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={getItemIconUrl(icon, "small")}
+          alt=""
+          width={size}
+          height={size}
+          className={imgLoaded ? "rounded-sm" : "opacity-0"}
+          style={{ width: size, height: size }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgErrored(true)}
+        />
+      )}
+    </span>
+  );
+}
 
 export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) {
   const searchParams = useSearchParams();
@@ -44,14 +100,14 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="max-w-full overflow-x-auto rounded-md border">
+      <Table className="w-max whitespace-nowrap">
         <TableHeader>
           <TableRow>
-            <TableHead>Character</TableHead>
-            <TableHead>Class</TableHead>
-            <TableHead>Soft Reserves</TableHead>
-            <TableHead>Flags</TableHead>
+            <TableHead className="min-w-[160px]">Character</TableHead>
+            <TableHead className="min-w-[160px]">Class</TableHead>
+            <TableHead className="min-w-[160px]">Soft Reserves</TableHead>
+            <TableHead className="min-w-[160px]">Flags</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -115,10 +171,10 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                     const parts = result.classDetail.split(" - ");
                     if (parts.length === 2) {
                       return (
-                        <>
-                          {parts[0]}{" "}
+                        <div className="flex flex-col">
+                          <span>{parts[0]}</span>
                           <span className="text-xs text-muted-foreground">{parts[1]}</span>
-                        </>
+                        </div>
                       );
                     }
                     return result.classDetail;
@@ -132,8 +188,11 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                         href={`https://classic.wowhead.com/item=${item.itemId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className={`flex items-center gap-1.5 hover:underline ${
+                          qualityColors[item.itemQuality ?? ""] ?? "text-primary"
+                        }`}
                       >
+                        <SoftResItemIcon key={item.itemId} itemId={item.itemId} />
                         {item.itemName ?? `Item ${item.itemId}`}
                       </Link>
                     ))}
@@ -143,7 +202,7 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-col items-start gap-0.5">
                     {result.matchingRules
                       .filter((rule) => showInactiveFlags || rule.level !== "inactive")
                       .map((rule) => {
@@ -153,9 +212,9 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                             <TooltipTrigger asChild>
                               <Badge
                                 variant="outline"
-                                className={`cursor-help ${levelColors[rule.level]}`}
+                                className={`cursor-help px-1.5 py-0.5 text-[10px] ${levelColors[rule.level]}`}
                               >
-                                <IconComponent className="mr-1 h-3 w-3" />
+                                <IconComponent className="mr-1 h-2.5 w-2.5" />
                                 {rule.name}
                               </Badge>
                             </TooltipTrigger>
