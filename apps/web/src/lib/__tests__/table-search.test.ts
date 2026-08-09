@@ -47,6 +47,14 @@ describe("parseSearchQuery", () => {
       negativeTerms: [],
     });
   });
+
+  it("preserves original casing and accents (server builds a case-insensitive but not accent-folding SQL ILIKE from these terms directly)", () => {
+    expect(parseSearchQuery("Élan WARRIOR")).toEqual({
+      positiveTerms: ["Élan", "WARRIOR"],
+      orGroups: [],
+      negativeTerms: [],
+    });
+  });
 });
 
 describe("matchesSearchQuery", () => {
@@ -87,5 +95,6 @@ describe("matchesSearchQuery", () => {
   it("is accent- and case-insensitive on both sides", () => {
     expect(matchesSearchQuery("Élan", "elan")).toBe(true);
     expect(matchesSearchQuery("elan", "ÉLAN")).toBe(true);
+    expect(matchesSearchQuery("Élan", "ÉLAN")).toBe(true);
   });
 });

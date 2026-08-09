@@ -1,6 +1,13 @@
-// Shared client-side search syntax for the app's table/list filter boxes, mirroring the
-// server-side global quick launcher (server/api/routers/search.ts): space-separated terms
-// are ANDed, `term1|term2` is OR, `-term` excludes, `-(term1 term2)` is grouped exclusion.
+// Shared search syntax for the app's table/list filter boxes and the server-side global
+// quick launcher (server/api/routers/search.ts): space-separated terms are ANDed,
+// `term1|term2` is OR, `-term` excludes, `-(term1 term2)` is grouped exclusion.
+//
+// parseSearchQuery deliberately preserves the query's original casing/accents — the
+// server builds a Postgres ILIKE condition straight from these terms, and ILIKE is
+// case-insensitive but NOT accent-folding, so normalizing here would make an accented
+// query stop matching the (equally accented, un-normalized) database text. Normalization
+// only happens in matchesSearchQuery, at comparison time, where both the query and the
+// haystack are normalized together for client-side matching.
 
 export function normalizeSearchText(text: string): string {
   return (
@@ -27,7 +34,7 @@ interface ParsedSearchQuery {
 const TOKEN_PATTERN = /-\([^)]*\)|\S+/g;
 
 export function parseSearchQuery(query: string): ParsedSearchQuery {
-  const rawTerms = normalizeSearchText(query).trim().match(TOKEN_PATTERN) ?? [];
+  const rawTerms = query.trim().match(TOKEN_PATTERN) ?? [];
   const positiveTerms: string[] = [];
   const orGroups: string[][] = [];
   const negativeTerms: string[] = [];
@@ -66,11 +73,13 @@ export function matchesSearchQuery(searchableText: string, query: string): boole
 
   const haystack = normalizeSearchText(searchableText);
 
-  if (negativeTerms.some((term) => haystack.includes(term))) {
+  if (negativeTerms.some((term) => haystack.includes(normalizeSearchText(term)))) {
     return false;
   }
-  if (!positiveTerms.every((term) => haystack.includes(term))) {
+  if (!positiveTerms.every((term) => haystack.includes(normalizeSearchText(term)))) {
     return false;
   }
-  return orGroups.every((group) => group.some((term) => haystack.includes(term)));
+  return orGroups.every((group) =>
+    group.some((term) => haystack.includes(normalizeSearchText(term))),
+  );
 }
