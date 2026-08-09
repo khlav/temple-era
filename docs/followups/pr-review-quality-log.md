@@ -324,5 +324,31 @@ reasoning about a specific edge case (SQL collation semantics, then string-empti
 than surface pattern-matching. Fixed by dropping terms that normalize to empty instead of
 letting them silently force a match or an exclusion.
 
-No `greptile` label on this PR, so Greptile was inactive — Archon was the only reviewer in
-play.
+**Round 4 caught the fix's own remaining gap**: a query made up *entirely* of unsupported
+characters (e.g. `中文` alone, with no other term) still fell through to "no positive
+constraint" and matched every row — indistinguishable from an empty query, which is
+misleading since the user did type something. Valid, and a sharper read of the UX than my
+own fix: I'd consciously accepted that degenerate case as equivalent to an empty query;
+Archon treated the two as meaningfully different states worth handling differently. Fixed by
+returning no-match when a query expresses positive intent (a term or OR group) but none of it
+survives normalization.
+
+**Round 5 rejected the whole approach the first three rounds had been patched onto**, and was
+right to: `normalizeSearchText` stripped *all* non-ASCII wholesale, not just Latin accents —
+so literal Cyrillic/CJK text in a raid name or recipe note was being silently deleted from
+both sides of the comparison, not folded, a real regression for four of the six unified
+surfaces (not just the AA tag panel this time). Archon named both remediation options ("fold
+case/diacritics" vs. "preserve non-ASCII") and was correct that the tests added in rounds 3-4
+had locked the broken behavior in as intentional. This was the right fix all along — the
+prior two rounds treated symptoms (what happens when a term becomes `""`) of a cause this
+round finally named directly (why legitimate non-Latin text was becoming `""` in the first
+place). Fixed by dropping the wholesale non-ASCII strip entirely, keeping only NFD
+diacritic-folding; round 6 (informal, past the nominal 5-round cap, run anyway since the fix
+was unambiguous) came back clean: "No major issues detected."
+
+**Overall**: five real, independent, non-obvious findings against one ~80-line utility
+function, zero false positives across five rounds — the deepest and most sustained
+application-logic review in this log to date, and the first case where a later round openly
+overturned an earlier round's own accepted fix rather than finding something new and
+unrelated. No `greptile` label on this PR, so Greptile was inactive — Archon was the only
+reviewer in play throughout.
