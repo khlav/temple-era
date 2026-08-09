@@ -15,10 +15,6 @@ import {
 } from "~/server/db/schema";
 import { getZoneForInstance, isRaidZoneInstance } from "~/lib/raid-zones";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
-import {
-  fetchDiscordMessagesMultiChannel,
-  findFollowUpSoftResRaidIds,
-} from "~/server/api/discord-helpers";
 import { SCOPE } from "~/lib/scopes";
 import {
   type MatchStatus,
@@ -255,13 +251,6 @@ export const raidHelperRouter = createTRPCRouter({
         .filter((e) => e.startTime >= minStartTime)
         .sort((a, b) => a.startTime - b.startTime);
 
-      // Batch-fetch channel messages once per channel (not once per event) to scan for
-      // SoftRes links posted as follow-up messages (TEMPLE-74) - doubleheaders and any
-      // link a leader posts separately from Raid Helper's own registration message.
-      const eventChannelIds = Array.from(new Set(filteredEvents.map((e) => e.channelId)));
-      const channelMessages =
-        eventChannelIds.length > 0 ? await fetchDiscordMessagesMultiChannel(eventChannelIds) : [];
-
       // Fetch details for each event to get role counts
       const eventsWithRoles = await Promise.all(
         filteredEvents.map(async (e) => {
@@ -273,17 +262,11 @@ export const raidHelperRouter = createTRPCRouter({
           };
           let userSignupStatus: string | null = null;
 
-          const knownRaidIds = new Set(e.softresId ? [e.softresId] : []);
-          const followUpRaidIds = findFollowUpSoftResRaidIds(
-            channelMessages,
-            e.channelId,
-            e.startTime * 1000,
-            knownRaidIds,
-          );
-          const softresRaidIds = [...knownRaidIds, ...followUpRaidIds];
-
+          // Only Raid Helper's own softresId field (embedded in its registration message) -
+          // a link posted separately in Discord isn't surfaced here; the dashboard falls back
+          // to a "check in Discord" affordance instead of scanning channel history for it.
           const softresLinksPromise: Promise<ScheduledEventSoftResLink[]> = Promise.all(
-            softresRaidIds.map(resolveSoftresLink),
+            (e.softresId ? [e.softresId] : []).map(resolveSoftresLink),
           );
 
           try {

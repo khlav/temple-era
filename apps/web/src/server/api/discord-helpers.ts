@@ -386,43 +386,6 @@ export function extractSoftResUrls(
 }
 
 /**
- * Find SoftRes raid IDs posted in a channel as follow-up messages ahead of an event's
- * start time — e.g. a doubleheader's second link, posted by a human RL shortly after
- * Raid Helper's own registration message, with no Bench button to filter on.
- *
- * This is a live proximity heuristic (TEMPLE-74), not exact matching: any softres.it
- * link posted by anyone in the event's channel within the lookback window counts,
- * regardless of author. Excludes raid IDs already known (e.g. from the event's own
- * `softresId` field) so callers don't double up.
- */
-export function findFollowUpSoftResRaidIds(
-  messages: DiscordMessageWithChannel[],
-  channelId: string,
-  eventStartMs: number,
-  excludeRaidIds: ReadonlySet<string>,
-  lookbackMs: number = 48 * 60 * 60 * 1000,
-): string[] {
-  const windowStart = eventStartMs - lookbackMs;
-  const raidIds: string[] = [];
-  const seen = new Set<string>();
-
-  for (const message of messages) {
-    if (message.channelId !== channelId) continue;
-
-    const messageMs = new Date(message.timestamp).getTime();
-    if (messageMs < windowStart || messageMs > eventStartMs) continue;
-
-    for (const { raidId } of extractSoftResUrls(message)) {
-      if (excludeRaidIds.has(raidId) || seen.has(raidId)) continue;
-      seen.add(raidId);
-      raidIds.push(raidId);
-    }
-  }
-
-  return raidIds;
-}
-
-/**
  * Fetch recent messages from multiple Discord channels
  */
 export async function fetchDiscordMessagesMultiChannel(
