@@ -18,6 +18,7 @@ import type { RuleEvaluationContext } from "~/server/services/softres-rule-types
 import { getAllItemsForZone, getAllItems } from "~/lib/item-mappings";
 import { getSpecNameById } from "~/lib/class-specs";
 import { getDiscordSoftResLinks } from "~/server/api/discord-helpers";
+import { fetchSoftResRaidData } from "~/server/api/softres-client";
 import { SCOPE } from "~/lib/scopes";
 
 export interface SoftResScanResult {
@@ -52,30 +53,6 @@ export interface SoftResScanResponse {
   zone: string | null; // Database zone name (null if mapping failed)
   raidDate: string;
   results: SoftResScanResult[];
-}
-
-/**
- * Fetch SoftRes raid data from the API
- */
-async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidData> {
-  // softres.it/raid/{id} 302-redirects here for the actual raid data; the bare
-  // API path on the main domain returns a plain 404 rather than redirecting.
-  const response = await fetch(`https://legacy.softres.it/api/raid/${raidId}`);
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `SoftRes raid with ID "${raidId}" not found`,
-      });
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: `Failed to fetch SoftRes data: ${response.statusText}`,
-    });
-  }
-
-  return (await response.json()) as SoftResRaidData;
 }
 
 /**

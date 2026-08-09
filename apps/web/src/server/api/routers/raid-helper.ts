@@ -13,7 +13,8 @@ import {
   primaryRaidAttendeeAndBenchMap,
   trackedRaidsL6LockoutWk,
 } from "~/server/db/schema";
-import { getZoneForInstance } from "~/lib/raid-zones";
+import { getZoneForInstance, isRaidZoneInstance } from "~/lib/raid-zones";
+import { fetchSoftResRaidData } from "~/server/api/softres-client";
 import { SCOPE } from "~/lib/scopes";
 import {
   type MatchStatus,
@@ -133,6 +134,19 @@ interface RaidHelperEventResponse {
   closingTime?: number;
 }
 
+/**
+ * Resolve a SoftRes raid's instance identifier to a short zone id (e.g. "bwl", "aq40") -
+ * the same ids used as keys in ZONE_ACCENT_CLASSES/INSTANCE_TO_ZONE - falling back through
+ * the `instances` array when `instance` itself isn't set or isn't a recognized raid zone.
+ */
+function resolveSoftResZoneId(instance: string | null, instances: string[] | undefined) {
+  if (instance && isRaidZoneInstance(instance)) return instance;
+  for (const candidate of instances ?? []) {
+    if (isRaidZoneInstance(candidate)) return candidate;
+  }
+  return null;
+}
+
 interface RaidPlanSlot {
   groupNumber: number;
   slotNumber: number;
@@ -225,6 +239,17 @@ export const raidHelperRouter = createTRPCRouter({
           };
           let userSignupStatus: string | null = null;
 
+          const softresZoneIdPromise: Promise<string | null> = e.softresId
+            ? fetchSoftResRaidData(e.softresId)
+                .then((softResData) =>
+                  resolveSoftResZoneId(softResData.instance, softResData.instances),
+                )
+                .catch((err: unknown) => {
+                  logger.error({ err }, `Failed to fetch SoftRes data for raid ${e.softresId}`);
+                  return null;
+                })
+            : Promise.resolve(null);
+
           try {
             // Fetch event details to get signups
             const detailResponse = await fetch(`${RAID_HELPER_API_BASE}/v4/events/${e.id}`, {
@@ -277,6 +302,8 @@ export const raidHelperRouter = createTRPCRouter({
             // Default to 0 counts on error
           }
 
+          const softresZoneId = await softresZoneIdPromise;
+
           return {
             id: e.id,
             title: e.title,
@@ -290,6 +317,8 @@ export const raidHelperRouter = createTRPCRouter({
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
             userSignupStatus,
+            softresUrl: e.softresId ? `https://softres.it/raid/${e.softresId}` : null,
+            softresZoneId,
           };
         }),
       );

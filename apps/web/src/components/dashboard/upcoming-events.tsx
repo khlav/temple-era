@@ -39,6 +39,8 @@ interface ScheduledEvent {
   serverId: string;
   channelId: string;
   userSignupStatus: string | null;
+  softresUrl: string | null;
+  softresZoneId: string | null;
 }
 
 // Discord icon SVG component
@@ -144,6 +146,9 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
     return null;
   };
 
+  const zoneShortLabel = (zoneId: string) =>
+    zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase();
+
   return (
     <Card className="relative h-full overflow-hidden">
       <CardHeader className="pb-1">
@@ -168,6 +173,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-8 px-2 py-1 text-left text-xs">Event Name</TableHead>
                     <TableHead className="h-8 px-2 py-1 text-left text-xs">Signups</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-left text-xs">SoftRes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -186,7 +192,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                                   variant="outline"
                                   className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
                                 >
-                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
+                                  {zoneShortLabel(zoneId)}
                                 </Badge>
                               ) : null;
                             })()}
@@ -286,6 +292,27 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                               />
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell className="px-2 py-1.5">
+                          {(() => {
+                            const eventWithSoftres = event as ScheduledEvent;
+                            const zoneId = eventWithSoftres.softresZoneId;
+                            if (!zoneId || !eventWithSoftres.softresUrl) return null;
+                            return (
+                              <a
+                                href={eventWithSoftres.softresUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES} hover:opacity-80`}
+                                >
+                                  {zoneShortLabel(zoneId)}
+                                </Badge>
+                              </a>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
