@@ -147,6 +147,29 @@ function resolveSoftResZoneId(instance: string | null, instances: string[] | und
   return null;
 }
 
+interface ScheduledEventSoftResLink {
+  url: string;
+  zoneId: string | null;
+}
+
+/**
+ * Resolve a SoftRes raid ID to a display link + zone badge. Errors resolve to a link
+ * with a null zoneId rather than dropping it - same "still surface the link" preference
+ * the dashboard column already applies for the single-link case.
+ */
+async function resolveSoftresLink(raidId: string): Promise<ScheduledEventSoftResLink> {
+  try {
+    const softResData = await fetchSoftResRaidData(raidId);
+    return {
+      url: `https://softres.it/raid/${raidId}`,
+      zoneId: resolveSoftResZoneId(softResData.instance, softResData.instances),
+    };
+  } catch (err) {
+    logger.error({ err }, `Failed to fetch SoftRes data for raid ${raidId}`);
+    return { url: `https://softres.it/raid/${raidId}`, zoneId: null };
+  }
+}
+
 interface RaidPlanSlot {
   groupNumber: number;
   slotNumber: number;
@@ -239,16 +262,12 @@ export const raidHelperRouter = createTRPCRouter({
           };
           let userSignupStatus: string | null = null;
 
-          const softresZoneIdPromise: Promise<string | null> = e.softresId
-            ? fetchSoftResRaidData(e.softresId)
-                .then((softResData) =>
-                  resolveSoftResZoneId(softResData.instance, softResData.instances),
-                )
-                .catch((err: unknown) => {
-                  logger.error({ err }, `Failed to fetch SoftRes data for raid ${e.softresId}`);
-                  return null;
-                })
-            : Promise.resolve(null);
+          // Only Raid Helper's own softresId field (embedded in its registration message) -
+          // a link posted separately in Discord isn't surfaced here; the dashboard falls back
+          // to a "check in Discord" affordance instead of scanning channel history for it.
+          const softresLinksPromise: Promise<ScheduledEventSoftResLink[]> = Promise.all(
+            (e.softresId ? [e.softresId] : []).map(resolveSoftresLink),
+          );
 
           try {
             // Fetch event details to get signups
@@ -302,7 +321,7 @@ export const raidHelperRouter = createTRPCRouter({
             // Default to 0 counts on error
           }
 
-          const softresZoneId = await softresZoneIdPromise;
+          const softresLinks = await softresLinksPromise;
 
           return {
             id: e.id,
@@ -317,8 +336,7 @@ export const raidHelperRouter = createTRPCRouter({
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
             userSignupStatus,
-            softresUrl: e.softresId ? `https://softres.it/raid/${e.softresId}` : null,
-            softresZoneId,
+            softresLinks,
           };
         }),
       );

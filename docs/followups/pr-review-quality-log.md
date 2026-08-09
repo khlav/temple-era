@@ -352,3 +352,16 @@ application-logic review in this log to date, and the first case where a later r
 overturned an earlier round's own accepted fix rather than finding something new and
 unrelated. No `greptile` label on this PR, so Greptile was inactive — Archon was the only
 reviewer in play throughout.
+
+### PR #72 — `feat(dashboard): add fallback affordance to SoftRes dashboard column`
+Archon: no score line (post-TEMPLE-44), one code suggestion. Claimed
+`eventWithSoftres.id` (used to build a Discord message-link fallback,
+`https://discord.com/channels/{server}/{channel}/{id}`) "is the Raid Helper event ID, not
+a Discord message snowflake," and suggested dropping the message-ID segment to link only
+the channel. **False positive**: `event.id` already backs the exact same URL pattern twice
+in the same file (`upcoming-events.tsx:229,270` on `main`, pre-dating this PR) for the
+primary "sign up in Discord" button — an established, presumably-live pattern, not
+something this PR introduced. Raid Helper's API exposes the registration message's own
+Discord snowflake as the event ID, which is unsurprising for a bot whose "event" *is* the
+message it posted. Rejected without code changes; no `greptile` label, so Greptile was
+inactive.

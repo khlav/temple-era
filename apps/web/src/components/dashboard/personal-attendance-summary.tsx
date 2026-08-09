@@ -183,7 +183,7 @@ export function PersonalAttendanceSummary({
   // Show select character prompt if logged in but no primary character selected
   if (currentUserSession?.user && !activeCharacterId) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <div className="flex items-center gap-2">
             <span>Raid Attendance, Last 6 lockouts</span>
@@ -217,7 +217,7 @@ export function PersonalAttendanceSummary({
   // This will be wrapped by the parent's blur overlay anyway.
   if (!activeCharacterId) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <div className="flex items-center gap-2">
             <span>Raid Attendance, Last 6 lockouts</span>
@@ -249,7 +249,7 @@ export function PersonalAttendanceSummary({
   const attendancePct = userAttendance?.weightedAttendancePct ?? 0;
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="pb-1">
         <div className="flex items-center gap-1">
           {titleData.characterName && activeCharacterId ? (
