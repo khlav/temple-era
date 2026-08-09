@@ -15,6 +15,10 @@ import {
 } from "~/server/db/schema";
 import { getZoneForInstance, isRaidZoneInstance } from "~/lib/raid-zones";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
+import {
+  fetchDiscordMessagesMultiChannel,
+  findFollowUpSoftResRaidIds,
+} from "~/server/api/discord-helpers";
 import { SCOPE } from "~/lib/scopes";
 import {
   type MatchStatus,
@@ -147,6 +151,29 @@ function resolveSoftResZoneId(instance: string | null, instances: string[] | und
   return null;
 }
 
+interface ScheduledEventSoftResLink {
+  url: string;
+  zoneId: string | null;
+}
+
+/**
+ * Resolve a SoftRes raid ID to a display link + zone badge. Errors resolve to a link
+ * with a null zoneId rather than dropping it - same "still surface the link" preference
+ * the dashboard column already applies for the single-link case.
+ */
+async function resolveSoftresLink(raidId: string): Promise<ScheduledEventSoftResLink> {
+  try {
+    const softResData = await fetchSoftResRaidData(raidId);
+    return {
+      url: `https://softres.it/raid/${raidId}`,
+      zoneId: resolveSoftResZoneId(softResData.instance, softResData.instances),
+    };
+  } catch (err) {
+    logger.error({ err }, `Failed to fetch SoftRes data for raid ${raidId}`);
+    return { url: `https://softres.it/raid/${raidId}`, zoneId: null };
+  }
+}
+
 interface RaidPlanSlot {
   groupNumber: number;
   slotNumber: number;
@@ -228,6 +255,13 @@ export const raidHelperRouter = createTRPCRouter({
         .filter((e) => e.startTime >= minStartTime)
         .sort((a, b) => a.startTime - b.startTime);
 
+      // Batch-fetch channel messages once per channel (not once per event) to scan for
+      // SoftRes links posted as follow-up messages (TEMPLE-74) - doubleheaders and any
+      // link a leader posts separately from Raid Helper's own registration message.
+      const eventChannelIds = Array.from(new Set(filteredEvents.map((e) => e.channelId)));
+      const channelMessages =
+        eventChannelIds.length > 0 ? await fetchDiscordMessagesMultiChannel(eventChannelIds) : [];
+
       // Fetch details for each event to get role counts
       const eventsWithRoles = await Promise.all(
         filteredEvents.map(async (e) => {
@@ -239,16 +273,18 @@ export const raidHelperRouter = createTRPCRouter({
           };
           let userSignupStatus: string | null = null;
 
-          const softresZoneIdPromise: Promise<string | null> = e.softresId
-            ? fetchSoftResRaidData(e.softresId)
-                .then((softResData) =>
-                  resolveSoftResZoneId(softResData.instance, softResData.instances),
-                )
-                .catch((err: unknown) => {
-                  logger.error({ err }, `Failed to fetch SoftRes data for raid ${e.softresId}`);
-                  return null;
-                })
-            : Promise.resolve(null);
+          const knownRaidIds = new Set(e.softresId ? [e.softresId] : []);
+          const followUpRaidIds = findFollowUpSoftResRaidIds(
+            channelMessages,
+            e.channelId,
+            e.startTime * 1000,
+            knownRaidIds,
+          );
+          const softresRaidIds = [...knownRaidIds, ...followUpRaidIds];
+
+          const softresLinksPromise: Promise<ScheduledEventSoftResLink[]> = Promise.all(
+            softresRaidIds.map(resolveSoftresLink),
+          );
 
           try {
             // Fetch event details to get signups
@@ -302,7 +338,7 @@ export const raidHelperRouter = createTRPCRouter({
             // Default to 0 counts on error
           }
 
-          const softresZoneId = await softresZoneIdPromise;
+          const softresLinks = await softresLinksPromise;
 
           return {
             id: e.id,
@@ -317,8 +353,7 @@ export const raidHelperRouter = createTRPCRouter({
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
             userSignupStatus,
-            softresUrl: e.softresId ? `https://softres.it/raid/${e.softresId}` : null,
-            softresZoneId,
+            softresLinks,
           };
         }),
       );

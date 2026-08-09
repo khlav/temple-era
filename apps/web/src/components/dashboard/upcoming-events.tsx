@@ -48,8 +48,7 @@ interface ScheduledEvent {
   serverId: string;
   channelId: string;
   userSignupStatus: string | null;
-  softresUrl: string | null;
-  softresZoneId: string | null;
+  softresLinks: Array<{ url: string; zoneId: string | null }>;
 }
 
 // Discord icon SVG component
@@ -307,24 +306,30 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                         </TableCell>
                         <TableCell className="px-2 py-1.5">
                           {(() => {
-                            const eventWithSoftres = event as ScheduledEvent;
-                            if (!eventWithSoftres.softresUrl) return null;
-                            const zoneId = eventWithSoftres.softresZoneId;
-                            // A SoftRes link can exist without a resolvable zone (e.g. the
-                            // raid's instance is only described in its free-text note, never
-                            // set in SoftRes's own structured instance field) - still surface
-                            // the link rather than silently dropping it, just with a generic
-                            // label instead of a zone abbreviation.
-                            const label = zoneId ? zoneShortLabel(zoneId) : "SR";
+                            const softresLinks = (event as ScheduledEvent).softresLinks;
+                            if (!softresLinks || softresLinks.length === 0) return null;
                             return (
-                              <a
-                                href={eventWithSoftres.softresUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                              >
-                                {label}
-                              </a>
+                              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                {softresLinks.map((link) => {
+                                  // A SoftRes link can exist without a resolvable zone (e.g. the
+                                  // raid's instance is only described in its free-text note, never
+                                  // set in SoftRes's own structured instance field) - still surface
+                                  // the link rather than silently dropping it, just with a generic
+                                  // label instead of a zone abbreviation.
+                                  const label = link.zoneId ? zoneShortLabel(link.zoneId) : "SR";
+                                  return (
+                                    <a
+                                      key={link.url}
+                                      href={link.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                                    >
+                                      {label}
+                                    </a>
+                                  );
+                                })}
+                              </div>
                             );
                           })()}
                         </TableCell>
