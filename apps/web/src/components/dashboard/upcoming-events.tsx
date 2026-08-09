@@ -3,7 +3,16 @@
 import React from "react";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { api } from "~/trpc/react";
-import { Loader2, UserPlus, Check, Armchair, Scale, Clock, UserMinus } from "lucide-react";
+import {
+  Loader2,
+  UserPlus,
+  Check,
+  Armchair,
+  Scale,
+  Clock,
+  UserMinus,
+  ExternalLinkIcon,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -39,6 +48,8 @@ interface ScheduledEvent {
   serverId: string;
   channelId: string;
   userSignupStatus: string | null;
+  softresUrl: string | null;
+  softresZoneId: string | null;
 }
 
 // Discord icon SVG component
@@ -144,6 +155,9 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
     return null;
   };
 
+  const zoneShortLabel = (zoneId: string) =>
+    zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase();
+
   return (
     <Card className="relative h-full overflow-hidden">
       <CardHeader className="pb-1">
@@ -168,6 +182,10 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-8 px-2 py-1 text-left text-xs">Event Name</TableHead>
                     <TableHead className="h-8 px-2 py-1 text-left text-xs">Signups</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-left text-xs">
+                      SoftRes
+                      <ExternalLinkIcon className="ml-0.5 inline-block align-text-top" size={12} />
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -186,7 +204,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                                   variant="outline"
                                   className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
                                 >
-                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
+                                  {zoneShortLabel(zoneId)}
                                 </Badge>
                               ) : null;
                             })()}
@@ -286,6 +304,29 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                               />
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell className="px-2 py-1.5">
+                          {(() => {
+                            const eventWithSoftres = event as ScheduledEvent;
+                            if (!eventWithSoftres.softresUrl) return null;
+                            const zoneId = eventWithSoftres.softresZoneId;
+                            // A SoftRes link can exist without a resolvable zone (e.g. the
+                            // raid's instance is only described in its free-text note, never
+                            // set in SoftRes's own structured instance field) - still surface
+                            // the link rather than silently dropping it, just with a generic
+                            // label instead of a zone abbreviation.
+                            const label = zoneId ? zoneShortLabel(zoneId) : "SR";
+                            return (
+                              <a
+                                href={eventWithSoftres.softresUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                              >
+                                {label}
+                              </a>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     );
