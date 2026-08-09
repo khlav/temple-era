@@ -10,14 +10,14 @@
 // haystack are normalized together for client-side matching.
 
 export function normalizeSearchText(text: string): string {
-  return (
-    text
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "") // strip accents
-      // eslint-disable-next-line no-control-regex
-      .replace(/[^\x00-\x7F]/g, "") // strip remaining non-ASCII
-      .toLowerCase()
-  );
+  // Only fold decomposable accents (é -> e) and case — do NOT strip non-ASCII wholesale.
+  // That used to also delete literal Cyrillic/CJK/etc. text (and non-decomposable Latin
+  // letters like ø/œ/ß) rather than just fold it, silently breaking search over any
+  // free-text field — raid names, recipe notes — that contains it.
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 }
 
 interface ParsedSearchQuery {
@@ -73,10 +73,10 @@ export function matchesSearchQuery(searchableText: string, query: string): boole
 
   const haystack = normalizeSearchText(searchableText);
 
-  // normalizeSearchText strips all non-ASCII, so a term made up entirely of characters
-  // outside its scope (CJK, Cyrillic, emoji, ...) normalizes to "" — and "".includes("")
-  // is always true. Drop such terms rather than letting them silently exclude everything
-  // (negative term) or force a match (OR alternative alongside a term that does survive).
+  // A term made up entirely of combining diacritical marks with no base character (a
+  // pathological input, but possible) normalizes to "" — and "".includes("") is always
+  // true. Drop such terms rather than letting them silently exclude everything (negative
+  // term) or force a match (OR alternative alongside a term that does survive).
   const normalizedPositive = positiveTerms.map(normalizeSearchText).filter(Boolean);
   const normalizedNegative = negativeTerms.map(normalizeSearchText).filter(Boolean);
   const normalizedOrGroups = orGroups

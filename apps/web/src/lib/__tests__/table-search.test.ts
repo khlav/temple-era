@@ -2,8 +2,17 @@ import { describe, it, expect } from "vitest";
 import { matchesSearchQuery, normalizeSearchText, parseSearchQuery } from "../table-search";
 
 describe("normalizeSearchText", () => {
-  it("lowercases and strips accents/non-ASCII", () => {
+  it("lowercases and folds decomposable accents", () => {
     expect(normalizeSearchText("Élan Ashkandi")).toBe("elan ashkandi");
+  });
+
+  it("preserves non-Latin scripts and non-decomposable Latin letters", () => {
+    // Only accents that NFD can decompose into base + combining mark are folded — a
+    // wholesale non-ASCII strip used to also silently delete Cyrillic/CJK text and
+    // non-decomposable Latin letters like ø, not just fold them.
+    expect(normalizeSearchText("测试")).toBe("测试");
+    expect(normalizeSearchText("Тест")).toBe("тест");
+    expect(normalizeSearchText("Bjørn")).toBe("bjørn");
   });
 });
 
@@ -98,25 +107,40 @@ describe("matchesSearchQuery", () => {
     expect(matchesSearchQuery("Élan", "ÉLAN")).toBe(true);
   });
 
+  it("matches literal non-Latin text (not just Latin accents)", () => {
+    expect(matchesSearchQuery("测试 Raid", "测试")).toBe(true);
+    expect(matchesSearchQuery("测试 Raid", "日本語")).toBe(false);
+    expect(matchesSearchQuery("Тест Raid", "тест")).toBe(true);
+  });
+
+  // A term made up entirely of combining diacritical marks with no base character
+  // normalizes to "" (a pathological input, but a real one — e.g. a stray IME artifact).
+  const EMPTY_AFTER_NORMALIZE = "́";
+
   it("does not let a negative term that normalizes to empty exclude everything", () => {
-    // "中文" is entirely non-ASCII, so it normalizes to "" — it must be dropped rather
-    // than making "".includes("") == true wipe out every row.
-    expect(matchesSearchQuery("Ashkandi warrior", "-中文")).toBe(true);
+    expect(matchesSearchQuery("Ashkandi warrior", `-${EMPTY_AFTER_NORMALIZE}`)).toBe(true);
   });
 
   it("does not let an OR group that normalizes to empty force a match", () => {
-    expect(matchesSearchQuery("Ashkandi warrior", "warrior 中文|日本語")).toBe(true);
+    expect(
+      matchesSearchQuery(
+        "Ashkandi warrior",
+        `warrior ${EMPTY_AFTER_NORMALIZE}|${EMPTY_AFTER_NORMALIZE}`,
+      ),
+    ).toBe(true);
   });
 
   it("still ANDs a real term alongside one that normalizes to empty", () => {
-    expect(matchesSearchQuery("Ashkandi warrior", "中文 mage")).toBe(false);
-    expect(matchesSearchQuery("Ashkandi warrior", "中文 warrior")).toBe(true);
+    expect(matchesSearchQuery("Ashkandi warrior", `${EMPTY_AFTER_NORMALIZE} mage`)).toBe(false);
+    expect(matchesSearchQuery("Ashkandi warrior", `${EMPTY_AFTER_NORMALIZE} warrior`)).toBe(true);
   });
 
   it("treats a wholly-unsupported positive query as no match, not as an empty query", () => {
     // Unlike an actually-empty query, the user expressed positive intent here — showing
     // every row unfiltered would look like the search silently did nothing.
-    expect(matchesSearchQuery("Ashkandi warrior", "中文")).toBe(false);
-    expect(matchesSearchQuery("Ashkandi warrior", "中文|日本語")).toBe(false);
+    expect(matchesSearchQuery("Ashkandi warrior", EMPTY_AFTER_NORMALIZE)).toBe(false);
+    expect(
+      matchesSearchQuery("Ashkandi warrior", `${EMPTY_AFTER_NORMALIZE}|${EMPTY_AFTER_NORMALIZE}`),
+    ).toBe(false);
   });
 });
