@@ -150,6 +150,16 @@ jobs:
           # overhead) - enough headroom for the next big dependency-upgrade
           # PR without going wide enough to invite long-context degradation.
           config.max_model_tokens: "256000"
+          # TEMPLE-78: apps/web/drizzle/meta/**/*.json (per-migration full
+          # schema snapshots plus _journal.json) is machine-generated and not
+          # incremental - it dominated PR #73's diff (11,435 of 12,943 lines,
+          # 88%) purely from three migrations. greptile.json's ignorePatterns
+          # already excludes it for the identical reason; PR-Agent's own
+          # [ignore] section (glob = [...]) is the equivalent knob here,
+          # configurable via the same env-var convention as config.model
+          # above. The .sql migration files themselves are NOT included -
+          # those stay in scope for review.
+          ignore.glob: '["apps/web/drizzle/meta/**"]'
           # repo_context_files defaults to ["AGENTS.md"] - repo-RELATIVE, so
           # only the root file was ever loaded and apps/web/AGENTS.md (478
           # lines of tRPC/Drizzle/API detail) was invisible to the reviewer.
