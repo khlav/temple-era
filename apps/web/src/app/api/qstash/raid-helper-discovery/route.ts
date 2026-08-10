@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { inArray, eq, and } from "drizzle-orm";
 import { logger } from "~/lib/logger";
 import { env } from "~/env";
 import { db } from "~/server/db";
 import { raidHelperSignupSnapshots, raidHelperSignupSnapshotSchedule } from "~/server/db/schema";
+import { verifyQstashRequest } from "~/server/services/qstash-verify";
 import { fetchScheduledEvents } from "~/server/services/raid-helper-client";
 import { qstashClient } from "~/server/services/qstash-client";
 import { captureSnapshot } from "~/server/services/raid-helper-snapshot-capture";
@@ -52,7 +52,12 @@ async function cleanupStaleSchedule(
   await deleteScheduleRow(raidHelperEventId, checkpoint);
 }
 
-async function handler(_request: Request) {
+export async function POST(request: Request) {
+  const verification = await verifyQstashRequest(request);
+  if (!verification.valid) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (!env.NEXT_PUBLIC_APP_URL) {
     logger.error("NEXT_PUBLIC_APP_URL is not set; cannot construct the capture route destination");
     return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL is not configured" }, { status: 500 });
@@ -224,8 +229,3 @@ async function handler(_request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
-export const POST = verifySignatureAppRouter(handler, {
-  currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-  nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});

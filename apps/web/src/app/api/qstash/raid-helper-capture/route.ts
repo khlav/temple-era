@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { and, eq } from "drizzle-orm";
 import { logger } from "~/lib/logger";
-import { env } from "~/env";
 import { db } from "~/server/db";
 import { raidHelperSignupSnapshotSchedule } from "~/server/db/schema";
+import { verifyQstashRequest } from "~/server/services/qstash-verify";
 import { captureSnapshot } from "~/server/services/raid-helper-snapshot-capture";
 import {
   SNAPSHOT_CHECKPOINTS,
@@ -29,10 +28,15 @@ function isCapturePayload(body: unknown): body is CapturePayload {
   );
 }
 
-async function handler(request: Request) {
+export async function POST(request: Request) {
+  const verification = await verifyQstashRequest(request);
+  if (!verification.valid) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(verification.body);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -68,8 +72,3 @@ async function handler(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
-export const POST = verifySignatureAppRouter(handler, {
-  currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-  nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});

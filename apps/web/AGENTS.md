@@ -407,8 +407,17 @@ scheduling/messaging service), whose Schedules aren't gated by Vercel's plan tie
 - **`POST /api/qstash/raid-helper-capture`** — QStash-message-triggered, fired at a
   single checkpoint's exact target time. Fetches current signups and inserts a snapshot
   row (`src/server/services/raid-helper-snapshot-capture.ts`).
-- Both routes verify the inbound request via `verifySignatureAppRouter` from
-  `@upstash/qstash/nextjs`, using `QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY`.
+- Both routes verify the inbound request via `verifyQstashRequest`
+  (`src/server/services/qstash-verify.ts`), using
+  `QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY`. This is a hand-rolled wrapper
+  around `@upstash/qstash`'s `Receiver` rather than the package's own
+  `verifySignatureAppRouter` helper — that helper validates its signing keys eagerly at
+  the point a route does `export const POST = verifySignatureAppRouter(...)`, which runs
+  during `next build`'s page-data-collection step and throws when secrets are absent.
+  This repo's CI and pre-push hook both build with `SKIP_ENV_VALIDATION=1` and no
+  secrets, so that eager check breaks the build; constructing `Receiver` lazily inside
+  the request handler (only evaluated at real request time, in a real deployment where
+  secrets are present) avoids it.
   `QSTASH_TOKEN` is used by `src/server/services/qstash-client.ts` (the shared `Client`
   singleton) to publish/cancel messages and manage schedules.
 - **`QSTASH_TOKEN`/`QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY` are shared
