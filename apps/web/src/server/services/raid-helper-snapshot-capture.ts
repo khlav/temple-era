@@ -6,6 +6,8 @@ import {
   type SnapshotCheckpoint,
 } from "~/server/services/raid-helper-snapshot-checkpoints";
 
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Fetches the current signup state for an event and inserts a snapshot row for one
  * checkpoint. Shared by the discovery route (immediate/overdue captures) and the
@@ -25,11 +27,25 @@ import {
  * the pre-check. Comparing against reality (this fetch) rather than only against
  * whatever the caller's own bookkeeping believed closes both variants, not just the
  * narrower one caught before this call. Returning `false` aborts without inserting.
+ *
+ * `revalidateBeforeInsert`, if given, runs inside the same transaction as the insert,
+ * immediately before it — closing the remaining sliver `validateStartTime` can't: the
+ * gap between that check passing and the insert actually committing (fetchEventDetail
+ * resolving, then a synchronous continuation, then the insert's own round trip). A
+ * concurrent discovery poll that reschedules this exact checkpoint in that narrow
+ * window would otherwise slip an now-superseded snapshot in alongside the corrected
+ * one — the widened (event, checkpoint, startTime) uniqueness key no longer collides on
+ * it the way the original (event, checkpoint) key would have. Callers should have this
+ * re-select the same tracking row with `.for("update")`, so a concurrent single-
+ * statement UPDATE from the discovery route (itself always inside its own implicit
+ * transaction) either commits first and is seen here, or blocks until this transaction
+ * finishes — real atomicity for same-row writers, not just a smaller window.
  */
 export async function captureSnapshot(params: {
   raidHelperEventId: string;
   checkpoint: SnapshotCheckpoint;
   validateStartTime?: (liveStartTime: Date) => boolean;
+  revalidateBeforeInsert?: (tx: Transaction, liveStartTime: Date) => Promise<boolean>;
 }): Promise<{ captured: boolean; startTime: Date; aborted?: boolean }> {
   const detail = await fetchEventDetail(params.raidHelperEventId);
   const startTime = new Date(detail.startTime * 1000);
@@ -41,25 +57,37 @@ export async function captureSnapshot(params: {
   const targetTime = computeTargetTime(startTime, params.checkpoint);
   const signups = detail.signUps ?? [];
 
-  const inserted = await db
-    .insert(raidHelperSignupSnapshots)
-    .values({
-      raidHelperEventId: params.raidHelperEventId,
-      resolvedEventId: detail.id,
-      checkpoint: params.checkpoint,
-      targetTime,
-      startTime,
-      signUpCount: signups.length,
-      signups,
-    })
-    .onConflictDoNothing({
-      target: [
-        raidHelperSignupSnapshots.raidHelperEventId,
-        raidHelperSignupSnapshots.checkpoint,
-        raidHelperSignupSnapshots.startTime,
-      ],
-    })
-    .returning({ id: raidHelperSignupSnapshots.id });
+  const { insertedRows, revalidationFailed } = await db.transaction(async (tx) => {
+    if (params.revalidateBeforeInsert && !(await params.revalidateBeforeInsert(tx, startTime))) {
+      return { insertedRows: [], revalidationFailed: true };
+    }
 
-  return { captured: inserted.length > 0, startTime };
+    const rows = await tx
+      .insert(raidHelperSignupSnapshots)
+      .values({
+        raidHelperEventId: params.raidHelperEventId,
+        resolvedEventId: detail.id,
+        checkpoint: params.checkpoint,
+        targetTime,
+        startTime,
+        signUpCount: signups.length,
+        signups,
+      })
+      .onConflictDoNothing({
+        target: [
+          raidHelperSignupSnapshots.raidHelperEventId,
+          raidHelperSignupSnapshots.checkpoint,
+          raidHelperSignupSnapshots.startTime,
+        ],
+      })
+      .returning({ id: raidHelperSignupSnapshots.id });
+
+    return { insertedRows: rows, revalidationFailed: false };
+  });
+
+  if (revalidationFailed) {
+    return { captured: false, startTime, aborted: true };
+  }
+
+  return { captured: insertedRows.length > 0, startTime };
 }

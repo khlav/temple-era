@@ -102,11 +102,32 @@ export async function POST(request: Request) {
     // matches, abort without inserting and leave the tracking row alone — the next
     // discovery poll will detect the drift (against live data, same as always) and
     // schedule the correct capture from there.
+    //
+    // Third, narrowest check: re-select the tracking row (locked `for update`) inside
+    // the same transaction as the insert, immediately before it. Closes the last sliver
+    // the check above can't — a reschedule landing between that check passing and the
+    // insert actually committing, which is otherwise just small (a synchronous JS
+    // continuation plus one round trip), not zero. A concurrent discovery-route UPDATE
+    // to this exact row either commits first (visible here, causing an abort) or blocks
+    // until this transaction finishes (real atomicity, not just a smaller window).
     const result = await captureSnapshot({
       raidHelperEventId: payload.raidHelperEventId,
       checkpoint: payload.checkpoint,
       validateStartTime: (liveStartTime) =>
         liveStartTime.getTime() === activeSchedule.scheduledForStartTime.getTime(),
+      revalidateBeforeInsert: async (tx, liveStartTime) => {
+        const [row] = await tx
+          .select({ scheduledForStartTime: raidHelperSignupSnapshotSchedule.scheduledForStartTime })
+          .from(raidHelperSignupSnapshotSchedule)
+          .where(
+            and(
+              eq(raidHelperSignupSnapshotSchedule.raidHelperEventId, payload.raidHelperEventId),
+              eq(raidHelperSignupSnapshotSchedule.checkpoint, payload.checkpoint),
+            ),
+          )
+          .for("update");
+        return row !== undefined && row.scheduledForStartTime.getTime() === liveStartTime.getTime();
+      },
     });
 
     if (result.aborted) {
