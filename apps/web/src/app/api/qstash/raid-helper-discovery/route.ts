@@ -99,15 +99,21 @@ export async function POST(request: Request) {
       .from(raidHelperSignupSnapshots)
       .where(inArray(raidHelperSignupSnapshots.raidHelperEventId, eventIds));
 
-    // Keyed by the snapshot's own stored startTime, not just checkpoint presence: Raid
-    // Helper's events-list id is not guaranteed unique across occurrences of a recurring
-    // event in every usage pattern, so a captured row only counts as "this occurrence
-    // already done" if its startTime matches what's currently listed — see the schema
-    // comment on raidHelperSignupSnapshots for why startTime is part of its unique key.
-    const capturedByEvent = new Map<string, Map<SnapshotCheckpoint, Date>>();
+    // Keyed by the *set* of startTimes captured for a checkpoint, not just the last one
+    // seen: a reschedule can legitimately leave more than one row for the same (event,
+    // checkpoint) — one from before the move, one from after (see the schema comment on
+    // raidHelperSignupSnapshots for why startTime is part of its unique key). The query
+    // below has no ORDER BY, so a Map keyed only by checkpoint would silently pick
+    // whichever row Postgres happened to return last — an arbitrary one, not necessarily
+    // the one matching the event's *current* startTime. Tracking every captured
+    // startTime and checking membership avoids depending on row order entirely.
+    const capturedByEvent = new Map<string, Map<SnapshotCheckpoint, Set<number>>>();
     for (const row of snapshotRows) {
-      const map = capturedByEvent.get(row.raidHelperEventId) ?? new Map<SnapshotCheckpoint, Date>();
-      map.set(row.checkpoint, row.startTime);
+      const map =
+        capturedByEvent.get(row.raidHelperEventId) ?? new Map<SnapshotCheckpoint, Set<number>>();
+      const startTimes = map.get(row.checkpoint) ?? new Set<number>();
+      startTimes.add(row.startTime.getTime());
+      map.set(row.checkpoint, startTimes);
       capturedByEvent.set(row.raidHelperEventId, map);
     }
 
@@ -130,17 +136,17 @@ export async function POST(request: Request) {
 
     for (const event of events) {
       const currentStartTime = new Date(event.startTime * 1000);
-      const captured = capturedByEvent.get(event.id) ?? new Map<SnapshotCheckpoint, Date>();
+      const captured = capturedByEvent.get(event.id) ?? new Map<SnapshotCheckpoint, Set<number>>();
       const scheduled =
         scheduledByEvent.get(event.id) ?? new Map<SnapshotCheckpoint, ScheduledState>();
 
       for (const checkpoint of SNAPSHOT_CHECKPOINTS) {
-        const capturedStartTime = captured.get(checkpoint);
+        const capturedStartTimes = captured.get(checkpoint);
         const decision = decideCheckpointAction({
           checkpoint,
           now,
           currentStartTime,
-          captured: capturedStartTime?.getTime() === currentStartTime.getTime(),
+          captured: capturedStartTimes?.has(currentStartTime.getTime()) ?? false,
           scheduled: scheduled.get(checkpoint) ?? null,
         });
 
