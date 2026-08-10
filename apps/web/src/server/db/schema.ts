@@ -3,6 +3,7 @@ import * as RaidSchema from "~/server/db/models/raid-schema";
 import * as RaidPlanSchema from "~/server/db/models/raid-plan-schema";
 import * as RecipeSchema from "~/server/db/models/recipe-schema";
 import * as AccessSchema from "~/server/db/models/access-schema";
+import * as RaidHelperSnapshotSchema from "~/server/db/models/raid-helper-snapshot-schema";
 import * as ViewsSchema from "~/server/db/models/views-schema";
 
 // NOTE: views-schema is defined but not imported due to Drizzle
@@ -105,6 +106,16 @@ export const {
   SCOPES,
 } = AccessSchema;
 export type { Scope, UserRoleSource } from "~/server/db/models/access-schema";
+
+export const {
+  // Tables
+  raidHelperSignupSnapshots,
+  raidHelperSignupSnapshotSchedule,
+
+  // Enums
+  snapshotCheckpointEnum,
+} = RaidHelperSnapshotSchema;
+export type { RaidHelperSignupSnapshotEntry } from "~/server/db/models/raid-helper-snapshot-schema";
 
 export const {
   primaryRaidAttendeeMap,

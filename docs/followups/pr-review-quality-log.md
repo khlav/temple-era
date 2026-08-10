@@ -365,3 +365,137 @@ something this PR introduced. Raid Helper's API exposes the registration message
 Discord snowflake as the event ID, which is unsurprising for a bot whose "event" *is* the
 message it posted. Rejected without code changes; no `greptile` label, so Greptile was
 inactive.
+
+### PR #73 — `feat(raid-helper): add signup snapshot capture via QStash`
+Greptile: 3/5, two issues. Archon: no score line, one code suggestion. **Both reviewers
+independently converged on the same core finding** — a stale/superseded QStash delivery
+race: a message scheduled before a raid gets rescheduled can still be delivered after
+`cancelQstashMessage()` is called for it (cancellation isn't atomic with in-flight
+delivery), capturing a checkpoint at the wrong real-world moment and then blocking the
+correctly-timed replacement via the snapshot table's unique constraint. **Confirmed
+real** — verified the race mechanics by hand rather than taking either write-up at face
+value, since Greptile's phrasing ("captures signups at the old time") slightly
+mischaracterized *what* goes wrong: `captureSnapshot` always re-fetches live data, so the
+captured *signups* aren't stale — the problem is the capture fires at the wrong *moment*
+relative to the corrected checkpoint target, and that premature row then wins the unique
+constraint. Fixed with a staleness guard in the capture route (compare the delivery's
+embedded `targetTime` against the currently-active tracking row before capturing; return
+200 rather than an error so QStash doesn't retry a delivery being intentionally
+discarded) rather than Archon's suggested approach (throw inside `captureSnapshot` on an
+`expectedStartTime` mismatch), which would have turned a clean "stale, skip" into a
+5xx QStash would keep retrying.
+
+Greptile's second, Archon-unshared finding — the snapshot table's `(raidHelperEventId,
+checkpoint)` uniqueness not distinguishing occurrences of a recurring Raid Helper event —
+was **verified empirically against the real events API rather than accepted on
+description alone**: grouped all 439 fetched events by `id` (zero collisions across 12
+active-channel events) and checked all 7 near-term event IDs for the `lastEventId`-needs-
+resolution quirk that would signal a reused "channel placeholder" ID (none exhibited it).
+The failure mode doesn't currently manifest in this guild's actual usage, but the schema
+had no protection if it ever did, so fixed anyway (added `startTime` to the unique index
+and to the discovery route's "already captured" check) rather than dismissed — a case
+where empirical verification changed the *scope* of the fix (schema-level, not just
+route-level) rather than whether to fix it at all.
+
+**Round 2** (score unchanged at 3/5 — same commit range Archon marked "reviewed until
+f3a0b39"): both reviewers pushed further on the same recurring-occurrence thread from
+round 1, now pointed at the *schedule* table rather than the snapshot table — Greptile
+raised it a second time and Archon's Reviewer Guide flagged it independently in the same
+round, three total mentions across two reviewers. Traced through the concrete race by
+hand (not just pattern-matched against round 1's already-accepted finding) and confirmed
+it's real and more severe than "delayed": if Raid Helper ever reused an `id` across two
+occurrences, the discovery poll would read the second occurrence's startTime as "the
+first occurrence rescheduled" and **cancel the first occurrence's still-valid pending
+message**, not just delay it. Deliberately left unfixed anyway, with a long code comment
+explaining why: the events-list endpoint alone can't distinguish "this occurrence moved"
+from "this is a different occurrence reusing the same id" — resolving that needs a full
+detail fetch (for `resolvedEventId`) on *every* listed event on *every* poll, not just
+ones with something due, a real API-call-volume cost for a scenario confirmed (round 1)
+not to occur in this guild's actual usage today. This is the log's first case of judging
+a repeated, multi-reviewer finding as correct *and* still declining to fix it — the
+distinction from round 1's sibling finding wasn't "is this real" (both are) but "is a
+correct fix cheap enough to be worth taking now," which cuts against the instinct to
+treat convergent reviewer pressure as itself a reason to act.
+
+Also fixed a smaller, related gap Greptile raised alongside it: the capture route's
+stale-delivery guard only fired when a tracking row existed *and* mismatched, silently
+proceeding to capture when the row was simply missing. Analysis showed this specific gap
+wasn't independently harmful in the single-occurrence case — the snapshot table's own
+`startTime`-inclusive uniqueness (already added in round 1) makes a stale capture attempt
+a harmless no-op either way — but widened the guard (`!activeSchedule || mismatch`)
+anyway as a zero-cost defense-in-depth change that also skips a redundant Raid Helper
+fetch on duplicate deliveries.
+
+**Round 3** (Greptile: 3/5 → 4/5, genuine improvement, not a stall; Archon: one new
+finding). Both reviewers independently found the *same* residual gap in round 2's own
+stale-delivery fix, from two different angles — Greptile: a reschedule can land during
+`captureSnapshot`'s own in-flight Raid Helper fetch, after the pre-check passed but
+before the insert commits, so the pre-check alone can't catch it. Archon: a tracking row
+can be stale (not yet reconciled by any discovery poll) rather than concurrently raced,
+and the same pre-check would pass because nothing has changed it *yet*. Traced both
+through by hand and found they're the same underlying flaw wearing two costumes: the
+round-2 guard only validated against the app's *own* bookkeeping (the tracking row),
+which can itself be wrong or become wrong mid-request, never against Raid Helper's
+*actual live data*. Fixed once at the root rather than patching each surface
+symptom separately: `captureSnapshot` gained an optional `validateStartTime` hook that
+runs against the freshly-fetched live `startTime` *after* the network fetch but *before*
+the insert commits, and the capture route now checks the delivery's assumed
+`scheduledForStartTime` against that live value instead of only against the DB row read
+before the slow part. A single fix closing two reviewers' two differently-explained
+findings in one pass is a useful signal in itself: worth checking, when two reports
+sound different, whether they're actually the same root cause before writing two patches.
+
+**Rounds 4–8** (Greptile only — Archon stayed clean throughout this stretch; score held
+at 4/5 the whole time, which is notable in itself: five consecutive rounds each surfaced
+a *new*, real, narrower finding rather than repeating one, so the flat score tracked
+"still one open issue" rather than signaling a stall). Every finding across these five
+rounds was independently verified real by tracing the actual concurrency path by hand,
+not accepted on description alone, and every one was fixed:
+
+- **Round 4**: gap between `validateStartTime`'s live check (round 3's fix) and the
+  insert actually committing — a synchronous JS continuation plus one DB round trip, not
+  the wide network-fetch-sized window round 3 closed, but still non-zero. Fixed by moving
+  the insert into a `db.transaction`, re-reading the schedule row `for("update")`
+  immediately before it — real atomicity against a concurrent single-statement UPDATE
+  from the discovery route, not just a smaller window.
+- **Round 5**: the discovery route's "already captured" lookup was a `Map<checkpoint,
+  Date>` — last-write-wins with no `ORDER BY` behind the query. A reschedule can
+  legitimately leave two snapshot rows for the same `(event, checkpoint)` at different
+  `startTime`s (one from before the move, one after), and the query's unspecified row
+  order meant the map could retain the stale one, making discovery misjudge an
+  already-captured occurrence as uncaptured. Fixed by tracking the full `Set` of captured
+  startTimes per checkpoint and checking membership instead of relying on order.
+- **Round 6**: discovery's own `capture-now` branch called `captureSnapshot` with no
+  `validateStartTime` at all — unlike the capture route, which has had it since round 3.
+  A reschedule landing between discovery's event-list fetch and `captureSnapshot`'s
+  separate `fetchEventDetail` call would still get inserted under the new startTime,
+  permanently occupying that checkpoint's unique-key slot before its real target time and
+  silently suppressing the correctly-timed future capture. Straightforward miss — the
+  guard existed in one of two places it needed to.
+- **Round 7**: traced to the shared `cleanupStaleSchedule`/`deleteScheduleRow` helper,
+  used by three separate branches (`skip-captured`, `skip-missed`, `capture-now`) — its
+  delete was scoped to `(event, checkpoint)` only, no check that the row was still the
+  specific generation read earlier in the invocation (before any awaits). An overlapping
+  discovery invocation — QStash's own at-least-once retry on a timeout is the realistic
+  trigger, not just theoretical concurrency — installing a fresh replacement schedule in
+  that gap would get it deleted out from under it by every caller of the helper, not just
+  the one Greptile named. Fixed at the shared root: scoped the delete to also match
+  `qstashMessageId`, making it a no-op once the row has moved on.
+- **Round 8** (final round under the raised 8-round cap): same lost-update shape as round
+  7, in the sibling `reschedule` branch's `UPDATE` — also keyed only by
+  `(event, checkpoint)`. Fixed the same way (match `qstashMessageId` too), plus a small
+  addition beyond the minimal fix: when the update affects zero rows (lost the race),
+  best-effort cancel the QStash message just published rather than leaving it to dangle
+  — not required for correctness (the capture route's existing staleness check discards
+  an unrecorded delivery safely on its own), but avoids leaking a scheduled message.
+
+Pattern worth naming: rounds 4, 7, and 8 are the same underlying shape — *read a schedule
+row, do slow work (network fetch or QStash publish), then write back based on the stale
+read* — recurring across three unrelated call sites (capture insert, cleanup delete,
+reschedule update) because the codebase has three places that do read-then-slow-work-
+then-write against the same table. Greptile found each occurrence independently rather
+than generalizing from the first one; worth checking any *fourth* such site by hand
+before trusting it's already covered, rather than assuming three fixes exhausted the
+pattern. Round 8 was reached because this session's user explicitly raised the round cap
+from 5 to 8 mid-loop — without that, rounds 7 and 8's genuine, distinct findings would
+have gone unfixed under the original cap.

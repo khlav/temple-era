@@ -42,8 +42,19 @@ export const env = createEnv({
           : [],
       ),
     RAID_HELPER_API_KEY: z.string(),
+    // Excludes the guild's #rh-signup-archive channel from fetchScheduledEvents() —
+    // Raid Helper's events list otherwise returns every event ever posted there,
+    // regardless of age. See raid-helper-client.ts.
+    DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID: z.string().optional(),
     TEMPLE_WEB_API_TOKEN: z.string(),
     API_TOKEN_ENCRYPTION_KEY: z.string().min(1),
+    // QStash (Upstash) — schedules the Raid Helper signup snapshot discovery poll and
+    // per-checkpoint captures. See /api/qstash/raid-helper-discovery and
+    // /api/qstash/raid-helper-capture. Signing keys verify inbound webhook requests via
+    // verifySignatureAppRouter from @upstash/qstash/nextjs.
+    QSTASH_TOKEN: z.string(),
+    QSTASH_CURRENT_SIGNING_KEY: z.string(),
+    QSTASH_NEXT_SIGNING_KEY: z.string(),
 
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     GOOGLE_SITE_VERIFICATION: z.string().optional(),
@@ -90,8 +101,12 @@ export const env = createEnv({
     DISCORD_SERVER_ID: process.env.DISCORD_SERVER_ID,
     SUPERADMIN_DISCORD_IDS: process.env.SUPERADMIN_DISCORD_IDS,
     RAID_HELPER_API_KEY: process.env.RAID_HELPER_API_KEY,
+    DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID: process.env.DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID,
     TEMPLE_WEB_API_TOKEN: process.env.TEMPLE_WEB_API_TOKEN,
     API_TOKEN_ENCRYPTION_KEY: process.env.API_TOKEN_ENCRYPTION_KEY,
+    QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
 
     NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
