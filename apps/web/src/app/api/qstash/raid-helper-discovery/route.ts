@@ -173,8 +173,25 @@ export async function POST(request: Request) {
             }
 
             case "capture-now": {
-              await captureSnapshot({ raidHelperEventId: event.id, checkpoint });
-              summary.capturedNow += 1;
+              // This decision was timed against currentStartTime, as fetched by this
+              // poll's own event-list call above — but captureSnapshot makes its own
+              // separate fetchEventDetail call, which can return a startTime that's
+              // already moved on if the raid was rescheduled in between. Without
+              // validateStartTime, that fresher (but decision-invalidating) startTime
+              // would still get inserted — prematurely claiming the corrected
+              // occurrence's unique checkpoint slot before its real target time and
+              // permanently suppressing the correctly-timed capture that should happen
+              // later. Aborting on a mismatch leaves it for the next poll, which will
+              // fetch the corrected startTime fresh and decide the right action for it.
+              const result = await captureSnapshot({
+                raidHelperEventId: event.id,
+                checkpoint,
+                validateStartTime: (liveStartTime) =>
+                  liveStartTime.getTime() === currentStartTime.getTime(),
+              });
+              if (!result.aborted) {
+                summary.capturedNow += 1;
+              }
               if (decision.staleSchedule) {
                 await cleanupStaleSchedule(event.id, checkpoint, decision.staleSchedule);
               }
