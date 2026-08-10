@@ -190,10 +190,23 @@ jobs:
           # /describe on every push burns a full LLM cycle just to refresh
           # the PR description, which /fix-pr and everything downstream
           # ignores; only /review's output is ever consumed after the first
-          # push. Trimmed to /review alone to cut that cost. pr_commands
-          # (the opened-event set, unset - upstream default) is untouched,
-          # so /describe still runs once, on PR open.
+          # push. Trimmed to /review alone to cut that cost. See
+          # pr_commands below for the same trim applied to the opened event.
           github_action_config.push_commands: '["/review"]'
+          # Default pr_commands (the opened-event set) is ['/describe',
+          # '/review', '/improve'] - three separate LLM calls on open, each
+          # re-sending the full diff + repo-context files. /describe edits
+          # the PR description in place (a real, human-facing effect, but
+          # not consumed by /fix-pr or anything downstream); /improve posts
+          # a "PR Code Suggestions" comment that, per push_commands above
+          # being /review-only, never regenerates after the opening push -
+          # it goes stale and stays tagged to the first commit for the rest
+          # of the PR's life (docs/followups/pr-review-quality-log.md,
+          # PR #61/#62/#66). /fix-pr's Step 6 exit condition is driven
+          # entirely by /review's findings, so trimmed to /review alone,
+          # same reasoning as push_commands. PRs get no auto-generated
+          # description as a result - deliberate, not an oversight.
+          github_action_config.pr_commands: '["/review"]'
           # SCORE REMOVED (TEMPLE-44). require_score_review was on, rendered
           # as "X/5 ★★★★★ (N/100)" to mirror Greptile's confidence rating, and
           # read by /fix-pr as an auto-exit condition (>90/100). All three of
