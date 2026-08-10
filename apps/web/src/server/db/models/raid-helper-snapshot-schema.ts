@@ -29,9 +29,16 @@ export interface RaidHelperSignupSnapshotEntry {
 
 /**
  * A point-in-time capture of Raid Helper signups for a scheduled event, taken at a
- * fixed offset before the raid's start time. One row per (event, checkpoint) — the
- * unique index below is also the idempotency guard against overlapping/retried captures
- * (insert uses onConflictDoNothing on this key) — QStash delivery is at-least-once.
+ * fixed offset before the raid's start time. One row per (event, checkpoint, startTime)
+ * — the unique index below is also the idempotency guard against overlapping/retried
+ * captures (insert uses onConflictDoNothing on this key) — QStash delivery is
+ * at-least-once.
+ *
+ * startTime is part of the key, not just (event, checkpoint): Raid Helper's events-list
+ * `id` is not guaranteed unique across occurrences of a recurring event in every usage
+ * pattern (see raidHelperEventId's own comment below) — without startTime disambiguating,
+ * a reused id would make a later occurrence's checkpoint look "already captured" and
+ * onConflictDoNothing would silently drop its real data.
  *
  * Deliberately has no FK to raid_plan: raid_plan rows are often created after the
  * earliest checkpoints already fired, so a denormalized raidPlanId captured at write
@@ -61,10 +68,9 @@ export const raidHelperSignupSnapshots = tableCreator(
     signups: jsonb("signups").$type<RaidHelperSignupSnapshotEntry[]>().notNull(),
   },
   (table) => ({
-    eventCheckpointIdx: uniqueIndex("raid_helper_signup_snapshot__event_checkpoint_idx").on(
-      table.raidHelperEventId,
-      table.checkpoint,
-    ),
+    eventCheckpointStartIdx: uniqueIndex(
+      "raid_helper_signup_snapshot__event_checkpoint_start_idx",
+    ).on(table.raidHelperEventId, table.checkpoint, table.startTime),
     raidHelperEventIdIdx: index("raid_helper_signup_snapshot__raid_helper_event_id_idx").on(
       table.raidHelperEventId,
     ),

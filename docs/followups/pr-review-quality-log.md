@@ -365,3 +365,34 @@ something this PR introduced. Raid Helper's API exposes the registration message
 Discord snowflake as the event ID, which is unsurprising for a bot whose "event" *is* the
 message it posted. Rejected without code changes; no `greptile` label, so Greptile was
 inactive.
+
+### PR #73 — `feat(raid-helper): add signup snapshot capture via QStash`
+Greptile: 3/5, two issues. Archon: no score line, one code suggestion. **Both reviewers
+independently converged on the same core finding** — a stale/superseded QStash delivery
+race: a message scheduled before a raid gets rescheduled can still be delivered after
+`cancelQstashMessage()` is called for it (cancellation isn't atomic with in-flight
+delivery), capturing a checkpoint at the wrong real-world moment and then blocking the
+correctly-timed replacement via the snapshot table's unique constraint. **Confirmed
+real** — verified the race mechanics by hand rather than taking either write-up at face
+value, since Greptile's phrasing ("captures signups at the old time") slightly
+mischaracterized *what* goes wrong: `captureSnapshot` always re-fetches live data, so the
+captured *signups* aren't stale — the problem is the capture fires at the wrong *moment*
+relative to the corrected checkpoint target, and that premature row then wins the unique
+constraint. Fixed with a staleness guard in the capture route (compare the delivery's
+embedded `targetTime` against the currently-active tracking row before capturing; return
+200 rather than an error so QStash doesn't retry a delivery being intentionally
+discarded) rather than Archon's suggested approach (throw inside `captureSnapshot` on an
+`expectedStartTime` mismatch), which would have turned a clean "stale, skip" into a
+5xx QStash would keep retrying.
+
+Greptile's second, Archon-unshared finding — the snapshot table's `(raidHelperEventId,
+checkpoint)` uniqueness not distinguishing occurrences of a recurring Raid Helper event —
+was **verified empirically against the real events API rather than accepted on
+description alone**: grouped all 439 fetched events by `id` (zero collisions across 12
+active-channel events) and checked all 7 near-term event IDs for the `lastEventId`-needs-
+resolution quirk that would signal a reused "channel placeholder" ID (none exhibited it).
+The failure mode doesn't currently manifest in this guild's actual usage, but the schema
+had no protection if it ever did, so fixed anyway (added `startTime` to the unique index
+and to the discovery route's "already captured" check) rather than dismissed — a case
+where empirical verification changed the *scope* of the fix (schema-level, not just
+route-level) rather than whether to fix it at all.

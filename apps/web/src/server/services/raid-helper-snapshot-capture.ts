@@ -38,7 +38,11 @@ export async function captureSnapshot(params: {
       signups,
     })
     .onConflictDoNothing({
-      target: [raidHelperSignupSnapshots.raidHelperEventId, raidHelperSignupSnapshots.checkpoint],
+      target: [
+        raidHelperSignupSnapshots.raidHelperEventId,
+        raidHelperSignupSnapshots.checkpoint,
+        raidHelperSignupSnapshots.startTime,
+      ],
     })
     .returning({ id: raidHelperSignupSnapshots.id });
 

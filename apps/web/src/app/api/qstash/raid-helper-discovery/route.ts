@@ -94,15 +94,21 @@ export async function POST(request: Request) {
       .select({
         raidHelperEventId: raidHelperSignupSnapshots.raidHelperEventId,
         checkpoint: raidHelperSignupSnapshots.checkpoint,
+        startTime: raidHelperSignupSnapshots.startTime,
       })
       .from(raidHelperSignupSnapshots)
       .where(inArray(raidHelperSignupSnapshots.raidHelperEventId, eventIds));
 
-    const capturedByEvent = new Map<string, Set<SnapshotCheckpoint>>();
+    // Keyed by the snapshot's own stored startTime, not just checkpoint presence: Raid
+    // Helper's events-list id is not guaranteed unique across occurrences of a recurring
+    // event in every usage pattern, so a captured row only counts as "this occurrence
+    // already done" if its startTime matches what's currently listed — see the schema
+    // comment on raidHelperSignupSnapshots for why startTime is part of its unique key.
+    const capturedByEvent = new Map<string, Map<SnapshotCheckpoint, Date>>();
     for (const row of snapshotRows) {
-      const set = capturedByEvent.get(row.raidHelperEventId) ?? new Set<SnapshotCheckpoint>();
-      set.add(row.checkpoint);
-      capturedByEvent.set(row.raidHelperEventId, set);
+      const map = capturedByEvent.get(row.raidHelperEventId) ?? new Map<SnapshotCheckpoint, Date>();
+      map.set(row.checkpoint, row.startTime);
+      capturedByEvent.set(row.raidHelperEventId, map);
     }
 
     const scheduleRows = await db
@@ -124,16 +130,17 @@ export async function POST(request: Request) {
 
     for (const event of events) {
       const currentStartTime = new Date(event.startTime * 1000);
-      const captured = capturedByEvent.get(event.id) ?? new Set<SnapshotCheckpoint>();
+      const captured = capturedByEvent.get(event.id) ?? new Map<SnapshotCheckpoint, Date>();
       const scheduled =
         scheduledByEvent.get(event.id) ?? new Map<SnapshotCheckpoint, ScheduledState>();
 
       for (const checkpoint of SNAPSHOT_CHECKPOINTS) {
+        const capturedStartTime = captured.get(checkpoint);
         const decision = decideCheckpointAction({
           checkpoint,
           now,
           currentStartTime,
-          captured: captured.has(checkpoint),
+          captured: capturedStartTime?.getTime() === currentStartTime.getTime(),
           scheduled: scheduled.get(checkpoint) ?? null,
         });
 
@@ -171,7 +178,15 @@ export async function POST(request: Request) {
             case "schedule": {
               const published = await qstashClient.publishJSON({
                 url: captureRouteUrl,
-                body: { raidHelperEventId: event.id, checkpoint },
+                // targetTime rides along so the capture route can tell a stale/superseded
+                // delivery (one whose old QStash message beat cancellation after a
+                // reschedule) apart from the currently-active one — see the capture
+                // route's staleness check.
+                body: {
+                  raidHelperEventId: event.id,
+                  checkpoint,
+                  targetTime: decision.targetTime.toISOString(),
+                },
                 notBefore: Math.floor(decision.targetTime.getTime() / 1000),
               });
               await db.insert(raidHelperSignupSnapshotSchedule).values({
@@ -189,7 +204,11 @@ export async function POST(request: Request) {
               await cancelQstashMessage(decision.staleSchedule.qstashMessageId);
               const published = await qstashClient.publishJSON({
                 url: captureRouteUrl,
-                body: { raidHelperEventId: event.id, checkpoint },
+                body: {
+                  raidHelperEventId: event.id,
+                  checkpoint,
+                  targetTime: decision.targetTime.toISOString(),
+                },
                 notBefore: Math.floor(decision.targetTime.getTime() / 1000),
               });
               await db
