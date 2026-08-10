@@ -248,7 +248,13 @@ export async function POST(request: Request) {
                 },
                 notBefore: Math.floor(decision.targetTime.getTime() / 1000),
               });
-              await db
+              // Scoped to the specific generation this decision was based on, same
+              // reasoning as deleteScheduleRow above: an out-of-order overlapping
+              // invocation may have already replaced this row with a newer generation
+              // by the time this UPDATE runs. Matching on qstashMessageId makes it a
+              // no-op in that case instead of clobbering the newer, correct schedule
+              // with this now-stale one.
+              const updated = await db
                 .update(raidHelperSignupSnapshotSchedule)
                 .set({
                   qstashMessageId: published.messageId,
@@ -259,9 +265,27 @@ export async function POST(request: Request) {
                   and(
                     eq(raidHelperSignupSnapshotSchedule.raidHelperEventId, event.id),
                     eq(raidHelperSignupSnapshotSchedule.checkpoint, checkpoint),
+                    eq(
+                      raidHelperSignupSnapshotSchedule.qstashMessageId,
+                      decision.staleSchedule.qstashMessageId,
+                    ),
                   ),
+                )
+                .returning({ id: raidHelperSignupSnapshotSchedule.id });
+
+              if (updated.length === 0) {
+                // Lost the race to a newer generation — the message just published
+                // would otherwise dangle unrecorded until it fires, where the capture
+                // route's own staleness check would discard it anyway (no matching
+                // row). Cancelling it now is tidiness, not a correctness requirement.
+                await cancelQstashMessage(published.messageId);
+                logger.warn(
+                  { raidHelperEventId: event.id, checkpoint },
+                  "Reschedule lost the race to a newer schedule generation; discarding this publish",
                 );
-              summary.rescheduled += 1;
+              } else {
+                summary.rescheduled += 1;
+              }
               break;
             }
           }
