@@ -444,3 +444,58 @@ the insert commits, and the capture route now checks the delivery's assumed
 before the slow part. A single fix closing two reviewers' two differently-explained
 findings in one pass is a useful signal in itself: worth checking, when two reports
 sound different, whether they're actually the same root cause before writing two patches.
+
+**Rounds 4–8** (Greptile only — Archon stayed clean throughout this stretch; score held
+at 4/5 the whole time, which is notable in itself: five consecutive rounds each surfaced
+a *new*, real, narrower finding rather than repeating one, so the flat score tracked
+"still one open issue" rather than signaling a stall). Every finding across these five
+rounds was independently verified real by tracing the actual concurrency path by hand,
+not accepted on description alone, and every one was fixed:
+
+- **Round 4**: gap between `validateStartTime`'s live check (round 3's fix) and the
+  insert actually committing — a synchronous JS continuation plus one DB round trip, not
+  the wide network-fetch-sized window round 3 closed, but still non-zero. Fixed by moving
+  the insert into a `db.transaction`, re-reading the schedule row `for("update")`
+  immediately before it — real atomicity against a concurrent single-statement UPDATE
+  from the discovery route, not just a smaller window.
+- **Round 5**: the discovery route's "already captured" lookup was a `Map<checkpoint,
+  Date>` — last-write-wins with no `ORDER BY` behind the query. A reschedule can
+  legitimately leave two snapshot rows for the same `(event, checkpoint)` at different
+  `startTime`s (one from before the move, one after), and the query's unspecified row
+  order meant the map could retain the stale one, making discovery misjudge an
+  already-captured occurrence as uncaptured. Fixed by tracking the full `Set` of captured
+  startTimes per checkpoint and checking membership instead of relying on order.
+- **Round 6**: discovery's own `capture-now` branch called `captureSnapshot` with no
+  `validateStartTime` at all — unlike the capture route, which has had it since round 3.
+  A reschedule landing between discovery's event-list fetch and `captureSnapshot`'s
+  separate `fetchEventDetail` call would still get inserted under the new startTime,
+  permanently occupying that checkpoint's unique-key slot before its real target time and
+  silently suppressing the correctly-timed future capture. Straightforward miss — the
+  guard existed in one of two places it needed to.
+- **Round 7**: traced to the shared `cleanupStaleSchedule`/`deleteScheduleRow` helper,
+  used by three separate branches (`skip-captured`, `skip-missed`, `capture-now`) — its
+  delete was scoped to `(event, checkpoint)` only, no check that the row was still the
+  specific generation read earlier in the invocation (before any awaits). An overlapping
+  discovery invocation — QStash's own at-least-once retry on a timeout is the realistic
+  trigger, not just theoretical concurrency — installing a fresh replacement schedule in
+  that gap would get it deleted out from under it by every caller of the helper, not just
+  the one Greptile named. Fixed at the shared root: scoped the delete to also match
+  `qstashMessageId`, making it a no-op once the row has moved on.
+- **Round 8** (final round under the raised 8-round cap): same lost-update shape as round
+  7, in the sibling `reschedule` branch's `UPDATE` — also keyed only by
+  `(event, checkpoint)`. Fixed the same way (match `qstashMessageId` too), plus a small
+  addition beyond the minimal fix: when the update affects zero rows (lost the race),
+  best-effort cancel the QStash message just published rather than leaving it to dangle
+  — not required for correctness (the capture route's existing staleness check discards
+  an unrecorded delivery safely on its own), but avoids leaking a scheduled message.
+
+Pattern worth naming: rounds 4, 7, and 8 are the same underlying shape — *read a schedule
+row, do slow work (network fetch or QStash publish), then write back based on the stale
+read* — recurring across three unrelated call sites (capture insert, cleanup delete,
+reschedule update) because the codebase has three places that do read-then-slow-work-
+then-write against the same table. Greptile found each occurrence independently rather
+than generalizing from the first one; worth checking any *fourth* such site by hand
+before trusting it's already covered, rather than assuming three fixes exhausted the
+pattern. Round 8 was reached because this session's user explicitly raised the round cap
+from 5 to 8 mid-loop — without that, rounds 7 and 8's genuine, distinct findings would
+have gone unfixed under the original cap.
