@@ -32,13 +32,27 @@ async function cancelQstashMessage(messageId: string) {
   }
 }
 
-async function deleteScheduleRow(raidHelperEventId: string, checkpoint: SnapshotCheckpoint) {
+async function deleteScheduleRow(
+  raidHelperEventId: string,
+  checkpoint: SnapshotCheckpoint,
+  qstashMessageId: string,
+) {
+  // Scoped to the specific generation being cleaned up, not just (event, checkpoint):
+  // `stale` was read from a DB snapshot taken earlier in this invocation, before any
+  // awaits (the Raid Helper fetch, captureSnapshot's own work). A concurrent discovery
+  // invocation — QStash's at-least-once delivery retrying this same schedule after a
+  // timeout is the realistic trigger, not just theoretical overlap — can install a fresh
+  // replacement schedule row for this exact (event, checkpoint) in that gap. Deleting by
+  // (event, checkpoint) alone would blow away that valid replacement out from under it,
+  // permanently missing its checkpoint once the grace window expires. Matching on
+  // qstashMessageId too makes the delete a no-op if the row has already moved on.
   await db
     .delete(raidHelperSignupSnapshotSchedule)
     .where(
       and(
         eq(raidHelperSignupSnapshotSchedule.raidHelperEventId, raidHelperEventId),
         eq(raidHelperSignupSnapshotSchedule.checkpoint, checkpoint),
+        eq(raidHelperSignupSnapshotSchedule.qstashMessageId, qstashMessageId),
       ),
     );
 }
@@ -49,7 +63,7 @@ async function cleanupStaleSchedule(
   stale: ScheduledState,
 ) {
   await cancelQstashMessage(stale.qstashMessageId);
-  await deleteScheduleRow(raidHelperEventId, checkpoint);
+  await deleteScheduleRow(raidHelperEventId, checkpoint, stale.qstashMessageId);
 }
 
 export async function POST(request: Request) {
