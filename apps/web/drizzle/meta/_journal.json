@@ -239,6 +239,13 @@
       "when": 1786331929888,
       "tag": "0033_widen-snapshot-uniqueness-to-include-start-time",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786404475844,
+      "tag": "0034_add-signup-snapshot-zone-and-raid-links",
+      "breakpoints": true
     }
   ]
 }

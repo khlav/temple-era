@@ -1,12 +1,42 @@
 import { db } from "~/server/db";
 import { raidHelperSignupSnapshots } from "~/server/db/schema";
-import { fetchEventDetail } from "~/server/services/raid-helper-client";
+import { fetchEventDetail, type RaidHelperEventDetail } from "~/server/services/raid-helper-client";
 import {
   computeTargetTime,
   type SnapshotCheckpoint,
 } from "~/server/services/raid-helper-snapshot-checkpoints";
+import { fetchSoftResRaidData } from "~/server/api/softres-client";
+import { getZoneForInstance, resolveSoftResZoneId, parseZoneFromEventText } from "~/lib/raid-zones";
+import { logger } from "~/lib/logger";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Resolves a snapshot's zone, preferring the event's linked SoftRes raid (structured
+ * `instance`/`instances` data) over guessing from title/channel text (TEMPLE-84). The
+ * SoftRes fetch is a third-party network call — any failure (bad id, SoftRes down)
+ * falls through to text parsing rather than failing the capture.
+ */
+async function resolveSnapshotZone(
+  detail: Pick<RaidHelperEventDetail, "title" | "channelName" | "softresId">,
+): Promise<{ zone: string | undefined; zoneSource: "softres" | "title_parse" | undefined }> {
+  if (detail.softresId) {
+    try {
+      const softResData = await fetchSoftResRaidData(detail.softresId);
+      const instanceId = resolveSoftResZoneId(softResData.instance, softResData.instances);
+      const zone = instanceId ? getZoneForInstance(instanceId) : undefined;
+      if (zone) return { zone, zoneSource: "softres" };
+    } catch (err) {
+      logger.error(
+        { err, softresId: detail.softresId },
+        "Failed to resolve snapshot zone from SoftRes, falling back to title parsing",
+      );
+    }
+  }
+
+  const zone = parseZoneFromEventText(detail.title, detail.channelName);
+  return { zone, zoneSource: zone ? "title_parse" : undefined };
+}
 
 /**
  * Fetches the current signup state for an event and inserts a snapshot row for one
@@ -56,6 +86,7 @@ export async function captureSnapshot(params: {
 
   const targetTime = computeTargetTime(startTime, params.checkpoint);
   const signups = detail.signUps ?? [];
+  const { zone, zoneSource } = await resolveSnapshotZone(detail);
 
   const { insertedRows, revalidationFailed } = await db.transaction(async (tx) => {
     if (params.revalidateBeforeInsert && !(await params.revalidateBeforeInsert(tx, startTime))) {
@@ -72,6 +103,13 @@ export async function captureSnapshot(params: {
         startTime,
         signUpCount: signups.length,
         signups,
+        title: detail.title ?? null,
+        channelName: detail.channelName ?? null,
+        channelId: detail.channelId ?? null,
+        softresId: detail.softresId ?? null,
+        scheduledId: detail.scheduledId ?? null,
+        zone: zone ?? null,
+        zoneSource: zoneSource ?? null,
       })
       .onConflictDoNothing({
         target: [

@@ -43,6 +43,18 @@ export interface RaidHelperSignupSnapshotEntry {
  * Deliberately has no FK to raid_plan: raid_plan rows are often created after the
  * earliest checkpoints already fired, so a denormalized raidPlanId captured at write
  * time would go stale. Join on raidHelperEventId = raid_plan.raidHelperEventId instead.
+ *
+ * title/channelName/channelId/softresId/scheduledId (TEMPLE-84) are raw fields copied
+ * from the Raid Helper event detail response at capture time, purely for audit/debug
+ * and as inputs to `zone` derivation below — never re-fetched or re-derived after
+ * insert, same "denormalize once, accept staleness" posture as startTime.
+ *
+ * zone/zoneSource (TEMPLE-84): a normalized RaidZone name (see ~/lib/raid-zones),
+ * resolved once at capture time — see resolveSnapshotZone in
+ * ~/server/services/raid-helper-snapshot-capture. Exists so raid<->event linking
+ * (raid_signup_snapshot_link) can match on a real column instead of re-parsing title
+ * text at every match attempt. NULL on rows captured before this field existed, or
+ * when neither resolution tier could determine a zone.
  */
 export const raidHelperSignupSnapshots = tableCreator(
   "raid_helper_signup_snapshot",
@@ -66,6 +78,26 @@ export const raidHelperSignupSnapshots = tableCreator(
     startTime: timestamp("start_time", { withTimezone: true }).notNull(),
     signUpCount: integer("sign_up_count").notNull(),
     signups: jsonb("signups").$type<RaidHelperSignupSnapshotEntry[]>().notNull(),
+    title: varchar("title", { length: 256 }),
+    channelName: varchar("channel_name", { length: 128 }),
+    // Stable, rename-proof unlike channelName — kept alongside it rather than instead
+    // of it since channelName is what's actually useful for zone-text parsing.
+    channelId: varchar("channel_id", { length: 64 }),
+    // The event's linked SoftRes raid id, if any. Preferred zone-resolution source
+    // (see resolveSnapshotZone) since it reads SoftRes's own structured instance data
+    // rather than guessing from title text.
+    softresId: varchar("softres_id", { length: 64 }),
+    // Raid Helper's recurring-series id, distinct from raidHelperEventId/resolvedEventId.
+    // Not consumed anywhere yet — captured now (cheap, same migration) because it's the
+    // field flagged as the real fix for the known id-reuse limitation documented on
+    // raidHelperSignupSnapshotSchedule below, so it doesn't need a second migration
+    // whenever that gets addressed.
+    scheduledId: varchar("scheduled_id", { length: 64 }),
+    zone: varchar("zone", { length: 64 }),
+    // "softres" | "title_parse" — which resolution tier produced `zone`, so downstream
+    // consumers (e.g. raid<->event match scoring) can trust a softres-sourced zone more
+    // than a text-parsed guess. Null iff zone is null.
+    zoneSource: varchar("zone_source", { length: 16 }),
   },
   (table) => ({
     eventCheckpointStartIdx: uniqueIndex(
