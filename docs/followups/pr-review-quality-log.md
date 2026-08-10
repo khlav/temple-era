@@ -396,3 +396,32 @@ had no protection if it ever did, so fixed anyway (added `startTime` to the uniq
 and to the discovery route's "already captured" check) rather than dismissed — a case
 where empirical verification changed the *scope* of the fix (schema-level, not just
 route-level) rather than whether to fix it at all.
+
+**Round 2** (score unchanged at 3/5 — same commit range Archon marked "reviewed until
+f3a0b39"): both reviewers pushed further on the same recurring-occurrence thread from
+round 1, now pointed at the *schedule* table rather than the snapshot table — Greptile
+raised it a second time and Archon's Reviewer Guide flagged it independently in the same
+round, three total mentions across two reviewers. Traced through the concrete race by
+hand (not just pattern-matched against round 1's already-accepted finding) and confirmed
+it's real and more severe than "delayed": if Raid Helper ever reused an `id` across two
+occurrences, the discovery poll would read the second occurrence's startTime as "the
+first occurrence rescheduled" and **cancel the first occurrence's still-valid pending
+message**, not just delay it. Deliberately left unfixed anyway, with a long code comment
+explaining why: the events-list endpoint alone can't distinguish "this occurrence moved"
+from "this is a different occurrence reusing the same id" — resolving that needs a full
+detail fetch (for `resolvedEventId`) on *every* listed event on *every* poll, not just
+ones with something due, a real API-call-volume cost for a scenario confirmed (round 1)
+not to occur in this guild's actual usage today. This is the log's first case of judging
+a repeated, multi-reviewer finding as correct *and* still declining to fix it — the
+distinction from round 1's sibling finding wasn't "is this real" (both are) but "is a
+correct fix cheap enough to be worth taking now," which cuts against the instinct to
+treat convergent reviewer pressure as itself a reason to act.
+
+Also fixed a smaller, related gap Greptile raised alongside it: the capture route's
+stale-delivery guard only fired when a tracking row existed *and* mismatched, silently
+proceeding to capture when the row was simply missing. Analysis showed this specific gap
+wasn't independently harmful in the single-occurrence case — the snapshot table's own
+`startTime`-inclusive uniqueness (already added in round 1) makes a stale capture attempt
+a harmless no-op either way — but widened the guard (`!activeSchedule || mismatch`)
+anyway as a zero-cost defense-in-depth change that also skips a redundant Raid Helper
+fetch on duplicate deliveries.

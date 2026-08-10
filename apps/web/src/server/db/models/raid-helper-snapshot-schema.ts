@@ -91,6 +91,25 @@ export const raidHelperSignupSnapshots = tableCreator(
  * schedule). A leftover row after its checkpoint is already captured is harmless — every
  * consumer checks the snapshot table first — see decideCheckpointAction's "skip-captured"
  * branch, which repairs this case rather than treating it as an error.
+ *
+ * KNOWN LIMITATION, deliberately unresolved: unlike raidHelperSignupSnapshots, this
+ * table's uniqueness is (raidHelperEventId, checkpoint) only — it assumes at most one
+ * *pending* schedule can exist per event+checkpoint at a time. That's true as long as
+ * Raid Helper's events-list `id` identifies a single occurrence, which is what's
+ * actually observed for this guild (verified empirically: every currently-listed event
+ * resolves directly, none need `lastEventId` indirection — see raidHelperEventId's
+ * comment on the snapshot table above). If Raid Helper's `id` were ever reused across
+ * occurrences of a genuinely recurring event (the `scheduledId` field on posted events
+ * suggests this is a supported feature, just not one this guild currently triggers),
+ * this table would conflate two occurrences' schedules into one row — the discovery poll
+ * would see the new occurrence's startTime as "the same event rescheduled" and cancel
+ * the still-valid pending message for the other occurrence instead of tracking both
+ * independently. A correct fix needs occurrence identity in the key, but the events-list
+ * endpoint alone can't distinguish "this event genuinely moved" from "this is actually a
+ * different occurrence reusing the same id" — resolving that reliably needs a full
+ * detail fetch (for `resolvedEventId`) on every event on every poll, not just ones with
+ * something due, a real cost increase deliberately not taken on for a scenario that
+ * doesn't currently occur.
  */
 export const raidHelperSignupSnapshotSchedule = tableCreator(
   "raid_helper_signup_snapshot_schedule",

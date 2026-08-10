@@ -62,6 +62,14 @@ export async function POST(request: Request) {
     // an error) so QStash doesn't retry a delivery we're intentionally discarding, and
     // leave the tracking row alone — it belongs to the active generation, which cleans
     // up after itself when it fires.
+    //
+    // A *missing* row is treated the same as a mismatch, not "safe to proceed": the row
+    // only disappears once some delivery has already captured this exact
+    // (event, checkpoint, startTime) successfully (see the delete below), so a missing
+    // row means either this is a harmless duplicate of an already-processed delivery
+    // (captureSnapshot's own uniqueness makes that a no-op anyway — this just skips the
+    // redundant Raid Helper fetch) or a genuinely stale one from an earlier generation.
+    // Either way there's nothing useful left for this delivery to do.
     const [activeSchedule] = await db
       .select({ targetTime: raidHelperSignupSnapshotSchedule.targetTime })
       .from(raidHelperSignupSnapshotSchedule)
@@ -73,10 +81,10 @@ export async function POST(request: Request) {
       );
 
     const payloadTargetTime = new Date(payload.targetTime);
-    if (activeSchedule && activeSchedule.targetTime.getTime() !== payloadTargetTime.getTime()) {
+    if (!activeSchedule || activeSchedule.targetTime.getTime() !== payloadTargetTime.getTime()) {
       logger.warn(
         { raidHelperEventId: payload.raidHelperEventId, checkpoint: payload.checkpoint },
-        "Discarding stale QStash delivery superseded by a reschedule",
+        "Discarding stale or already-handled QStash delivery",
       );
       return NextResponse.json({ captured: false, stale: true });
     }
