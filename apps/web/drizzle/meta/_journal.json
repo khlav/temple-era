@@ -218,6 +218,20 @@
       "when": 1786202620027,
       "tag": "0030_convert-reports-readonly-to-group-role",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786323214003,
+      "tag": "0031_add-raid-helper-signup-snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786329618256,
+      "tag": "0032_add-raid-helper-snapshot-schedule",
+      "breakpoints": true
     }
   ]
 }

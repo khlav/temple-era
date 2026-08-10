@@ -164,7 +164,8 @@ See `src/` for the directory layout — organized by feature under `components/`
 - **Discord Bot**: Lives in this monorepo at `apps/bot`; communicates via the REST API endpoints in `src/app/api/discord/`
   - Helper functions in `src/server/api/discord-helpers.ts`
   - Changing any `/api/discord/*` request or response shape is a contract change — update `apps/bot` in the same PR
-- **Raid Helper**: Integration for raid scheduling via `RAID_HELPER_API_KEY`
+- **Raid Helper**: Integration for raid scheduling via `RAID_HELPER_API_KEY`. Signup
+  history is periodically snapshotted via QStash — see "Scheduled Jobs (QStash)" below
 
 #### Component Patterns
 
@@ -240,6 +241,7 @@ Required environment variables:
 - `DISCORD_RAID_HELPER_BOT_ID` - Raid Helper bot user ID
 - `DISCORD_SERVER_ID` - Discord server/guild ID
 - `RAID_HELPER_API_KEY` - Raid Helper API key
+- `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` - Upstash QStash (see "Scheduled Jobs (QStash)" below); shared across `dev`/`stg`/`prd`
 
 Optional:
 
@@ -249,6 +251,7 @@ Optional:
 - `NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL` - URL to restricted items spreadsheet
 - `GOOGLE_SITE_VERIFICATION` - Google site verification token
 - `DISCORD_WEBHOOK_PUBLIC_KEY` - Discord webhook verification
+- `DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID` - Excludes this channel from `fetchScheduledEvents()` (see "Scheduled Jobs (QStash)" below) — Raid Helper's events list otherwise returns every event ever posted, unfiltered by age
 
 Environment variables are validated at build time via `@t3-oss/env-nextjs` with Zod. Set `SKIP_ENV_VALIDATION=1` to bypass (useful for Docker builds). See `.env.example` for full list.
 
@@ -385,6 +388,40 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 - `src/server/api/v2/types/` — Pothos type implementations
 - `src/server/api/v2/helpers/attendance.ts` — parameterized attendance computation
 - `src/server/api/v2/helpers/lockout-weeks.ts` — Tuesday-anchored WoW lockout week logic
+
+## Scheduled Jobs (QStash)
+
+This app has no in-process scheduler (it's serverless on Vercel) and is on the **Hobby**
+plan, which only allows once-daily Vercel Cron — too coarse for anything time-sensitive.
+Recurring/delayed work instead goes through **QStash** (Upstash's HTTP-based
+scheduling/messaging service), whose Schedules aren't gated by Vercel's plan tier.
+
+- **`POST /api/qstash/raid-helper-discovery`** — QStash-Schedule-triggered (every 30
+  min). Polls Raid Helper's event list (`fetchScheduledEvents()` — excludes
+  `DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID` if set, since Raid Helper's API returns every
+  event ever posted with no age limit of its own) and decides, per upcoming raid ×
+  checkpoint (T-72h/T-48h/T-24h/T-0), whether to schedule a precise one-off capture,
+  reschedule one whose raid time changed, capture immediately if overdue-but-within-grace,
+  or give up. Decision logic: `src/server/services/raid-helper-snapshot-checkpoints.ts`
+  (`decideCheckpointAction`).
+- **`POST /api/qstash/raid-helper-capture`** — QStash-message-triggered, fired at a
+  single checkpoint's exact target time. Fetches current signups and inserts a snapshot
+  row (`src/server/services/raid-helper-snapshot-capture.ts`).
+- Both routes verify the inbound request via `verifySignatureAppRouter` from
+  `@upstash/qstash/nextjs`, using `QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY`.
+  `QSTASH_TOKEN` is used by `src/server/services/qstash-client.ts` (the shared `Client`
+  singleton) to publish/cancel messages and manage schedules.
+- **`QSTASH_TOKEN`/`QSTASH_CURRENT_SIGNING_KEY`/`QSTASH_NEXT_SIGNING_KEY` are shared
+  across `dev`/`stg`/`prd`** (same QStash account for all three, same pattern as
+  `RAID_HELPER_API_KEY`/`DISCORD_SERVER_ID`) — the per-environment isolation boundary is
+  each environment's destination URL and its own QStash `scheduleId`, not the
+  credentials.
+- **Provisioning the discovery Schedule is a manual, one-time-per-environment step**,
+  not part of the deploy pipeline: `pnpm qstash:setup-discovery-schedule` (must run
+  under `doppler run --config <dev|stg|prd>` — `DOPPLER_CONFIG` scopes the `scheduleId`
+  per environment; a fixed `scheduleId` would let one environment's setup silently
+  overwrite another's, since `schedules.create` upserts by `scheduleId` and all three
+  environments share one QStash account).
 
 ## GitHub Automation
 
