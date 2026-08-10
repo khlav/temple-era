@@ -425,3 +425,22 @@ wasn't independently harmful in the single-occurrence case — the snapshot tabl
 a harmless no-op either way — but widened the guard (`!activeSchedule || mismatch`)
 anyway as a zero-cost defense-in-depth change that also skips a redundant Raid Helper
 fetch on duplicate deliveries.
+
+**Round 3** (Greptile: 3/5 → 4/5, genuine improvement, not a stall; Archon: one new
+finding). Both reviewers independently found the *same* residual gap in round 2's own
+stale-delivery fix, from two different angles — Greptile: a reschedule can land during
+`captureSnapshot`'s own in-flight Raid Helper fetch, after the pre-check passed but
+before the insert commits, so the pre-check alone can't catch it. Archon: a tracking row
+can be stale (not yet reconciled by any discovery poll) rather than concurrently raced,
+and the same pre-check would pass because nothing has changed it *yet*. Traced both
+through by hand and found they're the same underlying flaw wearing two costumes: the
+round-2 guard only validated against the app's *own* bookkeeping (the tracking row),
+which can itself be wrong or become wrong mid-request, never against Raid Helper's
+*actual live data*. Fixed once at the root rather than patching each surface
+symptom separately: `captureSnapshot` gained an optional `validateStartTime` hook that
+runs against the freshly-fetched live `startTime` *after* the network fetch but *before*
+the insert commits, and the capture route now checks the delivery's assumed
+`scheduledForStartTime` against that live value instead of only against the DB row read
+before the slow part. A single fix closing two reviewers' two differently-explained
+findings in one pass is a useful signal in itself: worth checking, when two reports
+sound different, whether they're actually the same root cause before writing two patches.

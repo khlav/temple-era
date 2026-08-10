@@ -71,7 +71,10 @@ export async function POST(request: Request) {
     // redundant Raid Helper fetch) or a genuinely stale one from an earlier generation.
     // Either way there's nothing useful left for this delivery to do.
     const [activeSchedule] = await db
-      .select({ targetTime: raidHelperSignupSnapshotSchedule.targetTime })
+      .select({
+        targetTime: raidHelperSignupSnapshotSchedule.targetTime,
+        scheduledForStartTime: raidHelperSignupSnapshotSchedule.scheduledForStartTime,
+      })
       .from(raidHelperSignupSnapshotSchedule)
       .where(
         and(
@@ -89,7 +92,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ captured: false, stale: true });
     }
 
-    const result = await captureSnapshot(payload);
+    // Second, narrower check against *reality* rather than our own bookkeeping: the
+    // check above only proves this delivery matches our tracking row as of a moment
+    // ago — it can't catch a reschedule landing during captureSnapshot's own (slow,
+    // network-bound) Raid Helper fetch, nor a row that's simply stale because no
+    // discovery poll has reconciled it yet even though it still matched above. Comparing
+    // the *freshly fetched* live startTime against what this delivery's generation was
+    // scheduled under closes both: if Raid Helper's actual current startTime no longer
+    // matches, abort without inserting and leave the tracking row alone — the next
+    // discovery poll will detect the drift (against live data, same as always) and
+    // schedule the correct capture from there.
+    const result = await captureSnapshot({
+      raidHelperEventId: payload.raidHelperEventId,
+      checkpoint: payload.checkpoint,
+      validateStartTime: (liveStartTime) =>
+        liveStartTime.getTime() === activeSchedule.scheduledForStartTime.getTime(),
+    });
+
+    if (result.aborted) {
+      logger.warn(
+        { raidHelperEventId: payload.raidHelperEventId, checkpoint: payload.checkpoint },
+        "Discarding delivery whose assumed start time no longer matches Raid Helper's live data",
+      );
+      return NextResponse.json({ captured: false, stale: true });
+    }
 
     // Clean up the tracking row only on success, and only if it still matches what we
     // just captured for — a narrower version of the same staleness guard, in case the
