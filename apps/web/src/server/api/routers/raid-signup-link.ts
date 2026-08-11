@@ -1,0 +1,168 @@
+import { z } from "zod";
+import { desc, eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
+import { SCOPE } from "~/lib/scopes";
+import { raids, raidSignupSnapshotLinks } from "~/server/db/schema";
+import { getLatestSignupSnapshotsByOccurrence } from "~/server/services/raid-helper-snapshot-queries";
+import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
+
+/**
+ * Review/override surface for TEMPLE-84 raid<->signup-event linkage. Gated on
+ * RAIDPLAN_MANAGE throughout — signup data is only for people involved in raid
+ * planning, not the general RAIDLOG_MANAGE audience.
+ */
+export const raidSignupLinkRouter = createTRPCRouter({
+  list: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(
+      z
+        .object({
+          status: z.enum(["candidate", "confirmed", "rejected"]).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const links = await ctx.db
+        .select({
+          id: raidSignupSnapshotLinks.id,
+          raidId: raidSignupSnapshotLinks.raidId,
+          raidHelperEventId: raidSignupSnapshotLinks.raidHelperEventId,
+          startTime: raidSignupSnapshotLinks.startTime,
+          status: raidSignupSnapshotLinks.status,
+          source: raidSignupSnapshotLinks.source,
+          confidence: raidSignupSnapshotLinks.confidence,
+          matchReason: raidSignupSnapshotLinks.matchReason,
+          reviewedById: raidSignupSnapshotLinks.reviewedById,
+          reviewedAt: raidSignupSnapshotLinks.reviewedAt,
+          createdAt: raidSignupSnapshotLinks.createdAt,
+          raid: {
+            raidId: raids.raidId,
+            name: raids.name,
+            date: raids.date,
+            zone: raids.zone,
+          },
+        })
+        .from(raidSignupSnapshotLinks)
+        .innerJoin(raids, eq(raidSignupSnapshotLinks.raidId, raids.raidId))
+        .where(input?.status ? eq(raidSignupSnapshotLinks.status, input.status) : undefined)
+        .orderBy(desc(raidSignupSnapshotLinks.createdAt));
+
+      const eventIds = [...new Set(links.map((link) => link.raidHelperEventId))];
+      const snapshots = eventIds.length
+        ? await getLatestSignupSnapshotsByOccurrence({ raidHelperEventIds: eventIds })
+        : [];
+      const snapshotByOccurrence = new Map(
+        snapshots.map((snapshot) => [
+          `${snapshot.raidHelperEventId}:${snapshot.startTime.getTime()}`,
+          snapshot,
+        ]),
+      );
+
+      return links.map((link) => ({
+        ...link,
+        snapshot: snapshotByOccurrence.get(`${link.raidHelperEventId}:${link.startTime.getTime()}`),
+      }));
+    }),
+
+  confirm: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ linkId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await ctx.db
+        .update(raidSignupSnapshotLinks)
+        .set({
+          status: "confirmed",
+          reviewedById: ctx.session.user.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(raidSignupSnapshotLinks.id, input.linkId))
+        .returning({ id: raidSignupSnapshotLinks.id });
+
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
+      return updated;
+    }),
+
+  reject: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ linkId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await ctx.db
+        .update(raidSignupSnapshotLinks)
+        .set({
+          status: "rejected",
+          reviewedById: ctx.session.user.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(raidSignupSnapshotLinks.id, input.linkId))
+        .returning({ id: raidSignupSnapshotLinks.id });
+
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
+      return updated;
+    }),
+
+  /**
+   * Manually point a raid at a different occurrence than any auto-generated candidate.
+   * Supersedes (rejects) the raid's existing link rows rather than leaving them
+   * alongside the new one, so "list" doesn't show two live rows for the same raid.
+   */
+  reassign: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(
+      z.object({
+        raidId: z.number().int(),
+        raidHelperEventId: z.string().min(1).max(64),
+        startTime: z.coerce.date(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.transaction(async (tx) => {
+        await tx
+          .update(raidSignupSnapshotLinks)
+          .set({
+            status: "rejected",
+            reviewedById: ctx.session.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(eq(raidSignupSnapshotLinks.raidId, input.raidId));
+
+        const [inserted] = await tx
+          .insert(raidSignupSnapshotLinks)
+          .values({
+            raidId: input.raidId,
+            raidHelperEventId: input.raidHelperEventId,
+            startTime: input.startTime,
+            status: "confirmed",
+            source: "manual",
+            confidence: 1,
+            matchReason: {
+              timingDeltaMinutes: 0,
+              timingScore: 1,
+              zoneScore: 1,
+              zoneMatchQuality: "exact_softres",
+            },
+            reviewedById: ctx.session.user.id,
+            reviewedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [
+              raidSignupSnapshotLinks.raidId,
+              raidSignupSnapshotLinks.raidHelperEventId,
+              raidSignupSnapshotLinks.startTime,
+            ],
+            set: {
+              status: "confirmed",
+              source: "manual",
+              reviewedById: ctx.session.user.id,
+              reviewedAt: new Date(),
+            },
+          })
+          .returning({ id: raidSignupSnapshotLinks.id });
+
+        return inserted;
+      });
+    }),
+
+  /** Re-run auto-matching for one raid, e.g. after a Raid Helper title/zone got fixed. */
+  rerun: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      return generateSignupLinkCandidatesForRaid(input.raidId);
+    }),
+});
