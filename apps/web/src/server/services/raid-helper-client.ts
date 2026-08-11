@@ -25,6 +25,14 @@ export interface RaidHelperEventDetail {
   id: string; // resolved event id, post lastEventId resolution
   startTime: number;
   signUps: RaidHelperSignup[];
+  // Present on the live API response (same fields raid-helper.ts's RaidHelperEventResponse
+  // reads from this same endpoint) but not previously typed/forwarded here. Added for
+  // TEMPLE-84 signup-snapshot zone capture — see raid-helper-snapshot-capture.ts.
+  title?: string;
+  channelName?: string;
+  channelId?: string;
+  softresId?: string;
+  scheduledId?: string;
 }
 
 /**

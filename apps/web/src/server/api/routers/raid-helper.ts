@@ -13,7 +13,7 @@ import {
   primaryRaidAttendeeAndBenchMap,
   trackedRaidsL6LockoutWk,
 } from "~/server/db/schema";
-import { getZoneForInstance, isRaidZoneInstance } from "~/lib/raid-zones";
+import { getZoneForInstance, resolveSoftResZoneId } from "~/lib/raid-zones";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
 import { SCOPE } from "~/lib/scopes";
 import {
@@ -132,19 +132,6 @@ interface RaidHelperEventResponse {
   }>;
   lastUpdated?: number;
   closingTime?: number;
-}
-
-/**
- * Resolve a SoftRes raid's instance identifier to a short zone id (e.g. "bwl", "aq40") -
- * the same ids used as keys in ZONE_ACCENT_CLASSES/INSTANCE_TO_ZONE - falling back through
- * the `instances` array when `instance` itself isn't set or isn't a recognized raid zone.
- */
-function resolveSoftResZoneId(instance: string | null, instances: string[] | undefined) {
-  if (instance && isRaidZoneInstance(instance)) return instance;
-  for (const candidate of instances ?? []) {
-    if (isRaidZoneInstance(candidate)) return candidate;
-  }
-  return null;
 }
 
 interface ScheduledEventSoftResLink {

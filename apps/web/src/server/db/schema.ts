@@ -4,6 +4,7 @@ import * as RaidPlanSchema from "~/server/db/models/raid-plan-schema";
 import * as RecipeSchema from "~/server/db/models/recipe-schema";
 import * as AccessSchema from "~/server/db/models/access-schema";
 import * as RaidHelperSnapshotSchema from "~/server/db/models/raid-helper-snapshot-schema";
+import * as RaidSignupLinkSchema from "~/server/db/models/raid-signup-link-schema";
 import * as ViewsSchema from "~/server/db/models/views-schema";
 
 // NOTE: views-schema is defined but not imported due to Drizzle
@@ -116,6 +117,19 @@ export const {
   snapshotCheckpointEnum,
 } = RaidHelperSnapshotSchema;
 export type { RaidHelperSignupSnapshotEntry } from "~/server/db/models/raid-helper-snapshot-schema";
+
+export const {
+  // Tables
+  raidSignupSnapshotLinks,
+
+  // Relations
+  raidSignupSnapshotLinksRelations,
+
+  // Enums
+  raidSignupLinkStatusEnum,
+  raidSignupLinkSourceEnum,
+} = RaidSignupLinkSchema;
+export type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
 
 export const {
   primaryRaidAttendeeMap,

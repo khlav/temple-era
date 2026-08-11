@@ -92,3 +92,47 @@ export function getZoneForInstance(instance: string): RaidZone | undefined {
 export function isRaidZoneInstance(instance: string): boolean {
   return instance in INSTANCE_TO_ZONE;
 }
+
+/**
+ * Resolve a SoftRes raid's instance identifier to a short zone id (e.g. "bwl", "aq40"),
+ * falling back through the `instances` array when `instance` itself isn't set or isn't a
+ * recognized raid zone. Moved here from raid-helper.ts (TEMPLE-84) so it can also back
+ * signup-snapshot zone resolution (~/server/services/raid-helper-snapshot-capture)
+ * without that service importing from a tRPC router file.
+ */
+export function resolveSoftResZoneId(
+  instance: string | null,
+  instances: string[] | undefined,
+): string | null {
+  if (instance && isRaidZoneInstance(instance)) return instance;
+  for (const candidate of instances ?? []) {
+    if (isRaidZoneInstance(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Best-effort zone guess from free-text Raid Helper event fields (title, channel name),
+ * for when no SoftRes link is available to resolve zone from structured data instead
+ * (see resolveSoftResZoneId — strongly prefer that path when possible). Case-insensitive
+ * substring match against each configured zone's full name; title is checked before
+ * channelName since it's the more deliberately-authored field.
+ *
+ * Deliberately naive: a literal substring match against the full zone name (e.g.
+ * "Zul'Gurub") won't catch common hyphenated/abbreviated channel-naming conventions
+ * (e.g. "#zul-gurub", "#zg-raid"). This is the acknowledged lower-trust fallback tier —
+ * revisit with real title/channel samples once this has run against production data
+ * rather than guessing at conventions up front.
+ */
+export function parseZoneFromEventText(
+  title: string | null | undefined,
+  channelName: string | null | undefined,
+): RaidZone | undefined {
+  for (const text of [title, channelName]) {
+    if (!text) continue;
+    const lowerText = text.toLowerCase();
+    const match = RAID_ZONE_CONFIG.find((zone) => lowerText.includes(zone.name.toLowerCase()));
+    if (match) return match.name;
+  }
+  return undefined;
+}
