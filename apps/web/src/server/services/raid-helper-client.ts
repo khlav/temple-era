@@ -29,6 +29,10 @@ export interface RaidHelperEventDetail {
   // reads from this same endpoint) but not previously typed/forwarded here. Added for
   // TEMPLE-84 signup-snapshot zone capture — see raid-helper-snapshot-capture.ts.
   title?: string;
+  // Raid Helper resolves `title`'s templating placeholders (e.g. "Naxx {eventtime#E
+  // MM/dd}") into this separate field (e.g. "Naxx Tue 08/11") — TEMPLE-86. Prefer this
+  // over `title` when storing a human-readable title.
+  displayTitle?: string;
   channelName?: string;
   channelId?: string;
   softresId?: string;

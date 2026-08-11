@@ -1,5 +1,5 @@
 import { fromZonedTime } from "date-fns-tz";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raids, raidLogs, raidSignupSnapshotLinks } from "~/server/db/schema";
 import type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
@@ -14,9 +14,25 @@ import { logger } from "~/lib/logger";
 const EASTERN_TIMEZONE = "America/New_York";
 
 const MATCH_WINDOW_MS = 12 * 60 * 60 * 1000;
-const AUTO_LINK_CONFIDENCE_THRESHOLD = 0.85;
-const AUTO_LINK_RUNNER_UP_GAP = 0.25;
-const CANDIDATE_MIN_CONFIDENCE = 0.3;
+
+// Timing dominates the score; zone is a bonus only (see scoreZone) — a raid's actual
+// WCL start time closely tracking the Raid Helper event's scheduled start is a strong,
+// reliable signal, whereas zone naming is not: a shared doubleheader occurrence (one
+// Raid Helper event covering e.g. MC + BWL) only ever captures ONE zone name, and
+// SoftRes/title-parsed text won't always line up with raid.zone's exact string even
+// for a genuine single-zone match. Zone can help confirm a good timing match; it must
+// never be able to sink one.
+const TIMING_WEIGHT = 0.8;
+const ZONE_WEIGHT = 0.2;
+
+// Below this, the signal is too weak to assert a link at all (TEMPLE-86 — there's no
+// human review step to catch a bad guess, so the bar for auto-linking is "confident
+// enough to stand alone").
+const MIN_CONFIDENCE_TO_LINK = 0.5;
+
+// If the top two candidates are this close, there's no principled way to prefer one —
+// leave the raid unlinked rather than guess.
+const AMBIGUOUS_GAP = 0.1;
 
 export interface SignupLinkCandidate {
   raidHelperEventId: string;
@@ -34,22 +50,32 @@ function timingScore(deltaMinutes: number): number {
   return 0;
 }
 
+/**
+ * Zone is a bonus-only signal (TEMPLE-86) — an exact match adds confidence, but
+ * anything else (no zone captured, OR a captured zone that doesn't match raid.zone)
+ * scores the same neutral 0.5. Zone names are not reliable enough to treat a mismatch
+ * as evidence of a bad match: a doubleheader's shared Raid Helper event only ever
+ * captures one of its two zones, and even a genuine single-zone night's
+ * SoftRes/title-parsed text won't always come back as the exact same string as
+ * raid.zone. Only "these clearly line up" is trustworthy; "these don't line up" is not
+ * — it's just as likely to mean "wrong zone captured for this raid" as "wrong raid".
+ */
 function scoreZone(
   raidZone: string,
   snapshotZone: string | null,
   snapshotZoneSource: string | null,
 ): { score: number; quality: RaidSignupLinkMatchReason["zoneMatchQuality"] } {
   if (!snapshotZone) return { score: 0.5, quality: "unavailable" };
-  if (snapshotZone !== raidZone) return { score: 0, quality: "mismatch" };
+  if (snapshotZone !== raidZone) return { score: 0.5, quality: "mismatch" };
   return snapshotZoneSource === "softres"
     ? { score: 1.0, quality: "exact_softres" }
-    : { score: 0.75, quality: "exact_title_parse" };
+    : { score: 0.85, quality: "exact_title_parse" };
 }
 
 /**
  * Scores one candidate occurrence against a raid's zone/effective start time.
  * Pure/no I/O — exported separately so thresholds and weighting can be unit-tested
- * without a database. Weights, bands, and window size (TEMPLE-84) are concrete
+ * without a database. Weights, bands, and window size (TEMPLE-84/86) are concrete
  * starting points, not derived from real data — revisit once real raid/snapshot pairs
  * exist to tune against.
  */
@@ -63,7 +89,7 @@ export function scoreSignupLinkCandidate(
   );
   const tScore = timingScore(timingDeltaMinutes);
   const { score: zScore, quality } = scoreZone(raidZone, snapshot.zone, snapshot.zoneSource);
-  const confidence = 0.6 * tScore + 0.4 * zScore;
+  const confidence = TIMING_WEIGHT * tScore + ZONE_WEIGHT * zScore;
 
   return {
     raidHelperEventId: snapshot.raidHelperEventId,
@@ -81,8 +107,7 @@ export function scoreSignupLinkCandidate(
 /**
  * Earliest known start time for a raid: the min startTimeUTC across its raid_logs, or
  * (rare — a raid with no WCL import yet) noon Eastern on raid.date as a deliberately
- * low-precision fallback. The wide matching window absorbs that imprecision — worst
- * case it drops a real match into "needs review," it never produces a wrong auto-link.
+ * low-precision fallback. The wide matching window absorbs that imprecision.
  */
 async function getEffectiveRaidStart(raidId: number, raidDate: string): Promise<Date> {
   const logs = await db
@@ -100,22 +125,33 @@ async function getEffectiveRaidStart(raidId: number, raidDate: string): Promise<
   return fromZonedTime(`${raidDate}T12:00:00`, EASTERN_TIMEZONE);
 }
 
+export type SignupLinkOutcome = "linked" | "no_match" | "ambiguous";
+
 /**
- * Generates (and, if unambiguous, auto-confirms) raid<->signup-event linkage
- * candidates for one raid (TEMPLE-84). Best-effort by design — see
- * runPostRaidCreationSignupLinking, the caller both raid-insert paths use, which
- * swallows errors from this so a matching failure can never fail raid creation.
+ * Auto-links a raid to its best-matching Raid Helper signup occurrence (TEMPLE-84/86).
+ * There is no review/candidate state — this either writes the link directly or writes
+ * nothing:
+ *
+ * - No occurrence in the matching window at all -> "no_match".
+ * - Top candidate below MIN_CONFIDENCE_TO_LINK -> "no_match". Too weak to assert alone
+ *   with no human checking it.
+ * - Top two candidates within AMBIGUOUS_GAP of each other (and both otherwise
+ *   link-worthy) -> "ambiguous". No principled way to prefer one; leave it unlinked
+ *   rather than guess.
+ * - Otherwise -> "linked". Upserts on raidId (unique — at most one link per raid), so
+ *   this is safe to call again (e.g. via the `rerun` mutation after a Raid Helper
+ *   title/zone gets fixed) and will happily overwrite a prior manual link, same as any
+ *   other explicit human-triggered rerun.
  */
-export async function generateSignupLinkCandidatesForRaid(raidId: number): Promise<{
-  outcome: "auto_linked" | "candidates_created" | "no_candidates" | "already_confirmed";
-  count: number;
-}> {
+export async function generateSignupLinkCandidatesForRaid(
+  raidId: number,
+): Promise<{ outcome: SignupLinkOutcome; confidence?: number }> {
   const raidRows = await db
     .select({ raidId: raids.raidId, zone: raids.zone, date: raids.date })
     .from(raids)
     .where(eq(raids.raidId, raidId));
   const raid = raidRows[0];
-  if (!raid) return { outcome: "no_candidates", count: 0 };
+  if (!raid) return { outcome: "no_match" };
 
   const effectiveRaidStart = await getEffectiveRaidStart(raidId, raid.date);
 
@@ -128,95 +164,41 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
     .map((occurrence) => scoreSignupLinkCandidate(raid.zone, effectiveRaidStart, occurrence))
     .sort((a, b) => b.confidence - a.confidence);
 
-  const [top, runnerUp] = candidates;
-  const isUnambiguousAutoLink =
-    candidates.length > 0 &&
-    top!.confidence >= AUTO_LINK_CONFIDENCE_THRESHOLD &&
-    (!runnerUp || top!.confidence - runnerUp.confidence >= AUTO_LINK_RUNNER_UP_GAP);
+  const top = candidates[0];
+  if (!top) return { outcome: "no_match" };
+  if (top.confidence < MIN_CONFIDENCE_TO_LINK) return { outcome: "no_match" };
 
-  const toInsert = isUnambiguousAutoLink
-    ? [top!]
-    : candidates.filter((c) => c.confidence >= CANDIDATE_MIN_CONFIDENCE);
+  const runnerUp = candidates[1];
+  if (
+    runnerUp &&
+    runnerUp.confidence >= MIN_CONFIDENCE_TO_LINK &&
+    top.confidence - runnerUp.confidence < AMBIGUOUS_GAP
+  ) {
+    return { outcome: "ambiguous" };
+  }
 
-  // The confirmed-check, stale-candidate cleanup, and write all run inside one
-  // transaction — including the toInsert.length === 0 case below, which still needs the
-  // cleanup step even though it inserts nothing (a rerun that no longer finds ANY
-  // qualifying candidate must still retire the raid's previous candidates, or they'd be
-  // left sitting in the review queue forever). The confirmed-check narrows, but does not
-  // eliminate, a concurrent-confirmation race — Greptile flagged this on TEMPLE-84's
-  // review. A hard DB-level guarantee would need a partial unique index on (raid_id)
-  // WHERE status = 'confirmed'; deliberately not adding one for a RAIDPLAN_MANAGE-gated
-  // single-guild admin tool where two managers actioning the exact same raid within
-  // milliseconds of each other is a negligible risk, and the worst case (a duplicate
-  // confirmed row) is trivially fixable via reject, not data loss.
-  return db.transaction(async (tx) => {
-    const existingConfirmed = await tx
-      .select({ id: raidSignupSnapshotLinks.id })
-      .from(raidSignupSnapshotLinks)
-      .where(
-        and(
-          eq(raidSignupSnapshotLinks.raidId, raidId),
-          eq(raidSignupSnapshotLinks.status, "confirmed"),
-        ),
-      )
-      .limit(1);
-    if (existingConfirmed.length > 0) return { outcome: "already_confirmed" as const, count: 0 };
+  await db
+    .insert(raidSignupSnapshotLinks)
+    .values({
+      raidId,
+      raidHelperEventId: top.raidHelperEventId,
+      startTime: top.startTime,
+      source: "auto",
+      confidence: top.confidence,
+      matchReason: top.matchReason,
+    })
+    .onConflictDoUpdate({
+      target: raidSignupSnapshotLinks.raidId,
+      set: {
+        raidHelperEventId: top.raidHelperEventId,
+        startTime: top.startTime,
+        source: "auto",
+        confidence: top.confidence,
+        matchReason: top.matchReason,
+      },
+    });
 
-    // Retire this raid's still-outstanding candidates from any earlier run before
-    // inserting fresh ones (if any) — otherwise a rerun (e.g. after a title/zone got
-    // fixed upstream, or one that no longer finds any qualifying candidate at all)
-    // leaves stale, no-longer-relevant candidates sitting in the review queue.
-    await tx
-      .update(raidSignupSnapshotLinks)
-      .set({ status: "rejected" })
-      .where(
-        and(
-          eq(raidSignupSnapshotLinks.raidId, raidId),
-          eq(raidSignupSnapshotLinks.status, "candidate"),
-        ),
-      );
-
-    if (toInsert.length === 0) return { outcome: "no_candidates" as const, count: 0 };
-
-    // One upsert per candidate (never more than a handful) rather than a single batch
-    // insert: onConflictDoUpdate's `set` needs each conflicting row updated to ITS OWN
-    // candidate's values, and a row here can legitimately already exist — e.g. the reject
-    // above just touched this exact occurrence, or a rerun's top candidate is unchanged
-    // from a prior run — so onConflictDoNothing would wrongly leave a just-rejected row
-    // rejected instead of refreshing it to the new result.
-    for (const candidate of toInsert) {
-      const status = isUnambiguousAutoLink ? ("confirmed" as const) : ("candidate" as const);
-      await tx
-        .insert(raidSignupSnapshotLinks)
-        .values({
-          raidId,
-          raidHelperEventId: candidate.raidHelperEventId,
-          startTime: candidate.startTime,
-          status,
-          source: "auto",
-          confidence: candidate.confidence,
-          matchReason: candidate.matchReason,
-        })
-        .onConflictDoUpdate({
-          target: [
-            raidSignupSnapshotLinks.raidId,
-            raidSignupSnapshotLinks.raidHelperEventId,
-            raidSignupSnapshotLinks.startTime,
-          ],
-          set: {
-            status,
-            source: "auto",
-            confidence: candidate.confidence,
-            matchReason: candidate.matchReason,
-          },
-        });
-    }
-
-    return {
-      outcome: isUnambiguousAutoLink ? ("auto_linked" as const) : ("candidates_created" as const),
-      count: toInsert.length,
-    };
-  });
+  return { outcome: "linked", confidence: top.confidence };
 }
 
 /**

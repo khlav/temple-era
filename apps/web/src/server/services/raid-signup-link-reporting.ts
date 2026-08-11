@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raidSignupSnapshotLinks } from "~/server/db/schema";
 import type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
@@ -14,7 +14,6 @@ function occurrenceKey(raidHelperEventId: string, startTime: Date): string {
 
 export interface SignupSnapshotForRaid {
   linkId: string;
-  status: "candidate" | "confirmed" | "rejected";
   source: "auto" | "manual";
   confidence: number;
   matchReason: RaidSignupLinkMatchReason;
@@ -24,12 +23,12 @@ export interface SignupSnapshotForRaid {
 }
 
 /**
- * Single-raid signup detail (TEMPLE-84 reporting). Only the raid's confirmed link, if
- * any — a "candidate" isn't a real answer yet, and a raid keeps at most one confirmed
- * link at a time (see raid-signup-link.ts's confirm/reassign mutations). Not safe to
- * sum across raids: two raids can point at the same occurrence (doubleheaders), so
- * summing per-raid results here double-counts that occurrence's signups. Use
- * getSignupOccurrenceMetrics for anything additive across multiple raids.
+ * Single-raid signup detail (TEMPLE-84/86 reporting). There is at most one row per raid
+ * (raidId is unique — see raid-signup-link-schema.ts), so this is a plain lookup, not a
+ * status filter. Not safe to sum across raids: two raids can point at the same
+ * occurrence (doubleheaders), so summing per-raid results here double-counts that
+ * occurrence's signups. Use getSignupOccurrenceMetrics for anything additive across
+ * multiple raids.
  */
 export async function getSignupSnapshotForRaid(
   raidId: number,
@@ -37,7 +36,6 @@ export async function getSignupSnapshotForRaid(
   const [link] = await db
     .select({
       linkId: raidSignupSnapshotLinks.id,
-      status: raidSignupSnapshotLinks.status,
       source: raidSignupSnapshotLinks.source,
       confidence: raidSignupSnapshotLinks.confidence,
       matchReason: raidSignupSnapshotLinks.matchReason,
@@ -45,12 +43,7 @@ export async function getSignupSnapshotForRaid(
       startTime: raidSignupSnapshotLinks.startTime,
     })
     .from(raidSignupSnapshotLinks)
-    .where(
-      and(
-        eq(raidSignupSnapshotLinks.raidId, raidId),
-        eq(raidSignupSnapshotLinks.status, "confirmed"),
-      ),
-    )
+    .where(eq(raidSignupSnapshotLinks.raidId, raidId))
     .limit(1);
 
   if (!link) return undefined;
@@ -76,21 +69,16 @@ export interface SignupOccurrenceMetrics {
 }
 
 /**
- * Occurrence-first signup aggregation (TEMPLE-84) — the anti-duplication mechanism for
- * reporting across multiple raids. Groups confirmed links by (raidHelperEventId,
- * startTime) BEFORE resolving each occurrence's one latest snapshot, so a doubleheader
- * sharing one Raid Helper event is counted once no matter how many raids point at it,
- * not once per raid. `raidIdToOccurrenceKey` lets a caller attribute an occurrence's
- * metric back to each of its raids without re-deriving the grouping.
+ * Occurrence-first signup aggregation (TEMPLE-84/86) — the anti-duplication mechanism
+ * for reporting across multiple raids. Groups links by (raidHelperEventId, startTime)
+ * BEFORE resolving each occurrence's one latest snapshot, so a doubleheader sharing one
+ * Raid Helper event is counted once no matter how many raids point at it, not once per
+ * raid. `raidIdToOccurrenceKey` lets a caller attribute an occurrence's metric back to
+ * each of its raids without re-deriving the grouping.
  */
 export async function getSignupOccurrenceMetrics(
   filter: { raidIds?: number[] } = {},
 ): Promise<SignupOccurrenceMetrics> {
-  const conditions = [
-    eq(raidSignupSnapshotLinks.status, "confirmed"),
-    filter.raidIds?.length ? inArray(raidSignupSnapshotLinks.raidId, filter.raidIds) : undefined,
-  ].filter((c) => c !== undefined);
-
   const links = await db
     .select({
       raidId: raidSignupSnapshotLinks.raidId,
@@ -98,7 +86,9 @@ export async function getSignupOccurrenceMetrics(
       startTime: raidSignupSnapshotLinks.startTime,
     })
     .from(raidSignupSnapshotLinks)
-    .where(and(...conditions));
+    .where(
+      filter.raidIds?.length ? inArray(raidSignupSnapshotLinks.raidId, filter.raidIds) : undefined,
+    );
 
   if (links.length === 0) return { occurrences: [], raidIdToOccurrenceKey: new Map() };
 
