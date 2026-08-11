@@ -128,10 +128,9 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
     .map((occurrence) => scoreSignupLinkCandidate(raid.zone, effectiveRaidStart, occurrence))
     .sort((a, b) => b.confidence - a.confidence);
 
-  if (candidates.length === 0) return { outcome: "no_candidates", count: 0 };
-
   const [top, runnerUp] = candidates;
   const isUnambiguousAutoLink =
+    candidates.length > 0 &&
     top!.confidence >= AUTO_LINK_CONFIDENCE_THRESHOLD &&
     (!runnerUp || top!.confidence - runnerUp.confidence >= AUTO_LINK_RUNNER_UP_GAP);
 
@@ -139,16 +138,17 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
     ? [top!]
     : candidates.filter((c) => c.confidence >= CANDIDATE_MIN_CONFIDENCE);
 
-  if (toInsert.length === 0) return { outcome: "no_candidates", count: 0 };
-
-  // The confirmed-check and the write below run inside one transaction (rather than as
-  // two separate round trips) to narrow the window for a concurrent confirmation to land
-  // in between them — Greptile flagged this on TEMPLE-84's review. Not a hard DB-level
-  // guarantee (that would need a partial unique index on (raid_id) WHERE status =
-  // 'confirmed'); deliberately not adding one for a RAIDPLAN_MANAGE-gated single-guild
-  // admin tool where two managers actioning the exact same raid within milliseconds of
-  // each other is a negligible risk, and the worst case (a duplicate confirmed row) is
-  // trivially fixable via reject, not data loss.
+  // The confirmed-check, stale-candidate cleanup, and write all run inside one
+  // transaction — including the toInsert.length === 0 case below, which still needs the
+  // cleanup step even though it inserts nothing (a rerun that no longer finds ANY
+  // qualifying candidate must still retire the raid's previous candidates, or they'd be
+  // left sitting in the review queue forever). The confirmed-check narrows, but does not
+  // eliminate, a concurrent-confirmation race — Greptile flagged this on TEMPLE-84's
+  // review. A hard DB-level guarantee would need a partial unique index on (raid_id)
+  // WHERE status = 'confirmed'; deliberately not adding one for a RAIDPLAN_MANAGE-gated
+  // single-guild admin tool where two managers actioning the exact same raid within
+  // milliseconds of each other is a negligible risk, and the worst case (a duplicate
+  // confirmed row) is trivially fixable via reject, not data loss.
   return db.transaction(async (tx) => {
     const existingConfirmed = await tx
       .select({ id: raidSignupSnapshotLinks.id })
@@ -163,9 +163,9 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
     if (existingConfirmed.length > 0) return { outcome: "already_confirmed" as const, count: 0 };
 
     // Retire this raid's still-outstanding candidates from any earlier run before
-    // inserting fresh ones — otherwise a rerun (e.g. after a title/zone got fixed
-    // upstream) leaves stale, no-longer-top-scored candidates sitting in the review
-    // queue alongside the new results.
+    // inserting fresh ones (if any) — otherwise a rerun (e.g. after a title/zone got
+    // fixed upstream, or one that no longer finds any qualifying candidate at all)
+    // leaves stale, no-longer-relevant candidates sitting in the review queue.
     await tx
       .update(raidSignupSnapshotLinks)
       .set({ status: "rejected" })
@@ -175,6 +175,8 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
           eq(raidSignupSnapshotLinks.status, "candidate"),
         ),
       );
+
+    if (toInsert.length === 0) return { outcome: "no_candidates" as const, count: 0 };
 
     // One upsert per candidate (never more than a handful) rather than a single batch
     // insert: onConflictDoUpdate's `set` needs each conflicting row updated to ITS OWN
