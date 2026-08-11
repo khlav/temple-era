@@ -50,6 +50,11 @@ export function SignupLinkReviewTable() {
   );
   const [reassignEventId, setReassignEventId] = useState("");
   const [reassignStartTime, setReassignStartTime] = useState("");
+  const parsedReassignStartTime = useMemo(() => {
+    if (!reassignStartTime.trim()) return null;
+    const parsed = new Date(reassignStartTime.trim());
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }, [reassignStartTime]);
 
   const utils = api.useUtils();
   const listQuery = api.raidSignupLink.list.useQuery(
@@ -247,6 +252,9 @@ export function SignupLinkReviewTable() {
                 value={reassignStartTime}
                 onChange={(e) => setReassignStartTime(e.target.value)}
               />
+              {reassignStartTime.trim() && !parsedReassignStartTime ? (
+                <p className="text-xs text-destructive">Not a valid date/time.</p>
+              ) : null}
             </div>
           </div>
           <DialogFooter>
@@ -257,15 +265,15 @@ export function SignupLinkReviewTable() {
               disabled={
                 !reassignTarget ||
                 !reassignEventId.trim() ||
-                !reassignStartTime.trim() ||
+                !parsedReassignStartTime ||
                 reassignMutation.isPending
               }
               onClick={() => {
-                if (!reassignTarget) return;
+                if (!reassignTarget || !parsedReassignStartTime) return;
                 reassignMutation.mutate({
                   raidId: reassignTarget.raidId,
                   raidHelperEventId: reassignEventId.trim(),
-                  startTime: new Date(reassignStartTime.trim()),
+                  startTime: parsedReassignStartTime,
                 });
               }}
             >

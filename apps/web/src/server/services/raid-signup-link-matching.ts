@@ -1,5 +1,5 @@
 import { fromZonedTime } from "date-fns-tz";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raids, raidLogs, raidSignupSnapshotLinks } from "~/server/db/schema";
 import type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
@@ -106,15 +106,31 @@ async function getEffectiveRaidStart(raidId: number, raidDate: string): Promise<
  * runPostRaidCreationSignupLinking, the caller both raid-insert paths use, which
  * swallows errors from this so a matching failure can never fail raid creation.
  */
-export async function generateSignupLinkCandidatesForRaid(
-  raidId: number,
-): Promise<{ outcome: "auto_linked" | "candidates_created" | "no_candidates"; count: number }> {
+export async function generateSignupLinkCandidatesForRaid(raidId: number): Promise<{
+  outcome: "auto_linked" | "candidates_created" | "no_candidates" | "already_confirmed";
+  count: number;
+}> {
   const raidRows = await db
     .select({ raidId: raids.raidId, zone: raids.zone, date: raids.date })
     .from(raids)
     .where(eq(raids.raidId, raidId));
   const raid = raidRows[0];
   if (!raid) return { outcome: "no_candidates", count: 0 };
+
+  // A raid already has a definitive linkage — running the matcher again (e.g. a manual
+  // "rerun" after confirming) must not insert a competing live row alongside it. Confirm
+  // via reassign instead, which explicitly supersedes the existing link.
+  const existingConfirmed = await db
+    .select({ id: raidSignupSnapshotLinks.id })
+    .from(raidSignupSnapshotLinks)
+    .where(
+      and(
+        eq(raidSignupSnapshotLinks.raidId, raidId),
+        eq(raidSignupSnapshotLinks.status, "confirmed"),
+      ),
+    )
+    .limit(1);
+  if (existingConfirmed.length > 0) return { outcome: "already_confirmed", count: 0 };
 
   const effectiveRaidStart = await getEffectiveRaidStart(raidId, raid.date);
 

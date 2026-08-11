@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
 import { SCOPE } from "~/lib/scopes";
@@ -67,18 +67,39 @@ export const raidSignupLinkRouter = createTRPCRouter({
   confirm: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ linkId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db
-        .update(raidSignupSnapshotLinks)
-        .set({
-          status: "confirmed",
-          reviewedById: ctx.session.user.id,
-          reviewedAt: new Date(),
-        })
-        .where(eq(raidSignupSnapshotLinks.id, input.linkId))
-        .returning({ id: raidSignupSnapshotLinks.id });
+      return ctx.db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(raidSignupSnapshotLinks)
+          .set({
+            status: "confirmed",
+            reviewedById: ctx.session.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(eq(raidSignupSnapshotLinks.id, input.linkId))
+          .returning({ id: raidSignupSnapshotLinks.id, raidId: raidSignupSnapshotLinks.raidId });
 
-      if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
-      return updated;
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
+
+        // Confirming one link supersedes any other still-live row for the same raid —
+        // otherwise a raid with multiple auto-generated candidates keeps showing the
+        // others as "needs review" after one is confirmed, with no single definitive link.
+        await tx
+          .update(raidSignupSnapshotLinks)
+          .set({
+            status: "rejected",
+            reviewedById: ctx.session.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(raidSignupSnapshotLinks.raidId, updated.raidId),
+              ne(raidSignupSnapshotLinks.id, updated.id),
+              ne(raidSignupSnapshotLinks.status, "rejected"),
+            ),
+          );
+
+        return updated;
+      });
     }),
 
   reject: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
@@ -112,6 +133,19 @@ export const raidSignupLinkRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // A manual reassignment always means exact-confidence agreement by definition —
+      // there is no "score" to a human's explicit choice. Applied on both insert and
+      // (below) the conflict-update path, so a manual reassignment onto an occurrence
+      // that already had an auto-generated candidate/rejected row never leaves that
+      // row's stale auto confidence/matchReason displayed as if it described the
+      // manual choice.
+      const manualMatchReason = {
+        timingDeltaMinutes: 0,
+        timingScore: 1,
+        zoneScore: 1,
+        zoneMatchQuality: "exact_softres" as const,
+      };
+
       return ctx.db.transaction(async (tx) => {
         await tx
           .update(raidSignupSnapshotLinks)
@@ -131,12 +165,7 @@ export const raidSignupLinkRouter = createTRPCRouter({
             status: "confirmed",
             source: "manual",
             confidence: 1,
-            matchReason: {
-              timingDeltaMinutes: 0,
-              timingScore: 1,
-              zoneScore: 1,
-              zoneMatchQuality: "exact_softres",
-            },
+            matchReason: manualMatchReason,
             reviewedById: ctx.session.user.id,
             reviewedAt: new Date(),
           })
@@ -149,6 +178,8 @@ export const raidSignupLinkRouter = createTRPCRouter({
             set: {
               status: "confirmed",
               source: "manual",
+              confidence: 1,
+              matchReason: manualMatchReason,
               reviewedById: ctx.session.user.id,
               reviewedAt: new Date(),
             },
