@@ -1,4 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// scoreSignupLinkCandidate is pure and never touches the DB, but the module it lives in
+// also exports DB-backed functions, so importing it at all pulls in ~/server/db -> ~/env.js
+// -> real env validation. CI's Test step runs without SKIP_ENV_VALIDATION (only the Build
+// step sets it — see .github/workflows/ci.yml), so that validation fails there with no env
+// vars set. Mock the module away rather than touching CI config for a test that doesn't
+// need a real database.
+vi.mock("~/server/db", () => ({ db: {} }));
+
 import { scoreSignupLinkCandidate } from "~/server/services/raid-signup-link-matching";
 import type { LatestSignupSnapshot } from "~/server/services/raid-helper-snapshot-queries";
 
