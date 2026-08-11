@@ -7,14 +7,20 @@ export function RaidDetail({
   raidId: _raidId,
   raidData,
   showEditButton,
+  canViewSignupLink,
 }: {
   raidId: number;
   raidData: Raid;
   showEditButton?: boolean;
+  canViewSignupLink?: boolean;
 }) {
   return (
     <div>
-      <RaidDetailBase raidData={raidData} showEditButton={showEditButton} />
+      <RaidDetailBase
+        raidData={raidData}
+        showEditButton={showEditButton}
+        canViewSignupLink={canViewSignupLink}
+      />
     </div>
   );
 }

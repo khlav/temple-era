@@ -9,6 +9,7 @@ import {
   getLatestSignupSnapshotsByOccurrence,
 } from "~/server/services/raid-helper-snapshot-queries";
 import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
+import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
 
 /**
  * Review/override surface for TEMPLE-84 raid<->signup-event linkage. Gated on
@@ -214,5 +215,12 @@ export const raidSignupLinkRouter = createTRPCRouter({
     .input(z.object({ raidId: z.number().int() }))
     .mutation(async ({ input }) => {
       return generateSignupLinkCandidatesForRaid(input.raidId);
+    }),
+
+  /** This raid's confirmed signup link (if any) plus its latest snapshot, for display. */
+  forRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ input }) => {
+      return getSignupSnapshotForRaid(input.raidId);
     }),
 });
