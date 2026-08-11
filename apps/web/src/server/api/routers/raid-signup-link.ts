@@ -4,7 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
 import { SCOPE } from "~/lib/scopes";
 import { raids, raidSignupSnapshotLinks } from "~/server/db/schema";
-import { getLatestSignupSnapshotsByOccurrence } from "~/server/services/raid-helper-snapshot-queries";
+import {
+  getLatestSignupSnapshotForOccurrence,
+  getLatestSignupSnapshotsByOccurrence,
+} from "~/server/services/raid-helper-snapshot-queries";
 import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
 
 /**
@@ -133,6 +136,22 @@ export const raidSignupLinkRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Reject a typo'd event id/timestamp before it becomes a confirmed link with
+      // nothing behind it — Archon flagged that an invalid target here would also
+      // permanently block the raid from ever being matched again, since
+      // generateSignupLinkCandidatesForRaid short-circuits once a raid has a confirmed
+      // link.
+      const targetSnapshot = await getLatestSignupSnapshotForOccurrence(
+        input.raidHelperEventId,
+        input.startTime,
+      );
+      if (!targetSnapshot) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No signup snapshot exists for that Raid Helper event ID and start time.",
+        });
+      }
+
       // A manual reassignment always means exact-confidence agreement by definition —
       // there is no "score" to a human's explicit choice. Applied on both insert and
       // (below) the conflict-update path, so a manual reassignment onto an occurrence

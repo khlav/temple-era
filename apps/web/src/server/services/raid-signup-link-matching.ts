@@ -117,21 +117,6 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
   const raid = raidRows[0];
   if (!raid) return { outcome: "no_candidates", count: 0 };
 
-  // A raid already has a definitive linkage — running the matcher again (e.g. a manual
-  // "rerun" after confirming) must not insert a competing live row alongside it. Confirm
-  // via reassign instead, which explicitly supersedes the existing link.
-  const existingConfirmed = await db
-    .select({ id: raidSignupSnapshotLinks.id })
-    .from(raidSignupSnapshotLinks)
-    .where(
-      and(
-        eq(raidSignupSnapshotLinks.raidId, raidId),
-        eq(raidSignupSnapshotLinks.status, "confirmed"),
-      ),
-    )
-    .limit(1);
-  if (existingConfirmed.length > 0) return { outcome: "already_confirmed", count: 0 };
-
   const effectiveRaidStart = await getEffectiveRaidStart(raidId, raid.date);
 
   const occurrences = await getLatestSignupSnapshotsByOccurrence({
@@ -156,31 +141,80 @@ export async function generateSignupLinkCandidatesForRaid(raidId: number): Promi
 
   if (toInsert.length === 0) return { outcome: "no_candidates", count: 0 };
 
-  await db
-    .insert(raidSignupSnapshotLinks)
-    .values(
-      toInsert.map((candidate) => ({
-        raidId,
-        raidHelperEventId: candidate.raidHelperEventId,
-        startTime: candidate.startTime,
-        status: isUnambiguousAutoLink ? ("confirmed" as const) : ("candidate" as const),
-        source: "auto" as const,
-        confidence: candidate.confidence,
-        matchReason: candidate.matchReason,
-      })),
-    )
-    .onConflictDoNothing({
-      target: [
-        raidSignupSnapshotLinks.raidId,
-        raidSignupSnapshotLinks.raidHelperEventId,
-        raidSignupSnapshotLinks.startTime,
-      ],
-    });
+  // The confirmed-check and the write below run inside one transaction (rather than as
+  // two separate round trips) to narrow the window for a concurrent confirmation to land
+  // in between them — Greptile flagged this on TEMPLE-84's review. Not a hard DB-level
+  // guarantee (that would need a partial unique index on (raid_id) WHERE status =
+  // 'confirmed'); deliberately not adding one for a RAIDPLAN_MANAGE-gated single-guild
+  // admin tool where two managers actioning the exact same raid within milliseconds of
+  // each other is a negligible risk, and the worst case (a duplicate confirmed row) is
+  // trivially fixable via reject, not data loss.
+  return db.transaction(async (tx) => {
+    const existingConfirmed = await tx
+      .select({ id: raidSignupSnapshotLinks.id })
+      .from(raidSignupSnapshotLinks)
+      .where(
+        and(
+          eq(raidSignupSnapshotLinks.raidId, raidId),
+          eq(raidSignupSnapshotLinks.status, "confirmed"),
+        ),
+      )
+      .limit(1);
+    if (existingConfirmed.length > 0) return { outcome: "already_confirmed" as const, count: 0 };
 
-  return {
-    outcome: isUnambiguousAutoLink ? "auto_linked" : "candidates_created",
-    count: toInsert.length,
-  };
+    // Retire this raid's still-outstanding candidates from any earlier run before
+    // inserting fresh ones — otherwise a rerun (e.g. after a title/zone got fixed
+    // upstream) leaves stale, no-longer-top-scored candidates sitting in the review
+    // queue alongside the new results.
+    await tx
+      .update(raidSignupSnapshotLinks)
+      .set({ status: "rejected" })
+      .where(
+        and(
+          eq(raidSignupSnapshotLinks.raidId, raidId),
+          eq(raidSignupSnapshotLinks.status, "candidate"),
+        ),
+      );
+
+    // One upsert per candidate (never more than a handful) rather than a single batch
+    // insert: onConflictDoUpdate's `set` needs each conflicting row updated to ITS OWN
+    // candidate's values, and a row here can legitimately already exist — e.g. the reject
+    // above just touched this exact occurrence, or a rerun's top candidate is unchanged
+    // from a prior run — so onConflictDoNothing would wrongly leave a just-rejected row
+    // rejected instead of refreshing it to the new result.
+    for (const candidate of toInsert) {
+      const status = isUnambiguousAutoLink ? ("confirmed" as const) : ("candidate" as const);
+      await tx
+        .insert(raidSignupSnapshotLinks)
+        .values({
+          raidId,
+          raidHelperEventId: candidate.raidHelperEventId,
+          startTime: candidate.startTime,
+          status,
+          source: "auto",
+          confidence: candidate.confidence,
+          matchReason: candidate.matchReason,
+        })
+        .onConflictDoUpdate({
+          target: [
+            raidSignupSnapshotLinks.raidId,
+            raidSignupSnapshotLinks.raidHelperEventId,
+            raidSignupSnapshotLinks.startTime,
+          ],
+          set: {
+            status,
+            source: "auto",
+            confidence: candidate.confidence,
+            matchReason: candidate.matchReason,
+          },
+        });
+    }
+
+    return {
+      outcome: isUnambiguousAutoLink ? ("auto_linked" as const) : ("candidates_created" as const),
+      count: toInsert.length,
+    };
+  });
 }
 
 /**
