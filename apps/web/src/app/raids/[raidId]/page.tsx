@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { SCOPE } from "~/lib/scopes";
 // import { MetadataDebug } from "~/components/debug/metadata-debug"; // Uncomment to enable debug
 
 // Cache the raid data fetch to avoid duplicate calls between generateMetadata and page component
@@ -53,6 +54,7 @@ async function RaidPageContent({ raidId, session }: { raidId: number; session: S
 
   // Get raid name for breadcrumb from the fetched data
   const raidName = raidData.name;
+  const canViewSignupLink = !!session?.user?.scopes?.includes(SCOPE.RAIDPLAN_MANAGE);
 
   return (
     <>
@@ -60,6 +62,7 @@ async function RaidPageContent({ raidId, session }: { raidId: number; session: S
         raidId={raidId}
         raidData={raidData}
         showEditButton={session?.user?.isRaidManager}
+        canViewSignupLink={canViewSignupLink}
         initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
       />
       {/* <MetadataDebug raidId={raidId} /> Uncomment to enable debug */}

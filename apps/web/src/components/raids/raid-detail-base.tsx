@@ -7,7 +7,7 @@ import { CharactersTable } from "~/components/characters/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
-import { Edit, ExternalLinkIcon, RefreshCw } from "lucide-react";
+import { Edit, ExternalLinkIcon, Link2, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
@@ -18,9 +18,11 @@ import { CharacterSummaryGrid } from "~/components/characters/character-summary-
 export function RaidDetailBase({
   raidData,
   showEditButton,
+  canViewSignupLink,
 }: {
   raidData: Raid;
   showEditButton?: boolean;
+  canViewSignupLink?: boolean;
   isPreview?: boolean;
 }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,6 +33,11 @@ export function RaidDetailBase({
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
       enabled: !!raidData,
     });
+
+  const { data: signupLink } = api.raidSignupLink.forRaid.useQuery(
+    { raidId: raidData.raidId ?? -1 },
+    { enabled: canViewSignupLink && !!raidData.raidId },
+  );
 
   const refreshRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
     onSuccess: async () => {
@@ -73,6 +80,24 @@ export function RaidDetailBase({
             <RaidAttendenceWeightBadge attendanceWeight={raidData.attendanceWeight} />
           </div>
           <div className="md:text-md whitespace-nowrap text-sm">{raidData.zone}</div>
+          {canViewSignupLink && signupLink?.snapshot ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-end gap-1 whitespace-nowrap text-sm text-muted-foreground">
+                    <Link2 className="h-3 w-3" />
+                    {signupLink.snapshot.signUpCount} signed up
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="bg-secondary text-muted-foreground">
+                  <p>Raid Helper: {signupLink.snapshot.title ?? signupLink.raidHelperEventId}</p>
+                  <p className="text-xs">
+                    {signupLink.source === "manual" ? "Manually linked" : "Auto-linked"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
         </div>
         {showEditButton && (
           <div className="grow-0 align-text-top">
