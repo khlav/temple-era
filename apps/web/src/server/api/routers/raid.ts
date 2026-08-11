@@ -6,6 +6,7 @@ import { eq, inArray } from "drizzle-orm";
 import type { db } from "~/server/db";
 import type { Session } from "next-auth";
 import { SCOPE } from "~/lib/scopes";
+import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
 
 type DB = typeof db;
 
@@ -223,6 +224,15 @@ export const raid = createTRPCRouter({
 
         benchDeleteResult = benchDelete ?? undefined;
         benchInsertResult = benchInsert ?? undefined;
+      }
+
+      if (insertedRaidInfo?.raidId) {
+        // Awaited so raid_log.raid_id is actually persisted before matching reads it for
+        // timing — raidLogUpdateResult itself is returned unawaited below, unchanged from
+        // existing behavior. Best-effort: see runPostRaidCreationSignupLinking's own
+        // comment for why this must never fail raid creation.
+        await raidLogUpdateResult;
+        await runPostRaidCreationSignupLinking(insertedRaidInfo.raidId);
       }
 
       return {

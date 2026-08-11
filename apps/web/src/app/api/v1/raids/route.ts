@@ -6,6 +6,7 @@ import { db } from "~/server/db";
 import { raids, raidLogs, raidBenchMap } from "~/server/db/schema";
 import { desc, eq, gte, lte, gt, and, inArray, type SQL } from "drizzle-orm";
 import { SCOPE } from "~/lib/scopes";
+import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
 
 export async function GET(request: Request) {
   try {
@@ -116,6 +117,11 @@ export async function POST(request: Request) {
 
       return newRaid;
     });
+
+    // Templar contract: must not throw and must not alter this response — see
+    // AGENTS.md "Hard constraint: Templar". runPostRaidCreationSignupLinking
+    // swallows its own errors, so this satisfies that by construction.
+    await runPostRaidCreationSignupLinking(result.raidId);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
