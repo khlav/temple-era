@@ -18,7 +18,7 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
  * falls through to text parsing rather than failing the capture.
  */
 async function resolveSnapshotZone(
-  detail: Pick<RaidHelperEventDetail, "title" | "channelName" | "softresId">,
+  detail: Pick<RaidHelperEventDetail, "title" | "displayTitle" | "channelName" | "softresId">,
 ): Promise<{ zone: string | undefined; zoneSource: "softres" | "title_parse" | undefined }> {
   if (detail.softresId) {
     try {
@@ -34,7 +34,7 @@ async function resolveSnapshotZone(
     }
   }
 
-  const zone = parseZoneFromEventText(detail.title, detail.channelName);
+  const zone = parseZoneFromEventText(detail.displayTitle ?? detail.title, detail.channelName);
   return { zone, zoneSource: zone ? "title_parse" : undefined };
 }
 
@@ -103,7 +103,7 @@ export async function captureSnapshot(params: {
         startTime,
         signUpCount: signups.length,
         signups,
-        title: detail.title ?? null,
+        title: detail.displayTitle ?? detail.title ?? null,
         channelName: detail.channelName ?? null,
         channelId: detail.channelId ?? null,
         softresId: detail.softresId ?? null,

@@ -78,8 +78,8 @@ const managerNav = [
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
-    label: "Signup links",
-    href: "/raid-manager/signup-links",
+    label: "Signup History",
+    href: "/raid-manager/signups",
     icon: Link2,
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
 import { SCOPE } from "~/lib/scopes";
@@ -12,122 +12,56 @@ import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-sign
 import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
 
 /**
- * Review/override surface for TEMPLE-84 raid<->signup-event linkage. Gated on
+ * Signup-history surface for TEMPLE-84/86 raid<->signup-event linkage. Gated on
  * RAIDPLAN_MANAGE throughout — signup data is only for people involved in raid
  * planning, not the general RAIDLOG_MANAGE audience.
+ *
+ * There is no review/confirm/reject workflow (TEMPLE-86 dropped it) — matching either
+ * auto-links a raid or leaves it unlinked (see raid-signup-link-matching.ts). `list` is
+ * a plain read of whatever got auto-linked; `reassign` is the only write path, for the
+ * rare case where the auto-match is wrong.
  */
 export const raidSignupLinkRouter = createTRPCRouter({
-  list: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(
-      z
-        .object({
-          status: z.enum(["candidate", "confirmed", "rejected"]).optional(),
-        })
-        .optional(),
-    )
-    .query(async ({ ctx, input }) => {
-      const links = await ctx.db
-        .select({
-          id: raidSignupSnapshotLinks.id,
-          raidId: raidSignupSnapshotLinks.raidId,
-          raidHelperEventId: raidSignupSnapshotLinks.raidHelperEventId,
-          startTime: raidSignupSnapshotLinks.startTime,
-          status: raidSignupSnapshotLinks.status,
-          source: raidSignupSnapshotLinks.source,
-          confidence: raidSignupSnapshotLinks.confidence,
-          matchReason: raidSignupSnapshotLinks.matchReason,
-          reviewedById: raidSignupSnapshotLinks.reviewedById,
-          reviewedAt: raidSignupSnapshotLinks.reviewedAt,
-          createdAt: raidSignupSnapshotLinks.createdAt,
-          raid: {
-            raidId: raids.raidId,
-            name: raids.name,
-            date: raids.date,
-            zone: raids.zone,
-          },
-        })
-        .from(raidSignupSnapshotLinks)
-        .innerJoin(raids, eq(raidSignupSnapshotLinks.raidId, raids.raidId))
-        .where(input?.status ? eq(raidSignupSnapshotLinks.status, input.status) : undefined)
-        .orderBy(desc(raidSignupSnapshotLinks.createdAt));
+  list: scopedProcedure(SCOPE.RAIDPLAN_MANAGE).query(async ({ ctx }) => {
+    const links = await ctx.db
+      .select({
+        id: raidSignupSnapshotLinks.id,
+        raidId: raidSignupSnapshotLinks.raidId,
+        raidHelperEventId: raidSignupSnapshotLinks.raidHelperEventId,
+        startTime: raidSignupSnapshotLinks.startTime,
+        source: raidSignupSnapshotLinks.source,
+        confidence: raidSignupSnapshotLinks.confidence,
+        matchReason: raidSignupSnapshotLinks.matchReason,
+        createdAt: raidSignupSnapshotLinks.createdAt,
+        raid: {
+          raidId: raids.raidId,
+          name: raids.name,
+          date: raids.date,
+          zone: raids.zone,
+        },
+      })
+      .from(raidSignupSnapshotLinks)
+      .innerJoin(raids, eq(raidSignupSnapshotLinks.raidId, raids.raidId))
+      .orderBy(desc(raidSignupSnapshotLinks.createdAt));
 
-      const eventIds = [...new Set(links.map((link) => link.raidHelperEventId))];
-      const snapshots = eventIds.length
-        ? await getLatestSignupSnapshotsByOccurrence({ raidHelperEventIds: eventIds })
-        : [];
-      const snapshotByOccurrence = new Map(
-        snapshots.map((snapshot) => [
-          `${snapshot.raidHelperEventId}:${snapshot.startTime.getTime()}`,
-          snapshot,
-        ]),
-      );
+    const eventIds = [...new Set(links.map((link) => link.raidHelperEventId))];
+    const snapshots = eventIds.length
+      ? await getLatestSignupSnapshotsByOccurrence({ raidHelperEventIds: eventIds })
+      : [];
+    const snapshotByOccurrence = new Map(
+      snapshots.map((snapshot) => [
+        `${snapshot.raidHelperEventId}:${snapshot.startTime.getTime()}`,
+        snapshot,
+      ]),
+    );
 
-      return links.map((link) => ({
-        ...link,
-        snapshot: snapshotByOccurrence.get(`${link.raidHelperEventId}:${link.startTime.getTime()}`),
-      }));
-    }),
+    return links.map((link) => ({
+      ...link,
+      snapshot: snapshotByOccurrence.get(`${link.raidHelperEventId}:${link.startTime.getTime()}`),
+    }));
+  }),
 
-  confirm: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ linkId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(raidSignupSnapshotLinks)
-          .set({
-            status: "confirmed",
-            reviewedById: ctx.session.user.id,
-            reviewedAt: new Date(),
-          })
-          .where(eq(raidSignupSnapshotLinks.id, input.linkId))
-          .returning({ id: raidSignupSnapshotLinks.id, raidId: raidSignupSnapshotLinks.raidId });
-
-        if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
-
-        // Confirming one link supersedes any other still-live row for the same raid —
-        // otherwise a raid with multiple auto-generated candidates keeps showing the
-        // others as "needs review" after one is confirmed, with no single definitive link.
-        await tx
-          .update(raidSignupSnapshotLinks)
-          .set({
-            status: "rejected",
-            reviewedById: ctx.session.user.id,
-            reviewedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(raidSignupSnapshotLinks.raidId, updated.raidId),
-              ne(raidSignupSnapshotLinks.id, updated.id),
-              ne(raidSignupSnapshotLinks.status, "rejected"),
-            ),
-          );
-
-        return updated;
-      });
-    }),
-
-  reject: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ linkId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db
-        .update(raidSignupSnapshotLinks)
-        .set({
-          status: "rejected",
-          reviewedById: ctx.session.user.id,
-          reviewedAt: new Date(),
-        })
-        .where(eq(raidSignupSnapshotLinks.id, input.linkId))
-        .returning({ id: raidSignupSnapshotLinks.id });
-
-      if (!updated) throw new TRPCError({ code: "NOT_FOUND" });
-      return updated;
-    }),
-
-  /**
-   * Manually point a raid at a different occurrence than any auto-generated candidate.
-   * Supersedes (rejects) the raid's existing link rows rather than leaving them
-   * alongside the new one, so "list" doesn't show two live rows for the same raid.
-   */
+  /** Manually point a raid at a different occurrence than what auto-matching picked. */
   reassign: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
@@ -137,11 +71,9 @@ export const raidSignupLinkRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Reject a typo'd event id/timestamp before it becomes a confirmed link with
-      // nothing behind it — Archon flagged that an invalid target here would also
-      // permanently block the raid from ever being matched again, since
-      // generateSignupLinkCandidatesForRaid short-circuits once a raid has a confirmed
-      // link.
+      // Refuse a typo'd event id/timestamp before it becomes a link with nothing behind
+      // it — an invalid target here would also permanently stick, since there's no
+      // confirm step left to catch it.
       const targetSnapshot = await getLatestSignupSnapshotForOccurrence(
         input.raidHelperEventId,
         input.startTime,
@@ -154,11 +86,7 @@ export const raidSignupLinkRouter = createTRPCRouter({
       }
 
       // A manual reassignment always means exact-confidence agreement by definition —
-      // there is no "score" to a human's explicit choice. Applied on both insert and
-      // (below) the conflict-update path, so a manual reassignment onto an occurrence
-      // that already had an auto-generated candidate/rejected row never leaves that
-      // row's stale auto confidence/matchReason displayed as if it described the
-      // manual choice.
+      // there is no "score" to a human's explicit choice.
       const manualMatchReason = {
         timingDeltaMinutes: 0,
         timingScore: 1,
@@ -166,48 +94,30 @@ export const raidSignupLinkRouter = createTRPCRouter({
         zoneMatchQuality: "exact_softres" as const,
       };
 
-      return ctx.db.transaction(async (tx) => {
-        await tx
-          .update(raidSignupSnapshotLinks)
-          .set({
-            status: "rejected",
-            reviewedById: ctx.session.user.id,
-            reviewedAt: new Date(),
-          })
-          .where(eq(raidSignupSnapshotLinks.raidId, input.raidId));
-
-        const [inserted] = await tx
-          .insert(raidSignupSnapshotLinks)
-          .values({
-            raidId: input.raidId,
+      const [upserted] = await ctx.db
+        .insert(raidSignupSnapshotLinks)
+        .values({
+          raidId: input.raidId,
+          raidHelperEventId: input.raidHelperEventId,
+          startTime: input.startTime,
+          source: "manual",
+          confidence: 1,
+          matchReason: manualMatchReason,
+          createdById: ctx.session.user.id,
+        })
+        .onConflictDoUpdate({
+          target: raidSignupSnapshotLinks.raidId,
+          set: {
             raidHelperEventId: input.raidHelperEventId,
             startTime: input.startTime,
-            status: "confirmed",
             source: "manual",
             confidence: 1,
             matchReason: manualMatchReason,
-            reviewedById: ctx.session.user.id,
-            reviewedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: [
-              raidSignupSnapshotLinks.raidId,
-              raidSignupSnapshotLinks.raidHelperEventId,
-              raidSignupSnapshotLinks.startTime,
-            ],
-            set: {
-              status: "confirmed",
-              source: "manual",
-              confidence: 1,
-              matchReason: manualMatchReason,
-              reviewedById: ctx.session.user.id,
-              reviewedAt: new Date(),
-            },
-          })
-          .returning({ id: raidSignupSnapshotLinks.id });
+          },
+        })
+        .returning({ id: raidSignupSnapshotLinks.id });
 
-        return inserted;
-      });
+      return upserted;
     }),
 
   /** Re-run auto-matching for one raid, e.g. after a Raid Helper title/zone got fixed. */
@@ -217,7 +127,7 @@ export const raidSignupLinkRouter = createTRPCRouter({
       return generateSignupLinkCandidatesForRaid(input.raidId);
     }),
 
-  /** This raid's confirmed signup link (if any) plus its latest snapshot, for display. */
+  /** This raid's signup link (if any) plus its latest snapshot, for display. */
   forRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ raidId: z.number().int() }))
     .query(async ({ input }) => {

@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("getSignupSnapshotForRaid", () => {
-  it("returns undefined when the raid has no confirmed link", async () => {
+  it("returns undefined when the raid has no link", async () => {
     mockWhere.mockReturnValue(chainable([]));
 
     const result = await getSignupSnapshotForRaid(1);
@@ -42,13 +42,12 @@ describe("getSignupSnapshotForRaid", () => {
     expect(mockGetLatestSignupSnapshotForOccurrence).not.toHaveBeenCalled();
   });
 
-  it("enriches the confirmed link with its latest snapshot", async () => {
+  it("enriches the raid's link with its latest snapshot", async () => {
     const startTime = new Date("2026-01-20T20:00:00Z");
     mockWhere.mockReturnValue(
       chainable([
         {
           linkId: "link-1",
-          status: "confirmed",
           source: "auto",
           confidence: 0.95,
           matchReason: {
@@ -74,7 +73,7 @@ describe("getSignupSnapshotForRaid", () => {
 });
 
 describe("getSignupOccurrenceMetrics", () => {
-  it("returns nothing and skips the snapshot lookup when no confirmed links exist", async () => {
+  it("returns nothing and skips the snapshot lookup when no links exist", async () => {
     mockWhere.mockReturnValue(Promise.resolve([]));
 
     const result = await getSignupOccurrenceMetrics();

@@ -246,6 +246,13 @@
       "when": 1786404475844,
       "tag": "0034_add-signup-snapshot-zone-and-raid-links",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786417885665,
+      "tag": "0035_temple-86-simplify-signup-link-to-auto-only",
+      "breakpoints": true
     }
   ]
 }

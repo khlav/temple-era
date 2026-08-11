@@ -126,7 +126,6 @@ export const {
   raidSignupSnapshotLinksRelations,
 
   // Enums
-  raidSignupLinkStatusEnum,
   raidSignupLinkSourceEnum,
 } = RaidSignupLinkSchema;
 export type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
