@@ -185,7 +185,6 @@ jobs:
           # review_requested - it silently ignores new commits (synchronize)
           # unless this is explicitly turned on, even though the workflow
           # trigger above already fires on synchronize.
-          github_action_config.pr_commands: '["/review"]'
           github_action_config.handle_push_trigger: "true"
           # Default push_commands is ['/describe', '/review'] - re-running
           # /describe on every push burns a full LLM cycle just to refresh
