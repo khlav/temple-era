@@ -64,14 +64,34 @@ export function RaidDetailBase({
       <div className="flex gap-2 pb-0">
         <div className="grow-0 text-xl font-bold md:text-3xl">
           <div>{raidData.name}</div>
-          <div className="text-nowrap text-sm font-normal text-muted-foreground">
-            {new Date(raidData.date).toLocaleDateString("en-US", {
-              timeZone: "UTC",
-              month: "long",
-              day: "numeric",
-              weekday: "short",
-              year: "numeric",
-            })}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-nowrap text-sm font-normal text-muted-foreground">
+            <span>
+              {new Date(raidData.date).toLocaleDateString("en-US", {
+                timeZone: "UTC",
+                month: "long",
+                day: "numeric",
+                weekday: "short",
+                year: "numeric",
+              })}
+            </span>
+            {canViewSignupLink && signupLink?.snapshot ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1.5">
+                      <Link2 className="h-3 w-3" />
+                      {signupLink.snapshot.signUpCount} signed up
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-secondary text-muted-foreground">
+                    <p>Raid Helper: {signupLink.snapshot.title ?? signupLink.raidHelperEventId}</p>
+                    <p className="text-xs">
+                      {signupLink.source === "manual" ? "Manually linked" : "Auto-linked"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
           </div>
         </div>
         <div className="grow" />
@@ -80,24 +100,6 @@ export function RaidDetailBase({
             <RaidAttendenceWeightBadge attendanceWeight={raidData.attendanceWeight} />
           </div>
           <div className="md:text-md whitespace-nowrap text-sm">{raidData.zone}</div>
-          {canViewSignupLink && signupLink?.snapshot ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center justify-end gap-1 whitespace-nowrap text-sm text-muted-foreground">
-                    <Link2 className="h-3 w-3" />
-                    {signupLink.snapshot.signUpCount} signed up
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent className="bg-secondary text-muted-foreground">
-                  <p>Raid Helper: {signupLink.snapshot.title ?? signupLink.raidHelperEventId}</p>
-                  <p className="text-xs">
-                    {signupLink.source === "manual" ? "Manually linked" : "Auto-linked"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : null}
         </div>
         {showEditButton && (
           <div className="grow-0 align-text-top">
