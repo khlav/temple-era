@@ -14,14 +14,14 @@ let selectResults: unknown[][] = [];
 // statically imports the module under test (as the pre-existing scoreSignupLinkCandidate
 // tests do). vi.hoisted() lifts these alongside the vi.mock calls themselves, ahead of
 // that import, so they're actually initialized in time.
-const { mockSelect, mockInsert, mockValues, mockOnConflictDoUpdate } = vi.hoisted(() => {
+const { mockSelect, mockInsert, mockValues } = vi.hoisted(() => {
   const mockWhere = vi.fn(() => Promise.resolve(selectResults.shift() ?? []));
   const mockFrom = vi.fn(() => ({ where: mockWhere }));
   const mockSelect = vi.fn(() => ({ from: mockFrom }));
   const mockOnConflictDoUpdate = vi.fn(() => Promise.resolve());
   const mockValues = vi.fn(() => ({ onConflictDoUpdate: mockOnConflictDoUpdate }));
   const mockInsert = vi.fn(() => ({ values: mockValues }));
-  return { mockSelect, mockInsert, mockValues, mockOnConflictDoUpdate };
+  return { mockSelect, mockInsert, mockValues };
 });
 
 vi.mock("~/server/db", () => ({
