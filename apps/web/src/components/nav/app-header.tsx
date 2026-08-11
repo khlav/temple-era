@@ -17,6 +17,7 @@ import {
   DraftingCompass,
   FilePlus,
   ListRestart,
+  Link2,
 } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
@@ -74,6 +75,12 @@ const managerNav = [
     label: "Refresh WCL log",
     href: "/raid-manager/log-refresh",
     icon: ListRestart,
+    requiredScope: SCOPE.RAIDPLAN_MANAGE,
+  },
+  {
+    label: "Signup links",
+    href: "/raid-manager/signup-links",
+    icon: Link2,
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   { label: "SoftRes scan", href: "/softres", icon: ScanLine, requiredScope: SCOPE.SOFTRES_ACCESS },

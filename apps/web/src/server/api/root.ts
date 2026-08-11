@@ -13,6 +13,7 @@ import { softres } from "~/server/api/routers/softres";
 import { raidHelperRouter } from "~/server/api/routers/raid-helper";
 import { raidPlanRouter } from "~/server/api/routers/raid-plan";
 import { raidPlanTemplateRouter } from "~/server/api/routers/raid-plan-template";
+import { raidSignupLinkRouter } from "~/server/api/routers/raid-signup-link";
 
 /**
  * This is the primary router for your server.
@@ -34,6 +35,7 @@ export const appRouter = createTRPCRouter({
   raidHelper: raidHelperRouter,
   raidPlan: raidPlanRouter,
   raidPlanTemplate: raidPlanTemplateRouter,
+  raidSignupLink: raidSignupLinkRouter,
 });
 
 // export type definition of API

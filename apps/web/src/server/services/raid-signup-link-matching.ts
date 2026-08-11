@@ -1,5 +1,5 @@
 import { fromZonedTime } from "date-fns-tz";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raids, raidLogs, raidSignupSnapshotLinks } from "~/server/db/schema";
 import type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
@@ -106,9 +106,10 @@ async function getEffectiveRaidStart(raidId: number, raidDate: string): Promise<
  * runPostRaidCreationSignupLinking, the caller both raid-insert paths use, which
  * swallows errors from this so a matching failure can never fail raid creation.
  */
-export async function generateSignupLinkCandidatesForRaid(
-  raidId: number,
-): Promise<{ outcome: "auto_linked" | "candidates_created" | "no_candidates"; count: number }> {
+export async function generateSignupLinkCandidatesForRaid(raidId: number): Promise<{
+  outcome: "auto_linked" | "candidates_created" | "no_candidates" | "already_confirmed";
+  count: number;
+}> {
   const raidRows = await db
     .select({ raidId: raids.raidId, zone: raids.zone, date: raids.date })
     .from(raids)
@@ -127,10 +128,9 @@ export async function generateSignupLinkCandidatesForRaid(
     .map((occurrence) => scoreSignupLinkCandidate(raid.zone, effectiveRaidStart, occurrence))
     .sort((a, b) => b.confidence - a.confidence);
 
-  if (candidates.length === 0) return { outcome: "no_candidates", count: 0 };
-
   const [top, runnerUp] = candidates;
   const isUnambiguousAutoLink =
+    candidates.length > 0 &&
     top!.confidence >= AUTO_LINK_CONFIDENCE_THRESHOLD &&
     (!runnerUp || top!.confidence - runnerUp.confidence >= AUTO_LINK_RUNNER_UP_GAP);
 
@@ -138,33 +138,85 @@ export async function generateSignupLinkCandidatesForRaid(
     ? [top!]
     : candidates.filter((c) => c.confidence >= CANDIDATE_MIN_CONFIDENCE);
 
-  if (toInsert.length === 0) return { outcome: "no_candidates", count: 0 };
+  // The confirmed-check, stale-candidate cleanup, and write all run inside one
+  // transaction — including the toInsert.length === 0 case below, which still needs the
+  // cleanup step even though it inserts nothing (a rerun that no longer finds ANY
+  // qualifying candidate must still retire the raid's previous candidates, or they'd be
+  // left sitting in the review queue forever). The confirmed-check narrows, but does not
+  // eliminate, a concurrent-confirmation race — Greptile flagged this on TEMPLE-84's
+  // review. A hard DB-level guarantee would need a partial unique index on (raid_id)
+  // WHERE status = 'confirmed'; deliberately not adding one for a RAIDPLAN_MANAGE-gated
+  // single-guild admin tool where two managers actioning the exact same raid within
+  // milliseconds of each other is a negligible risk, and the worst case (a duplicate
+  // confirmed row) is trivially fixable via reject, not data loss.
+  return db.transaction(async (tx) => {
+    const existingConfirmed = await tx
+      .select({ id: raidSignupSnapshotLinks.id })
+      .from(raidSignupSnapshotLinks)
+      .where(
+        and(
+          eq(raidSignupSnapshotLinks.raidId, raidId),
+          eq(raidSignupSnapshotLinks.status, "confirmed"),
+        ),
+      )
+      .limit(1);
+    if (existingConfirmed.length > 0) return { outcome: "already_confirmed" as const, count: 0 };
 
-  await db
-    .insert(raidSignupSnapshotLinks)
-    .values(
-      toInsert.map((candidate) => ({
-        raidId,
-        raidHelperEventId: candidate.raidHelperEventId,
-        startTime: candidate.startTime,
-        status: isUnambiguousAutoLink ? ("confirmed" as const) : ("candidate" as const),
-        source: "auto" as const,
-        confidence: candidate.confidence,
-        matchReason: candidate.matchReason,
-      })),
-    )
-    .onConflictDoNothing({
-      target: [
-        raidSignupSnapshotLinks.raidId,
-        raidSignupSnapshotLinks.raidHelperEventId,
-        raidSignupSnapshotLinks.startTime,
-      ],
-    });
+    // Retire this raid's still-outstanding candidates from any earlier run before
+    // inserting fresh ones (if any) — otherwise a rerun (e.g. after a title/zone got
+    // fixed upstream, or one that no longer finds any qualifying candidate at all)
+    // leaves stale, no-longer-relevant candidates sitting in the review queue.
+    await tx
+      .update(raidSignupSnapshotLinks)
+      .set({ status: "rejected" })
+      .where(
+        and(
+          eq(raidSignupSnapshotLinks.raidId, raidId),
+          eq(raidSignupSnapshotLinks.status, "candidate"),
+        ),
+      );
 
-  return {
-    outcome: isUnambiguousAutoLink ? "auto_linked" : "candidates_created",
-    count: toInsert.length,
-  };
+    if (toInsert.length === 0) return { outcome: "no_candidates" as const, count: 0 };
+
+    // One upsert per candidate (never more than a handful) rather than a single batch
+    // insert: onConflictDoUpdate's `set` needs each conflicting row updated to ITS OWN
+    // candidate's values, and a row here can legitimately already exist — e.g. the reject
+    // above just touched this exact occurrence, or a rerun's top candidate is unchanged
+    // from a prior run — so onConflictDoNothing would wrongly leave a just-rejected row
+    // rejected instead of refreshing it to the new result.
+    for (const candidate of toInsert) {
+      const status = isUnambiguousAutoLink ? ("confirmed" as const) : ("candidate" as const);
+      await tx
+        .insert(raidSignupSnapshotLinks)
+        .values({
+          raidId,
+          raidHelperEventId: candidate.raidHelperEventId,
+          startTime: candidate.startTime,
+          status,
+          source: "auto",
+          confidence: candidate.confidence,
+          matchReason: candidate.matchReason,
+        })
+        .onConflictDoUpdate({
+          target: [
+            raidSignupSnapshotLinks.raidId,
+            raidSignupSnapshotLinks.raidHelperEventId,
+            raidSignupSnapshotLinks.startTime,
+          ],
+          set: {
+            status,
+            source: "auto",
+            confidence: candidate.confidence,
+            matchReason: candidate.matchReason,
+          },
+        });
+    }
+
+    return {
+      outcome: isUnambiguousAutoLink ? ("auto_linked" as const) : ("candidates_created" as const),
+      count: toInsert.length,
+    };
+  });
 }
 
 /**
