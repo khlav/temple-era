@@ -38,7 +38,14 @@ function toTRPCError(error: unknown): never {
 }
 
 export const worldBuffRouter = createTRPCRouter({
-  getAll: publicProcedure.query(() => getMatrix()),
+  // `assignments` on a dropped row is exactly what `listPastAssignments` (manager-only) exists
+  // to gate — an active row's assignments are already public via `listActiveAssignments`, so
+  // only those are safe to leave attached here. Stripping them for dropped rows closes that
+  // leak without touching the shape callers that only care about active rows depend on.
+  getAll: publicProcedure.query(async () => {
+    const rows = await getMatrix();
+    return rows.map((row) => (row.state === "ready_to_drop" ? row : { ...row, assignments: [] }));
+  }),
 
   listActiveAssignments: publicProcedure.query(() => listActiveAssignments()),
 
@@ -62,7 +69,11 @@ export const worldBuffRouter = createTRPCRouter({
       }
     }),
 
-  updateQueueType: protectedProcedure
+  // Unlike submitAvailability (open self-service upsert of your own submission), re-tagging
+  // someone's queue placement after the fact is a raid-lead call — the UI only ever exposes
+  // this via the manager-only QueueTypeMenu, so the server should enforce that too rather than
+  // leaving it reachable by any authenticated session.
+  updateQueueType: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
     .input(z.object({ statusId: z.string().uuid(), queueType: worldBuffQueueTypeSchema }))
     .mutation(async ({ ctx, input }) => {
       try {
@@ -72,7 +83,7 @@ export const worldBuffRouter = createTRPCRouter({
       }
     }),
 
-  updateNotes: protectedProcedure
+  updateNotes: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
     .input(z.object({ statusId: z.string().uuid(), notes: z.string().max(2000).nullable() }))
     .mutation(async ({ ctx, input }) => {
       try {

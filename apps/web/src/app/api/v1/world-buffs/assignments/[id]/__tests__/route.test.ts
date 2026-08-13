@@ -7,6 +7,12 @@ vi.mock("~/server/api/v1-auth", () => ({
   validateApiToken: (...args: unknown[]) => mockValidateApiToken(...args),
 }));
 
+// vi.importActual below loads the real service module for its non-mocked exports
+// (WorldBuffServiceError), which transitively imports `~/server/db` — and that module
+// runs real env validation at import time. Stub it out so the import doesn't fail in CI,
+// which (unlike local dev) runs `test` without SKIP_ENV_VALIDATION set.
+vi.mock("~/server/db", () => ({ db: {} }));
+
 const mockUpdateAssignment = vi.fn();
 const mockDeleteAssignment = vi.fn();
 const mockGetAssignmentById = vi.fn();
