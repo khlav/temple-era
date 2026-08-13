@@ -499,3 +499,33 @@ before trusting it's already covered, rather than assuming three fixes exhausted
 pattern. Round 8 was reached because this session's user explicitly raised the round cap
 from 5 to 8 mid-loop — without that, rounds 7 and 8's genuine, distinct findings would
 have gone unfixed under the original cap.
+
+### PR #84 — `feat(world-buffs): add world-buff quest turn-in tracking` (TEMPLE-87)
+Greptile never produced a check-run across two rounds (label was applied, PR wasn't a
+draft) — treated as unavailable both times per the grace-window rule, not as a failed
+review. Archon: no score line, two rounds, both **confirmed real**: `getAll` (public
+tRPC procedure) returned every status row's full `assignments` relation unfiltered,
+leaking completed/dropped turn-in schedules that `listPastAssignments` exists
+specifically to gate behind `worldbuff:manage`; and `updateQueueType`/`updateNotes` were
+`protectedProcedure` (any authenticated session) despite being manager-only in practice —
+the UI only ever calls `updateQueueType` from the manager-gated re-tag menu, and
+`updateNotes` had no caller at all. Both fixed: `getAll` now strips `assignments` for
+rows whose status is `dropped` (kept for `ready_to_drop` rows, since that data is already
+public via `listActiveAssignments` — this also preserved a same-PR feature that reads
+`row.assignments` to color a queue-list icon), and both mutations moved to
+`scopedProcedure(SCOPE.WORLDBUFF_MANAGE)`.
+
+**Stale-comment gotcha worth flagging for future rounds**: Archon's "Code Suggestions"
+comment kept its round-1 diff (tagged to the pre-fix commit) verbatim into round 2,
+re-showing the two already-fixed suggestions as if still open — while the separate
+"Reviewer Guide" comment *did* refresh (tagged to the fix commit) and correctly dropped
+both from its findings. The two comments update independently; take the Reviewer Guide's
+commit tag as the freshness signal, not the Code Suggestions comment, and verify against
+the actual diff before treating a repeated suggestion as unfixed.
+
+**One recurring finding judged not a bug, both rounds**: `submitAvailability`'s open,
+no-ownership-check upsert (any authenticated user can submit for any free-text character
+name, including overwriting an existing submission) is the plan's explicit, documented
+design — mirrors the recipe catalog's shared-roster model, and is required so pre-raid
+recruits with no roster link yet can still submit. Not fixed; reported as a deliberate
+rejection rather than an unresolved finding.

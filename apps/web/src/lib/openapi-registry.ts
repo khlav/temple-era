@@ -1808,6 +1808,261 @@ registry.registerPath({
   },
 });
 
+export const WorldBuffStatusSchema = registry.register(
+  "WorldBuffStatus",
+  z.object({
+    id: z.string().uuid(),
+    characterName: z.string().openapi({ example: "Dunckan" }),
+    characterId: z.number().nullable().openapi({
+      description: "Set only if this name has since matched an ingested raid-log character",
+      example: null,
+    }),
+    item: z
+      .enum(["rends_head", "onyxias_head", "nefarians_head", "hakkars_heart"])
+      .openapi({ example: "rends_head" }),
+    state: z.enum(["ready_to_drop", "dropped"]).openapi({ example: "ready_to_drop" }),
+    queueType: z.enum(["main", "alt", "backup"]).openapi({ example: "main" }),
+    notes: z.string().nullable(),
+    droppedAt: z
+      .string()
+      .nullable()
+      .openapi({ description: "ISO timestamp, set once state is dropped", example: null }),
+    createdAt: z.string().openapi({ description: "ISO timestamp" }),
+    updatedAt: z.string().nullable().openapi({ description: "ISO timestamp" }),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/world-buffs/status",
+  operationId: "listWorldBuffStatus",
+  tags: ["World Buffs"],
+  summary: "List world-buff turn-in status",
+  description:
+    "Every character×item submission: queue type, ready_to_drop/dropped state, and notes. Item and buff are not 1:1 — Onyxia's Head and Nefarian's Head are separate one-time turn-ins that both grant the Dragon buff.",
+  security: [{ BearerToken: [] }],
+  responses: {
+    200: {
+      description: "World buff status rows",
+      content: {
+        "application/json": { schema: z.array(WorldBuffStatusSchema) },
+      },
+    },
+    401: { description: "Invalid or missing API token" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/world-buffs/status",
+  operationId: "submitWorldBuffAvailability",
+  tags: ["World Buffs"],
+  summary: "Submit (create or update) a character's turn-in availability",
+  description:
+    "Create-or-update on (characterName, item) — the API equivalent of the site's self-service submission form, for bulk/bot imports. Requires worldbuff:manage. Never touches state: a resubmission of an already-dropped row only updates queueType/notes. Omitting queueType resets it to main (does not preserve the prior value on resubmission).",
+  security: [{ BearerToken: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            characterName: z.string().min(1).max(128).openapi({ example: "Dunckan" }),
+            characterId: z.number().int().positive().optional().openapi({
+              description: "Set only if this name matches an ingested raid-log character",
+            }),
+            item: z
+              .enum(["rends_head", "onyxias_head", "nefarians_head", "hakkars_heart"])
+              .openapi({ example: "rends_head" }),
+            queueType: z.enum(["main", "alt", "backup"]).default("main").openapi({
+              description: "Defaults to main if omitted",
+              example: "main",
+            }),
+            notes: z.string().max(2000).nullable().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Created or updated status row",
+      content: { "application/json": { schema: WorldBuffStatusSchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope" },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/world-buffs/status/{id}",
+  operationId: "patchWorldBuffStatus",
+  tags: ["World Buffs"],
+  summary: "Set world-buff turn-in state",
+  description:
+    "Flips a character×item submission between ready_to_drop and dropped. Requires worldbuff:manage.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ state: z.enum(["ready_to_drop", "dropped"]) }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated status row",
+      content: { "application/json": { schema: WorldBuffStatusSchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope" },
+    404: { description: "Status row not found" },
+  },
+});
+
+export const WorldBuffAssignmentSchema = registry.register(
+  "WorldBuffAssignment",
+  z.object({
+    id: z.string().uuid(),
+    statusId: z.string().uuid(),
+    scheduledAt: z.string().openapi({ description: "ISO timestamp, always Eastern turn-in time" }),
+    notes: z.string().nullable(),
+    createdAt: z.string().openapi({ description: "ISO timestamp" }),
+    updatedAt: z.string().nullable().openapi({ description: "ISO timestamp" }),
+    status: WorldBuffStatusSchema.omit({ createdAt: true, updatedAt: true }).extend({
+      characterClass: z.string().nullable(),
+      primaryCharacterName: z.string().nullable().openapi({
+        description: "Set only if characterId links to an alt with a linked primary",
+      }),
+    }),
+  }),
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/world-buffs/assignments",
+  operationId: "listWorldBuffAssignments",
+  tags: ["World Buffs"],
+  summary: "List scheduled world-buff turn-ins",
+  description:
+    "Active (still ready_to_drop) assignments are visible to any token holder, mirroring the site's own public scheduled-turn-ins view. Completed (?state=past) assignments require worldbuff:manage.",
+  security: [{ BearerToken: [] }],
+  request: {
+    query: z.object({
+      state: z
+        .enum(["active", "past"])
+        .optional()
+        .openapi({ description: "Defaults to 'active'", example: "active" }),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Scheduled turn-ins",
+      content: { "application/json": { schema: z.array(WorldBuffAssignmentSchema) } },
+    },
+    400: { description: "Invalid state filter" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope (state=past only)" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/world-buffs/assignments",
+  operationId: "createWorldBuffAssignment",
+  tags: ["World Buffs"],
+  summary: "Schedule a world-buff turn-in",
+  description: "Requires worldbuff:manage. The linked status row must not already be dropped.",
+  security: [{ BearerToken: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            statusId: z.string().uuid(),
+            scheduledAt: z.string().openapi({ example: "2026-08-18T23:00:00.000Z" }),
+            notes: z.string().nullable().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Created assignment",
+      content: { "application/json": { schema: WorldBuffAssignmentSchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope" },
+    404: { description: "Status row not found" },
+    409: { description: "Status row is already dropped" },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/world-buffs/assignments/{id}",
+  operationId: "patchWorldBuffAssignment",
+  tags: ["World Buffs"],
+  summary: "Reschedule or re-link a world-buff turn-in",
+  description: "Requires worldbuff:manage. Partial update — omitted fields are left unchanged.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            statusId: z.string().uuid().optional(),
+            scheduledAt: z.string().optional().openapi({ example: "2026-08-25T23:00:00.000Z" }),
+            notes: z.string().nullable().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated assignment",
+      content: { "application/json": { schema: WorldBuffAssignmentSchema } },
+    },
+    400: { description: "Validation error" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope" },
+    404: { description: "Assignment or re-linked status row not found" },
+    409: { description: "Re-linked status row is already dropped" },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/world-buffs/assignments/{id}",
+  operationId: "deleteWorldBuffAssignment",
+  tags: ["World Buffs"],
+  summary: "Delete a scheduled world-buff turn-in",
+  description: "Requires worldbuff:manage. Hard delete — there is no cancelled/archived state.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description: "Deleted",
+      content: { "application/json": { schema: z.object({ success: z.literal(true) }) } },
+    },
+    400: { description: "Invalid assignment ID" },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing worldbuff:manage scope" },
+    404: { description: "Assignment not found" },
+  },
+});
+
 // ─── Document builder ─────────────────────────────────────────────────────────
 
 export function buildOpenApiSpec() {

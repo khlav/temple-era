@@ -253,6 +253,20 @@
       "when": 1786417885665,
       "tag": "0035_temple-86-simplify-signup-link-to-auto-only",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786591309007,
+      "tag": "0036_temple-87-world-buff-tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1786595099123,
+      "tag": "0037_temple-87-drop-assignment-cancelled-at",
+      "breakpoints": true
     }
   ]
 }

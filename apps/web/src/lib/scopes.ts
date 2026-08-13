@@ -18,6 +18,7 @@ export const SCOPE = {
   TEMPLAR_ACCESS: "templar:access",
   SOFTRES_ACCESS: "softres:access",
   API_TOKEN_ACCESS: "api-token:access",
+  WORLDBUFF_MANAGE: "worldbuff:manage",
 } as const;
 
 export type Scope = (typeof SCOPE)[keyof typeof SCOPE];
@@ -38,6 +39,7 @@ export const SCOPES = [
   SCOPE.TEMPLAR_ACCESS,
   SCOPE.SOFTRES_ACCESS,
   SCOPE.API_TOKEN_ACCESS,
+  SCOPE.WORLDBUFF_MANAGE,
 ] as const;
 
 // Compile-time guard: adding a scope to SCOPE but forgetting to list it in SCOPES (so it would

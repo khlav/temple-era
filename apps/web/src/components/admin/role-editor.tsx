@@ -43,6 +43,8 @@ const SCOPE_DESCRIPTIONS: Record<Scope, string> = {
   [SCOPE.SOFTRES_ACCESS]: "view and manage SoftRes scans.",
   [SCOPE.TEMPLAR_ACCESS]: "opt into the Templar Discord bot proxy.",
   [SCOPE.API_TOKEN_ACCESS]: "generate a personal API token.",
+  [SCOPE.WORLDBUFF_MANAGE]:
+    "mark world-buff turn-ins as dropped, and create/cancel scheduled assignments.",
 };
 
 function RoleFormDialog({
