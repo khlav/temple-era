@@ -5,6 +5,7 @@ import * as RecipeSchema from "~/server/db/models/recipe-schema";
 import * as AccessSchema from "~/server/db/models/access-schema";
 import * as RaidHelperSnapshotSchema from "~/server/db/models/raid-helper-snapshot-schema";
 import * as RaidSignupLinkSchema from "~/server/db/models/raid-signup-link-schema";
+import * as WorldBuffSchema from "~/server/db/models/world-buff-schema";
 import * as ViewsSchema from "~/server/db/models/views-schema";
 
 // NOTE: views-schema is defined but not imported due to Drizzle
@@ -129,6 +130,21 @@ export const {
   raidSignupLinkSourceEnum,
 } = RaidSignupLinkSchema;
 export type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
+
+export const {
+  // Tables
+  worldBuffCharacterStatus,
+  worldBuffAssignments,
+
+  // Relations
+  worldBuffCharacterStatusRelations,
+  worldBuffAssignmentsRelations,
+
+  // Enums
+  worldBuffItemEnum,
+  worldBuffStateEnum,
+  worldBuffQueueTypeEnum,
+} = WorldBuffSchema;
 
 export const {
   primaryRaidAttendeeMap,

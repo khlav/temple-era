@@ -4,7 +4,7 @@
 
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
-const EASTERN_TIMEZONE = "America/New_York";
+export const EASTERN_TIMEZONE = "America/New_York";
 
 /**
  * Gets the current date/time in Eastern Time

@@ -138,7 +138,7 @@ See `src/` for the directory layout — organized by feature under `components/`
   - `adminProcedure` - Legacy; retained only for `recipe.ts` catalog management
 - Permission scopes are defined in `src/lib/scopes.ts` and mirrored by the `scope` Postgres enum.
   Current set: `raidlog:manage`, `raidplan:manage`, `character:manage`, `userpermissions:manage`,
-  `templar:access`, `softres:access`, `api-token:access`
+  `templar:access`, `softres:access`, `api-token:access`, `worldbuff:manage`
 - Scopes are granted via roles (`role`/`user_role` tables); `resolveUserAccess()` in
   `src/server/services/access-service.ts` is the single chokepoint that resolves a user's
   effective scopes and derives the legacy `isRaidManager`/`isAdmin` compatibility booleans
@@ -349,6 +349,13 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `POST /api/v1/raid-templates/:zoneId/groups` - Create encounter group
 - `PUT /api/v1/raid-templates/:zoneId/groups/:groupId` - Rename encounter group
 - `DELETE /api/v1/raid-templates/:zoneId/groups/:groupId` - Delete encounter group
+- `GET /api/v1/world-buffs/status` - List world-buff turn-in status (character×item submissions)
+- `POST /api/v1/world-buffs/status` - Submit (create-or-update) a character's availability for an item; requires `worldbuff:manage` (unlike the site's own open self-service form — this path is for bulk/bot imports on someone else's behalf)
+- `PATCH /api/v1/world-buffs/status/:id` - Set turn-in state (`ready_to_drop`/`dropped`); requires `worldbuff:manage`
+- `GET /api/v1/world-buffs/assignments` - List scheduled turn-ins (`?state=active`, default; `?state=past` requires `worldbuff:manage`, mirroring the tRPC router's own public/gated split)
+- `POST /api/v1/world-buffs/assignments` - Schedule a turn-in; requires `worldbuff:manage`
+- `PATCH /api/v1/world-buffs/assignments/:id` - Reschedule/re-link a turn-in (partial update); requires `worldbuff:manage`
+- `DELETE /api/v1/world-buffs/assignments/:id` - Delete a scheduled turn-in (hard delete, no cancelled state); requires `worldbuff:manage`
 
 ### Admin
 

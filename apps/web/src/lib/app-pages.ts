@@ -17,6 +17,7 @@ import {
   ListRestart,
   ScanLine,
   ShieldCheck,
+  Flame,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export const APP_PAGES: AppPage[] = [
   { name: "Raid Plans", path: "/raid-plans", icon: ClipboardList },
   { name: "Raiding characters", path: "/characters", icon: Users },
   { name: "Rare recipes & crafters", path: "/rare-recipes", icon: BookOpen },
+  { name: "World Buffs", path: "/world-buffs", icon: Flame },
   { name: "Attendance reports", path: "/reports/attendance", icon: BarChart3 },
   {
     name: "Create new raid",
