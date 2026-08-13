@@ -24,6 +24,8 @@ node_modules/
 .claude/settings*
 .superpowers/
 .worktrees/
+.pnpm-vs/
+.scratch/
 
 # OS
 .DS_Store
