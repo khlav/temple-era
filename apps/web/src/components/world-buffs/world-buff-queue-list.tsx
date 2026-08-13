@@ -47,8 +47,6 @@ type StatusRow = RouterOutputs["worldBuff"]["getAll"][number];
 const QUEUE_TYPE_TABS = ["all", "main", "alt", "backup"] as const;
 type QueueTypeTab = (typeof QUEUE_TYPE_TABS)[number];
 
-const QUEUE_TYPE_ORDER: Record<"main" | "alt" | "backup", number> = { main: 0, alt: 1, backup: 2 };
-
 // One icon encodes both queue type and state, rather than a text pill: the queue-type icon/color
 // (green main, blue alt, orange backup) while ready to drop, and the same icon shape grayed out
 // once dropped — so a past drop still reads at a glance as "this was a main/alt/backup", just
@@ -272,12 +270,7 @@ export function WorldBuffQueueList({
     const active = itemRows
       .filter((row) => row.state === "ready_to_drop")
       .filter((row) => queueTypeTab === "all" || row.queueType === queueTypeTab)
-      .sort((a, b) => {
-        if (a.queueType !== b.queueType) {
-          return QUEUE_TYPE_ORDER[a.queueType] - QUEUE_TYPE_ORDER[b.queueType];
-        }
-        return a.characterName.localeCompare(b.characterName);
-      });
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     const past = itemRows
       .filter((row) => row.state === "dropped")
       .sort((a, b) => {
