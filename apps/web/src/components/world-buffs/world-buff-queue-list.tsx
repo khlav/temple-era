@@ -72,24 +72,24 @@ function StatusIndicator({ row }: { row: { state: string; queueType: WorldBuffQu
 
 const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
 
-/** Consolidates an active row's manager actions — mark dropped, schedule, re-tag the queue,
- *  delete — into a single "…" trigger instead of a growing row of icon buttons. `StatusIndicator`
- *  next to it still shows the current queue type at a glance; this only handles changing it.
- *  Owns its own delete-confirmation dialog (rather than nesting an `AlertDialogTrigger` inside a
- *  `DropdownMenuItem`, which closes the menu before the dialog can open) — selecting "Delete"
- *  just flips local state, and the dialog renders as an independent sibling. */
+/** Consolidates an active row's secondary manager actions — mark dropped, re-tag the queue,
+ *  delete — into a single "…" trigger instead of a growing row of icon buttons. Scheduling stays
+ *  a separate, always-visible button next to this one (it's the core action on this screen, not
+ *  worth an extra click to reach). `StatusIndicator` next to both still shows the current queue
+ *  type at a glance; this only handles changing it. Owns its own delete-confirmation dialog
+ *  (rather than nesting an `AlertDialogTrigger` inside a `DropdownMenuItem`, which closes the
+ *  menu before the dialog can open) — selecting "Delete" just flips local state, and the dialog
+ *  renders as an independent sibling. */
 function RowActionsMenu({
   row,
   onSetQueueType,
   onMarkDropped,
-  onSchedule,
   onDelete,
   disabled,
 }: {
   row: StatusRow;
   onSetQueueType: (queueType: WorldBuffQueueType) => void;
   onMarkDropped: () => void;
-  onSchedule: () => void;
   onDelete: () => void;
   disabled: boolean;
 }) {
@@ -106,10 +106,6 @@ function RowActionsMenu({
           <DropdownMenuItem onSelect={onMarkDropped}>
             <Check className="h-4 w-4" />
             Mark as dropped
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onSchedule}>
-            <CalendarClock className="h-4 w-4" />
-            {row.assignments.length > 0 ? "Edit scheduled turn-in" : "Schedule turn-in"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {QUEUE_TYPES.filter((queueType) => queueType !== row.queueType).map((queueType) => {
@@ -385,22 +381,44 @@ export function WorldBuffQueueList({
                       {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
                       <StatusIndicator row={row} />
                       {canManage && (
-                        <RowActionsMenu
-                          row={row}
-                          disabled={
-                            updateQueueType.isPending ||
-                            setState.isPending ||
-                            deleteStatus.isPending
-                          }
-                          onSetQueueType={(queueType) =>
-                            updateQueueType.mutate({ statusId: row.id, queueType })
-                          }
-                          onMarkDropped={() =>
-                            setState.mutate({ statusId: row.id, state: "dropped" })
-                          }
-                          onSchedule={() => openScheduleFor(row.id)}
-                          onDelete={() => deleteStatus.mutate({ statusId: row.id })}
-                        />
+                        <>
+                          <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className={cn(
+                                  "h-6 w-6",
+                                  row.assignments.length > 0 && "text-primary hover:text-primary",
+                                )}
+                                onClick={() => openScheduleFor(row.id)}
+                              >
+                                <CalendarClock className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-secondary text-muted-foreground">
+                              {row.assignments.length > 0
+                                ? "Edit scheduled turn-in"
+                                : "Schedule turn-in"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <RowActionsMenu
+                            row={row}
+                            disabled={
+                              updateQueueType.isPending ||
+                              setState.isPending ||
+                              deleteStatus.isPending
+                            }
+                            onSetQueueType={(queueType) =>
+                              updateQueueType.mutate({ statusId: row.id, queueType })
+                            }
+                            onMarkDropped={() =>
+                              setState.mutate({ statusId: row.id, state: "dropped" })
+                            }
+                            onDelete={() => deleteStatus.mutate({ statusId: row.id })}
+                          />
+                        </>
                       )}
                     </>
                   }
