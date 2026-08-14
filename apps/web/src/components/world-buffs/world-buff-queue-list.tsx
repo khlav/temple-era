@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, CalendarClock, Check, Undo2, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarClock, Check, MoreHorizontal, Undo2, Trash2 } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { Button } from "~/components/ui/button";
@@ -14,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import {
@@ -71,43 +72,86 @@ function StatusIndicator({ row }: { row: { state: string; queueType: WorldBuffQu
 
 const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
 
-/** Manager-only editable version of the queue-type icon — clicking it opens a small menu to
- *  re-tag the submission's queue instead of a separate edit dialog. Only meaningful for still-
- *  active submissions; dropped rows keep the plain read-only `StatusIndicator`. */
-function QueueTypeMenu({
+/** Consolidates an active row's manager actions — mark dropped, schedule, re-tag the queue,
+ *  delete — into a single "…" trigger instead of a growing row of icon buttons. `StatusIndicator`
+ *  next to it still shows the current queue type at a glance; this only handles changing it.
+ *  Owns its own delete-confirmation dialog (rather than nesting an `AlertDialogTrigger` inside a
+ *  `DropdownMenuItem`, which closes the menu before the dialog can open) — selecting "Delete"
+ *  just flips local state, and the dialog renders as an independent sibling. */
+function RowActionsMenu({
   row,
-  onSelect,
+  onSetQueueType,
+  onMarkDropped,
+  onSchedule,
+  onDelete,
   disabled,
 }: {
-  row: { queueType: WorldBuffQueueType };
-  onSelect: (queueType: WorldBuffQueueType) => void;
+  row: StatusRow;
+  onSetQueueType: (queueType: WorldBuffQueueType) => void;
+  onMarkDropped: () => void;
+  onSchedule: () => void;
+  onDelete: () => void;
   disabled: boolean;
 }) {
-  const { Icon, className, label } = QUEUE_TYPE_ICON[row.queueType];
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          aria-label={`List: ${label}. Click to change.`}
-          className="inline-flex rounded-sm disabled:pointer-events-none disabled:opacity-50"
-        >
-          <Icon className={cn("h-4 w-4", className)} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {QUEUE_TYPES.map((queueType) => {
-          const opt = QUEUE_TYPE_ICON[queueType];
-          return (
-            <DropdownMenuItem key={queueType} onSelect={() => onSelect(queueType)}>
-              <opt.Icon className={cn("h-4 w-4", opt.className)} />
-              {opt.label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-6 w-6" disabled={disabled}>
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onMarkDropped}>
+            <Check className="h-4 w-4" />
+            Mark as dropped
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onSchedule}>
+            <CalendarClock className="h-4 w-4" />
+            {row.assignments.length > 0 ? "Edit scheduled turn-in" : "Schedule turn-in"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {QUEUE_TYPES.filter((queueType) => queueType !== row.queueType).map((queueType) => {
+            const opt = QUEUE_TYPE_ICON[queueType];
+            return (
+              <DropdownMenuItem key={queueType} onSelect={() => onSetQueueType(queueType)}>
+                <opt.Icon className={cn("h-4 w-4", opt.className)} />
+                Move to {opt.label}
+              </DropdownMenuItem>
+            );
+          })}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => setConfirmOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes {row.characterName}&apos;s availability for this item, and any turn-in
+              scheduled for it. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={onDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -339,63 +383,24 @@ export function WorldBuffQueueList({
                   action={
                     <>
                       {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
-                      {canManage ? (
-                        <QueueTypeMenu
+                      <StatusIndicator row={row} />
+                      {canManage && (
+                        <RowActionsMenu
                           row={row}
-                          disabled={updateQueueType.isPending}
-                          onSelect={(queueType) =>
+                          disabled={
+                            updateQueueType.isPending ||
+                            setState.isPending ||
+                            deleteStatus.isPending
+                          }
+                          onSetQueueType={(queueType) =>
                             updateQueueType.mutate({ statusId: row.id, queueType })
                           }
+                          onMarkDropped={() =>
+                            setState.mutate({ statusId: row.id, state: "dropped" })
+                          }
+                          onSchedule={() => openScheduleFor(row.id)}
+                          onDelete={() => deleteStatus.mutate({ statusId: row.id })}
                         />
-                      ) : (
-                        <StatusIndicator row={row} />
-                      )}
-                      {canManage && (
-                        <>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                disabled={setState.isPending}
-                                onClick={() =>
-                                  setState.mutate({ statusId: row.id, state: "dropped" })
-                                }
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-secondary text-muted-foreground">
-                              Mark as dropped
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className={cn(
-                                  "h-6 w-6",
-                                  row.assignments.length > 0 && "text-primary hover:text-primary",
-                                )}
-                                onClick={() => openScheduleFor(row.id)}
-                              >
-                                <CalendarClock className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-secondary text-muted-foreground">
-                              {row.assignments.length > 0
-                                ? "Edit scheduled turn-in"
-                                : "Schedule turn-in"}
-                            </TooltipContent>
-                          </Tooltip>
-                          <DeleteSubmissionButton
-                            row={row}
-                            disabled={deleteStatus.isPending}
-                            onConfirm={() => deleteStatus.mutate({ statusId: row.id })}
-                          />
-                        </>
                       )}
                     </>
                   }
