@@ -104,6 +104,8 @@ export function SubmitAvailabilityForm() {
           assignments: [],
           characterClass: pickedClass,
           primaryCharacterName: null,
+          discordUserId: null,
+          discordUsername: null,
         };
         return [...old, optimisticRow];
       });
@@ -171,7 +173,7 @@ export function SubmitAvailabilityForm() {
         )}
       >
         <CardHeader>
-          <CardTitle className="text-base">Join the drop queue</CardTitle>
+          <CardTitle className="text-base">Join the drop list</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -293,7 +295,7 @@ export function SubmitAvailabilityForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Which drop queue?</Label>
+                <Label>Which drop list?</Label>
                 <RadioGroup
                   value={queueType}
                   onValueChange={(v) => setQueueType(v as QueueType)}

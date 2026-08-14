@@ -1,6 +1,12 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "~/server/db";
-import { characters, worldBuffAssignments, worldBuffCharacterStatus } from "~/server/db/schema";
+import {
+  accounts,
+  characters,
+  users,
+  worldBuffAssignments,
+  worldBuffCharacterStatus,
+} from "~/server/db/schema";
 import type { WorldBuffItem } from "~/lib/world-buffs";
 
 type WorldBuffState = "ready_to_drop" | "dropped";
@@ -273,11 +279,18 @@ export async function getAssignmentById(assignmentId: string) {
 export interface CharacterEnrichment {
   characterClass: string | null;
   primaryCharacterName: string | null;
+  /** Only populated when someone has linked a character from this family (see
+   *  `loadCharacterEnrichment`) to their Temple account — most free-text submissions won't
+   *  resolve to anyone. Callers must strip these for non-`worldbuff:manage` viewers. */
+  discordUserId: string | null;
+  discordUsername: string | null;
 }
 
 const NO_ENRICHMENT: CharacterEnrichment = {
   characterClass: null,
   primaryCharacterName: null,
+  discordUserId: null,
+  discordUsername: null,
 };
 
 /**
@@ -300,12 +313,38 @@ async function loadCharacterEnrichment(
 
   const characterMap = new Map(linkedCharacters.map((c) => [c.characterId, c]));
 
+  // A Discord identity is only resolvable when some Temple account has linked the FAMILY's
+  // primary character as their own `/profile` character — same simplification `raid-helper.ts`'s
+  // find-gamers query makes (an account linked to an alt, not the primary, won't resolve). Most
+  // world-buff rows are free-text submissions with no `characterId` at all, so this is always a
+  // best-effort lookup, never a guarantee.
+  const familyPrimaryIds = [
+    ...new Set(linkedCharacters.map((c) => c.primaryCharacterId ?? c.characterId)),
+  ];
+  const discordLinks =
+    familyPrimaryIds.length > 0
+      ? await db
+          .select({
+            characterId: users.characterId,
+            discordUserId: accounts.providerAccountId,
+            discordUsername: users.name,
+          })
+          .from(users)
+          .innerJoin(accounts, and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")))
+          .where(inArray(users.characterId, familyPrimaryIds))
+      : [];
+  const discordByFamilyId = new Map(discordLinks.map((d) => [d.characterId, d]));
+
   return (characterId) => {
     const char = characterId !== null ? characterMap.get(characterId) : undefined;
     if (!char) return NO_ENRICHMENT;
+    const familyId = char.primaryCharacterId ?? char.characterId;
+    const discord = discordByFamilyId.get(familyId);
     return {
       characterClass: char.class,
       primaryCharacterName: char.primaryCharacter?.name ?? null,
+      discordUserId: discord?.discordUserId ?? null,
+      discordUsername: discord?.discordUsername ?? null,
     };
   };
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { SpellIcon } from "~/components/ui/aa-icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { cn } from "~/lib/utils";
 import {
   WORLD_BUFF_BY_ITEM,
   WORLD_BUFF_ITEM_ICON_OVERRIDE,
@@ -23,10 +24,15 @@ export function WorldBuffIcon({
   item,
   size = 22,
   className,
+  grayscale = false,
 }: {
   item: WorldBuffItem;
   size?: number;
   className?: string;
+  /** Dims a dropped row's icon to gray rather than full color, so a glance down the list reads
+   *  which turn-ins are already done. Applied to the tooltip trigger wrapper — a CSS filter
+   *  affects its whole subtree — rather than threading it through both icon branches below. */
+  grayscale?: boolean;
 }) {
   const overrideSrc = WORLD_BUFF_ITEM_ICON_OVERRIDE[item];
   const [overrideErrored, setOverrideErrored] = useState(false);
@@ -50,7 +56,7 @@ export function WorldBuffIcon({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0">{icon}</span>
+        <span className={cn("inline-flex shrink-0", grayscale && "grayscale")}>{icon}</span>
       </TooltipTrigger>
       <TooltipContent className="bg-secondary text-muted-foreground">
         {WORLD_BUFF_ITEM_LABELS[item]} — {WORLD_BUFF_LABELS[buff]}
@@ -65,9 +71,18 @@ export function WorldBuffIcon({
  * Renders both item icons full-size, each clipped to its half of a top-left-to-bottom-right
  * diagonal — used wherever the two are shown combined (the Buff picker, the merged queue card).
  */
-export function DragonBuffIcon({ size = 22 }: { size?: number }) {
+export function DragonBuffIcon({
+  size = 22,
+  grayscale = false,
+}: {
+  size?: number;
+  grayscale?: boolean;
+}) {
   return (
-    <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
+    <span
+      className={cn("relative inline-block shrink-0", grayscale && "grayscale")}
+      style={{ width: size, height: size }}
+    >
       <span
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%)" }}

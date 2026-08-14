@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, Check, Clock, Undo2, Trash2 } from "lucide-react";
+import { ChevronDown, CalendarClock, Check, Undo2, Trash2 } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { Button } from "~/components/ui/button";
@@ -90,7 +90,7 @@ function QueueTypeMenu({
         <button
           type="button"
           disabled={disabled}
-          aria-label={`Queue: ${label}. Click to change.`}
+          aria-label={`List: ${label}. Click to change.`}
           className="inline-flex rounded-sm disabled:pointer-events-none disabled:opacity-50"
         >
           <Icon className={cn("h-4 w-4", className)} />
@@ -167,19 +167,22 @@ function QueueRow({
   row,
   dateLabel,
   date,
+  canManage,
   action,
 }: {
   row: StatusRow;
   dateLabel: string;
   date: Date | null;
+  canManage: boolean;
   action: React.ReactNode;
 }) {
+  const dropped = row.state === "dropped";
   return (
     <li className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2 py-1.5">
       <div className="flex min-w-0 items-center gap-2">
-        <WorldBuffIcon item={row.item as WorldBuffItem} size={18} />
+        <WorldBuffIcon item={row.item as WorldBuffItem} size={18} grayscale={dropped} />
         <div className="min-w-0">
-          <WorldBuffCharacterIdentity character={row} />
+          <WorldBuffCharacterIdentity character={row} showDiscord={canManage} dropped={dropped} />
           {date && (
             <div className="text-left text-[11px] text-muted-foreground">
               {dateLabel} {formatEasternDateTime(date, DATE_FORMAT)}
@@ -227,7 +230,7 @@ export function WorldBuffQueueList({
     onError: (error, _vars, ctx) => {
       if (ctx?.prevGetAll) utils.worldBuff.getAll.setData(undefined, ctx.prevGetAll);
       toast({
-        title: "Failed to update queue",
+        title: "Failed to update list",
         description: error.message,
         variant: "destructive",
       });
@@ -332,6 +335,7 @@ export function WorldBuffQueueList({
                   row={row}
                   dateLabel="Submitted"
                   date={new Date(row.createdAt)}
+                  canManage={canManage}
                   action={
                     <>
                       {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
@@ -377,7 +381,7 @@ export function WorldBuffQueueList({
                                 )}
                                 onClick={() => openScheduleFor(row.id)}
                               >
-                                <Clock className="h-3.5 w-3.5" />
+                                <CalendarClock className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent className="bg-secondary text-muted-foreground">
@@ -429,6 +433,7 @@ export function WorldBuffQueueList({
                     row={row}
                     dateLabel="Dropped"
                     date={row.droppedAt ? new Date(row.droppedAt) : null}
+                    canManage={canManage}
                     action={
                       <>
                         {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
