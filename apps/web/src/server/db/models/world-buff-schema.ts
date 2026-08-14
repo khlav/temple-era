@@ -47,6 +47,11 @@ export const worldBuffCharacterStatus = tableCreator(
     queueType: worldBuffQueueTypeEnum("queue_type").notNull().default("main"),
     notes: text("notes"),
     droppedAt: timestamp("dropped_at", { withTimezone: true }),
+    // Manual manager flag — distinct from any future computed "idle raider" signal. Presence (not
+    // a boolean) records when a manager tucked this row out of the active queue, mirroring
+    // `droppedAt`'s pattern. Cleared (set back to null) to bring the row back into the active
+    // list; never auto-clears on its own (e.g. resubmission doesn't touch it).
+    markedInactiveAt: timestamp("marked_inactive_at", { withTimezone: true }),
     ...CreatedBy,
     ...UpdatedBy,
     ...DefaultTimestamps,

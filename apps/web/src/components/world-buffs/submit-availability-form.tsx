@@ -97,6 +97,7 @@ export function SubmitAvailabilityForm() {
           queueType: input.queueType ?? "main",
           notes: input.notes ?? null,
           droppedAt: null,
+          markedInactiveAt: null,
           createdById: session?.user?.id ?? "",
           updatedById: session?.user?.id ?? "",
           createdAt: new Date(),

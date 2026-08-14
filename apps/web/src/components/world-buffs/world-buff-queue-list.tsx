@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, CalendarClock, Check, MoreHorizontal, Undo2, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  CalendarClock,
+  Check,
+  Moon,
+  MoreHorizontal,
+  Undo2,
+  Trash2,
+} from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { Button } from "~/components/ui/button";
@@ -48,6 +56,10 @@ type StatusRow = RouterOutputs["worldBuff"]["getAll"][number];
 const QUEUE_TYPE_TABS = ["all", "main", "alt", "backup"] as const;
 type QueueTypeTab = (typeof QUEUE_TYPE_TABS)[number];
 
+// "Active" (the default) hides manager-flagged-inactive rows; "All" shows everyone regardless.
+const ACTIVITY_TABS = ["active", "all"] as const;
+type ActivityTab = (typeof ACTIVITY_TABS)[number];
+
 // One icon encodes both queue type and state, rather than a text pill: the queue-type icon/color
 // (green main, blue alt, orange backup) while ready to drop, and the same icon shape grayed out
 // once dropped — so a past drop still reads at a glance as "this was a main/alt/backup", just
@@ -70,26 +82,48 @@ function StatusIndicator({ row }: { row: { state: string; queueType: WorldBuffQu
   );
 }
 
+/** Shown next to a row a manager has manually tucked out of the default "Active" view (see the
+ *  Active/All toggle) — distinct from any future computed "idle raider" signal, this one only
+ *  ever changes via `RowActionsMenu`'s "Mark Inactive"/"Mark Active" action. */
+function InactiveIndicator({ since }: { since: Date }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex shrink-0 text-muted-foreground">
+          <Moon className="h-4 w-4" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="bg-secondary text-muted-foreground">
+        Marked inactive {formatEasternDateTime(since, DATE_FORMAT)}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
 
-/** Consolidates an active row's secondary manager actions — mark dropped, re-tag the queue,
- *  delete — into a single "…" trigger instead of a growing row of icon buttons. Scheduling stays
- *  a separate, always-visible button next to this one (it's the core action on this screen, not
- *  worth an extra click to reach). `StatusIndicator` next to both still shows the current queue
- *  type at a glance; this only handles changing it. Owns its own delete-confirmation dialog
- *  (rather than nesting an `AlertDialogTrigger` inside a `DropdownMenuItem`, which closes the
- *  menu before the dialog can open) — selecting "Delete" just flips local state, and the dialog
- *  renders as an independent sibling. */
+/** Consolidates an active row's secondary manager actions — mark dropped, mark inactive, re-tag
+ *  the queue, delete — into a single "…" trigger instead of a growing row of icon buttons.
+ *  Scheduling stays a separate, always-visible button next to this one (it's the core action on
+ *  this screen, not worth an extra click to reach). `StatusIndicator` next to both still shows
+ *  the current queue type at a glance; this only handles changing it. Owns its own
+ *  delete-confirmation dialog (rather than nesting an `AlertDialogTrigger` inside a
+ *  `DropdownMenuItem`, which closes the menu before the dialog can open) — selecting "Delete"
+ *  just flips local state, and the dialog renders as an independent sibling. */
 function RowActionsMenu({
   row,
+  inactive,
   onSetQueueType,
   onMarkDropped,
+  onToggleInactive,
   onDelete,
   disabled,
 }: {
   row: StatusRow;
+  inactive: boolean;
   onSetQueueType: (queueType: WorldBuffQueueType) => void;
   onMarkDropped: () => void;
+  onToggleInactive: () => void;
   onDelete: () => void;
   disabled: boolean;
 }) {
@@ -106,6 +140,10 @@ function RowActionsMenu({
           <DropdownMenuItem onSelect={onMarkDropped}>
             <Check className="h-4 w-4" />
             Mark as dropped
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onToggleInactive}>
+            <Moon className="h-4 w-4" />
+            {inactive ? "Mark Active" : "Mark Inactive"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {QUEUE_TYPES.filter((queueType) => queueType !== row.queueType).map((queueType) => {
@@ -251,6 +289,7 @@ export function WorldBuffQueueList({
   const utils = api.useUtils();
   const { data, isLoading } = api.worldBuff.getAll.useQuery();
   const [queueTypeTab, setQueueTypeTab] = useState<QueueTypeTab>("all");
+  const [activityTab, setActivityTab] = useState<ActivityTab>("active");
   const [pastOpen, setPastOpen] = useState(false);
 
   const setState = useSetWorldBuffState();
@@ -264,6 +303,29 @@ export function WorldBuffQueueList({
         old?.map((row) =>
           row.id === input.statusId ? { ...row, queueType: input.queueType } : row,
         ),
+      );
+      return { prevGetAll };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.prevGetAll) utils.worldBuff.getAll.setData(undefined, ctx.prevGetAll);
+      toast({
+        title: "Failed to update list",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      void utils.worldBuff.getAll.invalidate();
+    },
+  });
+
+  const setInactive = api.worldBuff.setInactive.useMutation({
+    onMutate: async (input) => {
+      await utils.worldBuff.getAll.cancel();
+      const prevGetAll = utils.worldBuff.getAll.getData();
+      const markedInactiveAt = input.inactive ? new Date() : null;
+      utils.worldBuff.getAll.setData(undefined, (old) =>
+        old?.map((row) => (row.id === input.statusId ? { ...row, markedInactiveAt } : row)),
       );
       return { prevGetAll };
     },
@@ -312,6 +374,7 @@ export function WorldBuffQueueList({
     const itemRows = (data ?? []).filter((row) => items.includes(row.item));
     const active = itemRows
       .filter((row) => row.state === "ready_to_drop")
+      .filter((row) => activityTab === "all" || row.markedInactiveAt === null)
       .filter((row) => queueTypeTab === "all" || row.queueType === queueTypeTab)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     const past = itemRows
@@ -323,7 +386,7 @@ export function WorldBuffQueueList({
       });
     return { activeRows: active, pastRows: past };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- itemsKey is items' stable identity
-  }, [data, itemsKey, queueTypeTab]);
+  }, [data, itemsKey, queueTypeTab, activityTab]);
 
   const primaryItem = items[0]!;
   const buff = WORLD_BUFF_BY_ITEM[primaryItem];
@@ -346,22 +409,38 @@ export function WorldBuffQueueList({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 px-2 pb-1.5 sm:px-2.5 sm:pb-2">
-        <Tabs value={queueTypeTab} onValueChange={(v) => setQueueTypeTab(v as QueueTypeTab)}>
-          <TabsList className="h-8 w-full">
-            <TabsTrigger value="all" className="h-6 flex-1 px-2 text-xs">
-              All
-            </TabsTrigger>
-            <TabsTrigger value="main" className="h-6 flex-1 px-2 text-xs">
-              Main
-            </TabsTrigger>
-            <TabsTrigger value="alt" className="h-6 flex-1 px-2 text-xs">
-              Alt
-            </TabsTrigger>
-            <TabsTrigger value="backup" className="h-6 flex-1 px-2 text-xs">
-              Backup
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="space-y-1.5">
+          <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as ActivityTab)}>
+            <TabsList className="h-8 w-full">
+              <TabsTrigger value="active" className="h-6 flex-1 px-2 text-xs">
+                Active
+              </TabsTrigger>
+              <TabsTrigger value="all" className="h-6 flex-1 px-2 text-xs">
+                All
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Tabs value={queueTypeTab} onValueChange={(v) => setQueueTypeTab(v as QueueTypeTab)}>
+            <TabsList className="h-8 w-full">
+              <TabsTrigger value="all" className="h-6 flex-1 px-2 text-xs">
+                All
+              </TabsTrigger>
+              {QUEUE_TYPES.map((queueType) => {
+                const opt = QUEUE_TYPE_ICON[queueType];
+                return (
+                  <TabsTrigger
+                    key={queueType}
+                    value={queueType}
+                    aria-label={opt.label}
+                    className="h-6 flex-1 px-2"
+                  >
+                    <opt.Icon className={cn("h-3.5 w-3.5", opt.className)} />
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
         {isLoading ? (
           <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
         ) : activeRows.length === 0 ? (
@@ -379,6 +458,9 @@ export function WorldBuffQueueList({
                   action={
                     <>
                       {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
+                      {row.markedInactiveAt && (
+                        <InactiveIndicator since={new Date(row.markedInactiveAt)} />
+                      )}
                       <StatusIndicator row={row} />
                       {canManage && (
                         <>
@@ -405,9 +487,11 @@ export function WorldBuffQueueList({
                           </Tooltip>
                           <RowActionsMenu
                             row={row}
+                            inactive={row.markedInactiveAt !== null}
                             disabled={
                               updateQueueType.isPending ||
                               setState.isPending ||
+                              setInactive.isPending ||
                               deleteStatus.isPending
                             }
                             onSetQueueType={(queueType) =>
@@ -415,6 +499,12 @@ export function WorldBuffQueueList({
                             }
                             onMarkDropped={() =>
                               setState.mutate({ statusId: row.id, state: "dropped" })
+                            }
+                            onToggleInactive={() =>
+                              setInactive.mutate({
+                                statusId: row.id,
+                                inactive: row.markedInactiveAt === null,
+                              })
                             }
                             onDelete={() => deleteStatus.mutate({ statusId: row.id })}
                           />

@@ -16,6 +16,7 @@ import {
   getMatrix,
   listActiveAssignments,
   listPastAssignments,
+  setInactive,
   setState,
   submitAvailability,
   updateAssignment,
@@ -117,6 +118,18 @@ export const worldBuffRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         return await setState({ ...input, actingUserId: ctx.session.user.id, source: "web" });
+      } catch (error) {
+        toTRPCError(error);
+      }
+    }),
+
+  // Manual "gone quiet" flag — deliberately independent of `state`/`setState`, so it can't
+  // un-drop a lifetime completion and doesn't share that mutation's audit `source` concept.
+  setInactive: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
+    .input(z.object({ statusId: z.string().uuid(), inactive: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await setInactive({ ...input, actingUserId: ctx.session.user.id });
       } catch (error) {
         toTRPCError(error);
       }

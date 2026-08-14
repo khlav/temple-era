@@ -150,6 +150,29 @@ export async function updateNotes(input: UpdateNotesInput) {
   return updated!;
 }
 
+export interface SetInactiveInput {
+  statusId: string;
+  inactive: boolean;
+  actingUserId: string;
+}
+
+/** Manual manager flag — tucks a "gone quiet" character's row out of the active queue without
+ *  deleting it. Deliberately independent of `state`: an inactive row can still be `ready_to_drop`,
+ *  it's just deprioritized in the UI. Never auto-clears (e.g. resubmitting availability doesn't
+ *  touch this) — a manager has to explicitly bring someone back. */
+export async function setInactive(input: SetInactiveInput) {
+  await getStatusOrThrow(input.statusId);
+  const [updated] = await db
+    .update(worldBuffCharacterStatus)
+    .set({
+      markedInactiveAt: input.inactive ? new Date() : null,
+      updatedById: input.actingUserId,
+    })
+    .where(eq(worldBuffCharacterStatus.id, input.statusId))
+    .returning();
+  return updated!;
+}
+
 export interface SetStateInput {
   statusId: string;
   state: WorldBuffState;
