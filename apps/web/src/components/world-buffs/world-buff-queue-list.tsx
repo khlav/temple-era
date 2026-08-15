@@ -373,7 +373,7 @@ function RowActionsMenu({
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="wb-edit-notes">Notes</Label>
+              <Label htmlFor="wb-edit-notes">Drop notes</Label>
               <Input
                 id="wb-edit-notes"
                 value={editNotes}
