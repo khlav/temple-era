@@ -328,7 +328,10 @@ export function SubmitAvailabilityForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="wb-notes">Drop notes (optional)</Label>
+              <Label htmlFor="wb-notes">
+                Drop notes{" "}
+                <span className="text-xs font-normal text-muted-foreground">Optional</span>
+              </Label>
               <Input
                 id="wb-notes"
                 value={notes}

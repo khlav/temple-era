@@ -649,7 +649,10 @@ export function AssignmentList() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="wb-assignment-notes">Turn-in notes (optional)</Label>
+                  <Label htmlFor="wb-assignment-notes">
+                    Turn-in notes{" "}
+                    <span className="text-xs font-normal text-muted-foreground">Optional</span>
+                  </Label>
                   <Input
                     id="wb-assignment-notes"
                     value={notes}
