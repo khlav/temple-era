@@ -16,6 +16,7 @@ import React, { useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { CharacterSummaryGrid } from "~/components/characters/character-summary-grid";
 import { summarizeSignupCounts } from "~/lib/raid-signup-status";
+import { RaidManagerOnlyIcon } from "~/components/ui/raid-manager-only-icon";
 
 const RAID_DETAIL_TABS = ["overview", "signups", "attendance"] as const;
 type RaidDetailTab = (typeof RAID_DETAIL_TABS)[number];
@@ -58,9 +59,11 @@ export function RaidDetailBase({
     },
   });
 
-  const handleRefresh = async (raidLogId: string) => {
+  const handleRefreshAllLogs = async () => {
     setIsRefreshing(true);
-    await refreshRaidLogMutation.mutateAsync(raidLogId);
+    await Promise.all(
+      (raidData.raidLogIds ?? []).map((raidLogId) => refreshRaidLogMutation.mutateAsync(raidLogId)),
+    );
   };
 
   const curPath = usePathname();
@@ -125,6 +128,89 @@ export function RaidDetailBase({
       </div>
 
       <Separator className="my-3" />
+      <div className="grid grid-cols-[auto_1fr_auto] items-start gap-6">
+        {/* WCL Logs */}
+        <div className="min-w-0">
+          {showEditButton ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={handleRefreshAllLogs}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-1 font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    WCL Logs
+                    <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-secondary text-muted-foreground">
+                  <p>Refresh logs from WarcraftLogs</p>
+                  <p className="text-xs">Updates kills and attendees</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+              WCL Logs
+            </div>
+          )}
+          <div className="mt-1 flex flex-wrap items-center gap-2 overflow-x-hidden">
+            {(raidData.raidLogIds ?? []).map((raidLogId) => {
+              const reportUrl = GenerateWCLReportUrl(raidLogId);
+              return (
+                <Link
+                  key={raidLogId}
+                  href={reportUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
+                >
+                  {raidLogId}
+                  <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Kills */}
+        <div className="min-w-0">
+          <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+            Kills {raidData.kills ? `(${raidData.kills.length})` : ""}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1 overflow-x-hidden text-nowrap">
+            {(raidData.kills ?? []).map((killName, i) => {
+              return (
+                <div
+                  key={`kill_${i}`}
+                  className="grow-0 rounded bg-secondary px-2 py-1 text-xs text-muted-foreground"
+                >
+                  {killName}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Creator Info */}
+        <div className="flex flex-col items-end">
+          <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+            Created By
+          </div>
+          <div className="mt-1">
+            <UserAvatar
+              name={raidData.creator?.name ?? ""}
+              image={raidData.creator?.image ?? ""}
+              tooltipSide="left"
+              showLabel={false}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-3" />
 
       <Tabs
         value={canViewSignupLink ? activeTab : "overview"}
@@ -136,93 +222,19 @@ export function RaidDetailBase({
       >
         {canViewSignupLink && (
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="signups">Signups</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="overview">Attendance</TabsTrigger>
+            <TabsTrigger value="signups" className="gap-1.5">
+              <RaidManagerOnlyIcon />
+              Signup Timeline
+            </TabsTrigger>
+            <TabsTrigger value="attendance" className="gap-1.5">
+              <RaidManagerOnlyIcon />
+              Signups ↔ Attendees
+            </TabsTrigger>
           </TabsList>
         )}
 
         <TabsContent value="overview" className="mt-3">
-          <div className="flex items-center gap-4">
-            {/* WCL Logs */}
-            <div className="grow-0 whitespace-nowrap text-sm">WCL logs:</div>
-            <div className="flex grow items-center gap-2 overflow-x-hidden">
-              <TooltipProvider>
-                {(raidData.raidLogIds ?? []).map((raidLogId) => {
-                  const reportUrl = GenerateWCLReportUrl(raidLogId);
-                  return (
-                    <div key={raidLogId} className="flex items-center gap-1">
-                      <Link
-                        href={reportUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
-                      >
-                        <span className="hidden md:inline-block">
-                          {reportUrl.replace("https://", "")}
-                        </span>
-                        <span className="inline-block md:hidden">{raidLogId}</span>
-                        <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
-                      </Link>
-                      {showEditButton && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleRefresh(raidLogId)}
-                              disabled={isRefreshing}
-                            >
-                              <RefreshCw
-                                className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
-                              />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-secondary text-muted-foreground">
-                            <p>Refresh log from WarcraftLogs</p>
-                            <p className="text-xs">Updates kills and attendees</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  );
-                })}
-              </TooltipProvider>
-            </div>
-
-            {/* Creator Info */}
-            <div className="flex grow-0 items-center gap-2 whitespace-nowrap text-sm">
-              <div className="text-sm text-muted-foreground">Created by</div>
-              <UserAvatar
-                name={raidData.creator?.name ?? ""}
-                image={raidData.creator?.image ?? ""}
-                tooltipSide="left"
-                showLabel={false}
-              />
-            </div>
-          </div>
-
-          <Separator className="my-3" />
-          <div className="flex gap-2 xl:flex-nowrap">
-            <div className="grow-0 text-nowrap py-[3px] text-sm">
-              Kills {raidData.kills ? `(${raidData?.kills?.length})` : ""}:
-            </div>
-            <div className="flex shrink flex-wrap gap-1 overflow-x-hidden text-nowrap">
-              {(raidData.kills ?? []).map((killName, i) => {
-                return (
-                  <div
-                    key={`kill_${i}`}
-                    className="grow-0 rounded bg-secondary px-2 py-1 text-sm text-muted-foreground"
-                  >
-                    {killName}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Separator className="my-3" />
           <div className="flex flex-wrap gap-2 py-1 xl:flex-nowrap">
             <div className="w-full xl:w-1/2">
               <div className="rounded-xl border bg-card p-3 text-card-foreground shadow-sm">
@@ -267,7 +279,7 @@ export function RaidDetailBase({
             </TabsContent>
             <TabsContent value="attendance" className="mt-3">
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Signup vs. attendance comparison coming soon.
+                Signups ↔ Attendees comparison coming soon.
               </p>
             </TabsContent>
           </>
