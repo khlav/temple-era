@@ -52,18 +52,23 @@ export function RaidDetailBase({
       // query cache alone won't update what's on screen — force a server refetch.
       await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
       router.refresh();
-      setIsRefreshing(false);
-    },
-    onError: () => {
-      setIsRefreshing(false);
     },
   });
 
+  // isRefreshing tracks the whole batch, not any individual log's mutation — reset once
+  // in `finally` after every log settles, not per-mutation onSuccess/onError, or the
+  // first log to finish would re-enable the button while others are still in flight.
   const handleRefreshAllLogs = async () => {
     setIsRefreshing(true);
-    await Promise.all(
-      (raidData.raidLogIds ?? []).map((raidLogId) => refreshRaidLogMutation.mutateAsync(raidLogId)),
-    );
+    try {
+      await Promise.allSettled(
+        (raidData.raidLogIds ?? []).map((raidLogId) =>
+          refreshRaidLogMutation.mutateAsync(raidLogId),
+        ),
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const curPath = usePathname();

@@ -68,7 +68,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 <TooltipProvider>
                   <BreadcrumbProvider>
                     <GlobalQuickLauncherProvider>
-                      <div className="relative min-h-svh overflow-x-hidden">
+                      <div className="relative min-h-svh overflow-x-clip">
                         <div className="pointer-events-none absolute inset-0">
                           <div className="absolute inset-0 bg-[linear-gradient(rgba(170,180,176,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(170,180,176,0.018)_1px,transparent_1px)] bg-size-[48px_48px]" />
                           <div className="absolute inset-x-0 top-0 h-[42rem] bg-[radial-gradient(circle_at_top,rgba(214,138,73,0.08),rgba(214,138,73,0)_58%)]" />
