@@ -59,12 +59,10 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
         )}
       </div>
 
-      <Separator />
-
       {/* Full width: Upcoming World Buff Drops */}
       <UpcomingWorldBuffDrops />
 
-      <Separator />
+      <Separator className="my-4" />
 
       {/* Bottom Section: 2/3 + 1/3 layout */}
       <div className="flex flex-col gap-4 lg:flex-row">
