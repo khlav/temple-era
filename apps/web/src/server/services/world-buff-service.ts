@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import {
   accounts,
@@ -230,8 +230,8 @@ export interface SetInactiveInput {
 
 /** Manual manager flag — tucks a "gone quiet" character's row out of the active queue without
  *  deleting it. Deliberately independent of `state`: an inactive row can still be `ready_to_drop`,
- *  it's just deprioritized in the UI. Never auto-clears (e.g. resubmitting availability doesn't
- *  touch this) — a manager has to explicitly bring someone back. */
+ *  it's just deprioritized in the UI. Resubmitting availability alone doesn't clear it — but a
+ *  real new raid does, automatically (see `reactivateFamiliesAfterRaid`). */
 export async function setInactive(input: SetInactiveInput) {
   await getStatusOrThrow(input.statusId);
   const [updated] = await db
@@ -243,6 +243,51 @@ export async function setInactive(input: SetInactiveInput) {
     .where(eq(worldBuffCharacterStatus.id, input.statusId))
     .returning();
   return updated!;
+}
+
+export interface ReactivateFamiliesAfterRaidInput {
+  /** Characters who attended the raid — not expanded to family yet, this function does that. */
+  characterIds: number[];
+  /** The raid's own date/time — only clears a flag set *before* this, so refreshing an old WCL
+   *  log can't undo a flag a manager set more recently than the log's own raid. */
+  raidDate: Date;
+  actingUserId: string;
+}
+
+/** Auto-reactivation counterpart to `setInactive`: when any character in a `markedInactiveAt`
+ *  family raids again, the flag clears on its own — no manager action needed. Called from both
+ *  places new raid-night attendance gets recorded: raid-log import/refresh (`raidlog.ts`) and
+ *  bench assignment (`raid.ts`'s `updateRaidBench`) — a benched character still showed up.
+ *  Family-scoped like `isIdle`'s idle check, so an alt raiding clears the flag on the primary's
+ *  row too, and vice versa.
+ *
+ *  A single UPDATE with two nested `IN (SELECT ...)` subqueries (family roots of the raided
+ *  characters, then every character sharing one of those roots) rather than resolving family
+ *  membership into JS first — one round trip regardless of roster/family size, against tables
+ *  that are guild-roster-scale either way. */
+export async function reactivateFamiliesAfterRaid(input: ReactivateFamiliesAfterRaidInput) {
+  const uniqueIds = [...new Set(input.characterIds)];
+  if (uniqueIds.length === 0) return;
+
+  const familyRoot = sql`coalesce(${characters.primaryCharacterId}, ${characters.characterId})`;
+  const raidedFamilyRoots = db
+    .select({ root: familyRoot })
+    .from(characters)
+    .where(inArray(characters.characterId, uniqueIds));
+  const affectedCharacterIds = db
+    .select({ characterId: characters.characterId })
+    .from(characters)
+    .where(inArray(familyRoot, raidedFamilyRoots));
+
+  await db
+    .update(worldBuffCharacterStatus)
+    .set({ markedInactiveAt: null, updatedById: input.actingUserId })
+    .where(
+      and(
+        inArray(worldBuffCharacterStatus.characterId, affectedCharacterIds),
+        lt(worldBuffCharacterStatus.markedInactiveAt, input.raidDate),
+      ),
+    );
 }
 
 export interface SetStateInput {
