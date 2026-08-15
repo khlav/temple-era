@@ -280,12 +280,19 @@ export function SubmitAvailabilityForm() {
                             item={item}
                             size={36}
                             className={cn(
-                              "shrink-0 rounded-sm transition-all duration-150",
+                              "shrink-0 rounded-sm transition-all duration-100",
                               checked ? "opacity-100 grayscale-0" : "opacity-40 grayscale",
                             )}
                           />
                           <span>
-                            <span className="block">{WORLD_BUFF_ITEM_LABELS[item]}</span>
+                            <span
+                              className={cn(
+                                "block transition-all duration-100",
+                                !checked && "text-muted-foreground",
+                              )}
+                            >
+                              {WORLD_BUFF_ITEM_LABELS[item]}
+                            </span>
                             <span className="block text-xs text-muted-foreground">
                               {WORLD_BUFF_LABELS[WORLD_BUFF_BY_ITEM[item]]}
                             </span>
