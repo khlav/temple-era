@@ -126,7 +126,14 @@ export function RaidDetailBase({
 
       <Separator className="my-3" />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as RaidDetailTab)}>
+      <Tabs
+        value={canViewSignupLink ? activeTab : "overview"}
+        onValueChange={(v) => {
+          if ((RAID_DETAIL_TABS as readonly string[]).includes(v)) {
+            setActiveTab(v as RaidDetailTab);
+          }
+        }}
+      >
         {canViewSignupLink && (
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
