@@ -16,7 +16,7 @@ import { BreadcrumbProvider } from "~/components/nav/breadcrumb-context";
 import { GlobalQuickLauncher } from "~/components/ui/global-quick-launcher";
 import { GlobalQuickLauncherProvider } from "~/contexts/global-quick-launcher-context";
 import { siteConfig } from "~/lib/site-metadata";
-import { Agentation } from "agentation";
+import { AgentationToolbar } from "~/components/dev/agentation-toolbar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -85,7 +85,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                         </div>
                         <Toaster duration={5000} />
                         <GlobalQuickLauncher />
-                        {process.env.NODE_ENV === "development" && <Agentation />}
+                        {process.env.NODE_ENV === "development" && <AgentationToolbar />}
                       </div>
                     </GlobalQuickLauncherProvider>
                   </BreadcrumbProvider>
