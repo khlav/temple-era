@@ -116,15 +116,15 @@ interface DragonSwapOption {
 }
 
 /** Only meaningful for the two Dragon-head items — null for Rend/ZG rows, which have no sibling
- *  item to swap to. `allRows` is the full unfiltered dataset (not just this card's rows), since
- *  the "already has an entry" check has to see past/dropped/inactive rows too — the DB's unique
- *  constraint doesn't care about state. */
-function getDragonSwapOption(row: StatusRow, allRows: StatusRow[]): DragonSwapOption | null {
+ *  item to swap to. `linkedKeys` is a `characterNameNormalized:item` set built from the full
+ *  unfiltered dataset (not just this card's rows), since the "already has an entry" check has to
+ *  see past/dropped/inactive rows too — the DB's unique constraint doesn't care about state.
+ *  Takes the set rather than the raw row array so this stays O(1) per row instead of O(n) —
+ *  it's called once per row in the list, which made the whole render O(n²) against `allRows`. */
+function getDragonSwapOption(row: StatusRow, linkedKeys: Set<string>): DragonSwapOption | null {
   const targetItem = DRAGON_HEAD_ITEMS[row.item as WorldBuffItem];
   if (!targetItem) return null;
-  const disabled = allRows.some(
-    (r) => r.characterNameNormalized === row.characterNameNormalized && r.item === targetItem,
-  );
+  const disabled = linkedKeys.has(`${row.characterNameNormalized}:${targetItem}`);
   return { targetItem, disabled };
 }
 
@@ -324,7 +324,7 @@ function RowActionsMenu({
                         role="combobox"
                         className="h-10 w-full justify-start px-3 text-base font-normal text-muted-foreground md:text-sm"
                       >
-                        {editName ? (
+                        {editCharacterId ? (
                           <span className="flex items-center gap-2 text-foreground">
                             {editPickedClass && (
                               <ClassIcon characterClass={editPickedClass} px={16} />
@@ -636,6 +636,14 @@ export function WorldBuffQueueList({
     },
   });
 
+  const dragonHeadLinkedKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const row of data ?? []) {
+      keys.add(`${row.characterNameNormalized}:${row.item}`);
+    }
+    return keys;
+  }, [data]);
+
   const itemsKey = items.join(",");
   const { activeRows, pastRows, hiddenInactiveCount } = useMemo(() => {
     const itemRows = (data ?? []).filter((row) => items.includes(row.item));
@@ -790,7 +798,7 @@ export function WorldBuffQueueList({
                           <RowActionsMenu
                             row={row}
                             inactive={row.markedInactiveAt !== null}
-                            dragonSwap={getDragonSwapOption(row, data ?? [])}
+                            dragonSwap={getDragonSwapOption(row, dragonHeadLinkedKeys)}
                             disabled={
                               updateQueueType.isPending ||
                               setState.isPending ||
