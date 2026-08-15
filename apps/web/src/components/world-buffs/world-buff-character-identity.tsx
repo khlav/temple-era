@@ -73,7 +73,7 @@ function CharacterStatusTooltipContent({
   isIdle: boolean;
   idleLastRaidAt: string | null;
 }) {
-  const lastRaidDate = idleLastRaidAt ? new Date(`${idleLastRaidAt}T00:00:00Z`) : null;
+  const lastRaidDate = idleLastRaidAt ? new Date(`${idleLastRaidAt}T12:00:00Z`) : null;
   return (
     <TooltipContent className="bg-secondary text-muted-foreground">
       <div>Marked inactive {formatEasternDateTime(new Date(markedInactiveAt), "M/d/yyyy")}</div>
@@ -120,7 +120,7 @@ export function WorldBuffCharacterIdentity({
   const isIdle = !!character.isIdle;
   const hasStatusFlags = markedInactive || isIdle;
   const lastRaidDate = character.idleLastRaidAt
-    ? new Date(`${character.idleLastRaidAt}T00:00:00Z`)
+    ? new Date(`${character.idleLastRaidAt}T12:00:00Z`)
     : null;
 
   const identityGroup = (

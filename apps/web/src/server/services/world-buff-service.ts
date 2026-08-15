@@ -467,6 +467,9 @@ async function loadCharacterEnrichment(
   }
   const allMemberIds = [...new Set([...memberIdsByFamilyId.values()].flat())];
 
+  // Full (unbounded-by-date) history rather than a windowed query, since "has ever raided"
+  // needs it — but it's still bounded to `allMemberIds` (families already in this read's
+  // result set, not the whole roster), which keeps row counts small at this guild's scale.
   const idleWindowStart = getLockoutWeeks(3, true)[0]!.start.toISOString().split("T")[0]!;
   const attendanceRows =
     allMemberIds.length > 0
