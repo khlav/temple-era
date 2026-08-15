@@ -529,3 +529,29 @@ name, including overwriting an existing submission) is the plan's explicit, docu
 design — mirrors the recipe catalog's shared-roster model, and is required so pre-raid
 recruits with no roster link yet can still submit. Not fixed; reported as a deliberate
 rejection rather than an unresolved finding.
+
+### PR #93 — `chore(web): add Agentation dev-mode annotation toolbar` (TEMPLE-88)
+Archon: no score line, one code suggestion, **confirmed correct and initially
+underestimated**. Round 1 statically imported the `agentation` package (a dev-only UI
+toolbar) directly into the root server layout, gated only by
+`{process.env.NODE_ENV === "development" && <Agentation />}`, on the assumption — stated
+in the PR description and seemingly confirmed by a passing `next build` — that Next's
+build-time `NODE_ENV` inlining would dead-code-eliminate the whole branch, including the
+import. Archon's suggestion said this was wrong and to wrap it in a `next/dynamic(...,
+{ ssr: false })` client component instead. **Verified empirically before dismissing it**:
+grepped `.next/static/chunks/*.js` in the built output and found the actual toolbar
+CSS/component code (`--agentation-color-green`, `styles-module__deleteButton`, etc.)
+present in a 685KB production chunk — a passing build proves the build succeeds, not that
+dead code was eliminated. A conditionally-referenced named import stays in the module
+graph; Terser only folds the unreachable branch to `false`, it doesn't retroactively make
+the import unused. Fixed exactly as suggested: moved the import into a small
+`"use client"` wrapper (`agentation-toolbar.tsx`) using `next/dynamic(() =>
+import("agentation").then(...), { ssr: false })`. Re-verified after the fix: the chunk
+containing the toolbar code now appears only in `react-loadable-manifest.json` (Next's
+on-demand lazy-chunk registry) and not in `build-manifest.json` (the eager per-page script
+list) — confirmed via manifest grep, not just a clean build. Notable mainly as a
+self-correction: the PR's own author (this session) made the same category of claim
+Archon's two confirmed false positives warn against ("the compiler/build proves my
+assumption"), except here the empirical check *validated* the reviewer instead of
+disproving it — a reminder that "verify before trusting" cuts both ways, including against
+one's own claims in a PR description.
