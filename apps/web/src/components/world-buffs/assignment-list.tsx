@@ -38,9 +38,8 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
-import { SpellIcon } from "~/components/ui/aa-icons";
 import { WorldBuffCharacterIdentity } from "./world-buff-character-identity";
-import { DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
+import { BuffIcon, DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
 import { NotesIndicator, QUEUE_TYPE_ICON } from "./queue-type-icon";
 import { useScheduleDialog } from "./schedule-dialog-context";
 import { useSetWorldBuffState } from "./use-world-buff-mutations";
@@ -57,7 +56,6 @@ import {
   WORLD_BUFF_BY_ITEM,
   WORLD_BUFFS,
   WORLD_BUFF_LABELS,
-  WORLD_BUFF_SPELL_ID,
   WORLD_BUFF_DEFAULT_TIME_ET,
   type WorldBuff,
   type WorldBuffItem,
@@ -582,7 +580,7 @@ export function AssignmentList() {
                             {buff === "dragon" ? (
                               <DragonBuffIcon size={28} />
                             ) : (
-                              <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={28} />
+                              <BuffIcon buff={buff} size={28} />
                             )}
                           </button>
                         </TooltipTrigger>

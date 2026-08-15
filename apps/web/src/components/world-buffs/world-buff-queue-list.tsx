@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import {
   ChevronDown,
   CalendarClock,
   Check,
+  Loader2,
   Moon,
   MoreHorizontal,
+  Pencil,
   Undo2,
   Trash2,
+  UserRoundSearch,
 } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
@@ -18,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,8 +39,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { CharacterSelector } from "~/components/characters/character-selector";
 import { WorldBuffCharacterIdentity } from "./world-buff-character-identity";
 import { DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
 import { NotesIndicator, QUEUE_TYPE_ICON, type WorldBuffQueueType } from "./queue-type-icon";
@@ -82,24 +94,6 @@ function StatusIndicator({ row }: { row: { state: string; queueType: WorldBuffQu
   );
 }
 
-/** Shown next to a row a manager has manually tucked out of the default "Active" view (see the
- *  Active/All toggle) — distinct from any future computed "idle raider" signal, this one only
- *  ever changes via `RowActionsMenu`'s "Mark Inactive"/"Mark Active" action. */
-function InactiveIndicator({ since }: { since: Date }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0 text-muted-foreground">
-          <Moon className="h-4 w-4" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="bg-secondary text-muted-foreground">
-        Marked inactive {formatEasternDateTime(since, DATE_FORMAT)}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
 const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
 
 /** Consolidates an active row's secondary manager actions — mark dropped, mark inactive, re-tag
@@ -117,6 +111,7 @@ function RowActionsMenu({
   onMarkDropped,
   onToggleInactive,
   onDelete,
+  onEditSubmission,
   disabled,
 }: {
   row: StatusRow;
@@ -125,9 +120,38 @@ function RowActionsMenu({
   onMarkDropped: () => void;
   onToggleInactive: () => void;
   onDelete: () => void;
+  onEditSubmission: (input: {
+    characterName: string;
+    characterId: number | null;
+    notes: string | null;
+  }) => void;
   disabled: boolean;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState(row.characterName);
+  const [editCharacterId, setEditCharacterId] = useState<number | null>(row.characterId);
+  const [editNotes, setEditNotes] = useState(row.notes ?? "");
+
+  const openEdit = () => {
+    setEditName(row.characterName);
+    setEditCharacterId(row.characterId);
+    setEditNotes(row.notes ?? "");
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    onEditSubmission({
+      characterName: trimmed,
+      characterId: editCharacterId,
+      notes: editNotes.trim() || null,
+    });
+    setEditOpen(false);
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -139,7 +163,7 @@ function RowActionsMenu({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={onMarkDropped}>
             <Check className="h-4 w-4" />
-            Mark as dropped
+            Mark dropped
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onToggleInactive}>
             <Moon className="h-4 w-4" />
@@ -156,6 +180,126 @@ function RowActionsMenu({
             );
           })}
           <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={openEdit}>
+            <Pencil className="h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => setConfirmOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes {row.characterName}&apos;s availability for this item, and any turn-in
+              scheduled for it. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={onDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit submission</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="wb-edit-name">Character name</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="wb-edit-name"
+                  value={editName}
+                  onChange={(e) => {
+                    setEditName(e.target.value);
+                    setEditCharacterId(null);
+                  }}
+                  maxLength={128}
+                  required
+                  className="flex-1"
+                />
+                <CharacterSelector
+                  characterSet="all"
+                  onSelectAction={(character) => {
+                    setEditName(character.name);
+                    setEditCharacterId(character.characterId);
+                  }}
+                >
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="shrink-0"
+                    aria-label="Link to a roster character"
+                  >
+                    <UserRoundSearch className="h-4 w-4" />
+                  </Button>
+                </CharacterSelector>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {editCharacterId
+                  ? "Linked to a roster character."
+                  : "Not linked to a roster character — free-text name only."}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="wb-edit-notes">Notes</Label>
+              <Input
+                id="wb-edit-notes"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                maxLength={2000}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={disabled || !editName.trim()}>
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/** Past-drop rows only need one destructive action, so this is a much smaller sibling of
+ *  `RowActionsMenu` — a "…" trigger scoped to just Delete, with its own confirm-dialog state for
+ *  the same nested-trigger reason documented there. */
+function PastRowMenu({
+  row,
+  onDelete,
+  disabled,
+}: {
+  row: StatusRow;
+  onDelete: () => void;
+  disabled: boolean;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-6 w-6" disabled={disabled}>
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
           <DropdownMenuItem
             onSelect={() => setConfirmOpen(true)}
             className="text-destructive focus:text-destructive"
@@ -186,54 +330,6 @@ function RowActionsMenu({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-function DeleteSubmissionButton({
-  row,
-  onConfirm,
-  disabled,
-}: {
-  row: StatusRow;
-  onConfirm: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <AlertDialog>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialogTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 text-destructive hover:text-destructive"
-              disabled={disabled}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </AlertDialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent className="bg-secondary text-muted-foreground">Delete</TooltipContent>
-      </Tooltip>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete this submission?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Removes {row.characterName}&apos;s availability for this item, and any turn-in scheduled
-            for it. This can&apos;t be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            onClick={onConfirm}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }
 
@@ -342,6 +438,37 @@ export function WorldBuffQueueList({
     },
   });
 
+  const updateSubmission = api.worldBuff.updateSubmission.useMutation({
+    onMutate: async (input) => {
+      await utils.worldBuff.getAll.cancel();
+      const prevGetAll = utils.worldBuff.getAll.getData();
+      utils.worldBuff.getAll.setData(undefined, (old) =>
+        old?.map((row) =>
+          row.id === input.statusId
+            ? {
+                ...row,
+                characterName: input.characterName ?? row.characterName,
+                characterId: input.characterId !== undefined ? input.characterId : row.characterId,
+                notes: input.notes !== undefined ? input.notes : row.notes,
+              }
+            : row,
+        ),
+      );
+      return { prevGetAll };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.prevGetAll) utils.worldBuff.getAll.setData(undefined, ctx.prevGetAll);
+      toast({
+        title: "Failed to update submission",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      void utils.worldBuff.getAll.invalidate();
+    },
+  });
+
   const deleteStatus = api.worldBuff.deleteStatus.useMutation({
     onMutate: async (input) => {
       await utils.worldBuff.getAll.cancel();
@@ -370,12 +497,13 @@ export function WorldBuffQueueList({
   });
 
   const itemsKey = items.join(",");
-  const { activeRows, pastRows } = useMemo(() => {
+  const { activeRows, pastRows, hiddenInactiveCount } = useMemo(() => {
     const itemRows = (data ?? []).filter((row) => items.includes(row.item));
-    const active = itemRows
+    const queueFiltered = itemRows
       .filter((row) => row.state === "ready_to_drop")
+      .filter((row) => queueTypeTab === "all" || row.queueType === queueTypeTab);
+    const active = queueFiltered
       .filter((row) => activityTab === "all" || row.markedInactiveAt === null)
-      .filter((row) => queueTypeTab === "all" || row.queueType === queueTypeTab)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     const past = itemRows
       .filter((row) => row.state === "dropped")
@@ -384,7 +512,9 @@ export function WorldBuffQueueList({
         const bTime = b.droppedAt ? new Date(b.droppedAt).getTime() : 0;
         return bTime - aTime;
       });
-    return { activeRows: active, pastRows: past };
+    // Only meaningful on "Active" — "All" already shows everything, so there's nothing hidden.
+    const hiddenInactiveCount = queueFiltered.length - active.length;
+    return { activeRows: active, pastRows: past, hiddenInactiveCount };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- itemsKey is items' stable identity
   }, [data, itemsKey, queueTypeTab, activityTab]);
 
@@ -409,20 +539,20 @@ export function WorldBuffQueueList({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 px-2 pb-1.5 sm:px-2.5 sm:pb-2">
-        <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
           <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as ActivityTab)}>
-            <TabsList className="h-8 w-full">
-              <TabsTrigger value="active" className="h-6 flex-1 px-2 text-xs">
+            <TabsList className="h-8">
+              <TabsTrigger value="active" className="h-6 px-2.5 text-xs">
                 Active
               </TabsTrigger>
-              <TabsTrigger value="all" className="h-6 flex-1 px-2 text-xs">
+              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
                 All
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <Tabs value={queueTypeTab} onValueChange={(v) => setQueueTypeTab(v as QueueTypeTab)}>
-            <TabsList className="h-8 w-full">
-              <TabsTrigger value="all" className="h-6 flex-1 px-2 text-xs">
+            <TabsList className="h-8">
+              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
                 All
               </TabsTrigger>
               {QUEUE_TYPES.map((queueType) => {
@@ -432,7 +562,7 @@ export function WorldBuffQueueList({
                     key={queueType}
                     value={queueType}
                     aria-label={opt.label}
-                    className="h-6 flex-1 px-2"
+                    className="h-6 px-2.5"
                   >
                     <opt.Icon className={cn("h-3.5 w-3.5", opt.className)} />
                   </TabsTrigger>
@@ -458,13 +588,45 @@ export function WorldBuffQueueList({
                   action={
                     <>
                       {row.notes?.trim() && <NotesIndicator notes={row.notes} />}
-                      {row.markedInactiveAt && (
-                        <InactiveIndicator since={new Date(row.markedInactiveAt)} />
-                      )}
                       <StatusIndicator row={row} />
                       {canManage && (
                         <>
                           <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+                          {!row.characterId && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <CharacterSelector
+                                    characterSet="all"
+                                    onSelectAction={(character) =>
+                                      updateSubmission.mutate({
+                                        statusId: row.id,
+                                        characterName: character.name,
+                                        characterId: character.characterId,
+                                      })
+                                    }
+                                  >
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      aria-label="Link to a roster character"
+                                      disabled={updateSubmission.isPending}
+                                    >
+                                      {updateSubmission.isPending ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <UserRoundSearch className="h-3.5 w-3.5" />
+                                      )}
+                                    </Button>
+                                  </CharacterSelector>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-secondary text-muted-foreground">
+                                Link to a roster character
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -492,7 +654,8 @@ export function WorldBuffQueueList({
                               updateQueueType.isPending ||
                               setState.isPending ||
                               setInactive.isPending ||
-                              deleteStatus.isPending
+                              deleteStatus.isPending ||
+                              updateSubmission.isPending
                             }
                             onSetQueueType={(queueType) =>
                               updateQueueType.mutate({ statusId: row.id, queueType })
@@ -507,6 +670,9 @@ export function WorldBuffQueueList({
                               })
                             }
                             onDelete={() => deleteStatus.mutate({ statusId: row.id })}
+                            onEditSubmission={(input) =>
+                              updateSubmission.mutate({ statusId: row.id, ...input })
+                            }
                           />
                         </>
                       )}
@@ -516,6 +682,11 @@ export function WorldBuffQueueList({
               );
             })}
           </ul>
+        )}
+        {activityTab === "active" && hiddenInactiveCount > 0 && (
+          <p className="text-center text-xs italic text-muted-foreground">
+            Hiding {hiddenInactiveCount} inactive character{hiddenInactiveCount === 1 ? "" : "s"}
+          </p>
         )}
 
         <Collapsible open={pastOpen} onOpenChange={setPastOpen}>
@@ -553,6 +724,7 @@ export function WorldBuffQueueList({
                         <StatusIndicator row={row} />
                         {canManage && (
                           <>
+                            <div className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -571,10 +743,10 @@ export function WorldBuffQueueList({
                                 Revert to ready
                               </TooltipContent>
                             </Tooltip>
-                            <DeleteSubmissionButton
+                            <PastRowMenu
                               row={row}
                               disabled={deleteStatus.isPending}
-                              onConfirm={() => deleteStatus.mutate({ statusId: row.id })}
+                              onDelete={() => deleteStatus.mutate({ statusId: row.id })}
                             />
                           </>
                         )}

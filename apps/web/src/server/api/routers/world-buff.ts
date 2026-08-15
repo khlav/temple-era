@@ -22,6 +22,7 @@ import {
   updateAssignment,
   updateNotes,
   updateQueueType,
+  updateSubmission,
 } from "~/server/services/world-buff-service";
 
 const worldBuffItemSchema = z.enum(WORLD_BUFF_ITEMS);
@@ -108,6 +109,25 @@ export const worldBuffRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         return await updateNotes({ ...input, actingUserId: ctx.session.user.id });
+      } catch (error) {
+        toTRPCError(error);
+      }
+    }),
+
+  // General manager edit (name/roster link/notes) — also backs the quick "link a character"
+  // action, which only ever sends characterName+characterId.
+  updateSubmission: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
+    .input(
+      z.object({
+        statusId: z.string().uuid(),
+        characterName: z.string().trim().min(1).max(128).optional(),
+        characterId: z.number().int().positive().nullable().optional(),
+        notes: z.string().max(2000).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await updateSubmission({ ...input, actingUserId: ctx.session.user.id });
       } catch (error) {
         toTRPCError(error);
       }

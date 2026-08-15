@@ -107,6 +107,8 @@ export function SubmitAvailabilityForm() {
           primaryCharacterName: null,
           discordUserId: null,
           discordUsername: null,
+          isIdle: false,
+          idleLastRaidAt: null,
         };
         return [...old, optimisticRow];
       });
