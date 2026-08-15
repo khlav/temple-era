@@ -274,6 +274,13 @@
       "when": 1786710376207,
       "tag": "0038_temple-89-worldbuff-marked-inactive",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1786813906379,
+      "tag": "0039_flawless_multiple_man",
+      "breakpoints": true
     }
   ]
 }

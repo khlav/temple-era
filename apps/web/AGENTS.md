@@ -407,7 +407,7 @@ scheduling/messaging service), whose Schedules aren't gated by Vercel's plan tie
   min). Polls Raid Helper's event list (`fetchScheduledEvents()` — excludes
   `DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID` if set, since Raid Helper's API returns every
   event ever posted with no age limit of its own) and decides, per upcoming raid ×
-  checkpoint (T-72h/T-48h/T-24h/T-0), whether to schedule a precise one-off capture,
+  checkpoint (daily T-144h through T-24h, plus T-0), whether to schedule a precise one-off capture,
   reschedule one whose raid time changed, capture immediately if overdue-but-within-grace,
   or give up. Decision logic: `src/server/services/raid-helper-snapshot-checkpoints.ts`
   (`decideCheckpointAction`).

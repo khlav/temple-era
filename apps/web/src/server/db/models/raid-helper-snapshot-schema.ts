@@ -13,8 +13,16 @@ import { IdPkAsUUID, DefaultTimestamps } from "~/server/db/helpers";
 const tableCreator = pgTableCreator((name) => name);
 
 // Named generically (not "raid_helper_*") so a future SoftRes snapshot table (TEMPLE-77)
-// can reuse the same enum type if it adopts the same T-72h/48h/24h/0h offsets.
-export const snapshotCheckpointEnum = pgEnum("snapshot_checkpoint", ["72h", "48h", "24h", "0h"]);
+// can reuse the same enum type if it adopts the same daily T-144h..0h offsets.
+export const snapshotCheckpointEnum = pgEnum("snapshot_checkpoint", [
+  "144h",
+  "120h",
+  "96h",
+  "72h",
+  "48h",
+  "24h",
+  "0h",
+]);
 
 export interface RaidHelperSignupSnapshotEntry {
   userId: string;
