@@ -1,7 +1,10 @@
-export const SNAPSHOT_CHECKPOINTS = ["72h", "48h", "24h", "0h"] as const;
+export const SNAPSHOT_CHECKPOINTS = ["144h", "120h", "96h", "72h", "48h", "24h", "0h"] as const;
 export type SnapshotCheckpoint = (typeof SNAPSHOT_CHECKPOINTS)[number];
 
 export const CHECKPOINT_OFFSET_HOURS: Record<SnapshotCheckpoint, number> = {
+  "144h": 144,
+  "120h": 120,
+  "96h": 96,
   "72h": 72,
   "48h": 48,
   "24h": 24,
