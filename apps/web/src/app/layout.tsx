@@ -68,16 +68,16 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 <TooltipProvider>
                   <BreadcrumbProvider>
                     <GlobalQuickLauncherProvider>
-                      <div className="relative min-h-svh overflow-hidden">
+                      <div className="relative min-h-svh overflow-x-hidden">
                         <div className="pointer-events-none absolute inset-0">
                           <div className="absolute inset-0 bg-[linear-gradient(rgba(170,180,176,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(170,180,176,0.018)_1px,transparent_1px)] bg-size-[48px_48px]" />
-                          <div className="absolute inset-x-0 top-0 h-88 bg-[radial-gradient(circle_at_top,rgba(214,138,73,0.08),rgba(214,138,73,0)_58%)]" />
+                          <div className="absolute inset-x-0 top-0 h-[42rem] bg-[radial-gradient(circle_at_top,rgba(214,138,73,0.08),rgba(214,138,73,0)_58%)]" />
                           <div className="absolute -left-32 top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(92,92,102,0.07),rgba(92,92,102,0))]" />
                           <div className="absolute -right-40 top-14 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(210,168,110,0.04),rgba(210,168,110,0))]" />
                         </div>
                         <div className="relative z-10 flex min-h-svh flex-col">
                           <AppHeader />
-                          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                          <div className="flex-1">
                             <div className="mx-auto w-full max-w-[1360px] px-4 pb-8 pt-4 sm:px-5 lg:px-8">
                               {children}
                             </div>
