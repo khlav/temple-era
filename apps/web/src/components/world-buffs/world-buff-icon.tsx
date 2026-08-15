@@ -62,6 +62,7 @@ export function WorldBuffIcon({
   size = 22,
   className,
   grayscale = false,
+  showTooltip = true,
 }: {
   item: WorldBuffItem;
   size?: number;
@@ -70,6 +71,9 @@ export function WorldBuffIcon({
    *  which turn-ins are already done. Applied to the tooltip trigger wrapper — a CSS filter
    *  affects its whole subtree — rather than threading it through both icon branches below. */
   grayscale?: boolean;
+  /** Set false when the icon sits somewhere that already has its own tooltip (e.g. a disabled
+   *  menu item explaining itself) — avoids nesting one Radix Tooltip trigger inside another. */
+  showTooltip?: boolean;
 }) {
   const overrideSrc = WORLD_BUFF_ITEM_ICON_OVERRIDE[item];
   const [overrideErrored, setOverrideErrored] = useState(false);
@@ -90,11 +94,15 @@ export function WorldBuffIcon({
       <BuffIcon buff={buff} size={size} className={className} />
     );
 
+  const wrapped = (
+    <span className={cn("inline-flex shrink-0", grayscale && "grayscale")}>{icon}</span>
+  );
+
+  if (!showTooltip) return wrapped;
+
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <span className={cn("inline-flex shrink-0", grayscale && "grayscale")}>{icon}</span>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{wrapped}</TooltipTrigger>
       <TooltipContent className="bg-secondary text-muted-foreground">
         {WORLD_BUFF_ITEM_LABELS[item]} — {WORLD_BUFF_LABELS[buff]}
       </TooltipContent>

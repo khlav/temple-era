@@ -280,12 +280,19 @@ export function SubmitAvailabilityForm() {
                             item={item}
                             size={36}
                             className={cn(
-                              "shrink-0 rounded-sm transition-all duration-150",
+                              "shrink-0 rounded-sm transition-all duration-100",
                               checked ? "opacity-100 grayscale-0" : "opacity-40 grayscale",
                             )}
                           />
                           <span>
-                            <span className="block">{WORLD_BUFF_ITEM_LABELS[item]}</span>
+                            <span
+                              className={cn(
+                                "block transition-all duration-100",
+                                !checked && "text-muted-foreground",
+                              )}
+                            >
+                              {WORLD_BUFF_ITEM_LABELS[item]}
+                            </span>
                             <span className="block text-xs text-muted-foreground">
                               {WORLD_BUFF_LABELS[WORLD_BUFF_BY_ITEM[item]]}
                             </span>
@@ -328,7 +335,10 @@ export function SubmitAvailabilityForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="wb-notes">Notes (optional)</Label>
+              <Label htmlFor="wb-notes">
+                Drop notes{" "}
+                <span className="text-xs font-normal text-muted-foreground">Optional</span>
+              </Label>
               <Input
                 id="wb-notes"
                 value={notes}
@@ -352,7 +362,7 @@ export function SubmitAvailabilityForm() {
                   submitAvailability.isPending || !characterName.trim() || selectedItems.size === 0
                 }
               >
-                Register drops
+                Add to Drop List
               </Button>
             </div>
           </form>

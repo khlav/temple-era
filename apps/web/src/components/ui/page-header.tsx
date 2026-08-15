@@ -69,7 +69,7 @@ export function PageHeader({
           {description ? (
             <p
               className={cn(
-                "max-w-3xl text-muted-foreground",
+                "max-w-full text-muted-foreground",
                 isHero ? "pt-1 text-sm sm:text-base" : "text-sm leading-5",
               )}
             >
