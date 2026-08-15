@@ -8,9 +8,11 @@ import type { Session } from "next-auth";
 import DashboardBanner from "~/components/dashboard/dashboard-banner";
 import { PersonalAttendanceSummary } from "~/components/dashboard/personal-attendance-summary";
 import { UpcomingEvents } from "~/components/dashboard/upcoming-events";
+import { UpcomingWorldBuffDrops } from "~/components/dashboard/upcoming-world-buff-drops";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "~/components/ui/button";
+import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
 
 export function AttendanceDashboard({ currentUserSession }: { currentUserSession?: Session }) {
@@ -56,6 +58,13 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
           </div>
         )}
       </div>
+
+      <Separator />
+
+      {/* Full width: Upcoming World Buff Drops */}
+      <UpcomingWorldBuffDrops />
+
+      <Separator />
 
       {/* Bottom Section: 2/3 + 1/3 layout */}
       <div className="flex flex-col gap-4 lg:flex-row">
