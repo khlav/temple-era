@@ -7,12 +7,49 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { cn } from "~/lib/utils";
 import {
   WORLD_BUFF_BY_ITEM,
+  WORLD_BUFF_ICON,
   WORLD_BUFF_ITEM_ICON_OVERRIDE,
   WORLD_BUFF_ITEM_LABELS,
   WORLD_BUFF_LABELS,
   WORLD_BUFF_SPELL_ID,
+  type WorldBuff,
   type WorldBuffItem,
 } from "~/lib/world-buffs";
+
+/**
+ * A buff's own icon (not a specific turn-in item's) — the local file committed to
+ * `public/img/world-buffs/`, fetched once from Wowhead rather than on every page load. Only
+ * falls back to the live Wowhead-fetched `SpellIcon` if that committed asset somehow fails to
+ * load. Used by `WorldBuffIcon`'s fallback below, `DragonBuffIcon`'s dragon half, and the buff
+ * picker in `AssignmentList`.
+ */
+export function BuffIcon({
+  buff,
+  size = 22,
+  className,
+}: {
+  buff: WorldBuff;
+  size?: number;
+  className?: string;
+}) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={size} className={className} />;
+  }
+
+  return (
+    <Image
+      src={WORLD_BUFF_ICON[buff]}
+      alt={WORLD_BUFF_LABELS[buff]}
+      width={size}
+      height={size}
+      className={className ?? "inline-block rounded-sm align-text-bottom"}
+      style={{ width: size, height: size }}
+      onError={() => setErrored(true)}
+    />
+  );
+}
 
 /**
  * Icon for a turn-in item, with a tooltip naming the item and the buff it grants. Prefers a
@@ -50,7 +87,7 @@ export function WorldBuffIcon({
         onError={() => setOverrideErrored(true)}
       />
     ) : (
-      <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={size} className={className} />
+      <BuffIcon buff={buff} size={size} className={className} />
     );
 
   return (
@@ -87,7 +124,7 @@ export function DragonBuffIcon({
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%)" }}
       >
-        <SpellIcon spellId={WORLD_BUFF_SPELL_ID.dragon} size={size} />
+        <BuffIcon buff="dragon" size={size} />
       </span>
       <span
         className="absolute inset-0 overflow-hidden"
