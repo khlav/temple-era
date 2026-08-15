@@ -353,7 +353,14 @@ function RowActionsMenu({
                     size="sm"
                     variant={editNameMode === "type" ? "default" : "outline"}
                     className="h-7 px-2 text-xs"
-                    onClick={() => setEditNameMode("type")}
+                    onClick={() => {
+                      setEditNameMode("type");
+                      // Switching an already-linked row to free-text mode is how a manager
+                      // detaches it from the roster — clear the stale link immediately rather
+                      // than leaving it in place until the name text itself gets edited.
+                      setEditCharacterId(null);
+                      setEditPickedClass(null);
+                    }}
                   >
                     Type a name
                   </Button>
