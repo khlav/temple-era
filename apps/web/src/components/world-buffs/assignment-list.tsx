@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { formatInTimeZone } from "date-fns-tz";
-import { Check, Clock, Pencil, Trash2, Undo2 } from "lucide-react";
+import { CalendarClock, Check, Pencil, Trash2, Undo2 } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -38,9 +38,8 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
-import { SpellIcon } from "~/components/ui/aa-icons";
 import { WorldBuffCharacterIdentity } from "./world-buff-character-identity";
-import { DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
+import { BuffIcon, DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
 import { NotesIndicator, QUEUE_TYPE_ICON } from "./queue-type-icon";
 import { useScheduleDialog } from "./schedule-dialog-context";
 import { useSetWorldBuffState } from "./use-world-buff-mutations";
@@ -57,7 +56,6 @@ import {
   WORLD_BUFF_BY_ITEM,
   WORLD_BUFFS,
   WORLD_BUFF_LABELS,
-  WORLD_BUFF_SPELL_ID,
   WORLD_BUFF_DEFAULT_TIME_ET,
   type WorldBuff,
   type WorldBuffItem,
@@ -125,6 +123,7 @@ function AssignmentRow({
   className,
   action,
   timeOnly = false,
+  canManage,
 }: {
   assignment: ActiveAssignment | PastAssignment;
   className?: string;
@@ -132,17 +131,24 @@ function AssignmentRow({
   /** Active rows are grouped under a day header, so the date's redundant here — show just the
    *  time, right-aligned, instead of the full date/time inline with the notes. */
   timeOnly?: boolean;
+  canManage: boolean;
 }) {
+  const dropped = assignment.status.state === "dropped";
   return (
     <div className={cn("flex flex-wrap items-center gap-2 rounded-md border p-2", className)}>
       <WorldBuffIcon
         item={assignment.status.item as WorldBuffItem}
         size={28}
         className="inline-block shrink-0 rounded-sm"
+        grayscale={dropped}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <WorldBuffCharacterIdentity character={assignment.status} />
+          <WorldBuffCharacterIdentity
+            character={assignment.status}
+            showDiscord={canManage}
+            dropped={dropped}
+          />
         </div>
         {timeOnly ? (
           assignment.notes && (
@@ -544,7 +550,7 @@ export function AssignmentList() {
           >
             <DialogTrigger asChild>
               <Button size="sm" onClick={openCreateDialog}>
-                <Clock className="h-4 w-4" />
+                <CalendarClock className="h-4 w-4" />
                 Schedule
               </Button>
             </DialogTrigger>
@@ -574,7 +580,7 @@ export function AssignmentList() {
                             {buff === "dragon" ? (
                               <DragonBuffIcon size={28} />
                             ) : (
-                              <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={28} />
+                              <BuffIcon buff={buff} size={28} />
                             )}
                           </button>
                         </TooltipTrigger>
@@ -695,6 +701,7 @@ export function AssignmentList() {
                           assignment={a}
                           className="border-border/60"
                           timeOnly
+                          canManage={canManage}
                           action={canManage && renderRowActions(a, { isPast: false })}
                         />
                       ))}
@@ -723,6 +730,7 @@ export function AssignmentList() {
                         assignment={a}
                         className="border-border/40 bg-muted/30"
                         timeOnly
+                        canManage={canManage}
                         action={canManage && renderRowActions(a, { isPast: true })}
                       />
                     ))}

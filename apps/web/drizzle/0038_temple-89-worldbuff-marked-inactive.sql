@@ -1,0 +1,1 @@
+ALTER TABLE "world_buff_character_status" ADD COLUMN "marked_inactive_at" timestamp with time zone;

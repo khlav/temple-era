@@ -1,7 +1,17 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "~/server/db";
-import { characters, worldBuffAssignments, worldBuffCharacterStatus } from "~/server/db/schema";
-import type { WorldBuffItem } from "~/lib/world-buffs";
+import {
+  accounts,
+  characters,
+  raidLogAttendeeMap,
+  raidLogs,
+  raids,
+  users,
+  worldBuffAssignments,
+  worldBuffCharacterStatus,
+} from "~/server/db/schema";
+import { getLockoutWeeks } from "~/server/api/v2/helpers/lockout-weeks";
+import { WORLD_BUFF_ITEM_LABELS, type WorldBuffItem } from "~/lib/world-buffs";
 
 type WorldBuffState = "ready_to_drop" | "dropped";
 type WorldBuffQueueType = "main" | "alt" | "backup";
@@ -19,6 +29,19 @@ export class WorldBuffServiceError extends Error {
     super(message);
     this.name = "WorldBuffServiceError";
   }
+}
+
+// Unwraps drizzle-orm's `DrizzleQueryError` to the driver's `PostgresError` underneath (attached
+// as `.cause`) and returns its SQLSTATE `.code` — e.g. "23505" for a unique-constraint violation.
+// Falls back to checking `error` itself, in case something throws the driver error directly.
+function getPgErrorCode(error: unknown): string | undefined {
+  for (const candidate of [(error as { cause?: unknown } | undefined)?.cause, error]) {
+    if (candidate && typeof candidate === "object" && "code" in candidate) {
+      const code = (candidate as { code?: unknown }).code;
+      if (typeof code === "string") return code;
+    }
+  }
+  return undefined;
 }
 
 // Trimmed + lowercased, matching `characterNameNormalized`'s purpose in the schema — without
@@ -139,6 +162,84 @@ export async function updateNotes(input: UpdateNotesInput) {
   const [updated] = await db
     .update(worldBuffCharacterStatus)
     .set({ notes: input.notes, updatedById: input.actingUserId })
+    .where(eq(worldBuffCharacterStatus.id, input.statusId))
+    .returning();
+  return updated!;
+}
+
+export interface UpdateSubmissionInput {
+  statusId: string;
+  /** Renames the free-text name — e.g. fixing a typo, or matching a newly-linked character's
+   *  canonical spelling. Omit to leave it as-is. */
+  characterName?: string;
+  /** Links (a positive ID) or unlinks (`null`) the roster character. Omit to leave as-is —
+   *  distinct from `null`, which explicitly clears an existing link. */
+  characterId?: number | null;
+  notes?: string | null;
+  actingUserId: string;
+}
+
+/** General manager edit — free-text name, roster link, and notes in one call. Backs both the
+ *  row's "Edit" dialog and the quick "link a character" action (which only ever passes
+ *  `characterName`+`characterId`). Deliberately leaves `state`/`queueType`/`item` alone — those
+ *  have their own dedicated flows (`setState`/`updateQueueType`). */
+export async function updateSubmission(input: UpdateSubmissionInput) {
+  const existing = await getStatusOrThrow(input.statusId);
+  const characterName =
+    input.characterName !== undefined ? input.characterName.trim() : existing.characterName;
+
+  try {
+    const [updated] = await db
+      .update(worldBuffCharacterStatus)
+      .set({
+        characterName,
+        characterNameNormalized: normalizeCharacterName(characterName),
+        characterId: input.characterId !== undefined ? input.characterId : existing.characterId,
+        notes: input.notes !== undefined ? input.notes : existing.notes,
+        updatedById: input.actingUserId,
+      })
+      .where(eq(worldBuffCharacterStatus.id, input.statusId))
+      .returning();
+    return updated!;
+  } catch (error) {
+    // Unique violation on (characterNameNormalized, item) — renaming collided with another
+    // row already submitted for this same item under that name. Typically means the row being
+    // edited is a duplicate (e.g. a free-text CSV-import row for someone who already has a
+    // properly-linked submission) — the fix is usually deleting the duplicate, not linking it.
+    //
+    // The driver's PostgresError carries `.code` (SQLSTATE), but drizzle-orm wraps every query
+    // error in its own `DrizzleQueryError` — which has no `.code` of its own — with the original
+    // error attached as `.cause`. So the SQLSTATE has to be read from `.cause`, not the error
+    // that lands here directly.
+    if (getPgErrorCode(error) === "23505") {
+      throw new WorldBuffServiceError(
+        "CONFLICT",
+        `${characterName} already has a submission for ${WORLD_BUFF_ITEM_LABELS[existing.item]}. ` +
+          `This looks like a duplicate — delete one of the two rows instead of linking them.`,
+      );
+    }
+    throw error;
+  }
+}
+
+export interface SetInactiveInput {
+  statusId: string;
+  inactive: boolean;
+  actingUserId: string;
+}
+
+/** Manual manager flag — tucks a "gone quiet" character's row out of the active queue without
+ *  deleting it. Deliberately independent of `state`: an inactive row can still be `ready_to_drop`,
+ *  it's just deprioritized in the UI. Never auto-clears (e.g. resubmitting availability doesn't
+ *  touch this) — a manager has to explicitly bring someone back. */
+export async function setInactive(input: SetInactiveInput) {
+  await getStatusOrThrow(input.statusId);
+  const [updated] = await db
+    .update(worldBuffCharacterStatus)
+    .set({
+      markedInactiveAt: input.inactive ? new Date() : null,
+      updatedById: input.actingUserId,
+    })
     .where(eq(worldBuffCharacterStatus.id, input.statusId))
     .returning();
   return updated!;
@@ -273,11 +374,29 @@ export async function getAssignmentById(assignmentId: string) {
 export interface CharacterEnrichment {
   characterClass: string | null;
   primaryCharacterName: string | null;
+  /** Only populated when someone has linked a character from this family (see
+   *  `loadCharacterEnrichment`) to their Temple account — most free-text submissions won't
+   *  resolve to anyone. Callers must strip these for non-`worldbuff:manage` viewers. */
+  discordUserId: string | null;
+  discordUsername: string | null;
+  /** Computed "gone quiet" signal — deliberately separate from `markedInactiveAt` (a manual
+   *  manager flag). True when the row's linked character's family has raided before but hasn't
+   *  in the last 4 lockout weeks (3 complete + current) — see `loadCharacterEnrichment`. Always
+   *  false for free-text-only rows (no `characterId`), since there's no roster attendance to
+   *  check. */
+  isIdle: boolean;
+  /** ISO date ("YYYY-MM-DD") of the family's most recent raid — only populated when `isIdle` is
+   *  true, for the tooltip's "Last raid X ago" line. */
+  idleLastRaidAt: string | null;
 }
 
 const NO_ENRICHMENT: CharacterEnrichment = {
   characterClass: null,
   primaryCharacterName: null,
+  discordUserId: null,
+  discordUsername: null,
+  isIdle: false,
+  idleLastRaidAt: null,
 };
 
 /**
@@ -300,12 +419,109 @@ async function loadCharacterEnrichment(
 
   const characterMap = new Map(linkedCharacters.map((c) => [c.characterId, c]));
 
+  // A Discord identity is only resolvable when some Temple account has linked the FAMILY's
+  // primary character as their own `/profile` character — same simplification `raid-helper.ts`'s
+  // find-gamers query makes (an account linked to an alt, not the primary, won't resolve). Most
+  // world-buff rows are free-text submissions with no `characterId` at all, so this is always a
+  // best-effort lookup, never a guarantee.
+  const familyPrimaryIds = [
+    ...new Set(linkedCharacters.map((c) => c.primaryCharacterId ?? c.characterId)),
+  ];
+  const discordLinks =
+    familyPrimaryIds.length > 0
+      ? await db
+          .select({
+            characterId: users.characterId,
+            discordUserId: accounts.providerAccountId,
+            discordUsername: users.name,
+          })
+          .from(users)
+          .innerJoin(accounts, and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")))
+          .where(inArray(users.characterId, familyPrimaryIds))
+      : [];
+  const discordByFamilyId = new Map(discordLinks.map((d) => [d.characterId, d]));
+
+  // "Idle raider": a linked family that has raided at some point in its history, but not within
+  // the last 4 lockout weeks (3 complete + the current, in-progress one). Computed fresh on every
+  // read rather than stored — unlike `markedInactiveAt`, this is a signal, not a manager decision.
+  const familyMembers =
+    familyPrimaryIds.length > 0
+      ? await db
+          .select({
+            characterId: characters.characterId,
+            primaryCharacterId: characters.primaryCharacterId,
+          })
+          .from(characters)
+          .where(
+            or(
+              inArray(characters.characterId, familyPrimaryIds),
+              inArray(characters.primaryCharacterId, familyPrimaryIds),
+            ),
+          )
+      : [];
+  const memberIdsByFamilyId = new Map<number, number[]>(familyPrimaryIds.map((id) => [id, [id]]));
+  for (const member of familyMembers) {
+    const familyId = member.primaryCharacterId ?? member.characterId;
+    if (member.characterId === familyId) continue;
+    memberIdsByFamilyId.get(familyId)?.push(member.characterId);
+  }
+  const allMemberIds = [...new Set([...memberIdsByFamilyId.values()].flat())];
+
+  // Full (unbounded-by-date) history rather than a windowed query, since "has ever raided"
+  // needs it — but it's still bounded to `allMemberIds` (families already in this read's
+  // result set, not the whole roster), which keeps row counts small at this guild's scale.
+  const idleWindowStart = getLockoutWeeks(3, true)[0]!.start.toISOString().split("T")[0]!;
+  const attendanceRows =
+    allMemberIds.length > 0
+      ? await db
+          .select({ characterId: raidLogAttendeeMap.characterId, date: raids.date })
+          .from(raidLogAttendeeMap)
+          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+          .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
+          .where(
+            and(
+              inArray(raidLogAttendeeMap.characterId, allMemberIds),
+              eq(raidLogAttendeeMap.isIgnored, false),
+            ),
+          )
+      : [];
+  const everAttendedIds = new Set(attendanceRows.map((r) => r.characterId));
+  const recentlyAttendedIds = new Set(
+    attendanceRows.filter((r) => r.date >= idleWindowStart).map((r) => r.characterId),
+  );
+  const lastRaidDateByCharacterId = new Map<number, string>();
+  for (const row of attendanceRows) {
+    const prev = lastRaidDateByCharacterId.get(row.characterId);
+    if (!prev || row.date > prev) lastRaidDateByCharacterId.set(row.characterId, row.date);
+  }
+  const idleFamilyIds = new Set(
+    [...memberIdsByFamilyId.entries()]
+      .filter(
+        ([, memberIds]) =>
+          memberIds.some((id) => everAttendedIds.has(id)) &&
+          !memberIds.some((id) => recentlyAttendedIds.has(id)),
+      )
+      .map(([familyId]) => familyId),
+  );
+
   return (characterId) => {
     const char = characterId !== null ? characterMap.get(characterId) : undefined;
     if (!char) return NO_ENRICHMENT;
+    const familyId = char.primaryCharacterId ?? char.characterId;
+    const discord = discordByFamilyId.get(familyId);
+    const memberIds = memberIdsByFamilyId.get(familyId) ?? [familyId];
+    let lastRaidAt: string | null = null;
+    for (const id of memberIds) {
+      const d = lastRaidDateByCharacterId.get(id);
+      if (d && (!lastRaidAt || d > lastRaidAt)) lastRaidAt = d;
+    }
     return {
       characterClass: char.class,
       primaryCharacterName: char.primaryCharacter?.name ?? null,
+      discordUserId: discord?.discordUserId ?? null,
+      discordUsername: discord?.discordUsername ?? null,
+      isIdle: idleFamilyIds.has(familyId),
+      idleLastRaidAt: idleFamilyIds.has(familyId) ? lastRaidAt : null,
     };
   };
 }

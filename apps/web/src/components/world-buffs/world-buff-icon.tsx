@@ -4,14 +4,52 @@ import { useState } from "react";
 import Image from "next/image";
 import { SpellIcon } from "~/components/ui/aa-icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { cn } from "~/lib/utils";
 import {
   WORLD_BUFF_BY_ITEM,
+  WORLD_BUFF_ICON,
   WORLD_BUFF_ITEM_ICON_OVERRIDE,
   WORLD_BUFF_ITEM_LABELS,
   WORLD_BUFF_LABELS,
   WORLD_BUFF_SPELL_ID,
+  type WorldBuff,
   type WorldBuffItem,
 } from "~/lib/world-buffs";
+
+/**
+ * A buff's own icon (not a specific turn-in item's) — the local file committed to
+ * `public/img/world-buffs/`, fetched once from Wowhead rather than on every page load. Only
+ * falls back to the live Wowhead-fetched `SpellIcon` if that committed asset somehow fails to
+ * load. Used by `WorldBuffIcon`'s fallback below, `DragonBuffIcon`'s dragon half, and the buff
+ * picker in `AssignmentList`.
+ */
+export function BuffIcon({
+  buff,
+  size = 22,
+  className,
+}: {
+  buff: WorldBuff;
+  size?: number;
+  className?: string;
+}) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={size} className={className} />;
+  }
+
+  return (
+    <Image
+      src={WORLD_BUFF_ICON[buff]}
+      alt={WORLD_BUFF_LABELS[buff]}
+      width={size}
+      height={size}
+      className={className ?? "inline-block rounded-sm align-text-bottom"}
+      style={{ width: size, height: size }}
+      onError={() => setErrored(true)}
+    />
+  );
+}
 
 /**
  * Icon for a turn-in item, with a tooltip naming the item and the buff it grants. Prefers a
@@ -23,10 +61,15 @@ export function WorldBuffIcon({
   item,
   size = 22,
   className,
+  grayscale = false,
 }: {
   item: WorldBuffItem;
   size?: number;
   className?: string;
+  /** Dims a dropped row's icon to gray rather than full color, so a glance down the list reads
+   *  which turn-ins are already done. Applied to the tooltip trigger wrapper — a CSS filter
+   *  affects its whole subtree — rather than threading it through both icon branches below. */
+  grayscale?: boolean;
 }) {
   const overrideSrc = WORLD_BUFF_ITEM_ICON_OVERRIDE[item];
   const [overrideErrored, setOverrideErrored] = useState(false);
@@ -44,13 +87,13 @@ export function WorldBuffIcon({
         onError={() => setOverrideErrored(true)}
       />
     ) : (
-      <SpellIcon spellId={WORLD_BUFF_SPELL_ID[buff]} size={size} className={className} />
+      <BuffIcon buff={buff} size={size} className={className} />
     );
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0">{icon}</span>
+        <span className={cn("inline-flex shrink-0", grayscale && "grayscale")}>{icon}</span>
       </TooltipTrigger>
       <TooltipContent className="bg-secondary text-muted-foreground">
         {WORLD_BUFF_ITEM_LABELS[item]} — {WORLD_BUFF_LABELS[buff]}
@@ -65,14 +108,23 @@ export function WorldBuffIcon({
  * Renders both item icons full-size, each clipped to its half of a top-left-to-bottom-right
  * diagonal — used wherever the two are shown combined (the Buff picker, the merged queue card).
  */
-export function DragonBuffIcon({ size = 22 }: { size?: number }) {
+export function DragonBuffIcon({
+  size = 22,
+  grayscale = false,
+}: {
+  size?: number;
+  grayscale?: boolean;
+}) {
   return (
-    <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
+    <span
+      className={cn("relative inline-block shrink-0", grayscale && "grayscale")}
+      style={{ width: size, height: size }}
+    >
       <span
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%)" }}
       >
-        <SpellIcon spellId={WORLD_BUFF_SPELL_ID.dragon} size={size} />
+        <BuffIcon buff="dragon" size={size} />
       </span>
       <span
         className="absolute inset-0 overflow-hidden"

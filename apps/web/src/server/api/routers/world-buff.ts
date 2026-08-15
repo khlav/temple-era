@@ -16,11 +16,13 @@ import {
   getMatrix,
   listActiveAssignments,
   listPastAssignments,
+  setInactive,
   setState,
   submitAvailability,
   updateAssignment,
   updateNotes,
   updateQueueType,
+  updateSubmission,
 } from "~/server/services/world-buff-service";
 
 const worldBuffItemSchema = z.enum(WORLD_BUFF_ITEMS);
@@ -37,17 +39,36 @@ function toTRPCError(error: unknown): never {
   throw error;
 }
 
+// `getAll`/`listActiveAssignments` are public, but a resolved Discord identity is only meant for
+// worldbuff:manage viewers (the DM icon in the UI) — redact it for everyone else rather than
+// gating the whole query behind the scope.
+function redactDiscord<T extends { discordUserId: string | null; discordUsername: string | null }>(
+  row: T,
+): T {
+  return { ...row, discordUserId: null, discordUsername: null };
+}
+
 export const worldBuffRouter = createTRPCRouter({
   // `assignments` on a dropped row is exactly what `listPastAssignments` (manager-only) exists
   // to gate — an active row's assignments are already public via `listActiveAssignments`, so
   // only those are safe to leave attached here. Stripping them for dropped rows closes that
   // leak without touching the shape callers that only care about active rows depend on.
-  getAll: publicProcedure.query(async () => {
+  getAll: publicProcedure.query(async ({ ctx }) => {
+    const session = await ctx.getSession();
+    const canManage = !!session?.user?.scopes?.includes(SCOPE.WORLDBUFF_MANAGE);
     const rows = await getMatrix();
-    return rows.map((row) => (row.state === "ready_to_drop" ? row : { ...row, assignments: [] }));
+    return rows.map((row) => {
+      const trimmed = row.state === "ready_to_drop" ? row : { ...row, assignments: [] };
+      return canManage ? trimmed : redactDiscord(trimmed);
+    });
   }),
 
-  listActiveAssignments: publicProcedure.query(() => listActiveAssignments()),
+  listActiveAssignments: publicProcedure.query(async ({ ctx }) => {
+    const session = await ctx.getSession();
+    const canManage = !!session?.user?.scopes?.includes(SCOPE.WORLDBUFF_MANAGE);
+    const rows = await listActiveAssignments();
+    return canManage ? rows : rows.map((row) => ({ ...row, status: redactDiscord(row.status) }));
+  }),
 
   listPastAssignments: scopedProcedure(SCOPE.WORLDBUFF_MANAGE).query(() => listPastAssignments()),
 
@@ -93,11 +114,42 @@ export const worldBuffRouter = createTRPCRouter({
       }
     }),
 
+  // General manager edit (name/roster link/notes) — also backs the quick "link a character"
+  // action, which only ever sends characterName+characterId.
+  updateSubmission: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
+    .input(
+      z.object({
+        statusId: z.string().uuid(),
+        characterName: z.string().trim().min(1).max(128).optional(),
+        characterId: z.number().int().positive().nullable().optional(),
+        notes: z.string().max(2000).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await updateSubmission({ ...input, actingUserId: ctx.session.user.id });
+      } catch (error) {
+        toTRPCError(error);
+      }
+    }),
+
   setState: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
     .input(z.object({ statusId: z.string().uuid(), state: worldBuffStateSchema }))
     .mutation(async ({ ctx, input }) => {
       try {
         return await setState({ ...input, actingUserId: ctx.session.user.id, source: "web" });
+      } catch (error) {
+        toTRPCError(error);
+      }
+    }),
+
+  // Manual "gone quiet" flag — deliberately independent of `state`/`setState`, so it can't
+  // un-drop a lifetime completion and doesn't share that mutation's audit `source` concept.
+  setInactive: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
+    .input(z.object({ statusId: z.string().uuid(), inactive: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await setInactive({ ...input, actingUserId: ctx.session.user.id });
       } catch (error) {
         toTRPCError(error);
       }

@@ -58,12 +58,21 @@ export const WORLD_BUFF_BY_ITEM: Record<WorldBuffItem, WorldBuff> = {
   hakkars_heart: WORLD_BUFF.ZG,
 };
 
-// Classic WoW spell IDs for each buff's own icon (not the turn-in item's icon), used with
-// `~/components/ui/aa-icons`'s `SpellIcon` to render the Wowhead-hosted texture.
+// Classic WoW spell IDs for each buff's own icon (not the turn-in item's icon) — kept only as
+// `BuffIcon`'s (`~/components/world-buffs/world-buff-icon`) last-resort fallback if the local
+// file below somehow fails to load; the normal render path never hits Wowhead.
 export const WORLD_BUFF_SPELL_ID: Record<WorldBuff, number> = {
   rend: 16609, // Warchief's Blessing
   dragon: 22888, // Rallying Cry of the Dragonslayer
   zg: 24425, // Spirit of Zandalar
+};
+
+// Local copies of each buff's own icon (its Wowhead spell-icon texture, fetched once and
+// committed here) — `BuffIcon` renders these instead of hitting Wowhead at runtime.
+export const WORLD_BUFF_ICON: Record<WorldBuff, string> = {
+  rend: "/img/world-buffs/rend.jpg",
+  dragon: "/img/world-buffs/dragon.jpg",
+  zg: "/img/world-buffs/zg.jpg",
 };
 
 // Per-item icon override, checked before falling back to the shared buff icon above — lets
