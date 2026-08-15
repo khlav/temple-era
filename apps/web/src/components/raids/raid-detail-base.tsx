@@ -14,6 +14,7 @@ import { Button } from "~/components/ui/button";
 import React, { useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { CharacterSummaryGrid } from "~/components/characters/character-summary-grid";
+import { summarizeSignupCounts } from "~/lib/raid-signup-status";
 
 export function RaidDetailBase({
   raidData,
@@ -80,7 +81,12 @@ export function RaidDetailBase({
                   <TooltipTrigger asChild>
                     <span className="flex items-center gap-1.5">
                       <Link2 className="h-3 w-3" />
-                      {signupLink.snapshot.signUpCount} signed up
+                      {(() => {
+                        const { confirmed, bench } = summarizeSignupCounts(
+                          signupLink.snapshot.signups,
+                        );
+                        return `${confirmed}(+${bench}) signups`;
+                      })()}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent className="bg-secondary text-muted-foreground">
