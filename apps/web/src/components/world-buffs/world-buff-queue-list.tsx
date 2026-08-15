@@ -223,7 +223,7 @@ function RowActionsMenu({
                     <span className="block">
                       <DropdownMenuItem disabled>
                         <WorldBuffIcon item={dragonSwap.targetItem} size={16} showTooltip={false} />
-                        Switch to {WORLD_BUFF_ITEM_LABELS[dragonSwap.targetItem]}
+                        Switch dragon
                       </DropdownMenuItem>
                     </span>
                   </TooltipTrigger>
@@ -235,7 +235,7 @@ function RowActionsMenu({
               ) : (
                 <DropdownMenuItem onSelect={() => onSwitchItem(dragonSwap.targetItem)}>
                   <WorldBuffIcon item={dragonSwap.targetItem} size={16} showTooltip={false} />
-                  Switch to {WORLD_BUFF_ITEM_LABELS[dragonSwap.targetItem]}
+                  Switch dragon
                 </DropdownMenuItem>
               )}
             </>
