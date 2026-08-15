@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mockFindFirstStatus = vi.fn();
 const mockFindFirstAssignment = vi.fn();
 const mockInsertReturning = vi.fn();
+const mockUpdateCall = vi.fn();
 const mockUpdateReturning = vi.fn();
 const mockDeleteReturning = vi.fn();
 
@@ -18,18 +19,25 @@ vi.mock("~/server/db", () => ({
         findMany: vi.fn(),
       },
     },
+    // Used by `reactivateFamiliesAfterRaid`'s two nested subqueries — never actually executed
+    // in these tests, since the mocked `update` below ignores its `.where()` argument entirely.
+    // Only needs to not throw while the (unexecuted) subquery expression gets built.
+    select: () => ({ from: () => ({ where: () => [] }) }),
     insert: () => ({
       values: () => ({
         returning: () => mockInsertReturning(),
       }),
     }),
-    update: () => ({
-      set: () => ({
-        where: () => ({
-          returning: () => mockUpdateReturning(),
+    update: (...args: unknown[]) => {
+      mockUpdateCall(...args);
+      return {
+        set: () => ({
+          where: () => ({
+            returning: () => mockUpdateReturning(),
+          }),
         }),
-      }),
-    }),
+      };
+    },
     delete: () => ({
       where: () => ({
         returning: () => mockDeleteReturning(),
@@ -46,6 +54,7 @@ const {
   deleteAssignment,
   deleteStatus,
   getAssignmentById,
+  reactivateFamiliesAfterRaid,
   WorldBuffServiceError,
 } = await import("~/server/services/world-buff-service");
 
@@ -269,6 +278,30 @@ describe("world-buff-service", () => {
       const result = await deleteAssignment({ assignmentId: "a1" });
 
       expect(result.id).toBe("a1");
+    });
+  });
+
+  describe("reactivateFamiliesAfterRaid", () => {
+    it("does nothing when no characters attended", async () => {
+      await reactivateFamiliesAfterRaid({
+        characterIds: [],
+        raidDate: new Date("2026-08-15T00:00:00Z"),
+        actingUserId: "u1",
+      });
+
+      expect(mockUpdateCall).not.toHaveBeenCalled();
+    });
+
+    it("issues a single UPDATE for the raided characters' families", async () => {
+      await reactivateFamiliesAfterRaid({
+        characterIds: [2, 2, 5],
+        raidDate: new Date("2026-08-15T00:00:00Z"),
+        actingUserId: "u1",
+      });
+
+      // One round trip regardless of roster size: family resolution happens via nested
+      // subqueries inside this single UPDATE, not as separate SELECT round trips beforehand.
+      expect(mockUpdateCall).toHaveBeenCalledTimes(1);
     });
   });
 

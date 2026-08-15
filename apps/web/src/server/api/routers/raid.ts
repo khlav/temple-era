@@ -7,6 +7,7 @@ import type { db } from "~/server/db";
 import type { Session } from "next-auth";
 import { SCOPE } from "~/lib/scopes";
 import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
+import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
 
 type DB = typeof db;
 
@@ -50,6 +51,16 @@ const updateRaidBench = async (db: DB, session: Session, raidId: number, raidDat
         raidId: raidBenchMap.raidId,
         characterId: raidBenchMap.characterId,
       });
+
+    // A benched character still showed up for raid night — clears a world-buff "marked
+    // inactive" flag the same as attending would. `raidData.date` is date-only (no time), so
+    // noon UTC per this codebase's established convention for date-only fields (avoids an
+    // Eastern-time day-shift on the comparison against `markedInactiveAt`).
+    await reactivateFamiliesAfterRaid({
+      characterIds: benchInsertResult.map((b) => b.characterId),
+      raidDate: new Date(`${raidData.date}T12:00:00Z`),
+      actingUserId: session.user.id,
+    });
   }
   return {
     benchDelete: benchDeleteResult,

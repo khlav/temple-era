@@ -10,6 +10,7 @@ import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
 import { Slugify } from "~/server/api/wcl-helpers";
 import { SCOPE } from "~/lib/scopes";
+import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
 /*
   Reusable router functions
  */
@@ -150,6 +151,13 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
       };
     }),
   );
+
+  // A world-buff "marked inactive" flag clears itself once the family raids again.
+  await reactivateFamiliesAfterRaid({
+    characterIds: Object.values(input.participants).map((p) => p.characterId),
+    raidDate: input.startTimeUTC,
+    actingUserId: session.user.id,
+  });
 };
 
 const inputInsertRaidLogWithAttendees = z.object({
