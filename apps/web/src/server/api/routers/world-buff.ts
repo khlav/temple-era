@@ -20,6 +20,7 @@ import {
   setState,
   submitAvailability,
   updateAssignment,
+  updateItem,
   updateNotes,
   updateQueueType,
   updateSubmission,
@@ -99,6 +100,18 @@ export const worldBuffRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         return await updateQueueType({ ...input, actingUserId: ctx.session.user.id });
+      } catch (error) {
+        toTRPCError(error);
+      }
+    }),
+
+  // Row-menu "Switch to X" action — currently only used to swap a submission between Onyxia's
+  // Head and Nefarian's Head. The service enforces same-buff-only, not just the UI's own gating.
+  updateItem: scopedProcedure(SCOPE.WORLDBUFF_MANAGE)
+    .input(z.object({ statusId: z.string().uuid(), item: worldBuffItemSchema }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await updateItem({ ...input, actingUserId: ctx.session.user.id });
       } catch (error) {
         toTRPCError(error);
       }

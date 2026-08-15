@@ -352,7 +352,7 @@ export function SubmitAvailabilityForm() {
                   submitAvailability.isPending || !characterName.trim() || selectedItems.size === 0
                 }
               >
-                Register drops
+                Add to Drop List
               </Button>
             </div>
           </form>

@@ -55,6 +55,7 @@ const {
   deleteStatus,
   getAssignmentById,
   reactivateFamiliesAfterRaid,
+  updateItem,
   WorldBuffServiceError,
 } = await import("~/server/services/world-buff-service");
 
@@ -302,6 +303,61 @@ describe("world-buff-service", () => {
       // One round trip regardless of roster size: family resolution happens via nested
       // subqueries inside this single UPDATE, not as separate SELECT round trips beforehand.
       expect(mockUpdateCall).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("updateItem", () => {
+    it("throws NOT_FOUND when the status row doesn't exist", async () => {
+      mockFindFirstStatus.mockResolvedValue(undefined);
+
+      await expect(
+        updateItem({ statusId: "missing", item: "nefarians_head", actingUserId: "u1" }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("throws CONFLICT when the target item doesn't grant the same buff", async () => {
+      mockFindFirstStatus.mockResolvedValue({
+        id: "s1",
+        item: "onyxias_head",
+        characterName: "Dunckan",
+      });
+
+      await expect(
+        updateItem({ statusId: "s1", item: "rends_head", actingUserId: "u1" }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(mockUpdateCall).not.toHaveBeenCalled();
+    });
+
+    it("switches between the two Dragon-head items", async () => {
+      mockFindFirstStatus.mockResolvedValue({
+        id: "s1",
+        item: "onyxias_head",
+        characterName: "Dunckan",
+      });
+      mockUpdateReturning.mockResolvedValue([
+        { id: "s1", item: "nefarians_head", characterName: "Dunckan" },
+      ]);
+
+      const result = await updateItem({
+        statusId: "s1",
+        item: "nefarians_head",
+        actingUserId: "u1",
+      });
+
+      expect(result.item).toBe("nefarians_head");
+    });
+
+    it("throws CONFLICT when the character already has a row for the target item", async () => {
+      mockFindFirstStatus.mockResolvedValue({
+        id: "s1",
+        item: "onyxias_head",
+        characterName: "Dunckan",
+      });
+      mockUpdateReturning.mockRejectedValue({ cause: { code: "23505" } });
+
+      await expect(
+        updateItem({ statusId: "s1", item: "nefarians_head", actingUserId: "u1" }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
   });
 

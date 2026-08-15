@@ -11,7 +11,7 @@ import {
   worldBuffCharacterStatus,
 } from "~/server/db/schema";
 import { getLockoutWeeks } from "~/server/api/v2/helpers/lockout-weeks";
-import { WORLD_BUFF_ITEM_LABELS, type WorldBuffItem } from "~/lib/world-buffs";
+import { WORLD_BUFF_BY_ITEM, WORLD_BUFF_ITEM_LABELS, type WorldBuffItem } from "~/lib/world-buffs";
 
 type WorldBuffState = "ready_to_drop" | "dropped";
 type WorldBuffQueueType = "main" | "alt" | "backup";
@@ -131,6 +131,46 @@ export async function updateQueueType(input: UpdateQueueTypeInput) {
     .where(eq(worldBuffCharacterStatus.id, input.statusId))
     .returning();
   return updated!;
+}
+
+export interface UpdateItemInput {
+  statusId: string;
+  item: WorldBuffItem;
+  actingUserId: string;
+}
+
+/** Switches a row between the two turn-ins that grant the same buff (currently only Onyxia's
+ *  Head <-> Nefarian's Head) — the "Switch to X" action in the row menu, for a character who
+ *  turns out to be eligible for the other head instead. Restricted to same-buff swaps server-side
+ *  too, not just by what the UI offers, so this can't be repurposed into a generic item reassign. */
+export async function updateItem(input: UpdateItemInput) {
+  const existing = await getStatusOrThrow(input.statusId);
+  if (WORLD_BUFF_BY_ITEM[existing.item] !== WORLD_BUFF_BY_ITEM[input.item]) {
+    throw new WorldBuffServiceError(
+      "CONFLICT",
+      `${WORLD_BUFF_ITEM_LABELS[input.item]} doesn't grant the same buff as ${WORLD_BUFF_ITEM_LABELS[existing.item]}.`,
+    );
+  }
+
+  try {
+    const [updated] = await db
+      .update(worldBuffCharacterStatus)
+      .set({ item: input.item, updatedById: input.actingUserId })
+      .where(eq(worldBuffCharacterStatus.id, input.statusId))
+      .returning();
+    return updated!;
+  } catch (error) {
+    // Unique violation on (characterNameNormalized, item) — this character already has a row
+    // for the target item. The UI is expected to disable the option in this case already; this
+    // is the server-side backstop against a stale client (another tab, a race).
+    if (getPgErrorCode(error) === "23505") {
+      throw new WorldBuffServiceError(
+        "CONFLICT",
+        `${existing.characterName} already has a submission for ${WORLD_BUFF_ITEM_LABELS[input.item]}.`,
+      );
+    }
+    throw error;
+  }
 }
 
 export interface DeleteStatusInput {

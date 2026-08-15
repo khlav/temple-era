@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { CharacterSelector } from "~/components/characters/character-selector";
+import { ClassIcon } from "~/components/ui/class-icon";
 import { WorldBuffCharacterIdentity } from "./world-buff-character-identity";
 import { DragonBuffIcon, WorldBuffIcon } from "./world-buff-icon";
 import { NotesIndicator, QUEUE_TYPE_ICON, type WorldBuffQueueType } from "./queue-type-icon";
@@ -94,7 +95,38 @@ function StatusIndicator({ row }: { row: { state: string; queueType: WorldBuffQu
   );
 }
 
+type NameMode = "type" | "pick";
+
 const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
+
+// Onyxia's Head and Nefarian's Head both grant Dragon — a character eligible for one is often
+// eligible for the other, so the row menu offers a quick swap instead of a delete-and-resubmit.
+const DRAGON_HEAD_ITEMS: Record<WorldBuffItem, WorldBuffItem | null> = {
+  onyxias_head: "nefarians_head",
+  nefarians_head: "onyxias_head",
+  rends_head: null,
+  hakkars_heart: null,
+};
+
+interface DragonSwapOption {
+  targetItem: WorldBuffItem;
+  /** True when this character already has a row for `targetItem` — swapping would collide with
+   *  the (characterNameNormalized, item) unique constraint, so the option is shown but disabled. */
+  disabled: boolean;
+}
+
+/** Only meaningful for the two Dragon-head items — null for Rend/ZG rows, which have no sibling
+ *  item to swap to. `allRows` is the full unfiltered dataset (not just this card's rows), since
+ *  the "already has an entry" check has to see past/dropped/inactive rows too — the DB's unique
+ *  constraint doesn't care about state. */
+function getDragonSwapOption(row: StatusRow, allRows: StatusRow[]): DragonSwapOption | null {
+  const targetItem = DRAGON_HEAD_ITEMS[row.item as WorldBuffItem];
+  if (!targetItem) return null;
+  const disabled = allRows.some(
+    (r) => r.characterNameNormalized === row.characterNameNormalized && r.item === targetItem,
+  );
+  return { targetItem, disabled };
+}
 
 /** Consolidates an active row's secondary manager actions — mark dropped, mark inactive, re-tag
  *  the queue, delete — into a single "…" trigger instead of a growing row of icon buttons.
@@ -107,18 +139,23 @@ const QUEUE_TYPES: WorldBuffQueueType[] = ["main", "alt", "backup"];
 function RowActionsMenu({
   row,
   inactive,
+  dragonSwap,
   onSetQueueType,
   onMarkDropped,
   onToggleInactive,
+  onSwitchItem,
   onDelete,
   onEditSubmission,
   disabled,
 }: {
   row: StatusRow;
   inactive: boolean;
+  /** Null for non-Dragon-head rows — see `getDragonSwapOption`. */
+  dragonSwap: DragonSwapOption | null;
   onSetQueueType: (queueType: WorldBuffQueueType) => void;
   onMarkDropped: () => void;
   onToggleInactive: () => void;
+  onSwitchItem: (item: WorldBuffItem) => void;
   onDelete: () => void;
   onEditSubmission: (input: {
     characterName: string;
@@ -129,13 +166,19 @@ function RowActionsMenu({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [editNameMode, setEditNameMode] = useState<NameMode>(row.characterId ? "pick" : "type");
   const [editName, setEditName] = useState(row.characterName);
   const [editCharacterId, setEditCharacterId] = useState<number | null>(row.characterId);
+  const [editPickedClass, setEditPickedClass] = useState<string | null>(
+    row.characterId ? row.characterClass : null,
+  );
   const [editNotes, setEditNotes] = useState(row.notes ?? "");
 
   const openEdit = () => {
+    setEditNameMode(row.characterId ? "pick" : "type");
     setEditName(row.characterName);
     setEditCharacterId(row.characterId);
+    setEditPickedClass(row.characterId ? row.characterClass : null);
     setEditNotes(row.notes ?? "");
     setEditOpen(true);
   };
@@ -169,6 +212,34 @@ function RowActionsMenu({
             <Moon className="h-4 w-4" />
             {inactive ? "Mark Active" : "Mark Inactive"}
           </DropdownMenuItem>
+          {dragonSwap && (
+            <>
+              <DropdownMenuSeparator />
+              {dragonSwap.disabled ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* DropdownMenuItem's disabled state is pointer-events-none, so the hover
+                        that drives the tooltip has to land on this wrapping span instead. */}
+                    <span className="block">
+                      <DropdownMenuItem disabled>
+                        <WorldBuffIcon item={dragonSwap.targetItem} size={16} showTooltip={false} />
+                        Switch to {WORLD_BUFF_ITEM_LABELS[dragonSwap.targetItem]}
+                      </DropdownMenuItem>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-secondary text-muted-foreground">
+                    {row.characterName} already has a submission for{" "}
+                    {WORLD_BUFF_ITEM_LABELS[dragonSwap.targetItem]}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <DropdownMenuItem onSelect={() => onSwitchItem(dragonSwap.targetItem)}>
+                  <WorldBuffIcon item={dragonSwap.targetItem} size={16} showTooltip={false} />
+                  Switch to {WORLD_BUFF_ITEM_LABELS[dragonSwap.targetItem]}
+                </DropdownMenuItem>
+              )}
+            </>
+          )}
           <DropdownMenuSeparator />
           {QUEUE_TYPES.filter((queueType) => queueType !== row.queueType).map((queueType) => {
             const opt = QUEUE_TYPE_ICON[queueType];
@@ -220,41 +291,78 @@ function RowActionsMenu({
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="wb-edit-name">Character name</Label>
+              <Label htmlFor="wb-edit-name" className="sr-only">
+                Character name
+              </Label>
               <div className="flex items-center gap-2">
-                <Input
-                  id="wb-edit-name"
-                  value={editName}
-                  onChange={(e) => {
-                    setEditName(e.target.value);
-                    setEditCharacterId(null);
-                  }}
-                  maxLength={128}
-                  required
-                  className="flex-1"
-                />
-                <CharacterSelector
-                  characterSet="all"
-                  onSelectAction={(character) => {
-                    setEditName(character.name);
-                    setEditCharacterId(character.characterId);
-                  }}
-                >
+                <div className="min-w-0 flex-1">
+                  {editNameMode === "type" ? (
+                    <Input
+                      id="wb-edit-name"
+                      value={editName}
+                      onChange={(e) => {
+                        setEditName(e.target.value);
+                        setEditCharacterId(null);
+                        setEditPickedClass(null);
+                      }}
+                      placeholder="e.g. Dunckan"
+                      maxLength={128}
+                      required
+                    />
+                  ) : (
+                    <CharacterSelector
+                      characterSet="all"
+                      onSelectAction={(character) => {
+                        setEditName(character.name);
+                        setEditCharacterId(character.characterId);
+                        setEditPickedClass(character.class);
+                      }}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        className="h-10 w-full justify-start px-3 text-base font-normal text-muted-foreground md:text-sm"
+                      >
+                        {editName ? (
+                          <span className="flex items-center gap-2 text-foreground">
+                            {editPickedClass && (
+                              <ClassIcon characterClass={editPickedClass} px={16} />
+                            )}
+                            {editName}
+                          </span>
+                        ) : (
+                          "Select a character..."
+                        )}
+                      </Button>
+                    </CharacterSelector>
+                  )}
+                </div>
+                <div className="flex shrink-0 gap-1">
                   <Button
                     type="button"
-                    size="icon"
-                    variant="outline"
-                    className="shrink-0"
-                    aria-label="Link to a roster character"
+                    size="sm"
+                    variant={editNameMode === "pick" ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setEditNameMode("pick")}
                   >
-                    <UserRoundSearch className="h-4 w-4" />
+                    Pick a character
                   </Button>
-                </CharacterSelector>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={editNameMode === "type" ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setEditNameMode("type")}
+                  >
+                    Type a name
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {editCharacterId
-                  ? "Linked to a roster character."
-                  : "Not linked to a roster character — free-text name only."}
+                {editNameMode === "type"
+                  ? "Doesn't need to be in the raid roster yet — this works for characters who haven't raided."
+                  : "Only characters appearing in raid logs show up here."}
               </p>
             </div>
             <div className="space-y-1.5">
@@ -412,6 +520,31 @@ export function WorldBuffQueueList({
     },
     onSettled: () => {
       void utils.worldBuff.getAll.invalidate();
+    },
+  });
+
+  const updateItem = api.worldBuff.updateItem.useMutation({
+    onMutate: async (input) => {
+      await utils.worldBuff.getAll.cancel();
+      const prevGetAll = utils.worldBuff.getAll.getData();
+      utils.worldBuff.getAll.setData(undefined, (old) =>
+        old?.map((row) => (row.id === input.statusId ? { ...row, item: input.item } : row)),
+      );
+      return { prevGetAll };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.prevGetAll) utils.worldBuff.getAll.setData(undefined, ctx.prevGetAll);
+      toast({
+        title: "Failed to switch item",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      void utils.worldBuff.getAll.invalidate();
+      // A scheduled turn-in for this row shows its item's icon/label too.
+      void utils.worldBuff.listActiveAssignments.invalidate();
+      void utils.worldBuff.listPastAssignments.invalidate();
     },
   });
 
@@ -650,12 +783,14 @@ export function WorldBuffQueueList({
                           <RowActionsMenu
                             row={row}
                             inactive={row.markedInactiveAt !== null}
+                            dragonSwap={getDragonSwapOption(row, data ?? [])}
                             disabled={
                               updateQueueType.isPending ||
                               setState.isPending ||
                               setInactive.isPending ||
                               deleteStatus.isPending ||
-                              updateSubmission.isPending
+                              updateSubmission.isPending ||
+                              updateItem.isPending
                             }
                             onSetQueueType={(queueType) =>
                               updateQueueType.mutate({ statusId: row.id, queueType })
@@ -663,6 +798,7 @@ export function WorldBuffQueueList({
                             onMarkDropped={() =>
                               setState.mutate({ statusId: row.id, state: "dropped" })
                             }
+                            onSwitchItem={(item) => updateItem.mutate({ statusId: row.id, item })}
                             onToggleInactive={() =>
                               setInactive.mutate({
                                 statusId: row.id,

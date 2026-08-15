@@ -18,7 +18,7 @@ export default function WorldBuffsPage() {
     <main className="w-full">
       <PageHeader
         title="World Buffs"
-        description="Submit which characters are ready to drop a world buff item, see who's available, and schedule turn-ins ahead of raid."
+        description="We drop all three world buffs every Tuesday for Naxx. Scheduling your drop helps us — and other guilds — run clean, effective raids every week."
       />
       <Separator className="my-2" />
       <WorldBuffDashboard />
