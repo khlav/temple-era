@@ -324,8 +324,8 @@ export function RaidDetailBase({
                         <span className="font-display w-4 shrink-0 text-right text-xs font-semibold">
                           {g.count}
                         </span>
-                        <span className="flex items-center gap-[3px]">
-                          {Array.from({ length: g.count }).map((_, i) => (
+                        <span className="flex flex-wrap items-center gap-[3px]">
+                          {Array.from({ length: Math.min(g.count, 10) }).map((_, i) => (
                             <span
                               key={i}
                               className="h-[11px] w-[11px] shrink-0 rounded-[2px]"
@@ -335,6 +335,16 @@ export function RaidDetailBase({
                               }}
                             />
                           ))}
+                          {g.count > 10 ? (
+                            <span
+                              className="font-display ml-0.5 shrink-0 text-[10px] font-bold leading-none"
+                              style={{
+                                color: AA_CLASS_COLORS[g.characterClass.toLowerCase()] ?? "#8a8a8a",
+                              }}
+                            >
+                              +{g.count - 10}
+                            </span>
+                          ) : null}
                         </span>
                       </div>
                     ))}
