@@ -182,7 +182,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
   const zoneShortLabel = (zoneId: string) => ZONE_BADGE_LABELS[zoneId] ?? zoneId.toUpperCase();
 
   return (
-    <Card className="relative h-full overflow-hidden">
+    <Card className="relative flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           Upcoming events
@@ -194,7 +194,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
           Raid plans
         </Link>
       </div>
-      <CardContent className="pt-4">
+      <CardContent className="flex flex-1 flex-col pt-4">
         {isLoading ? (
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -204,7 +204,9 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
             No upcoming events found.
           </div>
         ) : (
-          <div className="relative max-h-[236px] overflow-y-auto">
+          // min-h covers ~5 rows (header + rows) so the list doesn't shrink below that even when
+          // the sibling column is short; flex-1 lets it grow to fill whatever height it stretches to.
+          <div className="relative min-h-[200px] flex-1 overflow-y-auto">
             <div>
               <Table>
                 <TableHeader>

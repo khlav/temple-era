@@ -180,11 +180,13 @@ export function PersonalAttendanceSummary({
     };
   }, []);
 
-  const cardHeader = (right?: React.ReactNode) => (
+  const cardHeader = (right?: React.ReactNode, titleContent?: React.ReactNode) => (
     <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
-      <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-        Your attendance
-      </div>
+      {titleContent ?? (
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Your attendance
+        </div>
+      )}
       {right}
     </div>
   );
@@ -255,18 +257,19 @@ export function PersonalAttendanceSummary({
         <span className="shrink-0 text-xs text-muted-foreground">
           {userAttendance?.weightedAttendance ?? 0} of 18 credits
         </span>,
-      )}
-      <CardContent className="space-y-4 pt-4">
-        {titleData.characterName && activeCharacterId && (
+        titleData.characterName && activeCharacterId ? (
           <Link
             href={`/characters/${activeCharacterId}`}
-            className="-mt-1 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+            className="flex min-w-0 items-center gap-1.5 transition-colors hover:text-primary"
           >
             {titleClass && <ClassIcon characterClass={titleClass} px={16} />}
-            <span className="font-semibold text-foreground">{titleData.characterName}</span>
+            <span className="font-display truncate text-[0.8rem] font-bold tracking-[0.02em] text-foreground">
+              {titleData.characterName}
+            </span>
           </Link>
-        )}
-
+        ) : undefined,
+      )}
+      <CardContent className="space-y-4 pt-4">
         {/* Progress Bar */}
         {characterData?.isIgnored ? (
           <div className="flex h-10 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">

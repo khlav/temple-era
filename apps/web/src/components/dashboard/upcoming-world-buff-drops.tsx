@@ -18,8 +18,8 @@ type ActiveAssignment = RouterOutputs["worldBuff"]["listActiveAssignments"][numb
 // actually call turn-ins in (see assignment-list.tsx's WORLD_BUFF_SORT_ORDER).
 const BUFF_SLOT_ORDER: WorldBuff[] = ["zg", "dragon", "rend"];
 
-// Short display names for the slot's first line — WORLD_BUFF_LABELS in ~/lib/world-buffs is the
-// full in-game buff name ("Rallying Cry of the Dragonslayer"), too long for this compact card.
+// Fallback label for an unscheduled slot, which has no character to name instead — the full
+// in-game buff name (WORLD_BUFF_LABELS) is too long for this compact card.
 const BUFF_SHORT_LABEL: Record<WorldBuff, string> = {
   rend: "Rend",
   dragon: "Dragon",
@@ -67,22 +67,24 @@ function BuffSlot({
         className="shrink-0 rounded-md"
       />
       <div className="min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[13px] text-muted-foreground">{BUFF_SHORT_LABEL[buff]}</span>
-          <span className="font-display text-[13px] font-bold text-muted-foreground">
-            {formatEasternDateTime(new Date(assignment.scheduledAt), "h:mm a")}
-          </span>
-        </div>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          {status.characterClass && <ClassIcon characterClass={status.characterClass} px={20} />}
+        <div className="flex items-center gap-1.5">
+          {status.characterClass && <ClassIcon characterClass={status.characterClass} px={14} />}
           <span
             className={cn(
-              "font-display truncate text-[1.05rem] font-semibold",
-              isMine && "text-cyan-200",
+              "truncate text-[13px] text-muted-foreground",
+              isMine && "text-cyan-200/85",
             )}
           >
             {status.characterName}
           </span>
+        </div>
+        <div
+          className={cn(
+            "font-display mt-0.5 text-[1.05rem] font-semibold",
+            isMine && "text-cyan-200",
+          )}
+        >
+          {formatEasternDateTime(new Date(assignment.scheduledAt), "h:mm a")}
         </div>
       </div>
     </div>
@@ -98,7 +100,6 @@ export function UpcomingWorldBuffDrops() {
   });
   const myCharacterIds = new Set(profile?.userCharacterIds ?? []);
   const { data: assignments } = api.worldBuff.listActiveAssignments.useQuery();
-  const { data: statuses } = api.worldBuff.getAll.useQuery();
 
   const sorted = (assignments ?? [])
     .slice()
@@ -125,30 +126,35 @@ export function UpcomingWorldBuffDrops() {
     if (!assignmentByBuff.has(buff)) assignmentByBuff.set(buff, a);
   }
 
-  // Nudge the signed-in user toward the form when none of their own characters have submitted
-  // availability for anything at all (any state, any item) — mirrors the hi-fi mock's
-  // "Halvorn isn't on any drop list yet." prompt.
-  const myCharacterName = profile?.character?.name;
-  const amOnAnyList = (statuses ?? []).some(
-    (s) => s.characterId != null && myCharacterIds.has(s.characterId),
-  );
-  const showJoinPrompt = !!session && !!myCharacterName && !amOnAnyList;
-
   return (
     <div className="panel-surface overflow-hidden rounded-2xl border border-border/70">
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
-        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="font-display min-w-0 truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           Tuesday Buff Drops
+          {nextAssignment && (
+            <span className="normal-case tracking-normal">
+              {" "}
+              — Starting at {formatEasternDateTime(new Date(nextAssignment.scheduledAt), "h:mm a")}
+            </span>
+          )}
         </div>
-        <Link
-          href="/world-buffs"
-          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
-        >
-          World buffs
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            href="/world-buffs"
+            className="text-xs text-muted-foreground transition-colors hover:text-primary"
+          >
+            World buffs
+          </Link>
+          <Button size="sm" variant="outline" asChild className="h-7 rounded-lg px-2.5 text-xs">
+            <Link href="/world-buffs">
+              <UserPlus className="h-3.5 w-3.5" />
+              Join the Drop List
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <div className={cn("flex flex-wrap gap-3 p-4", showJoinPrompt && "pb-3")}>
+      <div className="flex flex-wrap gap-3 p-4">
         {BUFF_SLOT_ORDER.map((buff) => {
           const assignment = assignmentByBuff.get(buff);
           const isMine =
@@ -157,20 +163,6 @@ export function UpcomingWorldBuffDrops() {
           return <BuffSlot key={buff} buff={buff} assignment={assignment} isMine={isMine} />;
         })}
       </div>
-
-      {showJoinPrompt && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3">
-          <div className="text-[13px] text-muted-foreground">
-            {myCharacterName} isn&apos;t on any drop list yet.
-          </div>
-          <Button size="sm" variant="outline" asChild className="rounded-lg">
-            <Link href="/world-buffs">
-              <UserPlus className="h-3.5 w-3.5" />
-              Join the drop list
-            </Link>
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

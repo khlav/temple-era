@@ -18,36 +18,17 @@ const ZONE_TILE_ORDER: { id: string; label: string; className: string }[] = [
   { id: "onyxia", label: "Ony", className: "text-zone-ony-text border-zone-ony-border/40" },
 ];
 
-function formatLockoutRange(dates: Date[]): string {
-  if (dates.length === 0) return "";
-  const min = new Date(Math.min(...dates.map((d) => d.getTime())));
-  const max = new Date(Math.max(...dates.map((d) => d.getTime())));
-  const fmt = (d: Date, withMonth: boolean) =>
-    d.toLocaleDateString("en-US", {
-      timeZone: "UTC",
-      month: withMonth ? "short" : undefined,
-      day: "numeric",
-    });
-  return min.getTime() === max.getTime()
-    ? fmt(min, true)
-    : `${fmt(min, true)}–${fmt(max, min.getUTCMonth() !== max.getUTCMonth())}`;
-}
-
 export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } = api.dashboard.getAllRaidsCurrentLockout.useQuery();
 
-  const { counts, total, rangeLabel } = useMemo(() => {
+  const counts = useMemo(() => {
     const raids = trackedRaidData ?? [];
     const zoneCounts: Record<string, number> = {};
     for (const r of raids) {
       const zoneId = getInstanceIdForZoneName(r.zone);
       if (zoneId) zoneCounts[zoneId] = (zoneCounts[zoneId] ?? 0) + 1;
     }
-    return {
-      counts: zoneCounts,
-      total: raids.length,
-      rangeLabel: formatLockoutRange(raids.map((r) => new Date(r.date))),
-    };
+    return zoneCounts;
   }, [trackedRaidData]);
 
   return (
@@ -56,19 +37,12 @@ export function CurrentLockoutAllRaids() {
         <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           Completed raids this lockout
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {!isLoading && (
-            <span className="text-xs text-muted-foreground">
-              {total} tracked{rangeLabel ? ` · ${rangeLabel}` : ""}
-            </span>
-          )}
-          <Link
-            href="/raids"
-            className="text-xs text-muted-foreground transition-colors hover:text-primary"
-          >
-            View all raids
-          </Link>
-        </div>
+        <Link
+          href="/raids"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
+        >
+          View all raids
+        </Link>
       </div>
       <CardContent className="pt-4">
         {isLoading ? (

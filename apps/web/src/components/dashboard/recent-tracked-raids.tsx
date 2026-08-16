@@ -15,7 +15,7 @@ import Link from "next/link";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { ExternalLinkIcon } from "lucide-react";
-import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
+import { ClassIcon } from "~/components/ui/class-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent } from "~/components/ui/card";
 import { ZoneBadge } from "~/components/ui/zone-badge";
@@ -36,20 +36,15 @@ export function RecentTrackedRaids() {
           View all raids
         </Link>
       </div>
-      <div className="px-4 pt-3 text-xs text-muted-foreground">
-        Used to calculate attendance & eligibility
-        {trackedRaidData &&
-          trackedRaidData.length > 0 &&
-          `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
-      </div>
-      <CardContent>
+      <CardContent className="pt-4">
         <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
           <TableCaption className="text-wrap"></TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-5/8 md:w-6/12">Raid</TableHead>
-              <TableHead className="w-2/8 md:w-2/12">Attendance</TableHead>
-              <TableHead className="w-1/8 text-center md:w-2/12">WCL</TableHead>
+              <TableHead className="w-5/12">Raid</TableHead>
+              <TableHead className="w-2/12">Attendance</TableHead>
+              <TableHead className="w-3/12">Attended by</TableHead>
+              <TableHead className="w-2/12 text-center">WCL</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -59,35 +54,36 @@ export function RecentTrackedRaids() {
               (trackedRaidData ?? []).map((r) => (
                 <TableRow key={r.raidId}>
                   <TableCell className="text-secondary-foreground">
-                    <div className="flex flex-row gap-2">
-                      <div className="grow">
-                        <Link
-                          className="group w-full transition-all hover:text-primary"
-                          target="_self"
-                          href={"/raids/" + r.raidId}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span>{r.name}</span>
-                            <ZoneBadge zoneName={r.zone} />
-                          </div>
-                          <div className="text-xs tracking-tight text-muted-foreground">
-                            {PrettyPrintDate(new Date(r.date), true)}
-                          </div>
-                        </Link>
+                    <Link
+                      className="group w-full transition-all hover:text-primary"
+                      target="_self"
+                      href={"/raids/" + r.raidId}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{r.name}</span>
+                        <ZoneBadge zoneName={r.zone} />
                       </div>
-                      <div className="my-auto grow-0">
-                        {r.currentUserAttendance && (
-                          <AttendanceStatusIcon
-                            status={r.currentUserAttendance === "bench" ? "bench" : "attendee"}
-                            size={20}
-                            variant="centered"
-                          />
-                        )}
+                      <div className="text-xs tracking-tight text-muted-foreground">
+                        {PrettyPrintDate(new Date(r.date), true)}
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
+                  </TableCell>
+                  <TableCell>
+                    {r.attendedCharacterName ? (
+                      <div className="flex items-center gap-1.5">
+                        {r.attendedCharacterClass && (
+                          <ClassIcon characterClass={r.attendedCharacterClass} px={16} />
+                        )}
+                        <span className="truncate text-sm text-secondary-foreground">
+                          {r.attendedCharacterName}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/60">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     {(r.raidLogIds ?? []).map((raidLogId) => {
