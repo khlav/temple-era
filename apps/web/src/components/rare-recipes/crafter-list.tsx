@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
+import { ClassIcon } from "~/components/ui/class-icon";
 
 interface CrafterListProps {
   characters: Array<{
     characterId: number;
     name: string;
     isActiveRaider: boolean;
+    class?: string;
   }>;
   showInactiveCharacters: boolean;
   maxVisible?: number;
@@ -31,10 +33,13 @@ export function CrafterList({
         <Link
           key={character.characterId}
           href={`/characters/${character.characterId}`}
-          className={`inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${
+          className={`inline-flex items-center gap-1.5 rounded-md bg-secondary py-1 pl-1 pr-2 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${
             !character.isActiveRaider && showInactiveCharacters ? "opacity-40" : "opacity-80"
           }`}
         >
+          {character.class ? (
+            <ClassIcon characterClass={character.class} px={16} className="shrink-0 rounded-sm" />
+          ) : null}
           {character.name}
         </Link>
       ))}
