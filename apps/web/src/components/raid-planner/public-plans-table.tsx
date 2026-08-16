@@ -82,7 +82,7 @@ export function PublicPlansTable() {
         return (
           <div key={plan.id}>
             {showGroupLabel ? (
-              <div className="font-display border-b border-border/50 bg-card/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              <div className="font-display border-b border-border/70 bg-background/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/85">
                 {groupLabel}
               </div>
             ) : null}
