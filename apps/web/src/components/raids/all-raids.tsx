@@ -12,7 +12,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrettyPrintDate } from "~/lib/helpers";
 import type { Raid } from "~/server/api/interfaces/raid";
-import { Badge } from "~/components/ui/badge";
+import { getInstanceIdForZoneName } from "~/lib/raid-zones";
+import { FilterRail, type FilterRailItem } from "~/components/ui/filter-rail";
+
+const ZONE_RAIL_ORDER: { id: string; label: string; accentClassName: string }[] = [
+  { id: "naxxramas", label: "Naxxramas", accentClassName: "text-zone-naxx-text" },
+  { id: "aq40", label: "Temple of AQ", accentClassName: "text-zone-aq40-text" },
+  { id: "bwl", label: "Blackwing Lair", accentClassName: "text-zone-bwl-text" },
+  { id: "mc", label: "Molten Core", accentClassName: "text-zone-mc-text" },
+  { id: "zg", label: "Zul'Gurub", accentClassName: "text-zone-zg-text" },
+  { id: "onyxia", label: "Onyxia", accentClassName: "text-zone-ony-text" },
+  { id: "aq20", label: "Ruins of AQ", accentClassName: "text-zone-aq20-text" },
+];
 
 export function AllRaids({
   session,
@@ -29,6 +40,7 @@ export function AllRaids({
   const searchParams = useSearchParams();
   const initialSearch = searchParams?.get("s") ?? "";
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
+  const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
 
   // Debounced URL sync handled by TableSearchInput via onDebouncedChange updating state
   useEffect(() => {
@@ -42,9 +54,49 @@ export function AllRaids({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerms]);
 
+  const zoneCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let untagged = 0;
+    for (const r of raids ?? []) {
+      const zoneId = getInstanceIdForZoneName(r.zone);
+      if (zoneId) counts[zoneId] = (counts[zoneId] ?? 0) + 1;
+      else untagged += 1;
+    }
+    return { counts, untagged };
+  }, [raids]);
+
+  const railItems: FilterRailItem[] = useMemo(() => {
+    const items: FilterRailItem[] = [
+      { id: "all", label: "All raids", count: raids?.length ?? 0, accentClassName: "text-primary" },
+      ...ZONE_RAIL_ORDER.map((zone) => ({
+        id: zone.id,
+        label: zone.label,
+        count: zoneCounts.counts[zone.id] ?? 0,
+        accentClassName: zone.accentClassName,
+      })),
+    ];
+    if (zoneCounts.untagged > 0) {
+      items.push({
+        id: "untagged",
+        label: "Unknown / Untagged",
+        count: zoneCounts.untagged,
+        accentClassName: "text-muted-foreground",
+      });
+    }
+    return items;
+  }, [raids, zoneCounts]);
+
+  const zoneFilteredRaids = useMemo(() => {
+    if (!raids || selectedZoneId === "all") return raids;
+    if (selectedZoneId === "untagged") {
+      return raids.filter((r) => !getInstanceIdForZoneName(r.zone));
+    }
+    return raids.filter((r) => getInstanceIdForZoneName(r.zone) === selectedZoneId);
+  }, [raids, selectedZoneId]);
+
   const filteredRaids = useMemo(() => {
-    if (!raids || !searchTerms.trim()) return raids;
-    return raids.filter((r) => {
+    if (!zoneFilteredRaids || !searchTerms.trim()) return zoneFilteredRaids;
+    return zoneFilteredRaids.filter((r) => {
       const searchable = [
         r.name ?? "",
         r.zone ?? "",
@@ -53,7 +105,7 @@ export function AllRaids({
       ].join(" ");
       return matchesSearchQuery(searchable, searchTerms);
     });
-  }, [raids, searchTerms]);
+  }, [zoneFilteredRaids, searchTerms]);
 
   // Show loading skeleton only if we don't have initial data AND the query is loading
   const isActuallyLoading = !initialRaids && isLoading;
@@ -65,27 +117,38 @@ export function AllRaids({
       {isActuallyLoading || !hasData ? (
         <RaidsTableSkeleton rows={10} />
       ) : (
-        <div className="space-y-2">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="min-w-0 flex-1">
-              <TableSearchInput
-                placeholder="Search raids by name, zone, date, creator..."
-                defaultValue={initialSearch}
-                onDebouncedChange={(v) => setSearchTerms(v ?? "")}
-              />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+          <FilterRail
+            heading="Filter by zone"
+            items={railItems}
+            activeId={selectedZoneId}
+            onSelect={setSelectedZoneId}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="min-w-0 flex-1">
+                <TableSearchInput
+                  className="h-11"
+                  placeholder="Search raids by name, zone, date, creator..."
+                  defaultValue={initialSearch}
+                  onDebouncedChange={(v) => setSearchTerms(v ?? "")}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
+                <div className="font-display flex h-11 items-center rounded-xl border border-border/80 bg-card/70 px-3.5 text-[13px] text-muted-foreground">
+                  {filteredRaids?.length ?? 0} raids
+                </div>
+                <TableSearchTips>
+                  <p className="mb-1 font-medium">Search tips:</p>
+                  <ul className="mb-1 list-disc space-y-1 pl-4">
+                    <li>Search by raid name, zone, date text, or creator name</li>
+                  </ul>
+                  <SearchSyntaxTips />
+                </TableSearchTips>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
-              <Badge variant="secondary">{filteredRaids?.length ?? 0} raids</Badge>
-              <TableSearchTips>
-                <p className="mb-1 font-medium">Search tips:</p>
-                <ul className="mb-1 list-disc space-y-1 pl-4">
-                  <li>Search by raid name, zone, date text, or creator name</li>
-                </ul>
-                <SearchSyntaxTips />
-              </TableSearchTips>
-            </div>
+            <RaidsTable raids={filteredRaids} session={session} />
           </div>
-          <RaidsTable raids={filteredRaids} session={session} />
         </div>
       )}
     </>

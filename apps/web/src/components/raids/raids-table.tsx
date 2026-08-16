@@ -4,7 +4,7 @@ import type { Raid } from "~/server/api/interfaces/raid";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon } from "lucide-react";
 import UserAvatar from "~/components/ui/user-avatar";
-import { Badge } from "~/components/ui/badge";
+import { ZoneBadge } from "~/components/ui/zone-badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import type { Session } from "next-auth";
@@ -16,9 +16,10 @@ import { cn } from "~/lib/utils";
 export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; session?: Session }) {
   const isMobile = useIsMobile();
   const mobileRaids = raids ?? [];
-  const desktopGridClass = session?.user?.isRaidManager
-    ? "grid-cols-[44px_minmax(0,3fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_72px]"
-    : "grid-cols-[minmax(0,3fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_72px]";
+  const isManager = !!session?.user?.isRaidManager;
+  const desktopGridClass = isManager
+    ? "grid-cols-[minmax(0,1fr)_96px_168px_92px_60px]"
+    : "grid-cols-[minmax(0,1fr)_96px_168px_92px]";
 
   return (
     <div className="space-y-3">
@@ -42,7 +43,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">{r.zone}</Badge>
+                        <ZoneBadge zoneName={r.zone} />
                         <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                       </div>
                       <Link
@@ -56,7 +57,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                         {PrettyPrintDate(new Date(r.date), true)}
                       </p>
                     </div>
-                    {session?.user?.isRaidManager ? (
+                    {isManager ? (
                       <Link
                         href={`/raids/${r.raidId}/edit`}
                         className="shrink-0 rounded-md border border-border p-2 text-muted-foreground transition-all hover:text-primary"
@@ -83,18 +84,13 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                         href={GenerateWCLReportUrl((r.raidLogIds ?? [])[0] ?? "")}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-sm transition-all hover:text-primary"
+                        className="font-display inline-flex shrink-0 items-center gap-1 text-sm font-semibold transition-all hover:text-primary"
                       >
-                        <span>WCL</span>
-                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                          {(r.raidLogIds ?? []).length}
-                        </Badge>
+                        {(r.raidLogIds ?? []).length}
                         <ExternalLinkIcon size={14} />
                       </Link>
                     ) : (
-                      <Badge variant="destructive" className="w-fit shrink-0">
-                        No logs
-                      </Badge>
+                      <span className="shrink-0 text-xs text-muted-foreground/70">No logs</span>
                     )}
                   </div>
                 </CardContent>
@@ -104,27 +100,22 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
         />
       ) : (
         <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
-          <div className="border-b border-border/70 bg-card/65 px-4 py-3 text-sm text-muted-foreground">
-            Note: Only Tracked raids are considered for attendance restrictions.
-          </div>
           <div
             className={cn(
               "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
               desktopGridClass,
             )}
           >
-            {session?.user?.isRaidManager ? <div /> : null}
             <div>Raids {raids ? `(${raids.length})` : ""}</div>
-            <div>Zone</div>
-            <div>Date</div>
-            <div>Attendance</div>
-            <div>Created By</div>
-            <div className="text-center">WCL</div>
+            <div>Credit</div>
+            <div>Created by</div>
+            <div>Logs</div>
+            {isManager ? <div /> : null}
           </div>
           <VirtualizedList
             items={mobileRaids}
             itemKey={(raid) => raid.raidId ?? `${raid.name}-${raid.date}`}
-            estimateItemHeight={61}
+            estimateItemHeight={57}
             overscan={10}
             className="h-[min(72svh,48rem)]"
             emptyState={
@@ -135,35 +126,28 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
             renderItem={(r) => (
               <div
                 className={cn(
-                  "grid items-center gap-3 border-b border-border/60 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/35",
+                  "grid items-center gap-3 border-b border-border/45 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/35",
                   desktopGridClass,
                 )}
               >
-                {session?.user?.isRaidManager ? (
-                  <Link
-                    href={`/raids/${r.raidId}/edit`}
-                    className="text-muted-foreground transition-all hover:text-primary"
-                    aria-label={`Edit ${r.name}`}
-                  >
-                    <Edit size={16} />
-                  </Link>
-                ) : null}
-                <div className="min-w-0">
-                  <Link
-                    className="block truncate text-secondary-foreground transition-all hover:text-primary"
-                    target="_self"
-                    href={`/raids/${r.raidId}`}
-                  >
-                    {r.name}
-                  </Link>
-                  {(r.raidLogIds ?? []).length === 0 ? (
-                    <Badge variant="destructive" className="mt-1 w-fit">
-                      Error: No logs found
-                    </Badge>
-                  ) : null}
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Link
+                      className="truncate text-secondary-foreground transition-all hover:text-primary"
+                      target="_self"
+                      href={`/raids/${r.raidId}`}
+                    >
+                      {r.name}
+                    </Link>
+                    <ZoneBadge zoneName={r.zone} />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {PrettyPrintDate(new Date(r.date), true)}
+                    {(r.raidLogIds ?? []).length === 0 ? (
+                      <span className="ml-2 text-destructive/80">No logs found</span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="truncate">{r.zone}</div>
-                <div className="truncate">{PrettyPrintDate(new Date(r.date), true)}</div>
                 <div>
                   <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                 </div>
@@ -174,25 +158,36 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                     <span className="text-muted-foreground">Unknown</span>
                   )}
                 </div>
-                <div className="text-center">
-                  {(r.raidLogIds ?? []).map((raidLogId) => {
-                    const reportUrl = GenerateWCLReportUrl(raidLogId);
-                    return (
-                      <Link
-                        key={raidLogId}
-                        href={reportUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group text-sm transition-all hover:text-primary hover:underline"
-                      >
-                        <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
-                      </Link>
-                    );
-                  })}
+                <div>
+                  {(r.raidLogIds ?? []).length > 0 ? (
+                    <Link
+                      href={GenerateWCLReportUrl((r.raidLogIds ?? [])[0] ?? "")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-display inline-flex items-center gap-1 font-semibold transition-all hover:text-primary"
+                    >
+                      {(r.raidLogIds ?? []).length}
+                      <ExternalLinkIcon size={14} />
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
                 </div>
+                {isManager ? (
+                  <Link
+                    href={`/raids/${r.raidId}/edit`}
+                    className="text-muted-foreground transition-all hover:text-primary"
+                    aria-label={`Edit ${r.name}`}
+                  >
+                    <Edit size={16} />
+                  </Link>
+                ) : null}
               </div>
             )}
           />
+          <div className="border-t border-border/55 px-4 py-2.5 text-xs text-muted-foreground">
+            Only tracked raids count toward attendance restrictions.
+          </div>
         </div>
       )}
     </div>

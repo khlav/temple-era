@@ -43,6 +43,21 @@ export function getInstanceIdForZoneName(zoneName: string | null | undefined) {
 }
 
 /**
+ * Short pill label per zone instance, per the redesign pattern spec's zone badge set
+ * (NAXX / AQ40 / BWL / MC / ZG / ONY / AQ20) — the only zone whose label isn't just
+ * `instance.toUpperCase()` is Onyxia ("ONY", not "ONYXIA").
+ */
+export const ZONE_BADGE_LABELS: Record<string, string> = {
+  naxxramas: "NAXX",
+  aq40: "AQ40",
+  bwl: "BWL",
+  mc: "MC",
+  zg: "ZG",
+  onyxia: "ONY",
+  aq20: "AQ20",
+};
+
+/**
  * Array of raid zone names (derived from RAID_ZONE_CONFIG)
  */
 export const RAID_ZONES = RAID_ZONE_CONFIG.map((z) => z.name) as readonly string[];

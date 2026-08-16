@@ -40,6 +40,7 @@ export default async function RaidIndex() {
     <HydrateClient>
       <main className="w-full">
         <PageHeader
+          eyebrow="Guild history"
           title="Raids"
           className="mb-4"
           actions={
