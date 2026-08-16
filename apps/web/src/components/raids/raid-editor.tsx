@@ -13,7 +13,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
-import React, { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
@@ -146,8 +146,12 @@ export function RaidEditor({
   // refresh mutation (fetch-fresh + upsert + return) rather than a query — this is a write,
   // and a query re-fires on window refocus/remount while enabled, which would re-import.
   const [addLogUrlInput, setAddLogUrlInput] = useState("");
+  // Guards against re-submitting the same captured ID on every keystroke while the user keeps
+  // typing/pasting after the 16-char match already appears (e.g. pasting into a non-empty field).
+  const submittedLogIdRef = useRef<string | null>(null);
   const addRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
     onSuccess: (addedRaidLog) => {
+      submittedLogIdRef.current = null;
       if (!addedRaidLog) return;
       if (addedRaidLog.raidId && addedRaidLog.raidId !== raidData.raidId) {
         toastRaidLogInUse(toast, addedRaidLog);
@@ -161,12 +165,18 @@ export function RaidEditor({
       }
       setAddLogUrlInput("");
     },
+    onError: () => {
+      submittedLogIdRef.current = null;
+    },
   });
 
   const handleAddLogUrlChange = (value: string) => {
     setAddLogUrlInput(value);
     const match = /([a-zA-Z0-9]{16})/.exec(value);
-    if (match?.[1]) addRaidLogMutation.mutate(match[1]);
+    if (match?.[1] && match[1] !== submittedLogIdRef.current) {
+      submittedLogIdRef.current = match[1];
+      addRaidLogMutation.mutate(match[1]);
+    }
   };
 
   return (

@@ -64,7 +64,10 @@ export function AllCharacters({
 
   const groups = useMemo(() => {
     const all = players ? Object.values(players) : [];
-    const mains = all.filter((c) => c.isPrimary);
+    // Anyone not linked to a main (isPrimary false, no primaryCharacterId — e.g. a fresh
+    // secondary the character manager hasn't assigned yet) renders as its own row rather than
+    // silently disappearing from the roster.
+    const mains = all.filter((c) => c.isPrimary || !c.primaryCharacterId);
     const altsByMainId = new Map<number, RaidParticipant[]>();
     for (const c of all) {
       if (c.isPrimary || !c.primaryCharacterId) continue;
