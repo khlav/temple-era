@@ -14,11 +14,16 @@ export const RaidBenchManager = ({
   onRemoveAction: (character: RaidParticipant) => void;
 }) => {
   return (
-    <>
-      <div className="flex gap-2 pb-1">
+    <div className="panel-surface rounded-2xl border border-border/70 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Benched Characters
+        </div>
         <CharacterSelector onSelectAction={onSelectAction} characterSet="all" />
       </div>
-      <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
-    </>
+      <div className="mt-2.5">
+        <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
+      </div>
+    </div>
   );
 };

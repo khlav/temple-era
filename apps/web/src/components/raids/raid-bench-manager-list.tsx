@@ -20,6 +20,10 @@ export function RaidBenchManagerList({
     a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
 
+  if (characterList.length === 0) {
+    return <div className="text-sm text-muted-foreground">No benched characters.</div>;
+  }
+
   return (
     <div className="flex flex-wrap gap-1">
       {characterList.map((character) => (

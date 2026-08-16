@@ -3,6 +3,13 @@ import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import type { Raid } from "~/server/api/interfaces/raid";
 import { Loader } from "lucide-react";
 import {
@@ -20,7 +27,9 @@ import type { ChangeEvent, FormEvent } from "react";
 import { PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { RAID_ZONES } from "~/lib/raid-zones";
-import { cn } from "~/lib/utils";
+
+const EYEBROW_CLASSNAME =
+  "font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground";
 
 export function RaidEditorCoreControls({
   raidData,
@@ -41,10 +50,12 @@ export function RaidEditorCoreControls({
   debug?: boolean;
 }) {
   return (
-    <>
-      <div className="flex flex-wrap gap-4">
-        <div className="min-w-0 grow whitespace-nowrap md:min-w-[200px]">
-          <Label htmlFor="name">Raid Name</Label>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="min-w-0 grow md:min-w-[220px]">
+          <Label htmlFor="name" className={EYEBROW_CLASSNAME}>
+            Raid Name
+          </Label>
           <Input
             id="name"
             name="name"
@@ -52,46 +63,56 @@ export function RaidEditorCoreControls({
             value={raidData.name}
             onChange={handleInputChangeAction}
             autoComplete="off"
+            className="mt-1.5"
           />
         </div>
-        <div className="flex w-full gap-4 md:w-auto md:min-w-[200px] md:flex-none md:grow-0">
-          <div className="w-1/2 md:min-w-[200px] md:grow-0">
-            <Label htmlFor="zone">Zone</Label>
-            <select
+        <div className="w-full sm:w-[190px] sm:shrink-0 sm:grow-0">
+          <Label htmlFor="zone" className={EYEBROW_CLASSNAME}>
+            Zone
+          </Label>
+          <Select
+            value={raidData.zone}
+            onValueChange={(value) =>
+              handleInputChangeAction?.({
+                target: { name: "zone", value },
+              } as unknown as ChangeEvent<HTMLSelectElement>)
+            }
+          >
+            <SelectTrigger
               id="zone"
-              name="zone"
-              value={raidData.zone}
-              onChange={handleInputChangeAction}
-              className={cn(
-                "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-              )}
-              autoComplete="off"
+              className="mt-1.5 h-10 rounded-xl border-input/85 bg-card/70 text-base md:text-sm"
             >
-              <option value="">Select a zone</option>
+              <SelectValue placeholder="Select a zone" />
+            </SelectTrigger>
+            <SelectContent>
               {RAID_ZONES.map((zone) => (
-                <option key={zone} value={zone}>
+                <SelectItem key={zone} value={zone}>
                   {zone}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-          </div>
-          <div className="w-1/2 md:grow-0">
-            <Label htmlFor="date">Event Date</Label>
-            <Input
-              id="date"
-              name="date"
-              type="date"
-              value={raidData.date}
-              onChange={handleInputChangeAction}
-              autoComplete="off"
-            />
-            <div className="text-center text-xs text-muted-foreground">
-              {PrettyPrintDate(new Date(raidData.date), true)}
-            </div>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-[160px] sm:shrink-0 sm:grow-0">
+          <Label htmlFor="date" className={EYEBROW_CLASSNAME}>
+            Event Date
+          </Label>
+          <Input
+            id="date"
+            name="date"
+            type="date"
+            value={raidData.date}
+            onChange={handleInputChangeAction}
+            autoComplete="off"
+            className="mt-1.5"
+          />
+          <div className="mt-1 text-center text-xs text-muted-foreground">
+            {PrettyPrintDate(new Date(raidData.date), true)}
           </div>
         </div>
-        <div className="w-full text-center md:my-auto md:w-28 md:grow-0">
-          <Button className="mb-2 w-full" onClick={handleSubmitAction} disabled={isSendingData}>
+        <div className="flex w-full shrink-0 flex-col items-stretch gap-1.5 sm:w-32 sm:items-end">
+          <Label className={EYEBROW_CLASSNAME}>&nbsp;</Label>
+          <Button className="w-full" onClick={handleSubmitAction} disabled={isSendingData}>
             {isSendingData ? (
               <Loader className="animate-spin" />
             ) : editingMode === "existing" ? (
@@ -102,10 +123,13 @@ export function RaidEditorCoreControls({
           </Button>
 
           <AlertDialog>
-            <AlertDialogTrigger>
-              <span className="rounded bg-red-950 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground">
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="text-xs text-destructive/80 transition-colors hover:text-destructive"
+              >
                 {editingMode === "existing" ? "Delete raid" : "Reset"}
-              </span>
+              </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -128,37 +152,36 @@ export function RaidEditorCoreControls({
           </AlertDialog>
         </div>
       </div>
-      <div className="flex gap-4 pt-2 lg:pt-0">
-        <div className="grow">
-          <RadioGroup
-            id="attendanceWeight"
-            value={raidData.attendanceWeight.toString()}
-            defaultValue="0"
-            orientation="horizontal"
-            className="flex space-x-4"
-          >
-            <div className="flex text-sm">Attendance Tracking:</div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem id="option-one" value="1" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-one">
-                <RaidAttendenceWeightBadge attendanceWeight={1} />
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem id="option-half" value="0.5" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-half">
-                <RaidAttendenceWeightBadge attendanceWeight={0.5} />
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem id="option-zero" value="0" onClick={handleWeightChangeAction} />
-              <Label htmlFor="option-zero">
-                <RaidAttendenceWeightBadge attendanceWeight={0} />
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
+
+      <div className="flex flex-wrap items-center gap-4 border-t border-border/60 pt-3">
+        <div className={EYEBROW_CLASSNAME}>Attendance Tracking</div>
+        <RadioGroup
+          id="attendanceWeight"
+          value={raidData.attendanceWeight.toString()}
+          defaultValue="0"
+          orientation="horizontal"
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem id="option-one" value="1" onClick={handleWeightChangeAction} />
+            <Label htmlFor="option-one">
+              <RaidAttendenceWeightBadge attendanceWeight={1} />
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem id="option-half" value="0.5" onClick={handleWeightChangeAction} />
+            <Label htmlFor="option-half">
+              <RaidAttendenceWeightBadge attendanceWeight={0.5} />
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem id="option-zero" value="0" onClick={handleWeightChangeAction} />
+            <Label htmlFor="option-zero">
+              <RaidAttendenceWeightBadge attendanceWeight={0} />
+            </Label>
+          </div>
+        </RadioGroup>
       </div>
-    </>
+    </div>
   );
 }
