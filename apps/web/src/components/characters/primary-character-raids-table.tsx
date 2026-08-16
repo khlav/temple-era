@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { api } from "~/trpc/react";
-import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
+import { PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
+import { ZoneBadge } from "~/components/ui/zone-badge";
 import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/characters/skeletons";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
@@ -23,7 +14,9 @@ import { matchesSearchQuery } from "~/lib/table-search";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
-import { Badge } from "~/components/ui/badge";
+import { cn } from "~/lib/utils";
+
+const GRID_COLS = "grid-cols-[minmax(0,1fr)_72px_44px]";
 
 export function PrimaryCharacterRaidsTable({
   characterId,
@@ -85,31 +78,22 @@ export function PrimaryCharacterRaidsTable({
     });
   }, [raids, searchTerms]);
 
-  // Count stats for attendance summary
-  const raidStats = useMemo(() => {
-    const total = filteredRaids?.length ?? 0;
-    const attended = filteredRaids?.filter((r) => r.attendeeOrBench === "attendee").length ?? 0;
-    const benched = filteredRaids?.filter((r) => r.attendeeOrBench === "bench").length ?? 0;
-
-    return { total, attended, benched };
-  }, [filteredRaids]);
-
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1">
           <TableSearchInput
             ref={searchInputRef}
+            className="h-11"
             type="text"
-            placeholder="Search raids by name, zone, date, character..."
+            placeholder="Search this character's raids…"
             defaultValue={initialSearch}
             onDebouncedChange={(v) => setSearchTerms(v ?? "")}
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
-          <Badge variant="secondary">{raidStats.total} raids</Badge>
-          <div className="whitespace-nowrap text-sm text-muted-foreground">
-            {raidStats.attended} attended, {raidStats.benched} benched
+          <div className="font-display flex h-11 items-center rounded-xl border border-border/80 bg-card/70 px-3.5 text-[13px] text-muted-foreground">
+            {filteredRaids?.length ?? 0} raids
           </div>
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
@@ -121,108 +105,67 @@ export function PrimaryCharacterRaidsTable({
         </div>
       </div>
 
-      <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
-        <TableCaption className="text-wrap">
-          Note: Only Tracked raids are considered for attendance restrictions.
-        </TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-1/2 md:w-4/12">Raid</TableHead>
-            <TableHead className="hidden md:table-cell md:w-2/12">Zone</TableHead>
-            <TableHead className="hidden md:table-cell md:w-2/12">Date</TableHead>
-            <TableHead className="w-1/4 md:w-2/12">Attendance</TableHead>
-            <TableHead className="hidden md:table-cell md:w-1/12">Character</TableHead>
-            <TableHead className="w-1/4 text-center md:w-1/12">WCL</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
+        <div
+          className={cn(
+            "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
+            GRID_COLS,
+          )}
+        >
+          <div>Raid history</div>
+          <div className="text-right">Credit</div>
+          <div className="text-center">Status</div>
+        </div>
+        <div className="max-h-[400px] overflow-y-auto">
           {isSuccess ? (
             filteredRaids && filteredRaids.length > 0 ? (
               filteredRaids.map((r) => (
-                <TableRow key={r.raidId}>
-                  <TableCell className="text-secondary-foreground">
-                    <Link
-                      className="group w-full transition-all hover:text-primary"
-                      target="_self"
-                      href={"/raids/" + r.raidId}
-                    >
-                      <div>{r.name}</div>
-                      <div className="text-xs text-muted-foreground md:hidden">
-                        {PrettyPrintDate(new Date(r.date), true)}
-                      </div>
-                      <div className="mt-1 flex gap-1 text-xs text-muted-foreground md:hidden">
-                        {(r.allCharacters ?? []).map((c) => (
-                          <div
-                            key={c.characterId}
-                            className="grow-0 rounded bg-secondary px-2 py-1"
-                          >
-                            {c.name}
-                          </div>
-                        ))}
-                      </div>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{r.zone}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {PrettyPrintDate(new Date(r.date), true)}
-                  </TableCell>
-                  <TableCell>
+                <div
+                  key={r.raidId}
+                  className={cn(
+                    "grid items-center gap-3 border-b border-border/45 px-4 py-2.5 text-sm transition-colors hover:bg-accent/35",
+                    GRID_COLS,
+                  )}
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Link
+                        className="truncate text-secondary-foreground transition-all hover:text-primary"
+                        target="_self"
+                        href={"/raids/" + r.raidId}
+                      >
+                        {r.name}
+                      </Link>
+                      <ZoneBadge zoneName={r.zone} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {PrettyPrintDate(new Date(r.date), true)}
+                    </div>
+                  </div>
+                  <div className="text-right">
                     <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
-                  </TableCell>
-                  <TableCell className="hidden gap-1 md:flex">
-                    {r.attendeeOrBench == "bench" && (
-                      <AttendanceStatusIcon
-                        status="bench"
-                        size={16}
-                        iconClassName="cursor-default"
-                      />
-                    )}
-                    {(r.allCharacters ?? []).map((c) => {
-                      return (
-                        <Link
-                          key={c.characterId}
-                          className="group shrink rounded bg-secondary px-2 py-1 text-xs transition-all hover:text-primary"
-                          target="_self"
-                          href={"/characters/" + c.characterId}
-                        >
-                          {c.name}
-                        </Link>
-                      );
-                    })}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {(r.raidLogIds ?? []).map((raidLogId: string) => {
-                      const reportUrl = GenerateWCLReportUrl(raidLogId);
-                      return (
-                        <Link
-                          key={raidLogId}
-                          href={reportUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group text-sm transition-all hover:text-primary hover:underline"
-                        >
-                          <ExternalLinkIcon
-                            className="ml-1 inline-block align-text-top"
-                            size={15}
-                          />
-                        </Link>
-                      );
-                    })}
-                  </TableCell>
-                </TableRow>
+                  </div>
+                  <div className="flex justify-center">
+                    <AttendanceStatusIcon
+                      status={r.attendeeOrBench as "attendee" | "bench" | null}
+                      size={16}
+                    />
+                  </div>
+                </div>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="py-4 text-center">
-                  No raids found matching your search
-                </TableCell>
-              </TableRow>
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No raids found matching your search
+              </div>
             )
           ) : (
             <PrimaryCharacterRaidsTableRowSkeleton />
           )}
-        </TableBody>
-      </Table>
+        </div>
+        <div className="border-t border-border/55 px-4 py-2.5 text-xs text-muted-foreground">
+          Only tracked raids count toward attendance restrictions.
+        </div>
+      </div>
     </div>
   );
 }
