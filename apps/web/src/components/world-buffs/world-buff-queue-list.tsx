@@ -467,7 +467,7 @@ function QueueRow({
 }) {
   const dropped = row.state === "dropped";
   return (
-    <li className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2 py-1.5">
+    <li className="flex items-center justify-between gap-2 rounded-xl border border-border/50 px-2.5 py-1.5">
       <div className="flex min-w-0 items-center gap-2">
         <WorldBuffIcon item={row.item as WorldBuffItem} size={18} grayscale={dropped} />
         <div className="min-w-0">
@@ -689,18 +689,27 @@ export function WorldBuffQueueList({
       <CardContent className="space-y-3 px-2 pb-1.5 sm:px-2.5 sm:pb-2">
         <div className="flex items-center justify-between gap-2">
           <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as ActivityTab)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="active" className="h-6 px-2.5 text-xs">
+            <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+              <TabsTrigger
+                value="active"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 Active
               </TabsTrigger>
-              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
+              <TabsTrigger
+                value="all"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 All
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <Tabs value={queueTypeTab} onValueChange={(v) => setQueueTypeTab(v as QueueTypeTab)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
+            <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+              <TabsTrigger
+                value="all"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 All
               </TabsTrigger>
               {QUEUE_TYPES.map((queueType) => {
@@ -710,7 +719,7 @@ export function WorldBuffQueueList({
                     key={queueType}
                     value={queueType}
                     aria-label={opt.label}
-                    className="h-6 px-2.5"
+                    className="rounded-full px-2 py-1 data-[state=active]:bg-primary/14 data-[state=active]:shadow-none"
                   >
                     <opt.Icon className={cn("h-3.5 w-3.5", opt.className)} />
                   </TabsTrigger>

@@ -135,7 +135,7 @@ function AssignmentRow({
 }) {
   const dropped = assignment.status.state === "dropped";
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 rounded-md border p-2", className)}>
+    <div className={cn("flex flex-wrap items-center gap-2 rounded-xl border p-2.5", className)}>
       <WorldBuffIcon
         item={assignment.status.item as WorldBuffItem}
         size={28}
@@ -529,14 +529,22 @@ export function AssignmentList() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <CardTitle className="text-base">Scheduled turn-ins</CardTitle>
+          <CardTitle className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+            Scheduled turn-ins
+          </CardTitle>
           {canManage && (
             <Tabs value={view} onValueChange={(v) => setView(v as "active" | "past")}>
-              <TabsList className="h-8">
-                <TabsTrigger value="active" className="h-6 px-2 text-xs">
+              <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+                <TabsTrigger
+                  value="active"
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
                   Active
                 </TabsTrigger>
-                <TabsTrigger value="past" className="h-6 px-2 text-xs">
+                <TabsTrigger
+                  value="past"
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
                   Completed
                 </TabsTrigger>
               </TabsList>

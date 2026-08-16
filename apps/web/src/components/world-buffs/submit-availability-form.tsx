@@ -171,12 +171,14 @@ export function SubmitAvailabilityForm() {
     <div className="relative h-full">
       <Card
         className={cn(
-          "h-full transition-all duration-300",
+          "h-full border-primary/30 bg-gradient-to-b from-primary/8 to-transparent transition-all duration-300",
           !session && "pointer-events-none select-none opacity-50 blur-[2px]",
         )}
       >
         <CardHeader>
-          <CardTitle className="text-base">Join the drop list</CardTitle>
+          <CardTitle className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+            Join the drop list
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
