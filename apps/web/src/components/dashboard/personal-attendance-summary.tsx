@@ -274,7 +274,7 @@ export function PersonalAttendanceSummary({
           </div>
         ) : undefined,
       )}
-      <CardContent className="space-y-4 pt-4">
+      <CardContent className="space-y-4 pt-4 sm:pt-4">
         {/* Progress Bar */}
         {characterData?.isIgnored ? (
           <div className="flex h-10 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">

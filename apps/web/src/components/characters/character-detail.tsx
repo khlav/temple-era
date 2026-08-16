@@ -63,8 +63,8 @@ export function CharacterDetail({
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
       {/* Left column — identity, alts, crafting */}
       <div className="flex w-full shrink-0 flex-col gap-4 lg:w-[280px]">
-        <Card>
-          <CardContent className="space-y-3 pt-4">
+        <Card className="overflow-hidden">
+          <CardContent className="space-y-3 pt-4 sm:pt-4">
             <div className="flex items-start gap-3">
               <ClassIcon
                 characterClass={characterData.class.toLowerCase()}
@@ -72,14 +72,7 @@ export function CharacterDetail({
                 className="shrink-0 rounded-md"
               />
               <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-lg font-semibold leading-tight">{characterData.name}</div>
-                  {characterData.isPrimary && alts.length > 0 ? (
-                    <span className="font-display shrink-0 rounded-md border border-border/90 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      main
-                    </span>
-                  ) : null}
-                </div>
+                <div className="text-lg font-semibold leading-tight">{characterData.name}</div>
                 <div className="text-sm text-muted-foreground">
                   {characterData.class} · {characterData.server}
                 </div>
@@ -94,42 +87,36 @@ export function CharacterDetail({
               </Link>
             )}
           </CardContent>
-        </Card>
 
-        {characterData.isPrimary && alts.length > 0 ? (
-          <Card>
-            <CardHeader className="pb-2 pt-3">
-              <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+          {characterData.isPrimary && alts.length > 0 ? (
+            <div className="border-t border-border/60 px-4 pb-3.5 pt-3 sm:px-5 sm:pb-4 sm:pt-3">
+              <div className="font-display mb-2 text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
                 Alts · {alts.length}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {alts.map((secondaryCharacter) => (
-                <Link
-                  key={secondaryCharacter.characterId}
-                  href={`/characters/${secondaryCharacter.characterId}`}
-                  className="flex flex-row items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-sm hover:text-primary hover:underline"
-                >
-                  <ClassIcon
-                    characterClass={secondaryCharacter.class.toLowerCase()}
-                    px={18}
-                    className="shrink-0 rounded-sm opacity-85"
-                  />
-                  <div>{secondaryCharacter.name}</div>
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {alts.map((secondaryCharacter) => (
+                  <Link
+                    key={secondaryCharacter.characterId}
+                    href={`/characters/${secondaryCharacter.characterId}`}
+                    className="flex flex-row items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-sm hover:text-primary hover:underline"
+                  >
+                    <ClassIcon
+                      characterClass={secondaryCharacter.class.toLowerCase()}
+                      px={18}
+                      className="shrink-0 rounded-sm opacity-85"
+                    />
+                    <div>{secondaryCharacter.name}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
-        {characterData.isPrimary === false ? (
-          <Card>
-            <CardHeader className="pb-2 pt-3">
-              <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+          {characterData.isPrimary === false ? (
+            <div className="border-t border-border/60 px-4 pb-3.5 pt-3 sm:px-5 sm:pb-4 sm:pt-3">
+              <div className="font-display mb-2 text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
                 This is an alt for
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </div>
               <Link
                 href={`/characters/${characterData.primaryCharacterId}`}
                 className="flex w-fit flex-row items-center gap-2 rounded-xl bg-primary-foreground px-3 py-1.5 text-sm text-primary hover:underline"
@@ -140,9 +127,9 @@ export function CharacterDetail({
                 />
                 <div>{characterData.primaryCharacterName}</div>
               </Link>
-            </CardContent>
-          </Card>
-        ) : null}
+            </div>
+          ) : null}
+        </Card>
 
         <CharacterRecipes character={characterData} showRecipeEditor={showRecipeEdit} />
       </div>
@@ -166,7 +153,7 @@ export function CharacterDetail({
             </Card>
 
             <Card>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 sm:pt-4">
                 <AttendanceHeatmapGrid
                   characterId={characterId}
                   showCreditsRow={true}
@@ -178,7 +165,7 @@ export function CharacterDetail({
             </Card>
 
             <Card>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 sm:pt-4">
                 <CharacterBadges characterId={characterId} />
               </CardContent>
             </Card>
@@ -199,7 +186,7 @@ export function CharacterDetail({
           </>
         ) : (
           <Card>
-            <CardContent className="pt-4 text-sm text-muted-foreground">
+            <CardContent className="pt-4 text-sm text-muted-foreground sm:pt-4">
               Raid reports are only available for primary characters.
             </CardContent>
           </Card>
