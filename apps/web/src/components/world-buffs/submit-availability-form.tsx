@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { CircleCheck, UserRound, Shield } from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
@@ -63,6 +63,32 @@ export function SubmitAvailabilityForm() {
   const [selectedItems, setSelectedItems] = useState<Set<WorldBuffItem>>(new Set());
   const [queueType, setQueueType] = useState<QueueType>("main");
   const [notes, setNotes] = useState("");
+
+  // A row that's already "dropped" for this character shouldn't be resubmittable as ready —
+  // the backend leaves `state` untouched on an existing row either way, so without this the
+  // form would silently "succeed" while doing nothing for an item the character already turned in.
+  const { data: statusRows } = api.worldBuff.getAll.useQuery();
+  const normalizedCharacterName = characterName.trim().toLowerCase();
+  const alreadyDroppedItems = useMemo(() => {
+    const dropped = new Set<WorldBuffItem>();
+    if (!statusRows || !normalizedCharacterName) return dropped;
+    for (const row of statusRows) {
+      if (row.characterNameNormalized === normalizedCharacterName && row.state === "dropped") {
+        dropped.add(row.item);
+      }
+    }
+    return dropped;
+  }, [statusRows, normalizedCharacterName]);
+
+  useEffect(() => {
+    if (alreadyDroppedItems.size === 0) return;
+    setSelectedItems((prev) => {
+      if (![...prev].some((item) => alreadyDroppedItems.has(item))) return prev;
+      const next = new Set(prev);
+      for (const item of alreadyDroppedItems) next.delete(item);
+      return next;
+    });
+  }, [alreadyDroppedItems]);
 
   const submitAvailability = api.worldBuff.submitAvailability.useMutation({
     onMutate: async (input) => {
@@ -266,17 +292,22 @@ export function SubmitAvailabilityForm() {
                 <div className="space-y-2 pt-1.5">
                   {WORLD_BUFF_ITEMS.map((item) => {
                     const checked = selectedItems.has(item);
+                    const alreadyDropped = alreadyDroppedItems.has(item);
                     return (
                       <div key={item} className="flex items-start gap-2">
                         <Checkbox
                           id={`wb-item-${item}`}
                           checked={checked}
                           onCheckedChange={() => toggleItem(item)}
+                          disabled={alreadyDropped}
                           className="peer sr-only"
                         />
                         <Label
                           htmlFor={`wb-item-${item}`}
-                          className="flex cursor-pointer items-start gap-2 text-sm font-normal leading-5"
+                          className={cn(
+                            "flex items-start gap-2 text-sm font-normal leading-5",
+                            alreadyDropped ? "cursor-not-allowed" : "cursor-pointer",
+                          )}
                         >
                           <WorldBuffIcon
                             item={item}
@@ -284,6 +315,7 @@ export function SubmitAvailabilityForm() {
                             className={cn(
                               "shrink-0 rounded-sm transition-all duration-100",
                               checked ? "opacity-100 grayscale-0" : "opacity-40 grayscale",
+                              alreadyDropped && "opacity-40 grayscale",
                             )}
                           />
                           <span>
@@ -296,7 +328,9 @@ export function SubmitAvailabilityForm() {
                               {WORLD_BUFF_ITEM_LABELS[item]}
                             </span>
                             <span className="block text-xs text-muted-foreground">
-                              {WORLD_BUFF_LABELS[WORLD_BUFF_BY_ITEM[item]]}
+                              {alreadyDropped
+                                ? "Already dropped for this character"
+                                : WORLD_BUFF_LABELS[WORLD_BUFF_BY_ITEM[item]]}
                             </span>
                           </span>
                         </Label>
