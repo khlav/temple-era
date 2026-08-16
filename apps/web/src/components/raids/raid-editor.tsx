@@ -142,40 +142,31 @@ export function RaidEditor({
   };
 
   // Lets a manager staple an additional WCL log onto an already-created raid (e.g. a pull that
-  // got split into two reports) without going through the create flow again.
+  // got split into two reports) without going through the create flow again. Reuses the
+  // refresh mutation (fetch-fresh + upsert + return) rather than a query — this is a write,
+  // and a query re-fires on window refocus/remount while enabled, which would re-import.
   const [addLogUrlInput, setAddLogUrlInput] = useState("");
-  const [addLogId, setAddLogId] = useState("");
-  const {
-    data: addedRaidLog,
-    isLoading: isLoadingAddLog,
-    isSuccess: isAddLogSuccess,
-  } = api.raidLog.importAndGetRaidLogByRaidLogId.useQuery(addLogId, {
-    enabled: !!addLogId,
-    staleTime: 0,
+  const addRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
+    onSuccess: (addedRaidLog) => {
+      if (!addedRaidLog) return;
+      if (addedRaidLog.raidId && addedRaidLog.raidId !== raidData.raidId) {
+        toastRaidLogInUse(toast, addedRaidLog);
+      } else if (!(raidData.raidLogIds ?? []).includes(addedRaidLog.raidLogId)) {
+        setRaidDataAction((prev) => ({
+          ...prev,
+          raidLogIds: [...(prev.raidLogIds ?? []), addedRaidLog.raidLogId],
+          kills: Array.from(new Set([...(prev.kills ?? []), ...(addedRaidLog.kills ?? [])])),
+        }));
+        toastRaidLogLoaded(toast, addedRaidLog);
+      }
+      setAddLogUrlInput("");
+    },
   });
-
-  useEffect(() => {
-    if (!isAddLogSuccess || !addedRaidLog) return;
-
-    if (addedRaidLog.raidId && addedRaidLog.raidId !== raidData.raidId) {
-      toastRaidLogInUse(toast, addedRaidLog);
-    } else if (!(raidData.raidLogIds ?? []).includes(addedRaidLog.raidLogId)) {
-      setRaidDataAction((prev) => ({
-        ...prev,
-        raidLogIds: [...(prev.raidLogIds ?? []), addedRaidLog.raidLogId],
-        kills: Array.from(new Set([...(prev.kills ?? []), ...(addedRaidLog.kills ?? [])])),
-      }));
-      toastRaidLogLoaded(toast, addedRaidLog);
-    }
-
-    setAddLogUrlInput("");
-    setAddLogId("");
-  }, [isAddLogSuccess, addedRaidLog]);
 
   const handleAddLogUrlChange = (value: string) => {
     setAddLogUrlInput(value);
     const match = /([a-zA-Z0-9]{16})/.exec(value);
-    if (match?.[1]) setAddLogId(match[1]);
+    if (match?.[1]) addRaidLogMutation.mutate(match[1]);
   };
 
   return (
@@ -339,7 +330,7 @@ export function RaidEditor({
               value={addLogUrlInput}
               onChange={(e) => handleAddLogUrlChange(e.target.value)}
               placeholder="Paste another log URL…"
-              disabled={isLoadingAddLog}
+              disabled={addRaidLogMutation.isPending}
               autoComplete="off"
               className="mt-2.5 h-9 text-sm"
             />

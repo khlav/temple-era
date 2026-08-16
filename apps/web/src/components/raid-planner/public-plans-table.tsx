@@ -15,7 +15,7 @@ import {
   ZONE_BADGE_LABELS,
 } from "~/lib/raid-zones";
 import { getEasternNow } from "~/lib/raid-formatting";
-import { getTuesdayAnchoredWeekStart } from "~/server/api/v2/helpers/lockout-weeks";
+import { getTuesdayAnchoredWeekStart } from "~/lib/lockout-weeks";
 
 type PublicPlan = RouterOutputs["raidPlan"]["getPublicPlans"][number];
 
