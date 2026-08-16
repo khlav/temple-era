@@ -5,6 +5,7 @@ import { api } from "~/trpc/react";
 import { Separator } from "~/components/ui/separator";
 import { CharactersTable } from "~/components/characters/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
+import { ZoneBadge } from "~/components/ui/zone-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
 import { Edit, ExternalLinkIcon, Link2, RefreshCw } from "lucide-react";
@@ -114,11 +115,16 @@ export function RaidDetailBase({
           </div>
         </div>
         <div className="grow" />
-        <div className="align-right grow-0 text-muted-foreground">
-          <div className="nowrap text-right">
-            <RaidAttendenceWeightBadge attendanceWeight={raidData.attendanceWeight} />
+        <div className="grow-0 text-right text-muted-foreground">
+          <div className="whitespace-nowrap text-sm">
+            <RaidAttendenceWeightBadge
+              attendanceWeight={raidData.attendanceWeight}
+              variant="prose"
+            />
           </div>
-          <div className="md:text-md whitespace-nowrap text-sm">{raidData.zone}</div>
+          <div className="mt-1.5 flex justify-end">
+            <ZoneBadge zoneName={raidData.zone} />
+          </div>
         </div>
         {showEditButton && (
           <div className="grow-0 align-text-top">
@@ -132,8 +138,7 @@ export function RaidDetailBase({
         )}
       </div>
 
-      <Separator className="my-3" />
-      <div className="grid grid-cols-[auto_1fr_auto] items-start gap-6">
+      <div className="panel-surface mt-3 grid grid-cols-[auto_1fr_auto] items-start gap-6 divide-x divide-border/60 rounded-2xl border border-border/70 px-5 py-3.5">
         {/* WCL Logs */}
         <div className="min-w-0">
           {showEditButton ? (
@@ -215,9 +220,8 @@ export function RaidDetailBase({
         </div>
       </div>
 
-      <Separator className="my-3" />
-
       <Tabs
+        className="mt-4"
         value={canViewSignupLink ? activeTab : "overview"}
         onValueChange={(v) => {
           if ((RAID_DETAIL_TABS as readonly string[]).includes(v)) {
