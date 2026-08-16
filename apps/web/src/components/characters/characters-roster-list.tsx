@@ -105,12 +105,7 @@ function MainRow({
   );
 }
 
-function AltRow({ alt, mainName }: { alt: RaidParticipant; mainName: string }) {
-  const attended = Object.values(alt.raidAttendanceByZone ?? {}).reduce(
-    (sum, zone) => sum + (zone?.attendee ?? 0),
-    0,
-  );
-
+function AltRow({ alts }: { alts: RaidParticipant[] }) {
   return (
     <div
       className={cn(
@@ -118,27 +113,25 @@ function AltRow({ alt, mainName }: { alt: RaidParticipant; mainName: string }) {
         GRID_COLS,
       )}
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
         <span className="mb-1 h-3 w-3 shrink-0 rounded-bl border-b border-l border-border/80" />
-        <ClassIcon
-          characterClass={alt.class.toLowerCase()}
-          px={18}
-          className="shrink-0 rounded-sm opacity-85"
-        />
-        <Link
-          href={`/characters/${alt.characterId}`}
-          className="truncate text-[13px] text-foreground/85 transition-all hover:text-primary"
-        >
-          {alt.name}
-        </Link>
-        <span className="font-display shrink-0 text-[10px] uppercase tracking-[0.1em] text-muted-foreground/70">
-          alt
-        </span>
+        {alts.map((alt) => (
+          <Link
+            key={alt.characterId}
+            href={`/characters/${alt.characterId}`}
+            className="flex min-w-0 items-center gap-1.5 text-[13px] text-foreground/85 transition-all hover:text-primary"
+          >
+            <ClassIcon
+              characterClass={alt.class.toLowerCase()}
+              px={18}
+              className="shrink-0 rounded-sm opacity-85"
+            />
+            <span className="truncate">{alt.name}</span>
+          </Link>
+        ))}
       </div>
       <div />
-      <div className="truncate text-xs text-muted-foreground/80">
-        {attended} raid{attended === 1 ? "" : "s"} this window · credited to {mainName}
-      </div>
+      <div />
       <div />
     </div>
   );
@@ -181,9 +174,7 @@ export function CharactersRosterList({
               attendance={attendanceByCharacterId.get(main.characterId)}
               isManager={isManager}
             />
-            {alts.map((alt) => (
-              <AltRow key={alt.characterId} alt={alt} mainName={main.name} />
-            ))}
+            {alts.length > 0 ? <AltRow alts={alts} /> : null}
           </div>
         ))
       )}
