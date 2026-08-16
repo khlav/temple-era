@@ -10,7 +10,7 @@ import { env } from "~/env";
 
 export default function DashboardBanner({ session }: { session?: Session }) {
   const raid_policy_channel_url =
-    "https://discord.com/channels/1132586324264759390/1194046879508480100";
+    "https://discord.com/channels/1132586324264759390/1467931414048669981/1467957911551475722";
 
   // Default to expanded for unauthenticated users, collapsed for logged-in users
   const defaultOpen = !session?.user;
