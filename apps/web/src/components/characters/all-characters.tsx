@@ -1,6 +1,7 @@
 "use client";
 import { api } from "~/trpc/react";
 import { useMemo, useState } from "react";
+import { ArrowUpDown } from "lucide-react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
@@ -51,6 +52,7 @@ export function AllCharacters({
   const players = initialCharacters ?? fetchedCharacters;
   const attendance = initialAttendance ?? fetchedAttendance;
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"attendance" | "alphabetical">("attendance");
 
   const attendanceByCharacterId = useMemo(() => {
     const map = new Map<number, RosterAttendance>();
@@ -78,11 +80,15 @@ export function AllCharacters({
           a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
         ),
       }))
-      .sort(
-        (a, b) =>
+      .sort((a, b) => {
+        if (sortBy === "alphabetical") {
+          return a.main.name.localeCompare(b.main.name, undefined, { sensitivity: "base" });
+        }
+        return (
           (attendanceByCharacterId.get(b.main.characterId)?.weightedAttendancePct ?? 0) -
-          (attendanceByCharacterId.get(a.main.characterId)?.weightedAttendancePct ?? 0),
-      );
+          (attendanceByCharacterId.get(a.main.characterId)?.weightedAttendancePct ?? 0)
+        );
+      });
 
     if (!searchTerm.trim()) return allGroups;
 
@@ -92,7 +98,7 @@ export function AllCharacters({
       );
       return matchesSearchQuery(searchable, searchTerm);
     });
-  }, [players, attendanceByCharacterId, searchTerm]);
+  }, [players, attendanceByCharacterId, searchTerm, sortBy]);
 
   // Show content if we have data (either from server or client fetch)
   const hasData = !!players;
@@ -110,9 +116,16 @@ export function AllCharacters({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
-              <span className="inline-flex h-8 items-center rounded-lg border border-primary/50 bg-primary/14 px-3 text-xs font-medium text-primary">
-                Sort: attendance
-              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSortBy((prev) => (prev === "attendance" ? "alphabetical" : "attendance"))
+                }
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-primary/50 bg-primary/14 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                Sort: {sortBy === "attendance" ? "Attendance" : "Alphabetical"}
+                <ArrowUpDown className="h-3 w-3" />
+              </button>
               <TableSearchTips>
                 <p className="mb-1 font-medium">Search tips:</p>
                 <ul className="mb-1 list-disc space-y-1 pl-4">
