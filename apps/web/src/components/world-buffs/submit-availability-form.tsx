@@ -168,10 +168,10 @@ export function SubmitAvailabilityForm() {
   };
 
   return (
-    <div className="relative h-full">
+    <div className="relative">
       <Card
         className={cn(
-          "h-full border-primary/30 bg-gradient-to-b from-primary/8 to-transparent transition-all duration-300",
+          "border-primary/30 bg-gradient-to-b from-primary/8 to-transparent transition-all duration-300",
           !session && "pointer-events-none select-none opacity-50 blur-[2px]",
         )}
       >

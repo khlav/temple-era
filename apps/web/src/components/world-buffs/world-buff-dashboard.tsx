@@ -1,4 +1,3 @@
-import { Separator } from "~/components/ui/separator";
 import { SubmitAvailabilityForm } from "~/components/world-buffs/submit-availability-form";
 import { AssignmentList } from "~/components/world-buffs/assignment-list";
 import { WorldBuffQueueList } from "~/components/world-buffs/world-buff-queue-list";
@@ -20,12 +19,9 @@ const QUEUE_LIST_GROUPS: { key: string; items: WorldBuffItem[]; title?: string }
 export function WorldBuffDashboard() {
   return (
     <ScheduleDialogProvider>
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <SubmitAvailabilityForm />
-          <AssignmentList />
-        </div>
-        <Separator />
+      <div className="flex flex-col gap-4">
+        <AssignmentList />
+        <SubmitAvailabilityForm />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {QUEUE_LIST_GROUPS.map((group) => (
             <WorldBuffQueueList key={group.key} items={group.items} title={group.title} />
