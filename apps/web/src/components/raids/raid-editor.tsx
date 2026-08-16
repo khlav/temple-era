@@ -6,7 +6,8 @@ import { RaidDetailBase } from "~/components/raids/raid-detail-base";
 import { Separator } from "~/components/ui/separator";
 import { RaidBenchManager } from "~/components/raids/raid-bench-manager";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
-import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { WCLIcon } from "~/components/ui/wcl-icon";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
 import React, { type Dispatch, type SetStateAction, useState } from "react";
 import { api } from "~/trpc/react";
@@ -112,7 +113,7 @@ export function RaidEditor({
                         {reportUrl.replace("https://", "")}
                       </span>
                       <span className="inline-block md:hidden">{raidLogId}</span>
-                      <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
+                      <WCLIcon className="ml-1 align-text-top" />
                     </Link>
                   </div>
                 );

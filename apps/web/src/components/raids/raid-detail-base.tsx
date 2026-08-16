@@ -6,7 +6,8 @@ import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-we
 import { ZoneBadge } from "~/components/ui/zone-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
-import { Edit, ExternalLinkIcon, Link2, RefreshCw } from "lucide-react";
+import { Edit, Link2, RefreshCw } from "lucide-react";
+import { WCLIcon } from "~/components/ui/wcl-icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { usePathname, useRouter } from "next/navigation";
@@ -395,7 +396,7 @@ export function RaidDetailBase({
                         className="flex items-center justify-between gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
                         {raidLogId}
-                        <ExternalLinkIcon size={13} className="shrink-0" />
+                        <WCLIcon />
                       </Link>
                     );
                   })}

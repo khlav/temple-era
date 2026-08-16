@@ -14,7 +14,7 @@ import {
 } from "~/components/ui/table";
 import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { ExternalLinkIcon } from "lucide-react";
+import { WCLIcon } from "~/components/ui/wcl-icon";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { Card, CardContent } from "~/components/ui/card";
@@ -244,10 +244,7 @@ export function RaidsListCard({
                           rel="noopener noreferrer"
                           className="group text-sm transition-all hover:text-primary hover:underline"
                         >
-                          <ExternalLinkIcon
-                            className="ml-1 inline-block align-text-top"
-                            size={15}
-                          />
+                          <WCLIcon className="ml-1 align-text-top" />
                         </Link>
                       );
                     })}

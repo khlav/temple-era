@@ -2,7 +2,8 @@
 
 import type { Raid } from "~/server/api/interfaces/raid";
 import Link from "next/link";
-import { Edit, ExternalLinkIcon } from "lucide-react";
+import { Edit } from "lucide-react";
+import { WCLIcon } from "~/components/ui/wcl-icon";
 import UserAvatar from "~/components/ui/user-avatar";
 import { ZoneBadge } from "~/components/ui/zone-badge";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
@@ -87,7 +88,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                         className="font-display inline-flex shrink-0 items-center gap-1 text-sm font-semibold transition-all hover:text-primary"
                       >
                         {(r.raidLogIds ?? []).length}
-                        <ExternalLinkIcon size={14} />
+                        <WCLIcon />
                       </Link>
                     ) : (
                       <span className="shrink-0 text-xs text-muted-foreground/70">No logs</span>
@@ -176,7 +177,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                       className="font-display inline-flex items-center gap-1 font-semibold transition-all hover:text-primary"
                     >
                       {(r.raidLogIds ?? []).length}
-                      <ExternalLinkIcon size={14} />
+                      <WCLIcon />
                     </Link>
                   ) : (
                     <span className="text-muted-foreground/60">—</span>
