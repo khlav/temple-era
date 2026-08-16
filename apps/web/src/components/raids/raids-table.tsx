@@ -18,7 +18,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
   const mobileRaids = raids ?? [];
   const isManager = !!session?.user?.isRaidManager;
   const desktopGridClass = isManager
-    ? "grid-cols-[minmax(0,1fr)_96px_168px_92px_60px]"
+    ? "grid-cols-[40px_minmax(0,1fr)_96px_168px_92px]"
     : "grid-cols-[minmax(0,1fr)_96px_168px_92px]";
 
   return (
@@ -106,11 +106,11 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
               desktopGridClass,
             )}
           >
+            {isManager ? <div /> : null}
             <div>Raids {raids ? `(${raids.length})` : ""}</div>
             <div>Credit</div>
             <div>Created by</div>
             <div>Logs</div>
-            {isManager ? <div /> : null}
           </div>
           <VirtualizedList
             items={mobileRaids}
@@ -130,15 +130,24 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                   desktopGridClass,
                 )}
               >
-                <div className="min-w-0 space-y-0.5">
+                {isManager ? (
+                  <Link
+                    href={`/raids/${r.raidId}/edit`}
+                    className="text-muted-foreground transition-all hover:text-primary"
+                    aria-label={`Edit ${r.name}`}
+                  >
+                    <Edit size={16} />
+                  </Link>
+                ) : null}
+                <Link
+                  href={`/raids/${r.raidId}`}
+                  target="_self"
+                  className="group block min-w-0 space-y-0.5"
+                >
                   <div className="flex min-w-0 items-center gap-2">
-                    <Link
-                      className="truncate text-secondary-foreground transition-all hover:text-primary"
-                      target="_self"
-                      href={`/raids/${r.raidId}`}
-                    >
+                    <span className="truncate text-secondary-foreground transition-all group-hover:text-primary">
                       {r.name}
-                    </Link>
+                    </span>
                     <ZoneBadge zoneName={r.zone} />
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -147,7 +156,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                       <span className="ml-2 text-destructive/80">No logs found</span>
                     ) : null}
                   </div>
-                </div>
+                </Link>
                 <div>
                   <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                 </div>
@@ -173,15 +182,6 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                     <span className="text-muted-foreground/60">—</span>
                   )}
                 </div>
-                {isManager ? (
-                  <Link
-                    href={`/raids/${r.raidId}/edit`}
-                    className="text-muted-foreground transition-all hover:text-primary"
-                    aria-label={`Edit ${r.name}`}
-                  >
-                    <Edit size={16} />
-                  </Link>
-                ) : null}
               </div>
             )}
           />
