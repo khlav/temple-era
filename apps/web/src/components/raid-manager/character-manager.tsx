@@ -87,33 +87,31 @@ export function CharacterManager() {
       </div>
 
       {/* Scrollable content area */}
-      <div className="panel-subtle max-h-[calc(100vh-200px)] min-h-[600px] overflow-hidden rounded-2xl border border-border/70">
-        <div className="relative h-full w-full overflow-y-auto overflow-x-hidden">
-          <table className="w-full caption-bottom text-sm">
-            <thead className="sticky top-0 z-10 border-b border-border/70 bg-card/80 [&_tr]:border-b [&_tr]:border-border/70">
-              <tr className="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                <th className="font-display h-10 w-1/5 px-4 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Primary {characterData && ` (${filteredPlayers.length})`}
-                </th>
-                <th className="font-display h-10 w-3/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Secondary Characters
-                </th>
-                <th className="font-display h-10 w-1/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground"></th>
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {isSuccess ? (
-                <>
-                  {filteredPlayers?.sort(SortRaiders).map((character: RaidParticipant) => (
-                    <CharacterManagerRow key={character.characterId} character={character} />
-                  ))}
-                </>
-              ) : (
-                <CharacterManagerRowSkeleton />
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="panel-subtle max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70">
+        <table className="w-full caption-bottom text-sm">
+          <thead className="sticky top-0 z-10 border-b border-border/70 bg-card/80 [&_tr]:border-b [&_tr]:border-border/70">
+            <tr className="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+              <th className="font-display h-10 w-1/5 px-4 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Primary {characterData && ` (${filteredPlayers.length})`}
+              </th>
+              <th className="font-display h-10 w-3/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Secondary Characters
+              </th>
+              <th className="font-display h-10 w-1/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground"></th>
+            </tr>
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {isSuccess ? (
+              <>
+                {filteredPlayers?.sort(SortRaiders).map((character: RaidParticipant) => (
+                  <CharacterManagerRow key={character.characterId} character={character} />
+                ))}
+              </>
+            ) : (
+              <CharacterManagerRowSkeleton />
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
