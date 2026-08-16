@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { HelpCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 
+const ROW_HEIGHT = "1.6875rem"; // ~27px per the pattern spec's dense-list row height
+
 export function AttendanceReport({ currentUserCharacterId }: { currentUserCharacterId?: number }) {
   const attendanceThreshold = 9; // 50% threshold (9 of 18 points)
   const minDisplayThreshold = 2; // Minimum attendance to display
@@ -38,10 +40,10 @@ export function AttendanceReport({ currentUserCharacterId }: { currentUserCharac
   };
 
   return (
-    <Card className="min-h-[1700px]">
+    <Card className="h-full">
       <CardHeader className="pb-2">
         <div className="flex flex-row gap-1">
-          <div className="grow-0">Raid Attendance Leaderboard</div>
+          <div className="grow-0">Player attendance</div>
           <div className="grow pt-1 text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -67,104 +69,59 @@ export function AttendanceReport({ currentUserCharacterId }: { currentUserCharac
       </CardHeader>
       <CardContent>
         {isSuccess ? (
-          <div className="mx-auto min-h-[600px] pr-4">
-            {/* Raider List - using table for consistent row spacing */}
-            <table className="w-full border-separate" style={{ borderSpacing: "0 2px" }}>
-              <tbody>
-                {raiders.map((raider, index) => {
-                  const isHighlighted = raider.isCurrentUser;
-                  const rowClass = isHighlighted ? "bg-cyan-400/6" : "";
-                  const barColor = isHighlighted
-                    ? "bg-cyan-400"
-                    : raider.isEligible
-                      ? "bg-primary"
-                      : "bg-gray-500";
+          <div className="max-h-[420px] overflow-y-auto pr-1">
+            {raiders.map((raider, index) => {
+              const isHighlighted = raider.isCurrentUser;
+              const barColor = isHighlighted
+                ? "bg-cyan-400"
+                : raider.isEligible
+                  ? "bg-primary"
+                  : "bg-muted-foreground/45";
 
-                  return (
-                    <tr
-                      key={raider.characterId ?? index}
-                      className={cn(
-                        "group cursor-pointer rounded-md transition-opacity hover:opacity-80",
-                        rowClass,
-                      )}
-                      onClick={() => handleRowClick(raider.characterId)}
-                    >
-                      {/* Character Name */}
-                      <td
-                        className="w-auto pr-2 align-middle"
-                        style={{ paddingTop: 0, paddingBottom: 0 }}
-                      >
-                        <div
-                          className={cn(
-                            "flex items-center justify-end whitespace-nowrap text-right text-xs leading-none",
-                            isHighlighted ? "font-bold text-cyan-200" : "text-muted-foreground",
-                          )}
-                          style={{ minHeight: "1rem", height: "1rem" }}
-                        >
-                          {raider.name ?? "Unknown"}
-                        </div>
-                      </td>
-
-                      {/* Progress Bar Container with 50% reference line */}
-                      <td
-                        className="w-full align-middle"
-                        style={{ paddingTop: 0, paddingBottom: 0 }}
-                      >
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              className="relative min-w-0"
-                              style={{ minHeight: "1rem", height: "1rem" }}
-                            >
-                              <Progress
-                                value={raider.attendancePercent}
-                                className="h-4 bg-muted"
-                                indicatorClassName={cn("rounded-full", barColor)}
-                              />
-
-                              {/* 50% Reference Line - always displayed */}
-                              <div className="pointer-events-none absolute left-[50%] top-0 z-1 h-4 border-l-2 border-dotted border-foreground/40" />
-
-                              {/* Percentage Label */}
-                              {raider.attendancePercent > 0 && (
-                                <div
-                                  className={cn(
-                                    "pointer-events-none absolute top-1/2 z-20 -translate-y-1/2 whitespace-nowrap text-xs font-bold",
-                                    isHighlighted
-                                      ? raider.attendancePercent >= 20
-                                        ? "text-background"
-                                        : "text-cyan-200"
-                                      : raider.attendancePercent >= 20
-                                        ? "text-primary-foreground"
-                                        : "text-muted-foreground",
-                                  )}
-                                  style={
-                                    raider.attendancePercent >= 20
-                                      ? {
-                                          // >= 20%: inside the end of filled bar, evenly spaced from right edge
-                                          right: `${100 - raider.attendancePercent + 1.5}%`,
-                                        }
-                                      : {
-                                          // < 20%: outside filled end, evenly spaced from right edge of fill
-                                          left: `${raider.attendancePercent + 2}%`,
-                                        }
-                                  }
-                                >
-                                  {raider.attendancePercent}%
-                                </div>
-                              )}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-secondary text-muted-foreground">
-                            <div className="text-xs">{raider.weightedAttendance} of 18</div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              return (
+                <div
+                  key={raider.characterId ?? index}
+                  className={cn(
+                    "group flex cursor-pointer items-center gap-2 rounded transition-opacity hover:opacity-80",
+                    isHighlighted && "bg-cyan-400/6",
+                  )}
+                  style={{ height: ROW_HEIGHT }}
+                  onClick={() => handleRowClick(raider.characterId)}
+                >
+                  <div
+                    className={cn(
+                      "w-24 shrink-0 truncate text-right text-xs leading-none",
+                      isHighlighted ? "font-bold text-cyan-200" : "text-muted-foreground",
+                    )}
+                  >
+                    {raider.name ?? "Unknown"}
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative min-w-0 flex-1">
+                        <Progress
+                          value={raider.attendancePercent}
+                          className="h-[7px] bg-muted"
+                          indicatorClassName={barColor}
+                        />
+                        <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-[7px] border-l border-dotted border-foreground/40" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-secondary text-muted-foreground">
+                      <div className="text-xs">{raider.weightedAttendance} of 18</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <div
+                    className={cn(
+                      "w-8 shrink-0 text-[11px] leading-none",
+                      isHighlighted ? "text-cyan-200" : "text-muted-foreground",
+                    )}
+                  >
+                    {raider.attendancePercent}%
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           "Loading..."

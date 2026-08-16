@@ -1,124 +1,103 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { api } from "~/trpc/react";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import Link from "next/link";
-import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
-import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
-import { ExternalLinkIcon } from "lucide-react";
-import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
-import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import {
-  getInstanceIdForZoneName,
-  ZONE_BADGE_COMPACT_CLASSES,
-  ZONE_ACCENT_CLASSES,
-} from "~/lib/raid-zones";
+import { Skeleton } from "~/components/ui/skeleton";
+import { cn } from "~/lib/utils";
+import { getInstanceIdForZoneName } from "~/lib/raid-zones";
+
+const ZONE_TILE_ORDER: { id: string; label: string; className: string }[] = [
+  { id: "naxxramas", label: "Naxx", className: "text-zone-naxx-text border-zone-naxx-border/40" },
+  { id: "aq40", label: "AQ40", className: "text-zone-aq40-text border-zone-aq40-border/40" },
+  { id: "bwl", label: "BWL", className: "text-zone-bwl-text border-zone-bwl-border/40" },
+  { id: "mc", label: "MC", className: "text-zone-mc-text border-zone-mc-border/45" },
+  { id: "zg", label: "ZG", className: "text-zone-zg-text border-zone-zg-border/40" },
+  { id: "aq20", label: "AQ20", className: "text-zone-aq20-text border-zone-aq20-border/40" },
+  { id: "onyxia", label: "Ony", className: "text-zone-ony-text border-zone-ony-border/40" },
+];
+
+function formatLockoutRange(dates: Date[]): string {
+  if (dates.length === 0) return "";
+  const min = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const max = new Date(Math.max(...dates.map((d) => d.getTime())));
+  const fmt = (d: Date, withMonth: boolean) =>
+    d.toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      month: withMonth ? "short" : undefined,
+      day: "numeric",
+    });
+  return min.getTime() === max.getTime()
+    ? fmt(min, true)
+    : `${fmt(min, true)}–${fmt(max, min.getUTCMonth() !== max.getUTCMonth())}`;
+}
 
 export function CurrentLockoutAllRaids() {
   const { data: trackedRaidData, isLoading } = api.dashboard.getAllRaidsCurrentLockout.useQuery();
 
+  const { counts, total, rangeLabel } = useMemo(() => {
+    const raids = trackedRaidData ?? [];
+    const zoneCounts: Record<string, number> = {};
+    for (const r of raids) {
+      const zoneId = getInstanceIdForZoneName(r.zone);
+      if (zoneId) zoneCounts[zoneId] = (zoneCounts[zoneId] ?? 0) + 1;
+    }
+    return {
+      counts: zoneCounts,
+      total: raids.length,
+      rangeLabel: formatLockoutRange(raids.map((r) => new Date(r.date))),
+    };
+  }, [trackedRaidData]);
+
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end">
+      <CardHeader className="space-y-1 pb-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div className="grow-0">Completed raids this lockout</div>
-          <div className="grow text-left text-sm text-primary hover:underline sm:text-right">
-            <Link href="/raids">View all raids</Link>
-          </div>
+          <Link
+            href="/raids"
+            className="text-left text-sm text-primary hover:underline sm:text-right"
+          >
+            View all raids
+          </Link>
         </div>
+        {!isLoading ? (
+          <div className="text-xs text-muted-foreground">
+            {total} tracked{rangeLabel ? ` · ${rangeLabel}` : ""}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent>
-        <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
-          <TableCaption className="text-wrap"></TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-5/8 md:w-6/12">Raid</TableHead>
-              <TableHead className="w-2/8 md:w-2/12">Attendance</TableHead>
-              <TableHead className="w-1/8 text-center md:w-2/12">WCL</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <RecentTrackedRaidsTableRowSkeleton rows={3} />
-            ) : (
-              (trackedRaidData ?? []).map((r) => (
-                <TableRow key={r.raidId}>
-                  <TableCell className="text-secondary-foreground">
-                    <div className="flex flex-row gap-2">
-                      <div className="grow">
-                        <Link
-                          className="group w-full transition-all hover:text-primary"
-                          target="_self"
-                          href={"/raids/" + r.raidId}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span>{r.name}</span>
-                            {(() => {
-                              const zoneId = getInstanceIdForZoneName(r.zone);
-                              return zoneId ? (
-                                <Badge
-                                  variant="outline"
-                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
-                                >
-                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
-                                </Badge>
-                              ) : null;
-                            })()}
-                          </div>
-                          <div className="text-xs tracking-tight text-muted-foreground">
-                            {PrettyPrintDate(new Date(r.date), true)}
-                          </div>
-                        </Link>
-                      </div>
-                      <div className="my-auto grow-0">
-                        {r.currentUserAttendance && (
-                          <AttendanceStatusIcon
-                            status={r.currentUserAttendance === "bench" ? "bench" : "attendee"}
-                            size={20}
-                            variant="centered"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {(r.raidLogIds ?? []).map((raidLogId) => {
-                      const reportUrl = GenerateWCLReportUrl(raidLogId);
-                      return (
-                        <Link
-                          key={raidLogId}
-                          href={reportUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group text-sm transition-all hover:text-primary hover:underline"
-                        >
-                          <ExternalLinkIcon
-                            className="ml-1 inline-block align-text-top"
-                            size={15}
-                          />
-                        </Link>
-                      );
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {ZONE_TILE_ORDER.map((zone) => {
+              const count = counts[zone.id] ?? 0;
+              return (
+                <div
+                  key={zone.id}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-xl border bg-card/60 px-2 py-2.5",
+                    zone.className,
+                  )}
+                >
+                  <span className="font-display text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {zone.label}
+                  </span>
+                  <span className="font-display text-[1.4rem] font-bold leading-none">
+                    {count > 0 ? count : "—"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

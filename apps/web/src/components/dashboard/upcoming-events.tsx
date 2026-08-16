@@ -22,13 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { SignupVolumeIndicator } from "~/components/raid-planner/signup-volume-indicator";
+import { getRaidTarget } from "~/components/raid-planner/signup-volume-indicator";
+import { SignupSizeBar } from "~/components/dashboard/signup-size-bar";
 import { Button } from "~/components/ui/button";
 import type { Session } from "next-auth";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
-import { ZONE_ACCENT_CLASSES, ZONE_BADGE_COMPACT_CLASSES } from "~/lib/raid-zones";
+import {
+  ZONE_ACCENT_CLASSES,
+  ZONE_BADGE_COMPACT_CLASSES,
+  ZONE_BADGE_LABELS,
+} from "~/lib/raid-zones";
 
 interface UpcomingEventsProps {
   session?: Session;
@@ -173,8 +178,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
     return null;
   };
 
-  const zoneShortLabel = (zoneId: string) =>
-    zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase();
+  const zoneShortLabel = (zoneId: string) => ZONE_BADGE_LABELS[zoneId] ?? zoneId.toUpperCase();
 
   return (
     <Card className="relative h-full overflow-hidden">
@@ -193,14 +197,20 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
             No upcoming events found.
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative max-h-[236px] overflow-y-auto">
             <div>
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-8 px-2 py-1 text-left text-xs">Event Name</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-left text-xs">Signups</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-center text-xs">SoftRes.it</TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-left text-[11px] uppercase tracking-[0.14em]">
+                      Event
+                    </TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-left text-[11px] uppercase tracking-[0.14em]">
+                      Signups
+                    </TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-center text-[11px] uppercase tracking-[0.14em]">
+                      SoftRes
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -217,7 +227,10 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                               return zoneId ? (
                                 <Badge
                                   variant="outline"
-                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
+                                  className={cn(
+                                    ZONE_ACCENT_CLASSES[zoneId],
+                                    ZONE_BADGE_COMPACT_CLASSES,
+                                  )}
                                 >
                                   {zoneShortLabel(zoneId)}
                                 </Badge>
@@ -307,14 +320,10 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                            <div className="flex items-center gap-3">
-                              <span className="min-w-[2.5ch] text-right text-xs font-bold">
-                                {event.signUpCount ?? 0}
-                              </span>
-                              <SignupVolumeIndicator
-                                count={event.signUpCount}
-                                title={event.title}
-                                channelName={event.channelName}
+                            <div className="min-w-[140px] flex-1">
+                              <SignupSizeBar
+                                count={event.signUpCount ?? 0}
+                                target={getRaidTarget(event.title, event.channelName)}
                                 roleCounts={event.roleCounts}
                               />
                             </div>

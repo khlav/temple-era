@@ -18,12 +18,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
-import {
-  getInstanceIdForZoneName,
-  ZONE_BADGE_COMPACT_CLASSES,
-  ZONE_ACCENT_CLASSES,
-} from "~/lib/raid-zones";
+import { ZoneBadge } from "~/components/ui/zone-badge";
 
 export function RecentTrackedRaids() {
   const { data: trackedRaidData, isLoading } = api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
@@ -70,17 +65,7 @@ export function RecentTrackedRaids() {
                         >
                           <div className="flex items-center gap-2">
                             <span>{r.name}</span>
-                            {(() => {
-                              const zoneId = getInstanceIdForZoneName(r.zone);
-                              return zoneId ? (
-                                <Badge
-                                  variant="outline"
-                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
-                                >
-                                  {zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase()}
-                                </Badge>
-                              ) : null;
-                            })()}
+                            <ZoneBadge zoneName={r.zone} />
                           </div>
                           <div className="text-xs tracking-tight text-muted-foreground">
                             {PrettyPrintDate(new Date(r.date), true)}

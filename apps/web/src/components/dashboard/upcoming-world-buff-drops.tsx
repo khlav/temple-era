@@ -32,11 +32,11 @@ function BuffSlot({
     return (
       <div className="flex w-full min-w-0 items-center justify-center gap-2.5 px-[10px] py-2.5 lg:flex-1">
         {buff === "dragon" ? (
-          <DragonBuffIcon size={28} grayscale />
+          <DragonBuffIcon size={40} grayscale />
         ) : (
-          <BuffIcon buff={buff} size={28} className="shrink-0 grayscale" />
+          <BuffIcon buff={buff} size={40} className="shrink-0 grayscale" />
         )}
-        <span className="truncate text-sm italic text-muted-foreground">Not scheduled yet</span>
+        <span className="truncate text-sm font-medium text-primary">Not scheduled</span>
       </div>
     );
   }
@@ -51,7 +51,7 @@ function BuffSlot({
     >
       <WorldBuffIcon
         item={status.item as WorldBuffItem}
-        size={28}
+        size={40}
         className="shrink-0 rounded-sm"
       />
       {status.characterClass && (
@@ -61,7 +61,12 @@ function BuffSlot({
         </>
       )}
       <div className="min-w-0 max-w-[7rem] leading-tight">
-        <div className={cn("truncate text-sm font-medium", isMine && "font-bold text-cyan-200")}>
+        <div
+          className={cn(
+            "font-display truncate text-[1.05rem] font-semibold",
+            isMine && "text-cyan-200",
+          )}
+        >
           {status.characterName}
         </div>
         {status.primaryCharacterName && (
