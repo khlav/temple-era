@@ -22,19 +22,21 @@ export function EditRaid({
 
   const [sendingData, setSendingData] = useState(false);
   const [raidData, setRaidData] = useState<Raid>(initialRaidData);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   const updateRaid = api.raid.updateRaid.useMutation({
     onError: (error) => {
       alert(error.message);
       setSendingData(false);
     },
-    onSuccess: async (result) => {
+    onSuccess: async () => {
       await Promise.all([
         invalidateRaidSummaryQueries(utils),
         utils.raid.getRaidById.invalidate(raidId),
       ]);
       toastRaidSaved(toast, raidData, raidId, false);
-      router.push(result.raid ? `/raids/${result.raid.raidId}` : "/raids");
+      setLastSavedAt(new Date());
+      setSendingData(false);
     },
   });
 
@@ -85,6 +87,8 @@ export function EditRaid({
         editingMode="existing"
         handleSubmitAction={handleSubmitAction}
         handleDeleteAction={handleDeleteAction}
+        lastSavedAt={lastSavedAt}
+        cancelHref={`/raids/${raidId}`}
       />
     </div>
   );

@@ -50,7 +50,7 @@ function ParticipantStatusCell({ status }: { status: "attendee" | "bench" }) {
   );
 }
 
-function SidebarCard({
+export function SidebarCard({
   title,
   action,
   children,
@@ -61,7 +61,7 @@ function SidebarCard({
 }) {
   return (
     <div className="panel-surface rounded-2xl border border-border/70 p-4">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           {title}
         </div>

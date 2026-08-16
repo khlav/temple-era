@@ -3,6 +3,7 @@
 import { RaidBenchManagerList } from "~/components/raids/raid-bench-manager-list";
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { CharacterSelector } from "~/components/characters/character-selector";
+import { SidebarCard } from "~/components/raids/raid-detail-base";
 
 export const RaidBenchManager = ({
   characters,
@@ -13,17 +14,18 @@ export const RaidBenchManager = ({
   onSelectAction: (character: RaidParticipant) => void;
   onRemoveAction: (character: RaidParticipant) => void;
 }) => {
+  const count = Object.keys(characters).length;
+
   return (
-    <div className="panel-surface rounded-2xl border border-border/70 p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-          Benched Characters
-        </div>
-        <CharacterSelector onSelectAction={onSelectAction} characterSet="all" />
-      </div>
-      <div className="mt-2.5">
-        <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
-      </div>
-    </div>
+    <SidebarCard
+      title={`Bench${count > 0 ? ` · ${count}` : ""}`}
+      action={<CharacterSelector onSelectAction={onSelectAction} characterSet="all" />}
+    >
+      <RaidBenchManagerList characters={characters} onClickAction={onRemoveAction} />
+      <p className="mt-3 text-xs text-muted-foreground">
+        Characters available for the raid but absent from the logs — a full raid, or a swap. They
+        earn the same credit as attendees.
+      </p>
+    </SidebarCard>
   );
 };

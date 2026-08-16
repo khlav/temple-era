@@ -2,7 +2,6 @@
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -25,11 +24,21 @@ import {
 } from "~/components/ui/alert-dialog";
 import type { ChangeEvent, FormEvent } from "react";
 import { PrettyPrintDate } from "~/lib/helpers";
-import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { RAID_ZONES } from "~/lib/raid-zones";
+import { cn } from "~/lib/utils";
+import {
+  TRACKED_RAID_LABEL__FULL_CREDIT,
+  TRACKED_RAID_LABEL__HALF_CREDIT,
+  TRACKED_RAID_LABEL__NO_CREDIT,
+} from "~/constants";
 
-const EYEBROW_CLASSNAME =
-  "font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground";
+const FIELD_LABEL_CLASSNAME = "text-sm font-normal text-muted-foreground";
+
+const ATTENDANCE_WEIGHT_OPTIONS = [
+  { value: 1, glyph: TRACKED_RAID_LABEL__FULL_CREDIT, label: "Full credit" },
+  { value: 0.5, glyph: TRACKED_RAID_LABEL__HALF_CREDIT, label: "Half credit" },
+  { value: 0, glyph: TRACKED_RAID_LABEL__NO_CREDIT, label: "Not tracked" },
+];
 
 export function RaidEditorCoreControls({
   raidData,
@@ -53,8 +62,8 @@ export function RaidEditorCoreControls({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 grow md:min-w-[220px]">
-          <Label htmlFor="name" className={EYEBROW_CLASSNAME}>
-            Raid Name
+          <Label htmlFor="name" className={FIELD_LABEL_CLASSNAME}>
+            Raid name
           </Label>
           <Input
             id="name"
@@ -67,7 +76,7 @@ export function RaidEditorCoreControls({
           />
         </div>
         <div className="w-full sm:w-[190px] sm:shrink-0 sm:grow-0">
-          <Label htmlFor="zone" className={EYEBROW_CLASSNAME}>
+          <Label htmlFor="zone" className={FIELD_LABEL_CLASSNAME}>
             Zone
           </Label>
           <Select
@@ -94,8 +103,8 @@ export function RaidEditorCoreControls({
           </Select>
         </div>
         <div className="w-full sm:w-[160px] sm:shrink-0 sm:grow-0">
-          <Label htmlFor="date" className={EYEBROW_CLASSNAME}>
-            Event Date
+          <Label htmlFor="date" className={FIELD_LABEL_CLASSNAME}>
+            Event date
           </Label>
           <Input
             id="date"
@@ -110,77 +119,80 @@ export function RaidEditorCoreControls({
             {PrettyPrintDate(new Date(raidData.date), true)}
           </div>
         </div>
-        <div className="flex w-full shrink-0 flex-col items-stretch gap-1.5 sm:w-32 sm:items-end">
-          <Label className={EYEBROW_CLASSNAME}>&nbsp;</Label>
-          <Button className="w-full" onClick={handleSubmitAction} disabled={isSendingData}>
-            {isSendingData ? (
-              <Loader className="animate-spin" />
-            ) : editingMode === "existing" ? (
-              "Save raid"
-            ) : (
-              "Create raid"
-            )}
-          </Button>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                type="button"
-                className="text-xs text-destructive/80 transition-colors hover:text-destructive"
-              >
-                {editingMode === "existing" ? "Delete raid" : "Reset"}
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Raid info will be lost. <br />
-                  Logs and characters will be hidden until they are used elsewhere.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-red-800 hover:bg-blend-lighten"
-                  onClick={handleDeleteAction}
+        {editingMode === "new" && (
+          <div className="flex w-full shrink-0 flex-col items-stretch gap-1.5 sm:w-32 sm:items-end">
+            <Label className={FIELD_LABEL_CLASSNAME}>&nbsp;</Label>
+            <Button className="w-full" onClick={handleSubmitAction} disabled={isSendingData}>
+              {isSendingData ? <Loader className="animate-spin" /> : "Create raid"}
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="text-xs text-destructive/80 transition-colors hover:text-destructive"
                 >
-                  Yes, delete raid information
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+                  Reset
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Raid info will be lost. <br />
+                    Logs and characters will be hidden until they are used elsewhere.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-red-800 hover:bg-blend-lighten"
+                    onClick={handleDeleteAction}
+                  >
+                    Yes, delete raid information
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border/60 pt-3">
-        <div className={EYEBROW_CLASSNAME}>Attendance Tracking</div>
-        <RadioGroup
-          id="attendanceWeight"
-          value={raidData.attendanceWeight.toString()}
-          defaultValue="0"
-          orientation="horizontal"
-          className="flex space-x-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem id="option-one" value="1" onClick={handleWeightChangeAction} />
-            <Label htmlFor="option-one">
-              <RaidAttendenceWeightBadge attendanceWeight={1} />
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem id="option-half" value="0.5" onClick={handleWeightChangeAction} />
-            <Label htmlFor="option-half">
-              <RaidAttendenceWeightBadge attendanceWeight={0.5} />
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem id="option-zero" value="0" onClick={handleWeightChangeAction} />
-            <Label htmlFor="option-zero">
-              <RaidAttendenceWeightBadge attendanceWeight={0} />
-            </Label>
-          </div>
-        </RadioGroup>
+      <div className="border-t border-border/60 pt-4">
+        <div className={cn(FIELD_LABEL_CLASSNAME, "mb-2")}>Attendance tracking</div>
+        <div className="flex flex-wrap gap-2">
+          {ATTENDANCE_WEIGHT_OPTIONS.map((option) => {
+            const isActive = raidData.attendanceWeight === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                value={option.value}
+                onClick={handleWeightChangeAction}
+                aria-pressed={isActive}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                  isActive
+                    ? "border-primary/60 bg-primary/14 text-primary"
+                    : "border-border/70 bg-card/60 text-muted-foreground hover:bg-accent/40",
+                )}
+              >
+                <span
+                  className={cn(
+                    "font-display text-sm font-bold",
+                    isActive ? "text-primary" : "text-muted-foreground/80",
+                  )}
+                >
+                  {option.glyph}
+                </span>
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sets how much this raid counts toward every attendee&apos;s 6-lockout attendance.
+        </p>
       </div>
     </div>
   );
