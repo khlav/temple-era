@@ -22,7 +22,7 @@ type PublicPlan = RouterOutputs["raidPlan"]["getPublicPlans"][number];
 function weekGroupLabel(plan: PublicPlan, currentWeekStart: Date): string {
   if (!plan.startAt) return "Previous weeks";
   const week = getTuesdayAnchoredWeekStart(new Date(plan.startAt));
-  if (week.getTime() === currentWeekStart.getTime()) return "This week";
+  if (week.getTime() >= currentWeekStart.getTime()) return "This week";
   const lastWeekStart = new Date(currentWeekStart);
   lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
   if (week.getTime() === lastWeekStart.getTime()) return "Last week";
