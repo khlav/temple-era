@@ -37,6 +37,22 @@ export const ZONE_ACCENT_CLASSES: Record<string, string> = {
   custom: "bg-slate-500/12 border-slate-400/35 text-slate-300",
 };
 
+/**
+ * Stronger, "selected toggle" fill per zone — same border/text hue as ZONE_ACCENT_CLASSES but a
+ * full-opacity border and a heavier bg tint, for OR-filter toggle controls (dashboard's
+ * RaidsListCard zone tiles, /raids' zone FilterRail) where the active state needs to read as
+ * "filled with this zone's color", not just a light badge tint.
+ */
+export const ZONE_ACTIVE_ACCENT_CLASSES: Record<string, string> = {
+  naxxramas: "text-zone-naxx-text border-zone-naxx-border bg-zone-naxx-bg/25",
+  aq40: "text-zone-aq40-text border-zone-aq40-border bg-zone-aq40-bg/25",
+  bwl: "text-zone-bwl-text border-zone-bwl-border bg-zone-bwl-bg/25",
+  mc: "text-zone-mc-text border-zone-mc-border bg-zone-mc-bg/25",
+  zg: "text-zone-zg-text border-zone-zg-border bg-zone-zg-bg/25",
+  aq20: "text-zone-aq20-text border-zone-aq20-border bg-zone-aq20-bg/25",
+  onyxia: "text-zone-ony-text border-zone-ony-border bg-zone-ony-bg/25",
+};
+
 export function getInstanceIdForZoneName(zoneName: string | null | undefined) {
   if (!zoneName) return undefined;
   return RAID_ZONE_CONFIG.find((zone) => zone.name === zoneName)?.instance;

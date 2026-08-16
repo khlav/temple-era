@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrettyPrintDate } from "~/lib/helpers";
 import type { Raid } from "~/server/api/interfaces/raid";
-import { getInstanceIdForZoneName } from "~/lib/raid-zones";
+import { getInstanceIdForZoneName, ZONE_ACTIVE_ACCENT_CLASSES } from "~/lib/raid-zones";
 import { FilterRail, type FilterRailItem } from "~/components/ui/filter-rail";
 
 const ZONE_RAIL_ORDER: { id: string; label: string; accentClassName: string }[] = [
@@ -40,7 +40,20 @@ export function AllRaids({
   const searchParams = useSearchParams();
   const initialSearch = searchParams?.get("s") ?? "";
   const [searchTerms, setSearchTerms] = useState<string>(initialSearch);
-  const [selectedZoneId, setSelectedZoneId] = useState<string>("all");
+  // OR filter across zones, matching the dashboard's zone-tile filtering — empty means "all".
+  const [selectedZoneIds, setSelectedZoneIds] = useState<Set<string>>(new Set());
+  const toggleZone = (id: string) => {
+    if (id === "all") {
+      setSelectedZoneIds(new Set());
+      return;
+    }
+    setSelectedZoneIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Debounced URL sync handled by TableSearchInput via onDebouncedChange updating state
   useEffect(() => {
@@ -73,6 +86,7 @@ export function AllRaids({
         label: zone.label,
         count: zoneCounts.counts[zone.id] ?? 0,
         accentClassName: zone.accentClassName,
+        activeClassName: ZONE_ACTIVE_ACCENT_CLASSES[zone.id],
       })),
     ];
     if (zoneCounts.untagged > 0) {
@@ -81,18 +95,27 @@ export function AllRaids({
         label: "Unknown / Untagged",
         count: zoneCounts.untagged,
         accentClassName: "text-muted-foreground",
+        activeClassName: "text-muted-foreground border-muted-foreground/60 bg-muted-foreground/10",
       });
     }
     return items;
   }, [raids, zoneCounts]);
 
+  // "All raids" isn't a real filter value — it's the display form of "nothing selected",
+  // shown active whenever the OR-set is empty so FilterRail's generic isActive check works.
+  const railActiveIds = useMemo(
+    () => (selectedZoneIds.size === 0 ? new Set(["all"]) : selectedZoneIds),
+    [selectedZoneIds],
+  );
+
   const zoneFilteredRaids = useMemo(() => {
-    if (!raids || selectedZoneId === "all") return raids;
-    if (selectedZoneId === "untagged") {
-      return raids.filter((r) => !getInstanceIdForZoneName(r.zone));
-    }
-    return raids.filter((r) => getInstanceIdForZoneName(r.zone) === selectedZoneId);
-  }, [raids, selectedZoneId]);
+    if (!raids || selectedZoneIds.size === 0) return raids;
+    return raids.filter((r) => {
+      const zoneId = getInstanceIdForZoneName(r.zone);
+      if (!zoneId) return selectedZoneIds.has("untagged");
+      return selectedZoneIds.has(zoneId);
+    });
+  }, [raids, selectedZoneIds]);
 
   const filteredRaids = useMemo(() => {
     if (!zoneFilteredRaids || !searchTerms.trim()) return zoneFilteredRaids;
@@ -121,8 +144,8 @@ export function AllRaids({
           <FilterRail
             heading="Filter by zone"
             items={railItems}
-            activeId={selectedZoneId}
-            onSelect={setSelectedZoneId}
+            activeIds={railActiveIds}
+            onToggle={toggleZone}
           />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
