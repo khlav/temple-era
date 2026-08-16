@@ -150,7 +150,8 @@ export const RecipesWithCrafters = () => {
             }
             return character.isActiveRaider; // Only show active characters
           }) ?? [],
-      })) ?? [];
+      }))
+      .sort((a, b) => a.recipe.localeCompare(b.recipe, undefined, { sensitivity: "base" })) ?? [];
 
   // Function to handle tag click and update search
   const handleTagClick = (tag: string, exclude = false) => {
@@ -187,12 +188,15 @@ export const RecipesWithCrafters = () => {
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-      <FilterRail
-        heading="Profession"
-        items={railItems}
-        activeId={selectedProfession}
-        onSelect={setSelectedProfession}
-      />
+      <div className="flex w-full shrink-0 flex-col gap-3 lg:w-[208px]">
+        <FilterRail
+          heading="Profession"
+          items={railItems}
+          activeId={selectedProfession}
+          onSelect={setSelectedProfession}
+        />
+        {isSuccess && <StatsCounter filteredRecipes={filteredRecipes} />}
+      </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="min-w-0 flex-1">
@@ -276,9 +280,6 @@ export const RecipesWithCrafters = () => {
                 Loading recipes...
               </div>
             )}
-
-            {/* Stats Counter - Only show when data is loaded */}
-            {isSuccess && <StatsCounter filteredRecipes={filteredRecipes} />}
 
             {/* Crafters Summary Message - Shows when specific conditions are met */}
             {isSuccess && (

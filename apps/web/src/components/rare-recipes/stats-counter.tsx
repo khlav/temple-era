@@ -32,19 +32,18 @@ const StatDisplay = ({ label, value }: StatProps) => {
   });
 
   return (
-    <div className="flex flex-col items-center justify-center px-4">
-      <div className="text-3xl font-bold leading-none text-primary">
-        <animated.span>
-          {}
-          {number.to((n) => Math.floor(n).toLocaleString())}
-        </animated.span>
+    <div className="flex flex-col items-center justify-center">
+      <div className="font-display text-xl font-bold leading-none text-primary">
+        <animated.span>{number.to((n) => Math.floor(n).toLocaleString())}</animated.span>
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
     </div>
   );
 };
 
-// Main stats counter component with proper typing
+// Main stats counter component with proper typing — lives in the profession rail, so it's
+// deliberately just Crafters/Entries (the recipe count is already on the rail's "All
+// professions" row).
 export const StatsCounter = ({ filteredRecipes }: { filteredRecipes: RecipeWithCharacters[] }) => {
   // Add key to force component re-render when data is loaded
   const [key, setKey] = useState(0);
@@ -56,9 +55,6 @@ export const StatsCounter = ({ filteredRecipes }: { filteredRecipes: RecipeWithC
     }
   }, [filteredRecipes, key]);
 
-  // Calculate stats
-  const recipesCount = filteredRecipes.length;
-
   // Count unique crafters (exclude common recipes)
   const craftersCount = new Set(
     filteredRecipes.flatMap((r) => r.characters?.map((c) => c.characterId) || []),
@@ -68,8 +64,7 @@ export const StatsCounter = ({ filteredRecipes }: { filteredRecipes: RecipeWithC
   const entriesCount = filteredRecipes.reduce((acc, r) => acc + (r.characters?.length || 0), 0);
 
   return (
-    <div className="grid grid-cols-3 gap-2 border-b py-3">
-      <StatDisplay key={`recipes-${key}`} label="Recipes" value={recipesCount} />
+    <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/70 bg-card/60 px-2 py-3">
       <StatDisplay key={`crafters-${key}`} label="Crafters" value={craftersCount} />
       <StatDisplay key={`entries-${key}`} label="Entries" value={entriesCount} />
     </div>
