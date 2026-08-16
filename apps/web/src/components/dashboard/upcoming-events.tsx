@@ -52,6 +52,7 @@ interface ScheduledEvent {
     Melee: number;
     Ranged: number;
   };
+  classCounts: Record<string, number>;
   serverId: string;
   channelId: string;
   userSignupStatus: string | null;
@@ -108,6 +109,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "naxxramas",
         signUpCount: 38,
         roleCounts: { Tank: 2, Healer: 8, Melee: 14, Ranged: 14 },
+        classCounts: {
+          Warrior: 8,
+          Priest: 3,
+          Paladin: 3,
+          Shaman: 2,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -118,6 +130,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "aq40",
         signUpCount: 42,
         roleCounts: { Tank: 3, Healer: 10, Melee: 15, Ranged: 14 },
+        classCounts: {
+          Warrior: 9,
+          Priest: 4,
+          Paladin: 3,
+          Shaman: 3,
+          Rogue: 6,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -128,6 +151,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "bwl",
         signUpCount: 25,
         roleCounts: { Tank: 2, Healer: 5, Melee: 10, Ranged: 8 },
+        classCounts: {
+          Warrior: 6,
+          Priest: 2,
+          Paladin: 2,
+          Shaman: 1,
+          Rogue: 4,
+          Druid: 2,
+          Mage: 3,
+          Warlock: 3,
+          Hunter: 2,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -138,6 +172,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "mc",
         signUpCount: 40,
         roleCounts: { Tank: 2, Healer: 10, Melee: 14, Ranged: 14 },
+        classCounts: {
+          Warrior: 8,
+          Priest: 4,
+          Paladin: 3,
+          Shaman: 3,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -148,6 +193,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "onyxia",
         signUpCount: 35,
         roleCounts: { Tank: 2, Healer: 7, Melee: 13, Ranged: 13 },
+        classCounts: {
+          Warrior: 7,
+          Priest: 3,
+          Paladin: 2,
+          Shaman: 2,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 5,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -158,6 +214,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "zg",
         signUpCount: 18,
         roleCounts: { Tank: 2, Healer: 4, Melee: 6, Ranged: 6 },
+        classCounts: {
+          Warrior: 4,
+          Priest: 2,
+          Paladin: 1,
+          Shaman: 1,
+          Rogue: 2,
+          Druid: 2,
+          Mage: 3,
+          Warlock: 2,
+          Hunter: 1,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -333,7 +400,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                               <SignupSizeBar
                                 count={event.signUpCount ?? 0}
                                 target={getRaidTarget(event.title, event.channelName)}
-                                roleCounts={event.roleCounts}
+                                classCounts={(event as ScheduledEvent).classCounts}
                               />
                             </div>
                           </div>

@@ -1,5 +1,6 @@
 import { cn } from "~/lib/utils";
-import type { SignupVolumeRoleCounts } from "~/components/raid-planner/signup-volume-indicator";
+import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
+import { ClassIcon } from "~/components/ui/class-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 /**
@@ -13,11 +14,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 export function SignupSizeBar({
   count,
   target,
-  roleCounts,
+  classCounts,
 }: {
   count: number;
   target: number;
-  roleCounts?: SignupVolumeRoleCounts;
+  classCounts?: Record<string, number>;
 }) {
   const trackMax = Math.max(target * 1.5, count, 1);
   const fillRatio = target > 0 ? count / target : 0;
@@ -55,7 +56,14 @@ export function SignupSizeBar({
     </div>
   );
 
-  if (!roleCounts) return bar;
+  if (!classCounts) return bar;
+
+  // Same shape as the raid detail page's Composition sidebar card: class icon, count,
+  // then up to 10 small per-person squares in the class's color (with a +N overflow),
+  // sorted by headcount desc.
+  const composition = Object.entries(classCounts)
+    .map(([characterClass, classCount]) => ({ characterClass, count: classCount }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <Tooltip delayDuration={0}>
@@ -64,14 +72,53 @@ export function SignupSizeBar({
         side="right"
         className="border-border/80 bg-card/95 text-secondary-foreground"
       >
-        <div className="space-y-0.5 text-xs">
+        <div className="space-y-1.5 text-xs">
           <div className="font-semibold text-foreground">
             {count} / {target} signups
           </div>
-          <div>Tank {roleCounts.Tank}</div>
-          <div>Healer {roleCounts.Healer}</div>
-          <div>Melee {roleCounts.Melee}</div>
-          <div>Ranged {roleCounts.Ranged}</div>
+          {composition.length === 0 ? (
+            <div className="text-muted-foreground">No data yet.</div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {composition.map((g) => (
+                <div key={g.characterClass} className="flex items-center gap-2">
+                  <ClassIcon
+                    characterClass={g.characterClass.toLowerCase()}
+                    px={14}
+                    className="shrink-0 rounded-sm"
+                  />
+                  <span className="font-display w-4 shrink-0 text-right text-xs font-semibold">
+                    {g.count}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-[3px]">
+                    {Array.from({ length: Math.min(g.count, 10) }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "h-[11px] w-[11px] shrink-0 rounded-[2px]",
+                          i === 4 && "mr-[3px]",
+                        )}
+                        style={{
+                          backgroundColor:
+                            AA_CLASS_COLORS[g.characterClass.toLowerCase()] ?? "#8a8a8a",
+                        }}
+                      />
+                    ))}
+                    {g.count > 10 ? (
+                      <span
+                        className="font-display ml-0.5 shrink-0 text-[10px] font-bold leading-none"
+                        style={{
+                          color: AA_CLASS_COLORS[g.characterClass.toLowerCase()] ?? "#8a8a8a",
+                        }}
+                      >
+                        +{g.count - 10}
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </TooltipContent>
     </Tooltip>

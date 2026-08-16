@@ -247,6 +247,7 @@ export const raidHelperRouter = createTRPCRouter({
             Melee: 0,
             Ranged: 0,
           };
+          let classCounts: Record<string, number> = {};
           let userSignupStatus: string | null = null;
 
           // Only Raid Helper's own softresId field (embedded in its registration message) -
@@ -275,6 +276,7 @@ export const raidHelperRouter = createTRPCRouter({
                 Melee: 0,
                 Ranged: 0,
               };
+              const classCountsAcc: Record<string, number> = {};
 
               for (const signup of signUps) {
                 if (userDiscordId && signup.userId === userDiscordId) {
@@ -295,6 +297,8 @@ export const raidHelperRouter = createTRPCRouter({
                   continue;
                 }
 
+                classCountsAcc[resolvedClass] = (classCountsAcc[resolvedClass] ?? 0) + 1;
+
                 // Use strict role inference for consistency with Find Gamers
                 const role = inferTalentRole(resolvedClass, specName);
                 if (counts[role] !== undefined) {
@@ -302,6 +306,7 @@ export const raidHelperRouter = createTRPCRouter({
                 }
               }
               roleCounts = counts;
+              classCounts = classCountsAcc;
             }
           } catch (err) {
             logger.error({ err }, `Failed to fetch details for event ${e.id}`);
@@ -322,6 +327,7 @@ export const raidHelperRouter = createTRPCRouter({
             channelId: e.channelId,
             serverId: env.DISCORD_SERVER_ID,
             roleCounts,
+            classCounts,
             userSignupStatus,
             softresLinks,
           };
