@@ -68,6 +68,20 @@ const QUEUE_TYPE_ORDER: Record<"main" | "alt" | "backup", number> = { main: 0, a
 // actually call turn-ins in.
 const WORLD_BUFF_SORT_ORDER: Record<WorldBuff, number> = { zg: 0, dragon: 1, rend: 2 };
 
+// Display-only grouping for the "no turn-in scheduled" nudge row — Onyxia's Head and Nefarian's
+// Head both grant Dragon, so they're shown as one combined item there, same as the queue-list
+// cards (see world-buff-dashboard.tsx's QUEUE_LIST_GROUPS).
+const BUFF_GROUP_LABEL: Record<WorldBuff, string> = {
+  rend: "Rend's Head",
+  dragon: "Onyxia/Nefarian's Head",
+  zg: "Hakkar's Heart",
+};
+const BUFF_PRIMARY_ITEM: Record<WorldBuff, WorldBuffItem> = {
+  rend: "rends_head",
+  dragon: "onyxias_head",
+  zg: "hakkars_heart",
+};
+
 type ActiveAssignment = RouterOutputs["worldBuff"]["listActiveAssignments"][number];
 type PastAssignment = RouterOutputs["worldBuff"]["listPastAssignments"][number];
 type StatusRow = RouterOutputs["worldBuff"]["getAll"][number];
@@ -171,6 +185,43 @@ function AssignmentRow({
   );
 }
 
+/** Dashed prompt for a buff that has ready-to-drop characters waiting but no turn-in scheduled
+ *  for the soonest upcoming drop day — mirrors the hi-fi mock's "Hakkar's Heart has no turn-in
+ *  scheduled — 4 characters are on its drop list." row. Only rendered when `readyCount > 0`. */
+function BuffNudgeRow({
+  buff,
+  readyCount,
+  onSchedule,
+}: {
+  buff: WorldBuff;
+  readyCount: number;
+  onSchedule?: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-primary/45 bg-primary/6 p-2.5">
+      {buff === "dragon" ? (
+        <DragonBuffIcon size={28} grayscale />
+      ) : (
+        <WorldBuffIcon item={BUFF_PRIMARY_ITEM[buff]} size={28} grayscale showTooltip={false} />
+      )}
+      <div className="min-w-0 flex-1 text-xs text-muted-foreground">
+        {BUFF_GROUP_LABEL[buff]} has no turn-in scheduled — {readyCount} character
+        {readyCount === 1 ? "" : "s"} {readyCount === 1 ? "is" : "are"} on its drop list.
+      </div>
+      {onSchedule && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 rounded-lg border-primary/50 bg-primary/14 px-3 text-xs text-primary hover:bg-primary/20"
+          onClick={onSchedule}
+        >
+          Schedule one
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function AssignmentList() {
   const { data: session } = useSession();
   const canManage = !!session?.user?.scopes?.includes(SCOPE.WORLDBUFF_MANAGE);
@@ -184,7 +235,9 @@ export function AssignmentList() {
     api.worldBuff.listPastAssignments.useQuery(undefined, {
       enabled: canManage && view === "past",
     });
-  const { data: statuses } = api.worldBuff.getAll.useQuery(undefined, { enabled: canManage });
+  // Public — also drives the "no turn-in scheduled yet, N characters waiting" nudge row below,
+  // which everyone should see, not just managers.
+  const { data: statuses } = api.worldBuff.getAll.useQuery();
   const readyStatuses = (statuses ?? []).filter((s) => s.state === "ready_to_drop");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -332,6 +385,14 @@ export function AssignmentList() {
   const openCreateDialog = () => {
     closeDialog();
     setDialogOpen(true);
+  };
+
+  // Lets the "no turn-in scheduled yet" nudge row jump straight into the create dialog with its
+  // buff preselected, instead of making a manager pick it again from the icon row.
+  const openCreateDialogForBuff = (buff: WorldBuff) => {
+    closeDialog();
+    setDialogOpen(true);
+    handleSelectBuff(buff);
   };
 
   const openEditDialog = (a: ActiveAssignment | PastAssignment) => {
@@ -716,6 +777,34 @@ export function AssignmentList() {
                           action={canManage && renderRowActions(a, { isPast: false })}
                         />
                       ))}
+                      {i === upcomingIndex &&
+                        WORLD_BUFFS.filter((buff) => {
+                          const hasAssignment = group.rows.some(
+                            (a) => WORLD_BUFF_BY_ITEM[a.status.item as WorldBuffItem] === buff,
+                          );
+                          if (hasAssignment) return false;
+                          return (statuses ?? []).some(
+                            (s) =>
+                              s.state === "ready_to_drop" &&
+                              WORLD_BUFF_BY_ITEM[s.item as WorldBuffItem] === buff,
+                          );
+                        }).map((buff) => {
+                          const readyCount = (statuses ?? []).filter(
+                            (s) =>
+                              s.state === "ready_to_drop" &&
+                              WORLD_BUFF_BY_ITEM[s.item as WorldBuffItem] === buff,
+                          ).length;
+                          return (
+                            <BuffNudgeRow
+                              key={buff}
+                              buff={buff}
+                              readyCount={readyCount}
+                              onSchedule={
+                                canManage ? () => openCreateDialogForBuff(buff) : undefined
+                              }
+                            />
+                          );
+                        })}
                     </div>
                   </div>
                 ));
