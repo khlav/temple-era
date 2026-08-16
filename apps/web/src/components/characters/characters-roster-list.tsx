@@ -20,7 +20,7 @@ interface RosterGroup {
   alts: RaidParticipant[];
 }
 
-const GRID_COLS = "grid-cols-[minmax(0,1fr)_116px_320px_60px]";
+const GRID_COLS = "grid-cols-[minmax(0,1fr)_116px_320px_60px] min-w-[640px]";
 
 function AttendanceCell({ attendance }: { attendance?: RosterAttendance }) {
   const pct = Math.round((attendance?.weightedAttendancePct ?? 0) * 100);
@@ -143,33 +143,38 @@ export function CharactersRosterList({
 
   return (
     <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
-      <div
-        className={cn(
-          "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
-          GRID_COLS,
-        )}
-      >
-        <div>Character</div>
-        <div>Server</div>
-        <div>Attendance</div>
-        <div />
+      <div className="border-b border-border/80 bg-muted/20 px-4 py-2 text-xs text-muted-foreground md:hidden">
+        Swipe horizontally to see attendance.
       </div>
-      {groups.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-          No characters found.
+      <div className="overflow-x-auto">
+        <div
+          className={cn(
+            "grid items-center gap-3 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
+            GRID_COLS,
+          )}
+        >
+          <div>Character</div>
+          <div>Server</div>
+          <div>Attendance</div>
+          <div />
         </div>
-      ) : (
-        groups.map(({ main, alts }) => (
-          <div key={main.characterId}>
-            <MainRow
-              main={main}
-              attendance={attendanceByCharacterId.get(main.characterId)}
-              isManager={isManager}
-            />
-            {alts.length > 0 ? <AltRow alts={alts} /> : null}
+        {groups.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No characters found.
           </div>
-        ))
-      )}
+        ) : (
+          groups.map(({ main, alts }) => (
+            <div key={main.characterId}>
+              <MainRow
+                main={main}
+                attendance={attendanceByCharacterId.get(main.characterId)}
+                isManager={isManager}
+              />
+              {alts.length > 0 ? <AltRow alts={alts} /> : null}
+            </div>
+          ))
+        )}
+      </div>
       <div className="border-t border-border/55 px-4 py-2.5 text-xs text-muted-foreground">
         Attendance is per player: the bar sits on the main and alt raids feed into it. Dotted line
         marks the 50% eligibility threshold.
