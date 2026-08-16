@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   Table,
   TableBody,
@@ -92,6 +93,12 @@ export function RaidsListCard({
 }) {
   const [selectedZones, setSelectedZones] = useState<Set<string>>(new Set());
 
+  // Rows only dim to show "you weren't credited here" when there's actually a viewer character
+  // to be credited — logged out or no primary character selected means currentUserAttendance is
+  // null on every row for an unrelated reason, so fading everything out would be misleading.
+  const { data: session } = useSession();
+  const hasViewerCharacter = !!session?.user?.characterId;
+
   const counts = useMemo(() => {
     const zoneCounts: Record<string, number> = {};
     for (const r of raids ?? []) {
@@ -150,7 +157,7 @@ export function RaidsListCard({
                   onClick={() => toggleZone(zone.id)}
                   aria-pressed={isActive}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-xl border bg-card/60 px-2 py-2.5 transition-colors",
+                    "flex cursor-pointer flex-col items-center gap-1 rounded-xl border bg-card/60 px-2 py-2.5 transition-colors",
                     isActive ? zone.activeClassName : cn(zone.className, "hover:bg-accent/40"),
                   )}
                 >
@@ -187,7 +194,10 @@ export function RaidsListCard({
               </TableRow>
             ) : (
               filteredRaids.map((r) => (
-                <TableRow key={r.raidId} className={cn(!r.currentUserAttendance && "opacity-45")}>
+                <TableRow
+                  key={r.raidId}
+                  className={cn(hasViewerCharacter && !r.currentUserAttendance && "opacity-45")}
+                >
                   <TableCell className="text-secondary-foreground">
                     <Link
                       className="group w-full transition-all hover:text-primary"

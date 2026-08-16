@@ -33,10 +33,11 @@ export function AttendanceProgressBar({
                 className="h-4 bg-muted"
                 indicatorClassName={cn(isAboveThreshold ? "bg-primary" : "bg-gray-500")}
               />
-              {/* 50% dotted line */}
+              {/* 50% dotted line — same weight as the signups bar's threshold tick
+                  (signup-size-bar.tsx), but pokes slightly past the bar's own edges */}
               <div
                 className={cn(
-                  "pointer-events-none absolute top-0 h-4 border-l-2 border-dotted",
+                  "pointer-events-none absolute -top-[3px] -bottom-[3px] border-l border-dotted",
                   isAboveThreshold ? "border-background" : "border-muted-foreground",
                 )}
                 style={{ left: "50%" }}
