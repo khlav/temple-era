@@ -108,7 +108,7 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
         >
           <td className="p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
-              <ClassIcon characterClass={character.class} px={20} />
+              <ClassIcon characterClass={character.class} px={22} className="shrink-0 rounded-sm" />
               <div className="grow">{character.name}</div>
             </div>
           </td>
@@ -177,7 +177,7 @@ export function CharacterManagerRow({ character }: { character: RaidParticipant 
         >
           <td className="p-2 align-middle font-bold has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
             <div className="flex flex-row gap-1">
-              <ClassIcon characterClass={character.class} px={20} />
+              <ClassIcon characterClass={character.class} px={22} className="shrink-0 rounded-sm" />
               <div className="grow">{character.name}</div>
             </div>
           </td>

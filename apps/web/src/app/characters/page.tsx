@@ -22,14 +22,38 @@ export const metadata: Metadata = {
 };
 
 async function CharactersListContent({ session }: { session: Session | null }) {
-  // Fetch characters data using tRPC
+  // Fetch characters + rolling attendance using tRPC
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
   const ctx = await createTRPCContext({ headers: heads });
   const caller = createCaller(ctx);
-  const characters = await caller.character.getCharacters(undefined);
+  const [characters, attendance] = await Promise.all([
+    caller.character.getCharacters(undefined),
+    caller.character.getAllPrimaryRaidAttendanceL6LockoutWk(),
+  ]);
 
-  return <AllCharacters characters={characters} session={session ?? undefined} />;
+  const totalCount = Object.keys(characters).length;
+  const mainsCount = Object.values(characters).filter((c) => c.isPrimary).length;
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Roster"
+        title="Raiding Characters"
+        meta={
+          <span>
+            {totalCount} characters · {mainsCount} mains
+          </span>
+        }
+        className="mb-4"
+      />
+      <AllCharacters
+        characters={characters}
+        attendance={attendance}
+        session={session ?? undefined}
+      />
+    </>
+  );
 }
 
 export default async function PlayersIndex() {
@@ -37,7 +61,6 @@ export default async function PlayersIndex() {
   return (
     <HydrateClient>
       <main className="w-full">
-        <PageHeader title="Raiding Characters" className="mb-4" />
         <div className="w-full">
           <Suspense fallback={<AllCharactersTableSkeleton rows={14} />}>
             <CharactersListContent session={session} />
