@@ -44,7 +44,7 @@ export function CurrentLockoutAllRaids() {
           View all raids
         </Link>
       </div>
-      <CardContent className="pt-4">
+      <CardContent className="pt-4 sm:pt-4">
         {isLoading ? (
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
             {Array.from({ length: 7 }).map((_, i) => (

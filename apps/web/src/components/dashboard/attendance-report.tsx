@@ -70,7 +70,10 @@ export function AttendanceReport({ currentUserCharacterId }: { currentUserCharac
       </div>
 
       {isSuccess ? (
-        <div className="max-h-[min(52svh,30rem)] flex-1 overflow-y-auto">
+        // No max-h here — this card's height is stretched by its flex row sibling (see
+        // attendance-dashboard.tsx's bottom section), so a fixed/viewport-relative cap smaller
+        // than that stretched height left dead space below the list instead of filling it.
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {raiders.map((raider, index) => {
             const isHighlighted = raider.isCurrentUser;
             const barColor = isHighlighted

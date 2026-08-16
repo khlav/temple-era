@@ -196,7 +196,7 @@ export function PersonalAttendanceSummary({
     return (
       <Card className="h-full overflow-hidden">
         {cardHeader()}
-        <CardContent className="space-y-4 pt-4">
+        <CardContent className="space-y-4 pt-4 sm:pt-4">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <CharacterSelector
@@ -226,7 +226,7 @@ export function PersonalAttendanceSummary({
     return (
       <Card className="h-full overflow-hidden">
         {cardHeader()}
-        <CardContent className="space-y-4 pt-4">
+        <CardContent className="space-y-4 pt-4 sm:pt-4">
           <AttendanceProgressBar
             attendancePct={sampleData.stats.attendancePct}
             weightedAttendance={sampleData.stats.weightedAttendance}
@@ -258,15 +258,20 @@ export function PersonalAttendanceSummary({
           {userAttendance?.weightedAttendance ?? 0} of 18 credits
         </span>,
         titleData.characterName && activeCharacterId ? (
-          <Link
-            href={`/characters/${activeCharacterId}`}
-            className="flex min-w-0 items-center gap-1.5 transition-colors hover:text-primary"
-          >
-            {titleClass && <ClassIcon characterClass={titleClass} px={16} />}
-            <span className="font-display truncate text-[0.8rem] font-bold tracking-[0.02em] text-foreground">
-              {titleData.characterName}
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Link
+              href={`/characters/${activeCharacterId}`}
+              className="flex min-w-0 shrink-0 items-center gap-1.5 transition-colors hover:text-primary"
+            >
+              {titleClass && <ClassIcon characterClass={titleClass} px={16} />}
+              <span className="font-display truncate text-[0.68rem] font-bold uppercase tracking-[0.16em] text-foreground">
+                {titleData.characterName}
+              </span>
+            </Link>
+            <span className="font-display truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+              — Attendance, Last 6 Lockouts
             </span>
-          </Link>
+          </div>
         ) : undefined,
       )}
       <CardContent className="space-y-4 pt-4">

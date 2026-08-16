@@ -19,6 +19,7 @@ import { ClassIcon } from "~/components/ui/class-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent } from "~/components/ui/card";
 import { ZoneBadge } from "~/components/ui/zone-badge";
+import { cn } from "~/lib/utils";
 
 export function RecentTrackedRaids() {
   const { data: trackedRaidData, isLoading } = api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
@@ -36,7 +37,7 @@ export function RecentTrackedRaids() {
           View all raids
         </Link>
       </div>
-      <CardContent className="pt-4">
+      <CardContent className="pt-4 sm:pt-4">
         <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
           <TableCaption className="text-wrap"></TableCaption>
           <TableHeader>
@@ -52,7 +53,7 @@ export function RecentTrackedRaids() {
               <RecentTrackedRaidsTableRowSkeleton />
             ) : (
               (trackedRaidData ?? []).map((r) => (
-                <TableRow key={r.raidId}>
+                <TableRow key={r.raidId} className={cn(!r.currentUserAttendance && "opacity-45")}>
                   <TableCell className="text-secondary-foreground">
                     <Link
                       className="group w-full transition-all hover:text-primary"

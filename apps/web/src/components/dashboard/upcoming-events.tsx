@@ -194,7 +194,7 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
           Raid plans
         </Link>
       </div>
-      <CardContent className="flex flex-1 flex-col pt-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col pt-4 sm:pt-4">
         {isLoading ? (
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

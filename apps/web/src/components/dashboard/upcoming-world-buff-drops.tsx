@@ -145,7 +145,7 @@ export function UpcomingWorldBuffDrops() {
           >
             World buffs
           </Link>
-          <Button size="sm" variant="outline" asChild className="h-7 rounded-lg px-2.5 text-xs">
+          <Button size="sm" asChild className="h-7 rounded-lg px-2.5 text-xs">
             <Link href="/world-buffs">
               <UserPlus className="h-3.5 w-3.5" />
               Join the Drop List
