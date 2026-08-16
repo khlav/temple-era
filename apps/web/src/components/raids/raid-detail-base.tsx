@@ -143,6 +143,12 @@ export function RaidDetailBase({
   const attendeeCount = Object.keys(raidParticipants ?? {}).length;
   const benchCount = Object.keys(raidData.bench ?? {}).length;
 
+  const [participantFilter, setParticipantFilter] = useState<"all" | "attendee" | "bench">("all");
+  const filteredParticipants = useMemo(() => {
+    if (participantFilter === "all") return participants;
+    return participants.filter((p) => p.status === participantFilter);
+  }, [participants, participantFilter]);
+
   // Class breakdown for the Composition card — grouped from attendees only (the bench
   // isn't "in" the raid), sorted by headcount desc to match the hi-fi mock.
   const composition = useMemo(() => {
@@ -252,11 +258,35 @@ export function RaidDetailBase({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
             <div className="min-w-0 flex-1">
               <div className="panel-surface overflow-hidden rounded-2xl border border-border/70">
-                <div className="flex items-baseline justify-between gap-3 border-b border-border/70 px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
                   <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
                     Attendance · {attendeeCount} attendees, {benchCount} benched
                   </div>
-                  <div className="text-xs text-muted-foreground">from WCL logs</div>
+                  <Tabs
+                    value={participantFilter}
+                    onValueChange={(v) => setParticipantFilter(v as "all" | "attendee" | "bench")}
+                  >
+                    <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+                      <TabsTrigger
+                        value="all"
+                        className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                      >
+                        All
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="attendee"
+                        className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                      >
+                        Attended
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="bench"
+                        className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                      >
+                        Bench
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
                 <div
                   className={cn(
@@ -273,12 +303,16 @@ export function RaidDetailBase({
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Loading…
                     </div>
-                  ) : participants.length === 0 ? (
+                  ) : filteredParticipants.length === 0 ? (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      No participants found.
+                      {participantFilter === "attendee"
+                        ? "No attendees found."
+                        : participantFilter === "bench"
+                          ? "No one benched."
+                          : "No participants found."}
                     </div>
                   ) : (
-                    participants.map((p) => (
+                    filteredParticipants.map((p) => (
                       <div
                         key={p.characterId}
                         className={cn(
