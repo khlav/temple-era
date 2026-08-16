@@ -396,7 +396,7 @@ export function RaidDetailBase({
                         className="flex items-center justify-between gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
                         {raidLogId}
-                        <WCLIcon />
+                        <WCLIcon size={18} />
                       </Link>
                     );
                   })}
