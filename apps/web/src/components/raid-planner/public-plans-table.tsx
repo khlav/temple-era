@@ -26,7 +26,6 @@ function weekGroupLabel(plan: PublicPlan, currentWeekStart: Date): string {
   const lastWeekStart = new Date(currentWeekStart);
   lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
   if (week.getTime() === lastWeekStart.getTime()) return "Last week";
-  if (week.getTime() > currentWeekStart.getTime()) return "Upcoming";
   return "Previous weeks";
 }
 
