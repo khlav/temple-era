@@ -328,7 +328,10 @@ export function RaidDetailBase({
                           {Array.from({ length: Math.min(g.count, 10) }).map((_, i) => (
                             <span
                               key={i}
-                              className="h-[11px] w-[11px] shrink-0 rounded-[2px]"
+                              className={cn(
+                                "h-[11px] w-[11px] shrink-0 rounded-[2px]",
+                                i === 4 && "mr-[3px]",
+                              )}
                               style={{
                                 backgroundColor:
                                   AA_CLASS_COLORS[g.characterClass.toLowerCase()] ?? "#8a8a8a",
