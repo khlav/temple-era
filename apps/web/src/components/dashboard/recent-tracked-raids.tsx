@@ -16,6 +16,7 @@ import { GenerateWCLReportUrl, PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { ExternalLinkIcon } from "lucide-react";
 import { ClassIcon } from "~/components/ui/class-icon";
+import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
 import { Card, CardContent } from "~/components/ui/card";
 import { ZoneBadge } from "~/components/ui/zone-badge";
@@ -81,6 +82,9 @@ export function RecentTrackedRaids() {
                         <span className="truncate text-sm text-secondary-foreground">
                           {r.attendedCharacterName}
                         </span>
+                        {r.currentUserAttendance === "bench" && (
+                          <AttendanceStatusIcon status="bench" size={14} variant="inline" />
+                        )}
                       </div>
                     ) : (
                       <span className="text-muted-foreground/60">—</span>
