@@ -10,8 +10,8 @@ export const QUEUE_TYPE_ICON: Record<
   WorldBuffQueueType,
   { Icon: LucideIcon; className: string; label: string }
 > = {
-  main: { Icon: CircleCheck, className: "text-chart-2", label: "Main" },
-  alt: { Icon: UserRound, className: "text-chart-4", label: "Alt" },
+  main: { Icon: CircleCheck, className: "text-queue-main", label: "Main" },
+  alt: { Icon: UserRound, className: "text-queue-alt", label: "Alt" },
   backup: { Icon: Shield, className: "text-primary", label: "Backup" },
 };
 
