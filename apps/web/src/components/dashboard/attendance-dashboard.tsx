@@ -24,18 +24,20 @@ export function AttendanceDashboard({ currentUserSession }: { currentUserSession
       <div className="relative">
         <div
           className={cn(
-            "flex flex-col gap-4 transition-all duration-300 lg:flex-row",
+            "flex flex-col gap-4 transition-all duration-300",
             !currentUserSession && "pointer-events-none select-none opacity-50 blur-[2px]",
           )}
         >
-          <div className="flex-1">
-            <PersonalAttendanceSummary
-              currentUserSession={currentUserSession}
-              currentUserCharacterId={currentUserSession?.user?.characterId}
-            />
-          </div>
-          <div className="flex-1">
-            <UpcomingEvents session={currentUserSession} />
+          <div className="flex flex-col gap-4 lg:flex-row">
+            <div className="flex-1">
+              <PersonalAttendanceSummary
+                currentUserSession={currentUserSession}
+                currentUserCharacterId={currentUserSession?.user?.characterId}
+              />
+            </div>
+            <div className="flex-1">
+              <UpcomingEvents session={currentUserSession} />
+            </div>
           </div>
         </div>
 

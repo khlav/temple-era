@@ -1,8 +1,11 @@
-import { Separator } from "~/components/ui/separator";
+"use client";
+
+import { useState } from "react";
 import { SubmitAvailabilityForm } from "~/components/world-buffs/submit-availability-form";
 import { AssignmentList } from "~/components/world-buffs/assignment-list";
 import { WorldBuffQueueList } from "~/components/world-buffs/world-buff-queue-list";
 import { ScheduleDialogProvider } from "~/components/world-buffs/schedule-dialog-context";
+import { TableSearchInput } from "~/components/ui/table-search-input";
 import { WORLD_BUFF_ITEM, type WorldBuffItem } from "~/lib/world-buffs";
 
 // Display-only grouping for the queue-list cards: Onyxia's Head and Nefarian's Head both grant
@@ -18,17 +21,26 @@ const QUEUE_LIST_GROUPS: { key: string; items: WorldBuffItem[]; title?: string }
 ];
 
 export function WorldBuffDashboard() {
+  const [search, setSearch] = useState("");
+
   return (
     <ScheduleDialogProvider>
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <SubmitAvailabilityForm />
-          <AssignmentList />
-        </div>
-        <Separator />
+      <div className="flex flex-col gap-4">
+        <AssignmentList />
+        <SubmitAvailabilityForm />
+        <TableSearchInput
+          placeholder="Search by character, primary, or Discord name…"
+          onDebouncedChange={setSearch}
+          className="max-w-sm"
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {QUEUE_LIST_GROUPS.map((group) => (
-            <WorldBuffQueueList key={group.key} items={group.items} title={group.title} />
+            <WorldBuffQueueList
+              key={group.key}
+              items={group.items}
+              title={group.title}
+              search={search}
+            />
           ))}
         </div>
       </div>

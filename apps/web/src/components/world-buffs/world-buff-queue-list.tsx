@@ -467,7 +467,7 @@ function QueueRow({
 }) {
   const dropped = row.state === "dropped";
   return (
-    <li className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2 py-1.5">
+    <li className="flex items-center justify-between gap-2 rounded-xl border border-border/50 px-2.5 py-1.5">
       <div className="flex min-w-0 items-center gap-2">
         <WorldBuffIcon item={row.item as WorldBuffItem} size={18} grayscale={dropped} />
         <div className="min-w-0">
@@ -487,12 +487,17 @@ function QueueRow({
 export function WorldBuffQueueList({
   items,
   title,
+  search,
 }: {
   /** Display-only grouping: Onyxia's Head and Nefarian's Head both grant Dragon, so the
    *  dashboard passes both here to render one combined card instead of two — the underlying
    *  data stays per-item (`row.item`), only the queue list's presentation is merged. */
   items: WorldBuffItem[];
   title?: string;
+  /** Free-text filter matched against character name, primary character name, and (when
+   *  visible to this viewer) Discord username — applied client-side only, across both the
+   *  active and past-drops lists. */
+  search?: string;
 }) {
   const { data: session } = useSession();
   const canManage = !!session?.user?.scopes?.includes(SCOPE.WORLDBUFF_MANAGE);
@@ -645,8 +650,17 @@ export function WorldBuffQueueList({
   }, [data]);
 
   const itemsKey = items.join(",");
+  const searchNormalized = search?.trim().toLowerCase() ?? "";
   const { activeRows, pastRows, hiddenInactiveCount } = useMemo(() => {
-    const itemRows = (data ?? []).filter((row) => items.includes(row.item));
+    let itemRows = (data ?? []).filter((row) => items.includes(row.item));
+    if (searchNormalized) {
+      itemRows = itemRows.filter(
+        (row) =>
+          row.characterName.toLowerCase().includes(searchNormalized) ||
+          (row.primaryCharacterName?.toLowerCase().includes(searchNormalized) ?? false) ||
+          (row.discordUsername?.toLowerCase().includes(searchNormalized) ?? false),
+      );
+    }
     const queueFiltered = itemRows
       .filter((row) => row.state === "ready_to_drop")
       .filter((row) => queueTypeTab === "all" || row.queueType === queueTypeTab);
@@ -664,7 +678,7 @@ export function WorldBuffQueueList({
     const hiddenInactiveCount = queueFiltered.length - active.length;
     return { activeRows: active, pastRows: past, hiddenInactiveCount };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- itemsKey is items' stable identity
-  }, [data, itemsKey, queueTypeTab, activityTab]);
+  }, [data, itemsKey, queueTypeTab, activityTab, searchNormalized]);
 
   const primaryItem = items[0]!;
   const buff = WORLD_BUFF_BY_ITEM[primaryItem];
@@ -689,18 +703,27 @@ export function WorldBuffQueueList({
       <CardContent className="space-y-3 px-2 pb-1.5 sm:px-2.5 sm:pb-2">
         <div className="flex items-center justify-between gap-2">
           <Tabs value={activityTab} onValueChange={(v) => setActivityTab(v as ActivityTab)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="active" className="h-6 px-2.5 text-xs">
+            <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+              <TabsTrigger
+                value="active"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 Active
               </TabsTrigger>
-              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
+              <TabsTrigger
+                value="all"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 All
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <Tabs value={queueTypeTab} onValueChange={(v) => setQueueTypeTab(v as QueueTypeTab)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="h-6 px-2.5 text-xs">
+            <TabsList className="h-7 gap-0.5 rounded-full border border-border/70 bg-transparent p-0.5">
+              <TabsTrigger
+                value="all"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
                 All
               </TabsTrigger>
               {QUEUE_TYPES.map((queueType) => {
@@ -710,7 +733,7 @@ export function WorldBuffQueueList({
                     key={queueType}
                     value={queueType}
                     aria-label={opt.label}
-                    className="h-6 px-2.5"
+                    className="rounded-full px-2 py-1 data-[state=active]:bg-primary/14 data-[state=active]:shadow-none"
                   >
                     <opt.Icon className={cn("h-3.5 w-3.5", opt.className)} />
                   </TabsTrigger>
@@ -722,7 +745,9 @@ export function WorldBuffQueueList({
         {isLoading ? (
           <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
         ) : activeRows.length === 0 ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">No submissions yet.</div>
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            {searchNormalized ? "No matches." : "No submissions yet."}
+          </div>
         ) : (
           <ul className="space-y-1.5">
             {activeRows.map((row) => {

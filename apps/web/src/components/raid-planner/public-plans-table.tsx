@@ -1,13 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
 import { Skeleton } from "~/components/ui/skeleton";
 import { ExternalLink, Edit } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { cn } from "~/lib/utils";
+import {
+  ZONE_ACCENT_CLASSES,
+  ZONE_BADGE_COMPACT_CLASSES,
+  ZONE_BADGE_LABELS,
+} from "~/lib/raid-zones";
+import { getEasternNow } from "~/lib/raid-formatting";
+import { getTuesdayAnchoredWeekStart } from "~/lib/lockout-weeks";
+
+type PublicPlan = RouterOutputs["raidPlan"]["getPublicPlans"][number];
+
+function weekGroupLabel(plan: PublicPlan, currentWeekStart: Date): string {
+  if (!plan.startAt) return "Previous weeks";
+  const week = getTuesdayAnchoredWeekStart(new Date(plan.startAt));
+  if (week.getTime() >= currentWeekStart.getTime()) return "This week";
+  const lastWeekStart = new Date(currentWeekStart);
+  lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
+  if (week.getTime() === lastWeekStart.getTime()) return "Last week";
+  return "Previous weeks";
+}
 
 export function PublicPlansTable() {
   const { data: session } = useSession();
@@ -29,92 +49,97 @@ export function PublicPlansTable() {
 
   if (!plans || plans.length === 0) {
     return (
-      <div className="rounded-md border py-8 text-center text-muted-foreground">
+      <div className="panel-subtle rounded-2xl border border-border/70 py-8 text-center text-sm text-muted-foreground">
         No public raid plans available yet.
       </div>
     );
   }
 
+  const currentWeekStart = getTuesdayAnchoredWeekStart(getEasternNow());
+
+  let lastGroupLabel: string | null = null;
+
   return (
-    <div className="relative w-full">
-      <table className="w-full caption-bottom text-sm">
-        <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
-          <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <th
-              colSpan={2}
-              className="h-10 px-2 text-left align-middle font-medium text-muted-foreground"
-            >
-              Plans ({plans.length})
-            </th>
-            <th className="hidden h-10 px-2 text-center align-middle font-medium text-muted-foreground md:table-cell md:w-[60px]">
-              Link
-            </th>
-          </tr>
-        </thead>
-        <tbody className="[&_tr:last-child]:border-0">
-          {plans.map((plan) => {
-            let dateStr = "";
-            let timeStr = "";
+    <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
+      <div className="flex items-center justify-between border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+        <span>Plans ({plans.length})</span>
+      </div>
+      {plans.map((plan) => {
+        let dateStr = "";
+        let timeStr = "";
+        if (plan.startAt) {
+          dateStr = formatRaidDay(plan.startAt);
+          timeStr = formatRaidTime(plan.startAt);
+        }
 
-            if (plan.startAt) {
-              dateStr = formatRaidDay(plan.startAt);
-              timeStr = formatRaidTime(plan.startAt);
-            }
+        const groupLabel = weekGroupLabel(plan, currentWeekStart);
+        const showGroupLabel = groupLabel !== lastGroupLabel;
+        lastGroupLabel = groupLabel;
 
-            return (
-              <tr
-                key={plan.id}
-                className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-              >
-                <td className="w-px whitespace-nowrap p-2 align-middle has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
-                  <div className="flex items-center gap-1">
-                    <Button variant="secondary" size="sm" className="w-20" asChild>
-                      <Link href={`/raid-plans/${plan.id}`}>View Plan</Link>
-                    </Button>
-                    {isRaidManager && (
-                      <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" asChild>
-                        <Link href={`/raid-manager/raid-planner/${plan.id}`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </td>
-                <td className="w-full p-2 align-middle font-medium has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
-                  <div className="min-w-0">
-                    <div className="truncate">{plan.name}</div>
-                    <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {dateStr}
-                      {timeStr ? ` • ${timeStr}` : ""}
-                    </div>
-                  </div>
-                </td>
-                <td className="hidden p-2 text-center align-middle md:table-cell has-[[role=checkbox]]:pr-0 *:[[role=checkbox]]:translate-y-[2px]">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <a
-                        href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        <span className="sr-only">View on Raid-Helper</span>
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
+        const zoneClass = ZONE_ACCENT_CLASSES[plan.zoneId] ?? ZONE_ACCENT_CLASSES.custom;
+        const zoneLabel = ZONE_BADGE_LABELS[plan.zoneId] ?? plan.zoneId.toUpperCase();
+
+        return (
+          <div key={plan.id}>
+            {showGroupLabel ? (
+              <div className="font-display border-b border-border/70 bg-background/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/85">
+                {groupLabel}
+              </div>
+            ) : null}
+            <div className="group relative flex items-center gap-3 border-b border-border/45 px-4 py-2.5 text-sm transition-colors last:border-b-0 hover:bg-accent/35">
+              <Link
+                href={`/raid-plans/${plan.id}`}
+                className="absolute inset-0"
+                aria-label={plan.name}
+              />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-medium text-secondary-foreground transition-colors group-hover:text-primary">
+                    {plan.name}
+                  </span>
+                  <Badge variant="outline" className={cn(ZONE_BADGE_COMPACT_CLASSES, zoneClass)}>
+                    {zoneLabel}
+                  </Badge>
+                </div>
+                <div className="truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {dateStr}
+                  {timeStr ? ` · ${timeStr}` : ""}
+                </div>
+              </div>
+              <div className="relative z-10 flex shrink-0 items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={`https://raid-helper.dev/event/${plan.raidHelperEventId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                     >
-                      Raid Helper
-                    </TooltipContent>
-                  </Tooltip>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="sr-only">View on Raid-Helper</span>
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
+                  >
+                    Raid Helper
+                  </TooltipContent>
+                </Tooltip>
+                {isRaidManager ? (
+                  <Link
+                    href={`/raid-manager/raid-planner/${plan.id}`}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                    aria-label={`Edit ${plan.name}`}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

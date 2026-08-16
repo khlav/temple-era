@@ -11,7 +11,6 @@ import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
 import { matchesSearchQuery } from "~/lib/table-search";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Badge } from "~/components/ui/badge";
 
 export function CharacterManager() {
   const router = useRouter();
@@ -63,13 +62,16 @@ export function CharacterManager() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1">
           <TableSearchInput
+            className="h-11"
             placeholder="Search mains, alts, class, or status..."
             defaultValue={initialSearch}
             onDebouncedChange={(v) => setSearchTerm(v ?? "")}
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
-          <Badge variant="secondary">{filteredPlayers.length} mains</Badge>
+          <div className="font-display flex h-11 items-center rounded-xl border border-border/80 bg-card/70 px-3.5 text-[13px] text-muted-foreground">
+            {filteredPlayers.length} mains
+          </div>
           <TableSearchTips>
             <p className="mb-1 font-medium">Search tips:</p>
             <ul className="mb-1 list-disc space-y-1 pl-4">
@@ -85,33 +87,31 @@ export function CharacterManager() {
       </div>
 
       {/* Scrollable content area */}
-      <div className="max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden">
-        <div className="relative w-full">
-          <table className="w-full caption-bottom text-sm">
-            <thead className="sticky top-0 z-10 border-b bg-background [&_tr]:border-b">
-              <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                <th className="h-10 w-1/5 px-2 text-left align-middle font-medium text-muted-foreground">
-                  Primary {characterData && ` (${filteredPlayers.length})`}
-                </th>
-                <th className="h-10 w-3/5 px-2 text-left align-middle font-medium text-muted-foreground">
-                  Secondary Characters
-                </th>
-                <th className="h-10 w-1/5 px-2 text-left align-middle font-medium text-muted-foreground"></th>
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {isSuccess ? (
-                <>
-                  {filteredPlayers?.sort(SortRaiders).map((character: RaidParticipant) => (
-                    <CharacterManagerRow key={character.characterId} character={character} />
-                  ))}
-                </>
-              ) : (
-                <CharacterManagerRowSkeleton />
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="panel-subtle max-h-[calc(100vh-200px)] min-h-[600px] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70">
+        <table className="w-full caption-bottom text-sm">
+          <thead className="sticky top-0 z-10 border-b border-border/70 bg-card/80 [&_tr]:border-b [&_tr]:border-border/70">
+            <tr className="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+              <th className="font-display h-10 w-1/5 px-4 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Primary {characterData && ` (${filteredPlayers.length})`}
+              </th>
+              <th className="font-display h-10 w-3/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Secondary Characters
+              </th>
+              <th className="font-display h-10 w-1/5 px-2 text-left align-middle text-xs uppercase tracking-[0.16em] text-muted-foreground"></th>
+            </tr>
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {isSuccess ? (
+              <>
+                {filteredPlayers?.sort(SortRaiders).map((character: RaidParticipant) => (
+                  <CharacterManagerRow key={character.characterId} character={character} />
+                ))}
+              </>
+            ) : (
+              <CharacterManagerRowSkeleton />
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

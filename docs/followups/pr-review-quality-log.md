@@ -555,3 +555,40 @@ Archon's two confirmed false positives warn against ("the compiler/build proves 
 assumption"), except here the empirical check *validated* the reviewer instead of
 disproving it — a reminder that "verify before trusting" cuts both ways, including against
 one's own claims in a PR description.
+
+### PR #97 — `Site-wide design + legibility improvements` (TEMPLE-103–113)
+Greptile inactive (no `greptile` label applied). Archon: no score line, 4 rounds, 5
+findings total — 4 **confirmed real and fixed**, 1 **confirmed false positive**.
+Round 1: `raid-editor.tsx`'s new "staple another WCL log onto an existing raid" flow ran
+a write-performing procedure (`importAndGetRaidLogByRaidLogId` — fetches from WCL and
+upserts) through `useQuery({ enabled, staleTime: 0 })`, which re-fires on window
+refocus/remount while enabled — fixed by switching to the already-existing
+`refreshRaidLogByRaidLogId` mutation instead of hand-rolling a new one. Round 1 also
+flagged a `"use client"` component (`public-plans-table.tsx`, part of the same PR)
+importing a value (not just a type) from `~/server/api/v2/helpers/lockout-weeks` — no
+build failure today since that helper's own transitive imports happen to be pure, but a
+real latent risk; fixed by moving the pure date logic to `~/lib/lockout-weeks.ts` and
+re-exporting from the old server path for the one remaining server caller. Round 2 caught
+a regression **introduced by the round-1 fix**: the new mutation was wired to fire on
+every `onChange` of the log-URL input, so continuing to type/paste after the 16-char
+report ID already matched triggered repeat WCL imports — fixed with a last-submitted-ID
+ref guard. Round 2 also caught a real, independent bug in `all-characters.tsx`'s new
+main/alt grouping (unrelated to the log-import code): a character with `isPrimary: false`
+and no `primaryCharacterId` (an alt not yet linked to a main — a normal state the
+character-manager flow can produce) was silently dropped from the roster entirely, while
+the page header's total count still included it. Round 3 caught a mobile-legibility bug
+in `characters-roster-list.tsx`: a fixed `116px/320px/60px` grid inside an
+`overflow-hidden` panel had no room to shrink below ~640px and no scroll container, so
+narrow viewports clipped the attendance bar and edit button — fixed by reusing the
+scrollable-wrapper-plus-swipe-hint pattern already established in this same PR's
+`attendance-report-table.tsx`. Round 4: clean, no further findings.
+
+**Confirmed false positive, both rounds it appeared in**: Archon flagged
+`worldBuff.getAll` as now being fetched unconditionally on a public page, "shipping"
+`discordUsername` to anonymous visitors that a prior `enabled: canManage` gate had
+protected. Verified against `world-buff.ts` (untouched by this PR): the procedure already
+redacts `discordUserId`/`discordUsername` server-side for any session without
+`worldbuff:manage` via a `redactDiscord()` helper, regardless of client-side gating — the
+"leak" Archon described doesn't reach the wire. Not fixed; the suggested "fix" (gating the
+client `useQuery` on `session`) would have been a no-op relative to the actual protection
+already in place.

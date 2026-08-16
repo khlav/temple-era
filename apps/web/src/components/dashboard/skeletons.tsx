@@ -7,7 +7,7 @@ export function RecentTrackedRaidsTableRowSkeleton({ rows = 10 }: { rows?: numbe
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <TableRow key={rowIndex}>
-          {Array.from({ length: 2 }).map((_, cellIndex) => {
+          {Array.from({ length: 3 }).map((_, cellIndex) => {
             // Create a deterministic pseudo-random value
             const seed = rowIndex * 3 + cellIndex; // Unique seed per cell
             const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%

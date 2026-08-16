@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { TableAddCharacterHeader } from "./table-add-character-header";
 import { toEasternTime } from "~/lib/raid-formatting";
+import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 
 // Calculate lockout week (Tuesday to Monday) for a given date in Eastern Time
 // SQL: date_trunc('week', date - 1) + INTERVAL '1 day'
@@ -59,7 +60,13 @@ export function AttendanceReportTable({
   onAddCharacter,
   onRemoveCharacter,
 }: {
-  raids: Array<{ raidId: number; name: string; date: string; zone: string }>;
+  raids: Array<{
+    raidId: number;
+    name: string;
+    date: string;
+    zone: string;
+    attendanceWeight: number;
+  }>;
   characters: Array<{ characterId: number; name: string; class: string }>;
   attendance: Array<{
     raidId: number;
@@ -249,8 +256,12 @@ export function AttendanceReportTable({
                             href={"/raids/" + raid.raidId}
                           >
                             <div>{raid.name}</div>
-                            <div className="text-xs tracking-tight text-muted-foreground">
+                            <div className="flex items-center gap-1.5 text-xs tracking-tight text-muted-foreground">
                               {PrettyPrintDate(new Date(raid.date), true)}
+                              <RaidAttendenceWeightBadge
+                                attendanceWeight={raid.attendanceWeight}
+                                className="text-[11px]"
+                              />
                             </div>
                           </Link>
                         </td>

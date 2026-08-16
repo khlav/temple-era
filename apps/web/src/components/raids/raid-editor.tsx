@@ -2,17 +2,39 @@
 
 import LabeledArrayCodeBlock from "~/components/misc/codeblock";
 import type { Raid, RaidParticipant } from "~/server/api/interfaces/raid";
-import { RaidDetailBase } from "~/components/raids/raid-detail-base";
-import { Separator } from "~/components/ui/separator";
+import { RaidDetailBase, SidebarCard } from "~/components/raids/raid-detail-base";
 import { RaidBenchManager } from "~/components/raids/raid-bench-manager";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
-import { ChevronsLeft, ChevronsRight, ExternalLinkIcon } from "lucide-react";
+import { Eye, RefreshCw, Save, Loader } from "lucide-react";
+import { WCLIcon } from "~/components/ui/wcl-icon";
+import { ClassIcon } from "~/components/ui/class-icon";
+import UserAvatar from "~/components/ui/user-avatar";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { RaidEditorCoreControls } from "~/components/raids/raid-editor-core-controls";
-import React, { type Dispatch, type SetStateAction, useState } from "react";
+import React, { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 import { api } from "~/trpc/react";
-import { CharactersTable } from "~/components/characters/characters-table";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
+import { useToast } from "~/hooks/use-toast";
+import { toastRaidLogInUse, toastRaidLogLoaded } from "~/components/raids/raid-toasts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 import Link from "next/link";
+import { cn } from "~/lib/utils";
+
+const EYEBROW_CLASSNAME =
+  "font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground";
 
 export function RaidEditor({
   raidData,
@@ -23,6 +45,8 @@ export function RaidEditor({
 
   handleSubmitAction,
   handleDeleteAction,
+  lastSavedAt,
+  cancelHref,
   debug,
 }: {
   raidData: Raid;
@@ -33,9 +57,15 @@ export function RaidEditor({
 
   handleSubmitAction: () => void;
   handleDeleteAction: () => void;
+  /** When set, the top page header (title/Saved-ago/Cancel/Save) renders — only meaningful for
+   *  editingMode "existing", where saving no longer navigates away. */
+  lastSavedAt?: Date | null;
+  cancelHref?: string;
   debug?: boolean;
 }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const { toast } = useToast();
+  const utils = api.useUtils();
 
   const handleInputChangeAction = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setRaidDataAction((raidData) => ({
@@ -47,9 +77,7 @@ export function RaidEditor({
   const handleWeightChangeAction = (e: React.FormEvent<HTMLButtonElement>) => {
     setRaidDataAction((raidData) => ({
       ...raidData,
-      // @ts-expect-error Value exists, but IDE says not found
-
-      attendanceWeight: parseFloat(e.target.value) ?? 0,
+      attendanceWeight: parseFloat(e.currentTarget.value),
     }));
   };
 
@@ -78,121 +106,331 @@ export function RaidEditor({
       enabled: (raidData?.raidLogIds ?? []).length > 0,
     });
 
+  const attendeesList = React.useMemo(
+    () =>
+      Object.values(raidParticipants ?? {}).sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+      ),
+    [raidParticipants],
+  );
+
+  // "Saved X ago" needs to keep ticking while the user stays on the page after a save.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    const id = setInterval(() => forceTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, [lastSavedAt]);
+
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
+  const refreshRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
+    onSuccess: async () => {
+      await utils.raidLog.getUniqueParticipantsFromMultipleLogs.invalidate();
+    },
+  });
+  const handleRefreshAllLogs = async () => {
+    setIsRefreshingLogs(true);
+    try {
+      await Promise.allSettled(
+        (raidData.raidLogIds ?? []).map((raidLogId) =>
+          refreshRaidLogMutation.mutateAsync(raidLogId),
+        ),
+      );
+    } finally {
+      setIsRefreshingLogs(false);
+    }
+  };
+
+  // Lets a manager staple an additional WCL log onto an already-created raid (e.g. a pull that
+  // got split into two reports) without going through the create flow again. Reuses the
+  // refresh mutation (fetch-fresh + upsert + return) rather than a query — this is a write,
+  // and a query re-fires on window refocus/remount while enabled, which would re-import.
+  const [addLogUrlInput, setAddLogUrlInput] = useState("");
+  // Guards against re-submitting the same captured ID on every keystroke while the user keeps
+  // typing/pasting after the 16-char match already appears (e.g. pasting into a non-empty field).
+  const submittedLogIdRef = useRef<string | null>(null);
+  const addRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
+    onSuccess: (addedRaidLog) => {
+      submittedLogIdRef.current = null;
+      if (!addedRaidLog) return;
+      if (addedRaidLog.raidId && addedRaidLog.raidId !== raidData.raidId) {
+        toastRaidLogInUse(toast, addedRaidLog);
+      } else if (!(raidData.raidLogIds ?? []).includes(addedRaidLog.raidLogId)) {
+        setRaidDataAction((prev) => ({
+          ...prev,
+          raidLogIds: [...(prev.raidLogIds ?? []), addedRaidLog.raidLogId],
+          kills: Array.from(new Set([...(prev.kills ?? []), ...(addedRaidLog.kills ?? [])])),
+        }));
+        toastRaidLogLoaded(toast, addedRaidLog);
+      }
+      setAddLogUrlInput("");
+    },
+    onError: () => {
+      submittedLogIdRef.current = null;
+    },
+  });
+
+  const handleAddLogUrlChange = (value: string) => {
+    setAddLogUrlInput(value);
+    const match = /([a-zA-Z0-9]{16})/.exec(value);
+    if (match?.[1] && match[1] !== submittedLogIdRef.current) {
+      submittedLogIdRef.current = match[1];
+      addRaidLogMutation.mutate(match[1]);
+    }
+  };
+
   return (
-    <>
-      <div className="flex space-x-4 px-1">
-        <div className="w-full">
-          <RaidEditorCoreControls
-            raidData={raidData}
-            isSendingData={isSendingData}
-            editingMode={editingMode}
-            handleInputChangeAction={handleInputChangeAction}
-            handleWeightChangeAction={handleWeightChangeAction}
-            handleSubmitAction={handleSubmitAction}
-            handleDeleteAction={handleDeleteAction}
-          />
-          <Separator className="my-3" />
-          <div className="flex gap-4 xl:flex-nowrap">
-            <div className="grow-0 text-nowrap text-sm">WCL logs:</div>
-            <div className="shrink text-ellipsis">
-              {(raidData.raidLogIds ?? []).map((raidLogId) => {
-                const reportUrl = GenerateWCLReportUrl(raidLogId);
-                return (
-                  <div
-                    key={raidLogId}
-                    className="group text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
-                  >
-                    <Link
-                      href={reportUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-nowrap"
-                    >
-                      <span className="hidden md:inline-block">
-                        {reportUrl.replace("https://", "")}
-                      </span>
-                      <span className="inline-block md:hidden">{raidLogId}</span>
-                      <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
+    <div className="space-y-4 px-1">
+      {editingMode === "existing" && (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <div className={cn(EYEBROW_CLASSNAME, "text-primary")}>Guild History</div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              Edit raid
+            </h1>
           </div>
-          <Separator className="my-3" />
-          <div className="flex gap-4 xl:flex-nowrap">
-            <div className="grow-0 text-nowrap text-sm">
-              Kills {raidData.kills ? `(${raidData?.kills?.length})` : ""}:
-            </div>
-            <div className="flex shrink flex-wrap gap-1 overflow-x-hidden text-nowrap">
-              {(raidData.kills ?? []).map((killName, i) => {
-                return (
-                  <div
-                    key={`kill_${i}`}
-                    className="grow-0 rounded bg-secondary px-2 py-1 text-sm text-muted-foreground"
-                  >
-                    {killName}
-                  </div>
-                );
-              })}
-            </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            {lastSavedAt ? (
+              <span className="text-xs text-muted-foreground">
+                Saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}
+              </span>
+            ) : null}
+            <Link href={cancelHref ?? "/raids"}>
+              <Button variant="outline">Cancel</Button>
+            </Link>
+            <Button onClick={handleSubmitAction} disabled={isSendingData}>
+              {isSendingData ? (
+                <Loader className="animate-spin" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save raid
+                </>
+              )}
+            </Button>
           </div>
-          <Separator className="my-3" />
-          <div className="flex flex-wrap-reverse gap-4 xl:flex-nowrap">
-            <div className="w-full xl:w-1/2">
-              <div className="">Attendees from logs:</div>
-              <CharactersTable
-                characters={raidParticipants}
-                isLoading={isLoadingParticipants}
-                targetNewTab
-                showRaidColumns={false}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1 space-y-4">
+          <SidebarCard title="Raid Details">
+            <RaidEditorCoreControls
+              raidData={raidData}
+              isSendingData={isSendingData}
+              editingMode={editingMode}
+              handleInputChangeAction={handleInputChangeAction}
+              handleWeightChangeAction={handleWeightChangeAction}
+              handleSubmitAction={handleSubmitAction}
+              handleDeleteAction={handleDeleteAction}
+            />
+          </SidebarCard>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1">
+              <SidebarCard
+                title={`Attendees${attendeesList.length > 0 ? ` · ${attendeesList.length}` : ""}`}
+                action={
+                  <span className="text-xs text-muted-foreground">read-only · from logs</span>
+                }
+              >
+                <div className="max-h-[420px] overflow-y-auto pr-1">
+                  {isLoadingParticipants ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+                  ) : attendeesList.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      No attendees found.
+                    </div>
+                  ) : (
+                    attendeesList.map((p) => (
+                      <div
+                        key={p.characterId}
+                        className="flex items-center justify-between gap-3 border-b border-border/45 py-2 text-sm last:border-b-0"
+                      >
+                        <Link
+                          href={`/characters/${p.characterId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex min-w-0 items-center gap-2"
+                        >
+                          <ClassIcon
+                            characterClass={p.class.toLowerCase()}
+                            px={18}
+                            className="shrink-0 rounded-sm"
+                          />
+                          <span className="truncate text-secondary-foreground transition-colors group-hover:text-primary">
+                            {p.name}
+                          </span>
+                          {p.primaryCharacterName ? (
+                            <span className="shrink-0 truncate text-xs text-muted-foreground">
+                              {p.primaryCharacterName}
+                            </span>
+                          ) : null}
+                        </Link>
+                        <span className="shrink-0 truncate text-sm text-muted-foreground">
+                          {p.server}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="mt-3 border-t border-border/60 pt-2.5 text-xs text-muted-foreground">
+                  Pulled from the WCL logs. Alts are credited to their main when attendance is
+                  calculated.
+                </p>
+              </SidebarCard>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <RaidBenchManager
+                characters={raidData.bench ?? {}}
+                onSelectAction={handleBenchSelectAction}
+                onRemoveAction={handleBenchRemoveAction}
               />
-              <div className="text-center text-sm text-muted-foreground">
-                List of characters appearing in WCL logs. <br />
-                Alts are mapped to primary characters when calc&apos;ing attendance.
-              </div>
-            </div>
-
-            <Separator className="my-1 xl:hidden" />
-
-            <div className="w-full xl:w-1/2">
-              <div className="grow-0">Benched Characters:</div>
-              <div className="grow">
-                <RaidBenchManager
-                  characters={raidData.bench ?? {}}
-                  onSelectAction={handleBenchSelectAction}
-                  onRemoveAction={handleBenchRemoveAction}
-                />
-              </div>
             </div>
           </div>
         </div>
-      </div>
-      <Separator className="my-3" />
-      <div className="w-full">
-        <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
-          <CollapsibleTrigger>
-            <div className="inline-flex text-primary">
-              Preview {previewOpen ? <ChevronsLeft /> : <ChevronsRight />}
+
+        <aside className="flex w-full shrink-0 flex-col gap-3 lg:w-[264px]">
+          <SidebarCard
+            title="WCL logs"
+            action={
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={handleRefreshAllLogs}
+                      disabled={isRefreshingLogs || (raidData.raidLogIds ?? []).length === 0}
+                      className="flex items-center gap-1 text-[11px] text-primary transition-colors hover:text-primary/80 disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <RefreshCw className={cn("h-3 w-3", isRefreshingLogs && "animate-spin")} />
+                      Refresh
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-secondary text-muted-foreground">
+                    <p>Refresh logs from WarcraftLogs</p>
+                    <p className="text-xs">Updates kills and attendees</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            }
+          >
+            <div className="flex flex-col gap-1.5">
+              {(raidData.raidLogIds ?? []).map((raidLogId) => {
+                const reportUrl = GenerateWCLReportUrl(raidLogId);
+                return (
+                  <Link
+                    key={raidLogId}
+                    href={reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {raidLogId}
+                    <WCLIcon size={18} />
+                  </Link>
+                );
+              })}
+              {(raidData.raidLogIds ?? []).length === 0 ? (
+                <div className="text-sm text-muted-foreground">No logs linked.</div>
+              ) : null}
             </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <Separator className="mx-auto my-2 w-[90%]" />
-            <RaidDetailBase raidData={raidData} isPreview />
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-      {debug && (
-        <>
-          <Separator className="my-3" />
-          <div className="flex-1">
-            <LabeledArrayCodeBlock
-              label="DEBUG : Raid State"
-              value={JSON.stringify(raidData, null, 2)}
+            <Input
+              value={addLogUrlInput}
+              onChange={(e) => handleAddLogUrlChange(e.target.value)}
+              placeholder="Paste another log URL…"
+              disabled={addRaidLogMutation.isPending}
+              autoComplete="off"
+              className="mt-2.5 h-9 text-sm"
             />
+          </SidebarCard>
+
+          <SidebarCard title={`Kills${raidData.kills ? ` · ${raidData.kills.length}` : ""}`}>
+            <div className="flex flex-wrap gap-1.5">
+              {(raidData.kills ?? []).map((killName, i) => (
+                <span
+                  key={`kill_${i}`}
+                  className="rounded-lg bg-secondary px-2 py-1 text-xs text-muted-foreground"
+                >
+                  {killName}
+                </span>
+              ))}
+            </div>
+          </SidebarCard>
+
+          <SidebarCard title="Created by">
+            <UserAvatar
+              name={raidData.creator?.name ?? ""}
+              image={raidData.creator?.image ?? ""}
+              tooltipSide="left"
+              showLabel
+            />
+          </SidebarCard>
+
+          <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-2xl border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-primary"
+              >
+                <Eye className="h-4 w-4" />
+                Preview as raid page
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-3 rounded-2xl border border-border/70 p-3">
+                <RaidDetailBase raidData={raidData} isPreview />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </aside>
+      </div>
+
+      {editingMode === "existing" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+          <div>
+            <div className="text-sm font-semibold text-foreground">Delete this raid</div>
+            <div className="text-xs text-muted-foreground">
+              Raid info is lost. Logs and characters stay hidden until used elsewhere.
+            </div>
           </div>
-        </>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                Delete raid
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Raid info will be lost. <br />
+                  Logs and characters will be hidden until they are used elsewhere.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-red-800 hover:bg-blend-lighten"
+                  onClick={handleDeleteAction}
+                >
+                  Yes, delete raid information
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       )}
-    </>
+
+      {debug && (
+        <div className="panel-surface rounded-2xl border border-border/70 p-4">
+          <LabeledArrayCodeBlock
+            label="DEBUG : Raid State"
+            value={JSON.stringify(raidData, null, 2)}
+          />
+        </div>
+      )}
+    </div>
   );
 }

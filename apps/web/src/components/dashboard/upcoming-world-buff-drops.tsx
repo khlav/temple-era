@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { formatInTimeZone } from "date-fns-tz";
-import { Clock, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { api, type RouterOutputs } from "~/trpc/react";
-import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { BuffIcon, DragonBuffIcon, WorldBuffIcon } from "~/components/world-buffs/world-buff-icon";
@@ -19,6 +18,14 @@ type ActiveAssignment = RouterOutputs["worldBuff"]["listActiveAssignments"][numb
 // actually call turn-ins in (see assignment-list.tsx's WORLD_BUFF_SORT_ORDER).
 const BUFF_SLOT_ORDER: WorldBuff[] = ["zg", "dragon", "rend"];
 
+// Fallback label for an unscheduled slot, which has no character to name instead — the full
+// in-game buff name (WORLD_BUFF_LABELS) is too long for this compact card.
+const BUFF_SHORT_LABEL: Record<WorldBuff, string> = {
+  rend: "Rend",
+  dragon: "Dragon",
+  zg: "Hakkar",
+};
+
 function BuffSlot({
   buff,
   assignment,
@@ -30,13 +37,18 @@ function BuffSlot({
 }) {
   if (!assignment) {
     return (
-      <div className="flex w-full min-w-0 items-center justify-center gap-2.5 px-[10px] py-2.5 lg:flex-1">
+      <div className="flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-primary/40 bg-primary/8 px-3.5 py-3">
         {buff === "dragon" ? (
-          <DragonBuffIcon size={28} grayscale />
+          <DragonBuffIcon size={40} grayscale />
         ) : (
-          <BuffIcon buff={buff} size={28} className="shrink-0 grayscale" />
+          <BuffIcon buff={buff} size={40} className="shrink-0 rounded-md opacity-70 grayscale" />
         )}
-        <span className="truncate text-sm italic text-muted-foreground">Not scheduled yet</span>
+        <div className="min-w-0">
+          <div className="text-[13px] text-muted-foreground">{BUFF_SHORT_LABEL[buff]}</div>
+          <div className="font-display mt-0.5 text-[1.05rem] font-semibold text-primary">
+            Not scheduled
+          </div>
+        </div>
       </div>
     );
   }
@@ -45,35 +57,36 @@ function BuffSlot({
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 items-center justify-center gap-2.5 px-[10px] py-2.5 lg:flex-1",
-        isMine && "m-1.5 rounded-md border border-cyan-400/60 bg-cyan-400/15",
+        "flex min-w-[200px] flex-1 items-center gap-3 rounded-xl border border-border/70 bg-background/40 px-3.5 py-3",
+        isMine && "border-cyan-400/60 bg-cyan-400/12",
       )}
     >
       <WorldBuffIcon
         item={status.item as WorldBuffItem}
-        size={28}
-        className="shrink-0 rounded-sm"
+        size={40}
+        className="shrink-0 rounded-md"
       />
-      {status.characterClass && (
-        <>
-          <div className="h-6 w-px shrink-0 bg-border/60" />
-          <ClassIcon characterClass={status.characterClass} px={28} />
-        </>
-      )}
-      <div className="min-w-0 max-w-[7rem] leading-tight">
-        <div className={cn("truncate text-sm font-medium", isMine && "font-bold text-cyan-200")}>
-          {status.characterName}
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          {status.characterClass && <ClassIcon characterClass={status.characterClass} px={14} />}
+          <span
+            className={cn(
+              "truncate text-[13px] text-muted-foreground",
+              isMine && "text-cyan-200/85",
+            )}
+          >
+            {status.characterName}
+          </span>
         </div>
-        {status.primaryCharacterName && (
-          <div className="truncate text-[11px] leading-tight text-muted-foreground">
-            {status.primaryCharacterName}
-          </div>
-        )}
+        <div
+          className={cn(
+            "font-display mt-0.5 text-[1.05rem] font-semibold",
+            isMine && "text-cyan-200",
+          )}
+        >
+          {formatEasternDateTime(new Date(assignment.scheduledAt), "h:mm a")}
+        </div>
       </div>
-      <span className="ml-1.5 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-        <Clock className="h-3 w-3" />
-        {formatEasternDateTime(new Date(assignment.scheduledAt), "h:mm a")}
-      </span>
     </div>
   );
 }
@@ -114,17 +127,34 @@ export function UpcomingWorldBuffDrops() {
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-col divide-y divide-border/60 p-0 sm:p-0 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
-        <div className="flex w-full flex-nowrap items-center justify-center gap-1.5 px-[30px] py-2.5 text-center lg:w-auto lg:shrink-0 lg:flex-col lg:gap-0.5">
-          <span className="shrink-0 whitespace-nowrap text-sm font-medium">World Buff Drops</span>
+    <div className="panel-surface overflow-hidden rounded-2xl border border-border/70">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="font-display min-w-0 truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Tuesday Buff Drops
           {nextAssignment && (
-            <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary">
-              {formatEasternDateTime(new Date(nextAssignment.scheduledAt), "EEEE, MMMM do")}
+            <span className="normal-case tracking-normal">
+              {" "}
+              — Starting at {formatEasternDateTime(new Date(nextAssignment.scheduledAt), "h:mm a")}
             </span>
           )}
         </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            href="/world-buffs"
+            className="text-xs text-muted-foreground transition-colors hover:text-primary"
+          >
+            World buffs
+          </Link>
+          <Button size="sm" asChild className="h-7 rounded-lg px-2.5 text-xs">
+            <Link href="/world-buffs">
+              <UserPlus className="h-3.5 w-3.5" />
+              Join the Drop List
+            </Link>
+          </Button>
+        </div>
+      </div>
 
+      <div className="flex flex-wrap gap-3 p-4">
         {BUFF_SLOT_ORDER.map((buff) => {
           const assignment = assignmentByBuff.get(buff);
           const isMine =
@@ -132,16 +162,7 @@ export function UpcomingWorldBuffDrops() {
             myCharacterIds.has(assignment.status.characterId);
           return <BuffSlot key={buff} buff={buff} assignment={assignment} isMine={isMine} />;
         })}
-
-        <div className="flex w-full items-center justify-center px-[30px] py-2.5 lg:w-auto lg:shrink-0 lg:justify-start">
-          <Button size="sm" asChild>
-            <Link href="/world-buffs">
-              <UserPlus className="h-4 w-4" />
-              Join the Drop List
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

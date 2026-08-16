@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import Link from "next/link";
+import { Card, CardContent } from "~/components/ui/card";
 import { api } from "~/trpc/react";
 import {
   Loader2,
@@ -22,13 +23,18 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { SignupVolumeIndicator } from "~/components/raid-planner/signup-volume-indicator";
+import { getRaidTarget } from "~/components/raid-planner/signup-volume-indicator";
+import { SignupSizeBar } from "~/components/dashboard/signup-size-bar";
 import { Button } from "~/components/ui/button";
 import type { Session } from "next-auth";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
-import { ZONE_ACCENT_CLASSES, ZONE_BADGE_COMPACT_CLASSES } from "~/lib/raid-zones";
+import {
+  ZONE_ACCENT_CLASSES,
+  ZONE_BADGE_COMPACT_CLASSES,
+  ZONE_BADGE_LABELS,
+} from "~/lib/raid-zones";
 
 interface UpcomingEventsProps {
   session?: Session;
@@ -46,6 +52,7 @@ interface ScheduledEvent {
     Melee: number;
     Ranged: number;
   };
+  classCounts: Record<string, number>;
   serverId: string;
   channelId: string;
   userSignupStatus: string | null;
@@ -102,6 +109,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "naxxramas",
         signUpCount: 38,
         roleCounts: { Tank: 2, Healer: 8, Melee: 14, Ranged: 14 },
+        classCounts: {
+          Warrior: 8,
+          Priest: 3,
+          Paladin: 3,
+          Shaman: 2,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -112,6 +130,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "aq40",
         signUpCount: 42,
         roleCounts: { Tank: 3, Healer: 10, Melee: 15, Ranged: 14 },
+        classCounts: {
+          Warrior: 9,
+          Priest: 4,
+          Paladin: 3,
+          Shaman: 3,
+          Rogue: 6,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -122,6 +151,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "bwl",
         signUpCount: 25,
         roleCounts: { Tank: 2, Healer: 5, Melee: 10, Ranged: 8 },
+        classCounts: {
+          Warrior: 6,
+          Priest: 2,
+          Paladin: 2,
+          Shaman: 1,
+          Rogue: 4,
+          Druid: 2,
+          Mage: 3,
+          Warlock: 3,
+          Hunter: 2,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -132,6 +172,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "mc",
         signUpCount: 40,
         roleCounts: { Tank: 2, Healer: 10, Melee: 14, Ranged: 14 },
+        classCounts: {
+          Warrior: 8,
+          Priest: 4,
+          Paladin: 3,
+          Shaman: 3,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 6,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -142,6 +193,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "onyxia",
         signUpCount: 35,
         roleCounts: { Tank: 2, Healer: 7, Melee: 13, Ranged: 13 },
+        classCounts: {
+          Warrior: 7,
+          Priest: 3,
+          Paladin: 2,
+          Shaman: 2,
+          Rogue: 5,
+          Druid: 3,
+          Mage: 5,
+          Warlock: 5,
+          Hunter: 3,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -152,6 +214,17 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
         channelName: "zg",
         signUpCount: 18,
         roleCounts: { Tank: 2, Healer: 4, Melee: 6, Ranged: 6 },
+        classCounts: {
+          Warrior: 4,
+          Priest: 2,
+          Paladin: 1,
+          Shaman: 1,
+          Rogue: 2,
+          Druid: 2,
+          Mage: 3,
+          Warlock: 2,
+          Hunter: 1,
+        },
         serverId: "sample",
         channelId: "sample",
       },
@@ -173,17 +246,22 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
     return null;
   };
 
-  const zoneShortLabel = (zoneId: string) =>
-    zoneId === "naxxramas" ? "NAXX" : zoneId.toUpperCase();
+  const zoneShortLabel = (zoneId: string) => ZONE_BADGE_LABELS[zoneId] ?? zoneId.toUpperCase();
 
   return (
-    <Card className="relative h-full overflow-hidden">
-      <CardHeader className="pb-0">
-        <div className="flex items-center gap-1">
-          <span>Upcoming Events</span>
+    <Card className="relative flex h-full flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Upcoming events
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+        <Link
+          href="/raid-plans"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
+        >
+          Raid plans
+        </Link>
+      </div>
+      <CardContent className="flex min-h-0 flex-1 flex-col pt-4 sm:pt-4">
         {isLoading ? (
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -193,14 +271,22 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
             No upcoming events found.
           </div>
         ) : (
-          <div className="relative">
+          // min-h covers ~5 rows (header + rows) so the list doesn't shrink below that even when
+          // the sibling column is short; flex-1 lets it grow to fill whatever height it stretches to.
+          <div className="relative min-h-[200px] flex-1 overflow-y-auto">
             <div>
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-8 px-2 py-1 text-left text-xs">Event Name</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-left text-xs">Signups</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-center text-xs">SoftRes.it</TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-left text-[11px] uppercase tracking-[0.14em]">
+                      Event
+                    </TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-left text-[11px] uppercase tracking-[0.14em]">
+                      Signups
+                    </TableHead>
+                    <TableHead className="font-display h-8 px-2 py-1 text-center text-[11px] uppercase tracking-[0.14em]">
+                      SoftRes
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -217,7 +303,10 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                               return zoneId ? (
                                 <Badge
                                   variant="outline"
-                                  className={`${ZONE_ACCENT_CLASSES[zoneId]} ${ZONE_BADGE_COMPACT_CLASSES}`}
+                                  className={cn(
+                                    ZONE_ACCENT_CLASSES[zoneId],
+                                    ZONE_BADGE_COMPACT_CLASSES,
+                                  )}
                                 >
                                   {zoneShortLabel(zoneId)}
                                 </Badge>
@@ -307,15 +396,11 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                            <div className="flex items-center gap-3">
-                              <span className="min-w-[2.5ch] text-right text-xs font-bold">
-                                {event.signUpCount ?? 0}
-                              </span>
-                              <SignupVolumeIndicator
-                                count={event.signUpCount}
-                                title={event.title}
-                                channelName={event.channelName}
-                                roleCounts={event.roleCounts}
+                            <div className="min-w-[140px] flex-1">
+                              <SignupSizeBar
+                                count={event.signUpCount ?? 0}
+                                target={getRaidTarget(event.title, event.channelName)}
+                                classCounts={(event as ScheduledEvent).classCounts}
                               />
                             </div>
                           </div>

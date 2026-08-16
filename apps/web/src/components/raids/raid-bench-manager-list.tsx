@@ -20,22 +20,24 @@ export function RaidBenchManagerList({
     a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
 
+  if (characterList.length === 0) {
+    return <div className="text-sm text-muted-foreground">No benched characters.</div>;
+  }
+
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1.5">
       {characterList.map((character) => (
-        <div key={character.characterId} className="group shrink">
-          <Button
-            id={character.characterId.toString()}
-            variant="outline"
-            className="bg-accent p-3 pl-5 transition-all hover:bg-destructive"
-            onClick={(e) => handleRemoveClick(e.currentTarget.id)}
-          >
-            {character.name}
-            <span className="w-0 overflow-hidden transition-all duration-200 group-hover:w-4">
-              <XIcon />
-            </span>
-          </Button>
-        </div>
+        <Button
+          key={character.characterId}
+          id={character.characterId.toString()}
+          variant="outline"
+          size="sm"
+          className="bg-accent/70 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+          onClick={(e) => handleRemoveClick(e.currentTarget.id)}
+        >
+          {character.name}
+          <XIcon className="h-3.5 w-3.5" />
+        </Button>
       ))}
     </div>
   );

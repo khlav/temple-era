@@ -217,16 +217,21 @@ export function AttendanceReportClient({
           />
 
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleShareUrl}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-full border-border/80 bg-card/70"
+              onClick={handleShareUrl}
+            >
               <Share2 className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center gap-1 rounded-md border p-1">
+            <div className="flex h-9 items-center gap-0.5 rounded-full border border-border/80 bg-card/70 p-0.5">
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-3 text-xs ${
-                  filters.displayMode === "names" ? "bg-chart-2/10 text-chart-2" : ""
+                className={`h-7 rounded-full px-3 text-xs ${
+                  filters.displayMode === "names" ? "bg-primary/14 text-primary" : ""
                 }`}
                 onClick={() => setFilters((prev) => ({ ...prev, displayMode: "names" }))}
               >
@@ -235,14 +240,14 @@ export function AttendanceReportClient({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-3 text-xs ${
-                  filters.displayMode === "icons" ? "bg-chart-2/10 text-chart-2" : ""
+                className={`h-7 rounded-full px-3 text-xs ${
+                  filters.displayMode === "icons" ? "bg-primary/14 text-primary" : ""
                 }`}
                 onClick={() => setFilters((prev) => ({ ...prev, displayMode: "icons" }))}
               >
                 <Swords
                   className={`h-3.5 w-3.5 ${
-                    filters.displayMode === "icons" ? "text-chart-2" : "text-muted-foreground"
+                    filters.displayMode === "icons" ? "text-primary" : "text-muted-foreground"
                   }`}
                 />
               </Button>

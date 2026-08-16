@@ -2,7 +2,7 @@
 
 import React from "react";
 import { api } from "~/trpc/react";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import type { Session } from "next-auth";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -180,16 +180,23 @@ export function PersonalAttendanceSummary({
     };
   }, []);
 
+  const cardHeader = (right?: React.ReactNode, titleContent?: React.ReactNode) => (
+    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+      {titleContent ?? (
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Your attendance
+        </div>
+      )}
+      {right}
+    </div>
+  );
+
   // Show select character prompt if logged in but no primary character selected
   if (currentUserSession?.user && !activeCharacterId) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <span>Raid Attendance, Last 6 lockouts</span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
+      <Card className="h-full overflow-hidden">
+        {cardHeader()}
+        <CardContent className="space-y-4 pt-4 sm:pt-4">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="flex flex-wrap items-center justify-center gap-2">
               <CharacterSelector
@@ -217,13 +224,9 @@ export function PersonalAttendanceSummary({
   // This will be wrapped by the parent's blur overlay anyway.
   if (!activeCharacterId) {
     return (
-      <Card className="h-full">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <span>Raid Attendance, Last 6 lockouts</span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
+      <Card className="h-full overflow-hidden">
+        {cardHeader()}
+        <CardContent className="space-y-4 pt-4 sm:pt-4">
           <AttendanceProgressBar
             attendancePct={sampleData.stats.attendancePct}
             weightedAttendance={sampleData.stats.weightedAttendance}
@@ -249,29 +252,29 @@ export function PersonalAttendanceSummary({
   const attendancePct = userAttendance?.weightedAttendancePct ?? 0;
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-1">
-        <div className="flex items-center gap-1">
-          {titleData.characterName && activeCharacterId ? (
-            <>
-              <Link
-                href={`/characters/${activeCharacterId}`}
-                className="flex items-center gap-1 transition-all hover:text-primary"
-              >
-                {titleClass && <ClassIcon characterClass={titleClass} px={20} />}
-                <span className="font-bold">{titleData.characterName}</span>
-              </Link>
-              <span>— Raid Attendance, Last 6 lockouts</span>
-            </>
-          ) : (
-            <>
-              {titleClass && <ClassIcon characterClass={titleClass} px={20} />}
-              <span>Raid Attendance, Last 6 lockouts</span>
-            </>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+    <Card className="h-full overflow-hidden">
+      {cardHeader(
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {userAttendance?.weightedAttendance ?? 0} of 18 credits
+        </span>,
+        titleData.characterName && activeCharacterId ? (
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Link
+              href={`/characters/${activeCharacterId}`}
+              className="flex min-w-0 shrink-0 items-center gap-1.5 transition-colors hover:text-primary"
+            >
+              {titleClass && <ClassIcon characterClass={titleClass} px={16} />}
+              <span className="font-display truncate text-[0.68rem] font-bold uppercase tracking-[0.16em] text-foreground">
+                {titleData.characterName}
+              </span>
+            </Link>
+            <span className="font-display truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+              — Attendance, Last 6 Lockouts
+            </span>
+          </div>
+        ) : undefined,
+      )}
+      <CardContent className="space-y-4 pt-4 sm:pt-4">
         {/* Progress Bar */}
         {characterData?.isIgnored ? (
           <div className="flex h-10 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">

@@ -9,15 +9,19 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 
 /**
- * WoW rarity colors - defined inline to ensure Tailwind JIT picks them up
+ * Rarity colors per the redesign pattern spec — one hex per tier, background at 10%
+ * with a 22% border when earned. Defined inline (not CSS tokens) since these are a
+ * fixed five-color rarity ramp, not a semantic app color reused elsewhere.
  */
 const RARITY_COLORS: Record<BadgeRarity, string> = {
-  common: "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20",
-  uncommon: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  rare: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  epic: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
-  legendary: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20",
+  common: "bg-[#d1d5db]/10 text-[#d1d5db] border-[#d1d5db]/22",
+  uncommon: "bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/22",
+  rare: "bg-[#60a5fa]/10 text-[#60a5fa] border-[#60a5fa]/22",
+  epic: "bg-[#c084fc]/10 text-[#c084fc] border-[#c084fc]/22",
+  legendary: "bg-[#fb923c]/10 text-[#fb923c] border-[#fb923c]/22",
 };
+
+const UNEARNED_BADGE_CLASSES = "border-border bg-transparent text-muted-foreground opacity-[.38]";
 
 const RARITY_LABELS: Record<BadgeRarity, string> = {
   common: "Common",
@@ -44,13 +48,11 @@ function BadgeItem({ badge, earned }: { badge: BadgeDefinition; earned: boolean 
             onClick={() => setOpen((prev) => !prev)}
             className={cn(
               "group flex cursor-default flex-row items-center gap-2 rounded-lg border px-2 py-1.5 transition-all hover:scale-105",
-              earned
-                ? colorClasses
-                : "border-gray-300 bg-gray-100 text-gray-400 opacity-20 grayscale dark:border-gray-700 dark:bg-gray-800",
+              earned ? colorClasses : UNEARNED_BADGE_CLASSES,
             )}
           >
             <Icon className="h-5 w-5 shrink-0" />
-            <div className="text-xs font-semibold">{badge.name}</div>
+            <div className="text-[11px] font-semibold">{badge.name}</div>
           </div>
         </TooltipTrigger>
         <TooltipContent className="bg-secondary text-muted-foreground">
@@ -62,11 +64,11 @@ function BadgeItem({ badge, earned }: { badge: BadgeDefinition; earned: boolean 
 }
 
 const RARITY_TEXT_COLORS: Record<BadgeRarity, string> = {
-  common: "text-gray-700 dark:text-gray-300",
-  uncommon: "text-green-700 dark:text-green-400",
-  rare: "text-blue-700 dark:text-blue-400",
-  epic: "text-purple-700 dark:text-purple-400",
-  legendary: "text-orange-700 dark:text-orange-400",
+  common: "text-[#d1d5db]",
+  uncommon: "text-[#4ade80]",
+  rare: "text-[#60a5fa]",
+  epic: "text-[#c084fc]",
+  legendary: "text-[#fb923c]",
 };
 
 /**
@@ -177,11 +179,13 @@ export function CharacterBadges({ characterId }: { characterId: number }) {
   }
 
   const rarityOrder: BadgeRarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
+  const earnedCount = BADGE_DEFINITIONS.filter((badge) => badgeResults.get(badge.id)).length;
 
   return (
     <div className="w-full">
       <div className="mb-3 text-sm text-muted-foreground">
-        <span className="font-semibold">Achievements</span> – Based on last 6 lockouts
+        <span className="font-semibold text-foreground">Achievements</span> – Based on last 6
+        lockouts · {earnedCount} of {BADGE_DEFINITIONS.length} earned
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {rarityOrder.map((rarity) => (

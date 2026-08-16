@@ -27,20 +27,51 @@ export const CUSTOM_ZONE_DISPLAY_NAME = "Custom";
 export const ZONE_BADGE_COMPACT_CLASSES =
   "shrink-0 px-1.5 py-0.5 text-[10px] leading-none tracking-[0.12em]";
 export const ZONE_ACCENT_CLASSES: Record<string, string> = {
-  naxxramas: "bg-emerald-500/12 border-emerald-400/35 text-emerald-300",
-  aq40: "bg-sky-500/12 border-sky-400/35 text-sky-300",
-  bwl: "bg-red-500/12 border-red-400/35 text-red-300",
-  mc: "bg-orange-500/12 border-orange-300/40 text-orange-200",
-  onyxia: "bg-slate-500/12 border-slate-400/35 text-slate-300",
-  aq20: "bg-teal-500/12 border-teal-400/35 text-teal-300",
-  zg: "bg-lime-500/12 border-lime-400/35 text-lime-300",
+  naxxramas: "bg-zone-naxx-bg/12 border-zone-naxx-border/35 text-zone-naxx-text",
+  aq40: "bg-zone-aq40-bg/12 border-zone-aq40-border/35 text-zone-aq40-text",
+  bwl: "bg-zone-bwl-bg/12 border-zone-bwl-border/35 text-zone-bwl-text",
+  mc: "bg-zone-mc-bg/12 border-zone-mc-border/40 text-zone-mc-text",
+  onyxia: "bg-zone-ony-bg/12 border-zone-ony-border/35 text-zone-ony-text",
+  aq20: "bg-zone-aq20-bg/12 border-zone-aq20-border/35 text-zone-aq20-text",
+  zg: "bg-zone-zg-bg/12 border-zone-zg-border/35 text-zone-zg-text",
   custom: "bg-slate-500/12 border-slate-400/35 text-slate-300",
+};
+
+/**
+ * Stronger, "selected toggle" fill per zone — same border/text hue as ZONE_ACCENT_CLASSES but a
+ * full-opacity border and a heavier bg tint, for OR-filter toggle controls (dashboard's
+ * RaidsListCard zone tiles, /raids' zone FilterRail) where the active state needs to read as
+ * "filled with this zone's color", not just a light badge tint.
+ */
+export const ZONE_ACTIVE_ACCENT_CLASSES: Record<string, string> = {
+  naxxramas: "text-zone-naxx-text border-zone-naxx-border bg-zone-naxx-bg/25",
+  aq40: "text-zone-aq40-text border-zone-aq40-border bg-zone-aq40-bg/25",
+  bwl: "text-zone-bwl-text border-zone-bwl-border bg-zone-bwl-bg/25",
+  mc: "text-zone-mc-text border-zone-mc-border bg-zone-mc-bg/25",
+  zg: "text-zone-zg-text border-zone-zg-border bg-zone-zg-bg/25",
+  aq20: "text-zone-aq20-text border-zone-aq20-border bg-zone-aq20-bg/25",
+  onyxia: "text-zone-ony-text border-zone-ony-border bg-zone-ony-bg/25",
 };
 
 export function getInstanceIdForZoneName(zoneName: string | null | undefined) {
   if (!zoneName) return undefined;
   return RAID_ZONE_CONFIG.find((zone) => zone.name === zoneName)?.instance;
 }
+
+/**
+ * Short pill label per zone instance, per the redesign pattern spec's zone badge set
+ * (NAXX / AQ40 / BWL / MC / ZG / ONY / AQ20) — the only zone whose label isn't just
+ * `instance.toUpperCase()` is Onyxia ("ONY", not "ONYXIA").
+ */
+export const ZONE_BADGE_LABELS: Record<string, string> = {
+  naxxramas: "NAXX",
+  aq40: "AQ40",
+  bwl: "BWL",
+  mc: "MC",
+  zg: "ZG",
+  onyxia: "ONY",
+  aq20: "AQ20",
+};
 
 /**
  * Array of raid zone names (derived from RAID_ZONE_CONFIG)

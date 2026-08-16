@@ -1,5 +1,4 @@
 import React from "react";
-import { Separator } from "~/components/ui/separator";
 import { RecipesWithCrafters } from "~/components/rare-recipes/recipes-with-crafters";
 import { Button } from "~/components/ui/button";
 import Link from "next/link";
@@ -22,7 +21,9 @@ export default async function RecipeManagerIndex() {
   return (
     <main className="w-full">
       <PageHeader
+        eyebrow="Crafting"
         title="Rare Recipes & Crafters"
+        className="mb-4"
         actions={
           session?.user ? (
             <Button asChild className="w-full sm:w-auto">
@@ -31,7 +32,6 @@ export default async function RecipeManagerIndex() {
           ) : null
         }
       />
-      <Separator className="my-2" />
       <RecipesWithCrafters />
     </main>
   );

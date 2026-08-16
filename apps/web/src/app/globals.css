@@ -114,6 +114,37 @@
   --sidebar-accent-foreground: 210 20% 92%;
   --sidebar-border: 220 9% 19%;
   --sidebar-ring: 34 72% 62%;
+
+  /* Zone accent tokens — apps/web/src/lib/raid-zones.ts (ZONE_ACCENT_CLASSES).
+     Named per the redesign pattern spec so the hues live in one place instead of
+     being picked ad hoc off the Tailwind palette at each call site. */
+  --zone-naxx-border: 158 64% 52%;
+  --zone-naxx-bg: 160 84% 39%;
+  --zone-naxx-text: 158 64% 68%;
+  --zone-aq40-border: 199 89% 64%;
+  --zone-aq40-bg: 199 89% 48%;
+  --zone-aq40-text: 199 95% 74%;
+  --zone-bwl-border: 0 91% 71%;
+  --zone-bwl-bg: 0 84% 60%;
+  --zone-bwl-text: 0 94% 78%;
+  --zone-mc-border: 31 97% 72%;
+  --zone-mc-bg: 25 95% 53%;
+  --zone-mc-text: 32 98% 78%;
+  --zone-zg-border: 84 81% 64%;
+  --zone-zg-bg: 84 81% 44%;
+  --zone-zg-text: 82 85% 72%;
+  --zone-ony-border: 215 20% 65%;
+  --zone-ony-bg: 215 16% 47%;
+  --zone-ony-text: 212 27% 78%;
+  --zone-aq20-border: 172 66% 50%;
+  --zone-aq20-bg: 173 80% 40%;
+  --zone-aq20-text: 172 66% 68%;
+
+  /* World-buff queue-type tokens — components/world-buffs/queue-type-icon.tsx.
+     Distinct from the --chart-* roles (which name heatmap zones, not queue types)
+     even though "alt" happens to share a hue with --chart-4. */
+  --queue-main: 145 42% 62%;
+  --queue-alt: 203 72% 60%;
 }
 
 @theme inline {
@@ -158,6 +189,31 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --color-zone-naxx-border: hsl(var(--zone-naxx-border));
+  --color-zone-naxx-bg: hsl(var(--zone-naxx-bg));
+  --color-zone-naxx-text: hsl(var(--zone-naxx-text));
+  --color-zone-aq40-border: hsl(var(--zone-aq40-border));
+  --color-zone-aq40-bg: hsl(var(--zone-aq40-bg));
+  --color-zone-aq40-text: hsl(var(--zone-aq40-text));
+  --color-zone-bwl-border: hsl(var(--zone-bwl-border));
+  --color-zone-bwl-bg: hsl(var(--zone-bwl-bg));
+  --color-zone-bwl-text: hsl(var(--zone-bwl-text));
+  --color-zone-mc-border: hsl(var(--zone-mc-border));
+  --color-zone-mc-bg: hsl(var(--zone-mc-bg));
+  --color-zone-mc-text: hsl(var(--zone-mc-text));
+  --color-zone-zg-border: hsl(var(--zone-zg-border));
+  --color-zone-zg-bg: hsl(var(--zone-zg-bg));
+  --color-zone-zg-text: hsl(var(--zone-zg-text));
+  --color-zone-ony-border: hsl(var(--zone-ony-border));
+  --color-zone-ony-bg: hsl(var(--zone-ony-bg));
+  --color-zone-ony-text: hsl(var(--zone-ony-text));
+  --color-zone-aq20-border: hsl(var(--zone-aq20-border));
+  --color-zone-aq20-bg: hsl(var(--zone-aq20-bg));
+  --color-zone-aq20-text: hsl(var(--zone-aq20-text));
+
+  --color-queue-main: hsl(var(--queue-main));
+  --color-queue-alt: hsl(var(--queue-alt));
 }
 
 @layer base {
