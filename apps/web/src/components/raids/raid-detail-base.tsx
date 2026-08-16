@@ -1,9 +1,7 @@
 "use client";
 
-import type { Raid } from "~/server/api/interfaces/raid";
+import type { Raid, RaidParticipant } from "~/server/api/interfaces/raid";
 import { api } from "~/trpc/react";
-import { Separator } from "~/components/ui/separator";
-import { CharactersTable } from "~/components/characters/characters-table";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { ZoneBadge } from "~/components/ui/zone-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
@@ -13,14 +11,65 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "~/components/ui/button";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
-import { CharacterSummaryGrid } from "~/components/characters/character-summary-grid";
+import { CharacterLink } from "~/components/ui/character-link";
 import { summarizeSignupCounts } from "~/lib/raid-signup-status";
 import { RaidManagerOnlyIcon } from "~/components/ui/raid-manager-only-icon";
+import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
+import { ClassIcon } from "~/components/ui/class-icon";
+import { cn } from "~/lib/utils";
 
 const RAID_DETAIL_TABS = ["overview", "signups", "attendance"] as const;
 type RaidDetailTab = (typeof RAID_DETAIL_TABS)[number];
+
+const PARTICIPANT_GRID_COLS = "grid-cols-[minmax(0,1fr)_132px_104px]";
+
+const PILL_TAB_LIST_CLASSNAME =
+  "h-auto gap-1.5 rounded-full border border-border/70 bg-transparent p-1";
+const PILL_TAB_TRIGGER_CLASSNAME =
+  "rounded-full px-3.5 py-1.5 text-[13px] font-medium data-[state=active]:bg-primary/14 data-[state=active]:text-primary data-[state=active]:shadow-none";
+
+function ParticipantStatusCell({ status }: { status: "attendee" | "bench" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs",
+        status === "attendee" ? "text-primary" : "text-muted-foreground",
+      )}
+    >
+      <span
+        className={cn(
+          "h-[7px] w-[7px] shrink-0 rounded-full",
+          status === "attendee" ? "bg-primary" : "bg-muted-foreground",
+        )}
+      />
+      {status === "attendee" ? "attended" : "bench"}
+    </span>
+  );
+}
+
+function SidebarCard({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="panel-surface rounded-2xl border border-border/70 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          {title}
+        </div>
+        {action}
+      </div>
+      <div className="mt-2.5">{children}</div>
+    </div>
+  );
+}
 
 export function RaidDetailBase({
   raidData,
@@ -74,12 +123,55 @@ export function RaidDetailBase({
 
   const curPath = usePathname();
 
+  // One combined Character / Credited to / Status table, per the redesign hi-fi spec —
+  // replaces the old two-card attendees/bench split (CharactersTable ×2).
+  const participants = useMemo(() => {
+    const attendees = Object.values(raidParticipants ?? {}).map((c) => ({
+      ...c,
+      status: "attendee" as const,
+    }));
+    const bench = Object.values(raidData.bench ?? {}).map((c) => ({
+      ...c,
+      status: "bench" as const,
+    }));
+    return [...attendees, ...bench].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
+  }, [raidParticipants, raidData.bench]);
+
+  const attendeeCount = Object.keys(raidParticipants ?? {}).length;
+  const benchCount = Object.keys(raidData.bench ?? {}).length;
+
+  // Class breakdown for the Composition card — grouped from attendees only (the bench
+  // isn't "in" the raid), sorted by headcount desc to match the hi-fi mock.
+  const composition = useMemo(() => {
+    const groups = new Map<string, RaidParticipant[]>();
+    for (const c of Object.values(raidParticipants ?? {})) {
+      const key = c.class;
+      const list = groups.get(key) ?? [];
+      list.push(c);
+      groups.set(key, list);
+    }
+    return Array.from(groups.entries())
+      .map(([characterClass, members]) => ({ characterClass, count: members.length }))
+      .sort((a, b) => b.count - a.count);
+  }, [raidParticipants]);
+
   return (
     <div className="px-3">
-      <div className="flex gap-2 pb-0">
-        <div className="grow-0 text-xl font-bold md:text-3xl">
-          <div>{raidData.name}</div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-nowrap text-sm font-normal text-muted-foreground">
+      <div className="text-sm text-muted-foreground">
+        <Link href="/raids" className="transition-colors hover:text-primary">
+          Raids
+        </Link>{" "}
+        › {raidData.name}
+      </div>
+
+      <div className="mt-1.5 flex flex-wrap items-end justify-between gap-3 pb-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            {raidData.name}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span>
               {new Date(raidData.date).toLocaleDateString("en-US", {
                 timeZone: "UTC",
@@ -112,116 +204,26 @@ export function RaidDetailBase({
                 </Tooltip>
               </TooltipProvider>
             ) : null}
-          </div>
-        </div>
-        <div className="grow" />
-        <div className="grow-0 text-right text-muted-foreground">
-          <div className="whitespace-nowrap text-sm">
             <RaidAttendenceWeightBadge
               attendanceWeight={raidData.attendanceWeight}
               variant="prose"
             />
           </div>
-          <div className="mt-1.5 flex justify-end">
-            <ZoneBadge zoneName={raidData.zone} />
-          </div>
         </div>
-        {showEditButton && (
-          <div className="grow-0 align-text-top">
+        <div className="flex shrink-0 items-center gap-2.5">
+          <ZoneBadge zoneName={raidData.zone} />
+          {showEditButton && (
             <Link href={curPath + "/edit"}>
-              <Button className="py-5">
+              <Button>
                 <Edit />
                 Edit
               </Button>
             </Link>
-          </div>
-        )}
-      </div>
-
-      <div className="panel-surface mt-3 grid grid-cols-[auto_1fr_auto] items-start gap-6 divide-x divide-border/60 rounded-2xl border border-border/70 px-5 py-3.5">
-        {/* WCL Logs */}
-        <div className="min-w-0">
-          {showEditButton ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={handleRefreshAllLogs}
-                    disabled={isRefreshing}
-                    className="flex items-center gap-1 font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    WCL Logs
-                    <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="bg-secondary text-muted-foreground">
-                  <p>Refresh logs from WarcraftLogs</p>
-                  <p className="text-xs">Updates kills and attendees</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-              WCL Logs
-            </div>
           )}
-          <div className="mt-1 flex flex-wrap items-center gap-2 overflow-x-hidden">
-            {(raidData.raidLogIds ?? []).map((raidLogId) => {
-              const reportUrl = GenerateWCLReportUrl(raidLogId);
-              return (
-                <Link
-                  key={raidLogId}
-                  href={reportUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground transition-all duration-100 hover:text-primary hover:underline"
-                >
-                  {raidLogId}
-                  <ExternalLinkIcon className="ml-1 inline-block align-text-top" size={15} />
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Kills */}
-        <div className="min-w-0">
-          <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-            Kills {raidData.kills ? `(${raidData.kills.length})` : ""}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1 overflow-x-hidden text-nowrap">
-            {(raidData.kills ?? []).map((killName, i) => {
-              return (
-                <div
-                  key={`kill_${i}`}
-                  className="grow-0 rounded bg-secondary px-2 py-1 text-xs text-muted-foreground"
-                >
-                  {killName}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Creator Info */}
-        <div className="flex flex-col items-end">
-          <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-            Created By
-          </div>
-          <div className="mt-1">
-            <UserAvatar
-              name={raidData.creator?.name ?? ""}
-              image={raidData.creator?.image ?? ""}
-              tooltipSide="left"
-              showLabel={false}
-            />
-          </div>
         </div>
       </div>
 
       <Tabs
-        className="mt-4"
         value={canViewSignupLink ? activeTab : "overview"}
         onValueChange={(v) => {
           if ((RAID_DETAIL_TABS as readonly string[]).includes(v)) {
@@ -230,13 +232,15 @@ export function RaidDetailBase({
         }}
       >
         {canViewSignupLink && (
-          <TabsList>
-            <TabsTrigger value="overview">Attendance</TabsTrigger>
-            <TabsTrigger value="signups" className="gap-1.5">
+          <TabsList className={PILL_TAB_LIST_CLASSNAME}>
+            <TabsTrigger value="overview" className={PILL_TAB_TRIGGER_CLASSNAME}>
+              Attendance
+            </TabsTrigger>
+            <TabsTrigger value="signups" className={cn(PILL_TAB_TRIGGER_CLASSNAME, "gap-1.5")}>
               <RaidManagerOnlyIcon />
               Signup Timeline
             </TabsTrigger>
-            <TabsTrigger value="attendance" className="gap-1.5">
+            <TabsTrigger value="attendance" className={cn(PILL_TAB_TRIGGER_CLASSNAME, "gap-1.5")}>
               <RaidManagerOnlyIcon />
               Signups ↔ Attendees
             </TabsTrigger>
@@ -244,38 +248,172 @@ export function RaidDetailBase({
         )}
 
         <TabsContent value="overview" className="mt-3">
-          <div className="flex flex-wrap gap-2 py-1 xl:flex-nowrap">
-            <div className="w-full xl:w-1/2">
-              <div className="rounded-xl border bg-card p-3 text-card-foreground shadow-sm">
-                <div className="text-xl">Attendees from logs:</div>
-                <div className="my-1 flex justify-center">
-                  <CharacterSummaryGrid
-                    characters={raidParticipants ?? {}}
-                    numRows={Object.keys(raidParticipants ?? []).length > 25 ? 3 : 2}
-                  />
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div className="min-w-0 flex-1">
+              <div className="panel-surface overflow-hidden rounded-2xl border border-border/70">
+                <div className="flex items-baseline justify-between gap-3 border-b border-border/70 px-4 py-3">
+                  <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+                    Attendance · {attendeeCount} attendees, {benchCount} benched
+                  </div>
+                  <div className="text-xs text-muted-foreground">from WCL logs</div>
                 </div>
+                <div
+                  className={cn(
+                    "grid items-center gap-3 border-b border-border/50 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-muted-foreground",
+                    PARTICIPANT_GRID_COLS,
+                  )}
+                >
+                  <div>Character</div>
+                  <div>Credited to</div>
+                  <div>Status</div>
+                </div>
+                <div className="max-h-[min(46svh,32rem)] overflow-y-auto">
+                  {isLoadingParticipants ? (
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      Loading…
+                    </div>
+                  ) : participants.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      No participants found.
+                    </div>
+                  ) : (
+                    participants.map((p) => (
+                      <div
+                        key={p.characterId}
+                        className={cn(
+                          "grid items-center gap-3 border-b border-border/45 px-4 py-2.5 text-sm last:border-b-0",
+                          PARTICIPANT_GRID_COLS,
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <CharacterLink
+                            characterId={p.characterId}
+                            characterName={p.name}
+                            characterClass={p.class}
+                          />
+                        </div>
+                        <div className="truncate text-sm text-muted-foreground">
+                          {p.primaryCharacterName ?? "—"}
+                        </div>
+                        <ParticipantStatusCell status={p.status} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 text-center text-sm text-muted-foreground">
+                List of characters appearing in WCL logs, plus bench (available but not logged).
+                <br />
+                Alts are mapped to primary characters when calc&apos;ing attendance.
+              </div>
+            </div>
 
-                <CharactersTable
-                  characters={raidParticipants}
-                  isLoading={isLoadingParticipants}
-                  showRaidColumns={false}
+            <aside className="flex w-full shrink-0 flex-col gap-3 lg:w-[264px]">
+              <SidebarCard title="Composition" action={<span>{attendeeCount}</span>}>
+                {composition.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No data yet.</div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {composition.map((g) => (
+                      <div key={g.characterClass} className="flex items-center gap-2">
+                        <ClassIcon
+                          characterClass={g.characterClass.toLowerCase()}
+                          px={18}
+                          className="shrink-0 rounded-sm"
+                        />
+                        <span className="font-display w-4 shrink-0 text-right text-xs font-semibold">
+                          {g.count}
+                        </span>
+                        <span className="flex items-center gap-[3px]">
+                          {Array.from({ length: g.count }).map((_, i) => (
+                            <span
+                              key={i}
+                              className="h-[11px] w-[11px] shrink-0 rounded-[2px]"
+                              style={{
+                                backgroundColor:
+                                  AA_CLASS_COLORS[g.characterClass.toLowerCase()] ?? "#8a8a8a",
+                              }}
+                            />
+                          ))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SidebarCard>
+
+              <SidebarCard
+                title="WCL logs"
+                action={
+                  showEditButton ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={handleRefreshAllLogs}
+                            disabled={isRefreshing}
+                            className="flex items-center gap-1 text-[11px] text-primary transition-colors hover:text-primary/80 disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            <RefreshCw
+                              className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
+                            />
+                            Refresh
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-secondary text-muted-foreground">
+                          <p>Refresh logs from WarcraftLogs</p>
+                          <p className="text-xs">Updates kills and attendees</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : null
+                }
+              >
+                <div className="flex flex-col gap-1.5">
+                  {(raidData.raidLogIds ?? []).map((raidLogId) => {
+                    const reportUrl = GenerateWCLReportUrl(raidLogId);
+                    return (
+                      <Link
+                        key={raidLogId}
+                        href={reportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        {raidLogId}
+                        <ExternalLinkIcon size={13} className="shrink-0" />
+                      </Link>
+                    );
+                  })}
+                  {(raidData.raidLogIds ?? []).length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No logs linked.</div>
+                  ) : null}
+                </div>
+              </SidebarCard>
+
+              <SidebarCard title={`Kills${raidData.kills ? ` · ${raidData.kills.length}` : ""}`}>
+                <div className="flex flex-wrap gap-1.5">
+                  {(raidData.kills ?? []).map((killName, i) => (
+                    <span
+                      key={`kill_${i}`}
+                      className="rounded-lg bg-secondary px-2 py-1 text-xs text-muted-foreground"
+                    >
+                      {killName}
+                    </span>
+                  ))}
+                </div>
+              </SidebarCard>
+
+              <SidebarCard title="Created by">
+                <UserAvatar
+                  name={raidData.creator?.name ?? ""}
+                  image={raidData.creator?.image ?? ""}
+                  tooltipSide="left"
+                  showLabel
                 />
-                <div className="text-center text-sm text-muted-foreground">
-                  List of characters appearing in WCL logs. <br />
-                  Alts are mapped to primary characters when calc&apos;ing attendance.
-                </div>
-              </div>
-            </div>
-            <div className="w-full xl:w-1/2">
-              <div className="rounded-xl border bg-card p-3 text-card-foreground shadow-sm">
-                <div className="text-xl">Bench:</div>
-                <CharactersTable characters={raidData.bench} showRaidColumns={false} />
-                <Separator className="m-auto my-3" />
-                <div className="text-center text-sm text-muted-foreground">
-                  Characters available for raid but not appearing in logs (e.g. raid was full).
-                </div>
-              </div>
-            </div>
+              </SidebarCard>
+            </aside>
           </div>
         </TabsContent>
 
