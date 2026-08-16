@@ -61,35 +61,28 @@ function AttendanceCell({ attendance }: { attendance?: RosterAttendance }) {
 
 function MainRow({
   main,
-  hasAlts,
   attendance,
   isManager,
 }: {
   main: RaidParticipant;
-  hasAlts: boolean;
   attendance?: RosterAttendance;
   isManager: boolean;
 }) {
   return (
     <div className={cn("grid items-center gap-3 border-b border-border/45 px-4 py-2.5", GRID_COLS)}>
-      <div className="flex min-w-0 items-center gap-2">
+      <Link
+        href={`/characters/${main.characterId}`}
+        className="group flex min-w-0 items-center gap-2"
+      >
         <ClassIcon
           characterClass={main.class.toLowerCase()}
           px={22}
           className="shrink-0 rounded-sm"
         />
-        <Link
-          href={`/characters/${main.characterId}`}
-          className="truncate text-sm font-medium text-secondary-foreground transition-all hover:text-primary"
-        >
+        <span className="truncate text-sm font-medium text-secondary-foreground transition-all group-hover:text-primary">
           {main.name}
-        </Link>
-        {hasAlts ? (
-          <span className="font-display shrink-0 rounded-md border border-border/90 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-            main
-          </span>
-        ) : null}
-      </div>
+        </span>
+      </Link>
       <div className="truncate text-sm text-muted-foreground">{main.server}</div>
       <AttendanceCell attendance={attendance} />
       {isManager ? (
@@ -109,7 +102,7 @@ function AltRow({ alts }: { alts: RaidParticipant[] }) {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 border-b border-border/45 bg-muted/20 py-1.5 pl-[42px] pr-4",
+        "grid items-center gap-3 border-b border-border/45 bg-muted/20 py-1.5 pl-[42px] pr-4 opacity-60",
         GRID_COLS,
       )}
     >
@@ -119,12 +112,12 @@ function AltRow({ alts }: { alts: RaidParticipant[] }) {
           <Link
             key={alt.characterId}
             href={`/characters/${alt.characterId}`}
-            className="flex min-w-0 items-center gap-1.5 text-[13px] text-foreground/85 transition-all hover:text-primary"
+            className="flex min-w-0 items-center gap-1.5 text-[13px] text-foreground transition-all hover:text-primary"
           >
             <ClassIcon
               characterClass={alt.class.toLowerCase()}
               px={18}
-              className="shrink-0 rounded-sm opacity-85"
+              className="shrink-0 rounded-sm"
             />
             <span className="truncate">{alt.name}</span>
           </Link>
@@ -170,7 +163,6 @@ export function CharactersRosterList({
           <div key={main.characterId}>
             <MainRow
               main={main}
-              hasAlts={alts.length > 0}
               attendance={attendanceByCharacterId.get(main.characterId)}
               isManager={isManager}
             />
