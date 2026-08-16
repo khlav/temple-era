@@ -18,6 +18,7 @@ node_modules/
 .turbo/
 .vercel/
 *.tsbuildinfo
+node-compile-cache/
 
 # agent + session artifacts (these moved to root when .claude/ was hoisted,
 # so they are no longer covered by apps/web/.gitignore)
