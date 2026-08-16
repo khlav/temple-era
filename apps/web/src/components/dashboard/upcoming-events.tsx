@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import Link from "next/link";
+import { Card, CardContent } from "~/components/ui/card";
 import { api } from "~/trpc/react";
 import {
   Loader2,
@@ -182,12 +183,18 @@ export function UpcomingEvents({ session }: UpcomingEventsProps) {
 
   return (
     <Card className="relative h-full overflow-hidden">
-      <CardHeader className="pb-0">
-        <div className="flex items-center gap-1">
-          <span>Upcoming Events</span>
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Upcoming events
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+        <Link
+          href="/raid-plans"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
+        >
+          Raid plans
+        </Link>
+      </div>
+      <CardContent className="pt-4">
         {isLoading ? (
           <div className="flex h-24 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

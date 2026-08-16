@@ -135,20 +135,20 @@ export function UpcomingWorldBuffDrops() {
   const showJoinPrompt = !!session && !!myCharacterName && !amOnAnyList;
 
   return (
-    <div className="panel-surface rounded-2xl border border-border/70 p-4">
-      <div className="flex items-baseline justify-between gap-3">
+    <div className="panel-surface overflow-hidden rounded-2xl border border-border/70">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           Tuesday Buff Drops
         </div>
         <Link
           href="/world-buffs"
-          className="text-xs text-muted-foreground transition-colors hover:text-primary"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
         >
           World buffs
         </Link>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-3">
+      <div className={cn("flex flex-wrap gap-3 p-4", showJoinPrompt && "pb-3")}>
         {BUFF_SLOT_ORDER.map((buff) => {
           const assignment = assignmentByBuff.get(buff);
           const isMine =
@@ -159,7 +159,7 @@ export function UpcomingWorldBuffDrops() {
       </div>
 
       {showJoinPrompt && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3">
           <div className="text-[13px] text-muted-foreground">
             {myCharacterName} isn&apos;t on any drop list yet.
           </div>

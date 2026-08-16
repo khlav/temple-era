@@ -17,28 +17,31 @@ import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-we
 import { ExternalLinkIcon } from "lucide-react";
 import { AttendanceStatusIcon } from "~/components/ui/attendance-status-icon";
 import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skeletons";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { ZoneBadge } from "~/components/ui/zone-badge";
 
 export function RecentTrackedRaids() {
   const { data: trackedRaidData, isLoading } = api.dashboard.getTrackedRaidsL6LockoutWk.useQuery();
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-end text-nowrap">
-          <div className="grow-0">Raids from last 6 complete lockouts</div>
-          <div className="grow pb-0.5 text-right text-sm text-primary hover:underline">
-            <Link href="/raids">View all raids</Link>
-          </div>
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Raids from last 6 complete lockouts
         </div>
-        <div className="grow text-sm text-muted-foreground">
-          Used to calculate attendance & eligibility
-          {trackedRaidData &&
-            trackedRaidData.length > 0 &&
-            `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
-        </div>
-      </CardHeader>
+        <Link
+          href="/raids"
+          className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-primary"
+        >
+          View all raids
+        </Link>
+      </div>
+      <div className="px-4 pt-3 text-xs text-muted-foreground">
+        Used to calculate attendance & eligibility
+        {trackedRaidData &&
+          trackedRaidData.length > 0 &&
+          `, ${trackedRaidData.length} raid${trackedRaidData.length === 1 ? "" : "s"}`}
+      </div>
       <CardContent>
         <Table className="max-h-[400px] whitespace-nowrap text-muted-foreground">
           <TableCaption className="text-wrap"></TableCaption>

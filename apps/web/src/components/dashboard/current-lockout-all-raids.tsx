@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { api } from "~/trpc/react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { getInstanceIdForZoneName } from "~/lib/raid-zones";
@@ -51,24 +51,26 @@ export function CurrentLockoutAllRaids() {
   }, [trackedRaidData]);
 
   return (
-    <Card>
-      <CardHeader className="space-y-1 pb-3">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div className="grow-0">Completed raids this lockout</div>
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          Completed raids this lockout
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {!isLoading && (
+            <span className="text-xs text-muted-foreground">
+              {total} tracked{rangeLabel ? ` · ${rangeLabel}` : ""}
+            </span>
+          )}
           <Link
             href="/raids"
-            className="text-left text-sm text-primary hover:underline sm:text-right"
+            className="text-xs text-muted-foreground transition-colors hover:text-primary"
           >
             View all raids
           </Link>
         </div>
-        {!isLoading ? (
-          <div className="text-xs text-muted-foreground">
-            {total} tracked{rangeLabel ? ` · ${rangeLabel}` : ""}
-          </div>
-        ) : null}
-      </CardHeader>
-      <CardContent>
+      </div>
+      <CardContent className="pt-4">
         {isLoading ? (
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
             {Array.from({ length: 7 }).map((_, i) => (
