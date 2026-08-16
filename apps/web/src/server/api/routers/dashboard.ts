@@ -2,9 +2,9 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import {
   characters,
   raidLogs,
+  raids as raidsTable,
   reportDates,
   trackedRaidsCurrentLockout,
-  trackedRaidsL6LockoutWk,
   allRaidsCurrentLockout,
 } from "~/server/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -72,39 +72,52 @@ async function attachAttendedCharacter<T extends BaseRaidRow>(
 }
 
 export const dashboard = createTRPCRouter({
+  // Despite the procedure's name (kept for the client call site — see recent-tracked-raids.tsx),
+  // this deliberately queries the base `raid` table with the same 6-week date window as the
+  // `tracked_raids_l6lockoutwk` view, rather than the view itself — that view also filters to
+  // attendance_weight > 0, which every Onyxia/ZG/AQ20 raid in the guild's data fails (those zones
+  // are conventionally never marked as counting toward attendance), so the dashboard's "recent
+  // raids" widget silently never showed them. This widget is a raid history list, not an
+  // attendance calculator, so it shouldn't inherit that filter.
   getTrackedRaidsL6LockoutWk: publicProcedure.query(async ({ ctx }) => {
     const session = await ctx.getSession();
     const characterId = session?.user.characterId ?? -1;
 
     const raids = await ctx.db
       .select({
-        name: trackedRaidsL6LockoutWk.name,
-        raidId: trackedRaidsL6LockoutWk.raidId,
-        date: trackedRaidsL6LockoutWk.date,
-        attendanceWeight: trackedRaidsL6LockoutWk.attendanceWeight,
-        zone: trackedRaidsL6LockoutWk.zone,
+        name: raidsTable.name,
+        raidId: raidsTable.raidId,
+        date: raidsTable.date,
+        attendanceWeight: raidsTable.attendanceWeight,
+        zone: raidsTable.zone,
         currentUserAttendance: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
         raidLogIds: sql<string[]>`array_agg
             (${raidLogs.raidLogId})`,
       })
-      .from(trackedRaidsL6LockoutWk)
-      .leftJoin(raidLogs, eq(raidLogs.raidId, trackedRaidsL6LockoutWk.raidId))
+      .from(raidsTable)
+      .leftJoin(raidLogs, eq(raidLogs.raidId, raidsTable.raidId))
       .leftJoin(
         primaryRaidAttendeeAndBenchMap,
         and(
-          eq(trackedRaidsL6LockoutWk.raidId, primaryRaidAttendeeAndBenchMap.raidId),
+          eq(raidsTable.raidId, primaryRaidAttendeeAndBenchMap.raidId),
           eq(primaryRaidAttendeeAndBenchMap.primaryCharacterId, characterId),
         ),
       )
-      .groupBy((trackedRaidsL6LockoutWk) => [
-        trackedRaidsL6LockoutWk.name,
-        trackedRaidsL6LockoutWk.raidId,
-        trackedRaidsL6LockoutWk.date,
-        trackedRaidsL6LockoutWk.attendanceWeight,
-        trackedRaidsL6LockoutWk.zone,
+      .where(
+        and(
+          sql`${raidsTable.date} >= date_trunc('week', CURRENT_DATE - 1 - INTERVAL '6 weeks') + INTERVAL '1 day'`,
+          sql`${raidsTable.date} < date_trunc('week', CURRENT_DATE - 1) + INTERVAL '1 day'`,
+        ),
+      )
+      .groupBy(
+        raidsTable.name,
+        raidsTable.raidId,
+        raidsTable.date,
+        raidsTable.attendanceWeight,
+        raidsTable.zone,
         primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-      ])
-      .orderBy(desc(trackedRaidsL6LockoutWk.date));
+      )
+      .orderBy(desc(raidsTable.date));
 
     return attachAttendedCharacter(ctx.db, raids, characterId);
   }),
