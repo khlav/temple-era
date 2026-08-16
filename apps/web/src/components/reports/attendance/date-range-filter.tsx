@@ -43,7 +43,10 @@ export function DateRangeFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button
+          variant="outline"
+          className="h-9 rounded-full border-border/80 bg-card/70 text-xs font-normal"
+        >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {displayText}
         </Button>

@@ -31,7 +31,7 @@ export default async function AttendanceReportPage() {
 
   return (
     <main className="w-full">
-      <PageHeader title="Side-by-side attendance" className="mb-4" />
+      <PageHeader eyebrow="Reports" title="Side-by-side attendance" className="mb-4" />
 
       <Suspense fallback={<div>Loading...</div>}>
         <AttendanceReportClient
