@@ -71,6 +71,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
     NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: z.string().url(),
+    NEXT_PUBLIC_RAID_POLICY_URL: z.string().url(),
   },
 
   /**
@@ -113,6 +114,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL: process.env.NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL,
+    NEXT_PUBLIC_RAID_POLICY_URL: process.env.NEXT_PUBLIC_RAID_POLICY_URL,
 
     NODE_ENV: process.env.NODE_ENV,
     GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION,

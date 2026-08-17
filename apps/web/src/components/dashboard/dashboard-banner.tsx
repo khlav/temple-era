@@ -9,9 +9,6 @@ import { ChevronDown, InfoIcon } from "lucide-react";
 import { env } from "~/env";
 
 export default function DashboardBanner({ session }: { session?: Session }) {
-  const raid_policy_channel_url =
-    "https://discord.com/channels/1132586324264759390/1467931414048669981/1467957911551475722";
-
   // Default to expanded for unauthenticated users, collapsed for logged-in users
   const defaultOpen = !session?.user;
 
@@ -61,7 +58,7 @@ export default function DashboardBanner({ session }: { session?: Session }) {
                   and contacting an officer.{" "}
                   <Link
                     className="text-blue-500 hover:text-secondary-foreground hover:underline"
-                    href={raid_policy_channel_url}
+                    href={env.NEXT_PUBLIC_RAID_POLICY_URL}
                     target="_blank"
                   >
                     Learn more in Discord: <strong>Temple &gt; #raid-policies</strong>
