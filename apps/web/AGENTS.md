@@ -249,6 +249,7 @@ Optional:
 - `NEXT_PUBLIC_POSTHOG_KEY` - PostHog API key
 - `NEXT_PUBLIC_APP_URL` - Application URL
 - `NEXT_PUBLIC_RESTRICTED_NAXX_ITEMS_URL` - URL to restricted items spreadsheet
+- `NEXT_PUBLIC_RAID_POLICY_URL` - Discord link to the raid attendance/loot policy channel
 - `GOOGLE_SITE_VERIFICATION` - Google site verification token
 - `DISCORD_WEBHOOK_PUBLIC_KEY` - Discord webhook verification
 - `DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID` - Excludes this channel from `fetchScheduledEvents()` (see "Scheduled Jobs (QStash)" below) — Raid Helper's events list otherwise returns every event ever posted, unfiltered by age
