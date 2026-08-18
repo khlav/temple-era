@@ -20,7 +20,7 @@ interface CrafterListProps {
 export function CrafterList({
   characters,
   showInactiveCharacters,
-  maxVisible = 5,
+  maxVisible = 6,
 }: CrafterListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
