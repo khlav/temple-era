@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 import { Pencil, Check, ChevronDown } from "lucide-react";
 import { WOWHeadTooltips } from "~/components/misc/wowhead-tooltips";
+import { SpellIcon } from "~/components/ui/spell-icon";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -18,6 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/component
 import { usePersistedBooleanPreference } from "~/hooks/use-persisted-boolean-preference";
 import { useToast } from "~/hooks/use-toast";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
+import { ProfessionGlyph } from "~/lib/profession-icons";
 import { cn } from "~/lib/utils";
 
 interface CharacterRecipesProps {
@@ -28,13 +30,44 @@ interface CharacterRecipesProps {
 const WOWHEAD_SPELL_URL_BASE = "https://www.wowhead.com/classic/spell=";
 const RECIPES_CARD_COOKIE = "temple_character_recipes_open";
 
-function formatRecipeName(recipeName: string) {
-  return recipeName.replace(/^Enchant\s+/i, "");
+// Tier modifiers ("Greater Agility" vs "Lesser Agility") are redundant once the amount is
+// shown, and only ever prefix enchants — potions/elixirs like "Greater Arcane Elixir" or
+// "Greater Fire Protection Potion" use "Greater" as part of the actual item name, so the
+// strip is scoped to names that had the "Enchant " prefix to begin with.
+const ENCHANT_MODIFIER_RE = /\b(Greater|Lesser|Major|Minor|Superior|Mighty)\s+/gi;
+
+function formatRecipeName(recipeName: string, profession: string) {
+  let name = recipeName;
+
+  if (/^Enchant\s+/i.test(name)) {
+    name = name
+      .replace(/^Enchant\s+/i, "")
+      .replace(ENCHANT_MODIFIER_RE, "")
+      .replace(/\(([^)]+)\)/g, "$1")
+      .replace(/\bMana Regeneration\b/i, "Mana Regen")
+      .replace(/\bResistance\b/i, "Resist");
+  }
+
+  if (profession === "Alchemy") {
+    name = name.replace(/\bProtection Potion\b/gi, "Prot. Potion");
+  }
+
+  if (profession === "Cooking") {
+    name = name.replace(/\bChimaerok\b/gi, "Chim");
+  }
+
+  if (profession === "Engineering") {
+    name = name.replace(/\bAccurascope\b/gi, "Scope");
+  }
+
+  return name;
 }
 
-function sortRecipesByDisplayName<T extends { recipe: string }>(recipes: T[]) {
+function sortRecipesByDisplayName<T extends { recipe: string; profession: string }>(recipes: T[]) {
   return [...recipes].sort((a, b) =>
-    formatRecipeName(a.recipe).localeCompare(formatRecipeName(b.recipe)),
+    formatRecipeName(a.recipe, a.profession).localeCompare(
+      formatRecipeName(b.recipe, b.profession),
+    ),
   );
 }
 
@@ -47,6 +80,9 @@ export const CharacterRecipes = ({
     cookieName: RECIPES_CARD_COOKIE,
     defaultValue: true,
   });
+  // Optimistic overrides for in-flight toggles, keyed by recipeSpellId — lets the checkbox
+  // and label flip instantly instead of waiting on the mutation + query invalidation round trip.
+  const [optimisticKnown, setOptimisticKnown] = useState<Map<number, boolean>>(new Map());
   const { toast } = useToast();
   const characterId = character.characterId;
 
@@ -91,24 +127,20 @@ export const CharacterRecipes = ({
   // Get utils for invalidating queries
   const utils = api.useUtils();
 
+  // Drop a recipe's optimistic override once the mutation settles — by then either the
+  // invalidated queries already reflect the change, or onError has reverted the UI.
+  const clearOptimisticState = (recipeSpellId: number) => {
+    setOptimisticKnown((prev) => {
+      const next = new Map(prev);
+      next.delete(recipeSpellId);
+      return next;
+    });
+  };
+
   const addRecipeToCharacter = api.recipe.addRecipeToCharacter.useMutation({
-    onSuccess: async (data, variables) => {
-      // Invalidate both recipe queries to refresh data
+    onSuccess: async () => {
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
       await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-
-      // Find recipe name based on spellId
-      const recipe =
-        allRecipesWithCharacters?.find((r) => r.recipeSpellId === variables.recipeSpellId) ??
-        characterRecipes?.find((r) => r.recipeSpellId === variables.recipeSpellId);
-      const recipeName = recipe?.recipe ?? "Recipe";
-
-      const characterName = character.name;
-
-      toast({
-        title: "Recipe added",
-        description: `Added ${recipeName} to ${characterName}`,
-      });
     },
     onError: (error) => {
       toast({
@@ -120,23 +152,9 @@ export const CharacterRecipes = ({
   });
 
   const removeRecipeFromCharacter = api.recipe.removeRecipeFromCharacter.useMutation({
-    onSuccess: async (data, variables) => {
-      // Invalidate both recipe queries to refresh data
+    onSuccess: async () => {
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
       await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-
-      // Find recipe name based on spellId
-      const recipe =
-        allRecipesWithCharacters?.find((r) => r.recipeSpellId === variables.recipeSpellId) ??
-        characterRecipes?.find((r) => r.recipeSpellId === variables.recipeSpellId);
-      const recipeName = recipe?.recipe ?? "Recipe";
-
-      const characterName = character.name;
-
-      toast({
-        title: "Recipe removed",
-        description: `Removed ${recipeName} from ${characterName}`,
-      });
     },
     onError: (error) => {
       toast({
@@ -147,8 +165,20 @@ export const CharacterRecipes = ({
     },
   });
 
+  // Rapidly toggling the same recipe (check, then uncheck before the first request settles)
+  // fires two concurrent mutations whose server responses can arrive in either order — without
+  // sequencing, the persisted DB state can end up opposite the user's last click. Chaining each
+  // recipe's mutations onto its own promise queue forces them to hit the server in click order,
+  // and the sequence counter ensures only the settlement of the *latest* toggle clears the
+  // optimistic override (an earlier, now-superseded settlement must not stomp on it).
+  const pendingToggleRef = useRef<Map<number, Promise<unknown>>>(new Map());
+  const latestToggleSeqRef = useRef<Map<number, number>>(new Map());
+
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
+    if (optimisticKnown.has(recipeSpellId)) {
+      return optimisticKnown.get(recipeSpellId);
+    }
     if (isEditMode) {
       // In edit mode, check against allRecipesWithCharacters
       return allRecipesWithCharacters?.some(
@@ -164,17 +194,28 @@ export const CharacterRecipes = ({
 
   // Handle checkbox change
   const handleRecipeToggle = (recipeSpellId: number, isChecked: boolean) => {
-    if (isChecked) {
-      addRecipeToCharacter.mutate({
-        recipeSpellId,
-        characterId,
+    setOptimisticKnown((prev) => new Map(prev).set(recipeSpellId, isChecked));
+
+    const seq = (latestToggleSeqRef.current.get(recipeSpellId) ?? 0) + 1;
+    latestToggleSeqRef.current.set(recipeSpellId, seq);
+
+    const previous = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
+    const next = previous
+      .then(() =>
+        isChecked
+          ? addRecipeToCharacter.mutateAsync({ recipeSpellId, characterId })
+          : removeRecipeFromCharacter.mutateAsync({ recipeSpellId, characterId }),
+      )
+      .catch(() => {
+        // Already surfaced via the mutation's onError toast — just keep the queue moving.
+      })
+      .finally(() => {
+        if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
+          clearOptimisticState(recipeSpellId);
+        }
       });
-    } else {
-      removeRecipeFromCharacter.mutate({
-        recipeSpellId,
-        characterId,
-      });
-    }
+
+    pendingToggleRef.current.set(recipeSpellId, next);
   };
 
   // Handle clicking on recipe name in edit mode
@@ -245,9 +286,17 @@ export const CharacterRecipes = ({
                 <Accordion type="multiple" className="w-full">
                   {Object.entries(recipesByProfession ?? {}).map(([profession, recipes]) => (
                     <AccordionItem key={profession} value={profession}>
-                      <AccordionTrigger className="text-sm">{profession}</AccordionTrigger>
+                      <AccordionTrigger className="text-sm">
+                        <span className="flex items-center gap-2">
+                          <ProfessionGlyph
+                            profession={profession}
+                            className="text-muted-foreground"
+                          />
+                          {profession}
+                        </span>
+                      </AccordionTrigger>
                       <AccordionContent>
-                        <div className="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-y-2">
                           {sortRecipesByDisplayName(recipes).map((recipe) => {
                             const isKnown = characterKnowsRecipe(recipe.recipeSpellId);
                             return (
@@ -258,11 +307,8 @@ export const CharacterRecipes = ({
                                   onCheckedChange={(checked) =>
                                     handleRecipeToggle(recipe.recipeSpellId, checked as boolean)
                                   }
-                                  disabled={
-                                    addRecipeToCharacter.isPending ||
-                                    removeRecipeFromCharacter.isPending
-                                  }
                                 />
+                                <SpellIcon spellId={recipe.recipeSpellId} />
                                 <label
                                   htmlFor={`recipe-${recipe.recipeSpellId}`}
                                   className="min-w-0 flex-1 cursor-pointer text-sm leading-5"
@@ -270,16 +316,11 @@ export const CharacterRecipes = ({
                                   <Link
                                     href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
                                     target="_blank"
-                                    className="hover:underline"
+                                    className="text-muted-foreground hover:underline"
                                     onClick={(e) => handleRecipeClick(recipe.recipeSpellId, e)}
                                   >
-                                    {formatRecipeName(recipe.recipe)}
+                                    {formatRecipeName(recipe.recipe, recipe.profession)}
                                   </Link>
-                                  {recipe.isCommon && (
-                                    <span className="ml-1 text-xs italic text-muted-foreground">
-                                      Common
-                                    </span>
-                                  )}
                                 </label>
                               </div>
                             );
@@ -295,24 +336,26 @@ export const CharacterRecipes = ({
                   Object.entries(characterRecipesByProfession).length > 0 ? (
                     Object.entries(characterRecipesByProfession).map(([profession, recipes]) => (
                       <section key={profession} className="space-y-2">
-                        <div className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                          <ProfessionGlyph profession={profession} size={14} />
                           {profession}
                         </div>
-                        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-y-1.5">
                           {sortRecipesByDisplayName(recipes).map((recipe) => (
-                            <div key={recipe.recipeSpellId} className="min-w-0 text-sm leading-5">
-                              <Link
-                                href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
-                                target="_blank"
-                                className="hover:underline"
-                              >
-                                {formatRecipeName(recipe.recipe)}
-                              </Link>
-                              {recipe.isCommon && (
-                                <span className="ml-1 text-xs italic text-muted-foreground">
-                                  Common
-                                </span>
-                              )}
+                            <div
+                              key={recipe.recipeSpellId}
+                              className="flex min-w-0 items-center gap-2 text-sm leading-5"
+                            >
+                              <SpellIcon spellId={recipe.recipeSpellId} />
+                              <div className="min-w-0">
+                                <Link
+                                  href={`${WOWHEAD_SPELL_URL_BASE}${recipe.recipeSpellId}`}
+                                  target="_blank"
+                                  className="text-muted-foreground hover:underline"
+                                >
+                                  {formatRecipeName(recipe.recipe, recipe.profession)}
+                                </Link>
+                              </div>
                             </div>
                           ))}
                         </div>

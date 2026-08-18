@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { StatsCounter } from "~/components/rare-recipes/stats-counter";
 import { CraftersSummaryMessage } from "~/components/rare-recipes/crafters-summary-message";
 import { Checkbox } from "~/components/ui/checkbox";
+import { SpellIcon } from "~/components/ui/spell-icon";
 import type { RecipeWithCharacters } from "~/server/api/interfaces/recipe";
 import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -50,7 +51,7 @@ const PROFESSION_ORDER = [
   "Cooking",
 ];
 
-const GRID_COLS = "grid-cols-[26px_minmax(0,1.1fr)_minmax(0,1.3fr)_196px]";
+const GRID_COLS = "grid-cols-[minmax(0,1.7fr)_56px_minmax(0,1.3fr)_98px]";
 
 export const RecipesWithCrafters = () => {
   const isMobile = useIsMobile();
@@ -209,7 +210,7 @@ export const RecipesWithCrafters = () => {
                   ? `Search recipes, tags, or crafters... (e.g. ${placeholderSearch})`
                   : "Search recipes, tags, or crafters..."
               }
-              defaultValue={searchTerms || initialSearch}
+              defaultValue={searchTerms}
               onDebouncedChange={(v) => setSearchTerms(v ?? "")}
               isLoading={isLoading}
             />
@@ -273,7 +274,7 @@ export const RecipesWithCrafters = () => {
         </div>
 
         {/* Scrollable content area */}
-        <div className="min-h-[360px] overflow-y-auto overflow-x-hidden md:min-h-[600px]">
+        <div>
           <div className="space-y-4">
             {isLoading && (
               <div className="py-4 text-center text-gray-500 dark:text-gray-400">
@@ -318,13 +319,16 @@ export const RecipesWithCrafters = () => {
                                   <Badge variant="secondary">Most crafters</Badge>
                                 ) : null}
                               </div>
-                              <Link
-                                href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
-                                className="text-base font-semibold hover:underline"
-                                target="_blank"
-                              >
-                                {recipe.recipe}
-                              </Link>
+                              <div className="flex items-center gap-1.5">
+                                <SpellIcon spellId={recipe.recipeSpellId} />
+                                <Link
+                                  href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
+                                  className="min-w-0 text-base font-semibold hover:underline"
+                                  target="_blank"
+                                >
+                                  {recipe.recipe}
+                                </Link>
+                              </div>
                               {recipe.notes ? (
                                 <p className="text-sm text-muted-foreground">{recipe.notes}</p>
                               ) : null}
@@ -359,20 +363,25 @@ export const RecipesWithCrafters = () => {
                     )}
                   />
                 ) : (
-                  <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
+                  <div className="panel-subtle flex h-[calc(100vh-260px)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-border/70">
                     <WOWHeadTooltips />
                     <div
                       className={cn(
-                        "grid items-center gap-3.5 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
+                        "grid shrink-0 items-center gap-3.5 border-b border-border/70 bg-card/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-muted-foreground",
                         GRID_COLS,
                       )}
                     >
-                      <div />
                       <div>Recipe</div>
+                      <div>Prof.</div>
                       <div>Crafters</div>
                       <div>Tags</div>
                     </div>
-                    <div className="max-h-[min(60svh,40rem)] overflow-y-auto">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      {filteredRecipes.length === 0 && (
+                        <div className="flex h-full items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground">
+                          No recipes found matching your search
+                        </div>
+                      )}
                       {filteredRecipes.map((recipe) => (
                         <div
                           key={recipe.recipeSpellId}
@@ -381,25 +390,31 @@ export const RecipesWithCrafters = () => {
                             GRID_COLS,
                           )}
                         >
+                          <div className="flex min-w-0 items-start gap-1.5">
+                            <SpellIcon
+                              spellId={recipe.recipeSpellId}
+                              size={recipe.notes ? 36 : 18}
+                            />
+                            <div className="min-w-0">
+                              <Link
+                                href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
+                                className="hover:underline"
+                                target="_blank"
+                              >
+                                {recipe.recipe}
+                              </Link>
+                              {recipe.notes ? (
+                                <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground text-pretty">
+                                  {recipe.notes}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
                           <div
                             title={recipe.profession}
                             className="flex items-center justify-center text-muted-foreground"
                           >
-                            <ProfessionGlyph profession={recipe.profession} />
-                          </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={WOWHEAD_SPELL_URL_BASE + recipe.recipeSpellId}
-                              className="hover:underline"
-                              target="_blank"
-                            >
-                              {recipe.recipe}
-                            </Link>
-                            {recipe.notes ? (
-                              <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground text-pretty">
-                                {recipe.notes}
-                              </div>
-                            ) : null}
+                            <ProfessionGlyph profession={recipe.profession} size={22} />
                           </div>
                           <div className="min-w-0">
                             {recipe.isCommon ? (
@@ -426,7 +441,7 @@ export const RecipesWithCrafters = () => {
                                 key={index}
                                 variant="link"
                                 size="sm"
-                                className="h-3 p-0 text-xs font-normal text-muted-foreground opacity-70 transition-all duration-100 hover:opacity-100"
+                                className="h-3 border-0 bg-transparent p-0 text-xs font-normal text-muted-foreground opacity-70 transition-all duration-100 hover:opacity-100"
                                 onClick={() => handleTagClick(`#${tag}`)}
                                 onContextMenu={(e) => handleTagRightClick(`#${tag}`, e)}
                               >
@@ -437,12 +452,6 @@ export const RecipesWithCrafters = () => {
                         </div>
                       ))}
                     </div>
-
-                    {filteredRecipes.length === 0 && (
-                      <div className="py-8 text-center text-sm text-muted-foreground">
-                        No recipes found matching your search
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

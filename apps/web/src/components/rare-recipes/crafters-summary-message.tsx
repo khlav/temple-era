@@ -103,9 +103,9 @@ export const CraftersSummaryMessage = ({
   };
 
   return (
-    <Alert variant="default" className="border-chart-2 bg-secondary">
+    <Alert variant="default" className="rounded-2xl border-primary/40 bg-primary/10">
       <div className="flex gap-2">
-        <AlertCircle className="h-4 w-4 text-chart-2" />
+        <AlertCircle className="h-4 w-4 shrink-0 text-primary" />
         <AlertDescription className="text-muted-foreground">
           <span>{formatCraftersList()}</span> can help with all items in your search.
         </AlertDescription>
