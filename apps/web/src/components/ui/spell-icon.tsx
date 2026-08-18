@@ -12,10 +12,10 @@ export function SpellIcon({ spellId, size = 18 }: { spellId: number; size?: numb
 
   const showPlaceholder = loading || !icon || (!imgLoaded && !imgErrored);
 
-  // Fetch a CDN tier at least as large as the render size (and generally one tier up) so the
-  // browser downscales instead of upscaling — upscaling a same-size or smaller source is what
-  // produced the blurry/pixelated icons, especially on high-DPI displays.
-  const cdnSize = size <= 36 ? "medium" : "large";
+  // Fetch a CDN tier at least as large as the render size so the browser downscales instead of
+  // upscaling — upscaling a same-size or smaller source is what produced the blurry/pixelated
+  // icons. small/medium/large are native 18/36/56px, so this never upscales at any of our sizes.
+  const cdnSize = size <= 18 ? "small" : size <= 36 ? "medium" : "large";
 
   if (!loading && (!icon || imgErrored)) {
     return (
