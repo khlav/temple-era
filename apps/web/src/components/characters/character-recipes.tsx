@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 import { Pencil, Check, ChevronDown } from "lucide-react";
@@ -138,13 +138,11 @@ export const CharacterRecipes = ({
   };
 
   const addRecipeToCharacter = api.recipe.addRecipeToCharacter.useMutation({
-    onSuccess: async (data, variables) => {
+    onSuccess: async () => {
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
       await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-      clearOptimisticState(variables.recipeSpellId);
     },
-    onError: (error, variables) => {
-      clearOptimisticState(variables.recipeSpellId);
+    onError: (error) => {
       toast({
         title: "Failed to add recipe",
         description: error.message,
@@ -154,13 +152,11 @@ export const CharacterRecipes = ({
   });
 
   const removeRecipeFromCharacter = api.recipe.removeRecipeFromCharacter.useMutation({
-    onSuccess: async (data, variables) => {
+    onSuccess: async () => {
       await utils.recipe.getAllRecipesWithCharacters.invalidate();
       await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-      clearOptimisticState(variables.recipeSpellId);
     },
-    onError: (error, variables) => {
-      clearOptimisticState(variables.recipeSpellId);
+    onError: (error) => {
       toast({
         title: "Failed to remove recipe",
         description: error.message,
@@ -168,6 +164,15 @@ export const CharacterRecipes = ({
       });
     },
   });
+
+  // Rapidly toggling the same recipe (check, then uncheck before the first request settles)
+  // fires two concurrent mutations whose server responses can arrive in either order — without
+  // sequencing, the persisted DB state can end up opposite the user's last click. Chaining each
+  // recipe's mutations onto its own promise queue forces them to hit the server in click order,
+  // and the sequence counter ensures only the settlement of the *latest* toggle clears the
+  // optimistic override (an earlier, now-superseded settlement must not stomp on it).
+  const pendingToggleRef = useRef<Map<number, Promise<unknown>>>(new Map());
+  const latestToggleSeqRef = useRef<Map<number, number>>(new Map());
 
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
@@ -190,17 +195,27 @@ export const CharacterRecipes = ({
   // Handle checkbox change
   const handleRecipeToggle = (recipeSpellId: number, isChecked: boolean) => {
     setOptimisticKnown((prev) => new Map(prev).set(recipeSpellId, isChecked));
-    if (isChecked) {
-      addRecipeToCharacter.mutate({
-        recipeSpellId,
-        characterId,
+
+    const seq = (latestToggleSeqRef.current.get(recipeSpellId) ?? 0) + 1;
+    latestToggleSeqRef.current.set(recipeSpellId, seq);
+
+    const previous = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
+    const next = previous
+      .then(() =>
+        isChecked
+          ? addRecipeToCharacter.mutateAsync({ recipeSpellId, characterId })
+          : removeRecipeFromCharacter.mutateAsync({ recipeSpellId, characterId }),
+      )
+      .catch(() => {
+        // Already surfaced via the mutation's onError toast — just keep the queue moving.
+      })
+      .finally(() => {
+        if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
+          clearOptimisticState(recipeSpellId);
+        }
       });
-    } else {
-      removeRecipeFromCharacter.mutate({
-        recipeSpellId,
-        characterId,
-      });
-    }
+
+    pendingToggleRef.current.set(recipeSpellId, next);
   };
 
   // Handle clicking on recipe name in edit mode
