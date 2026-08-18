@@ -592,3 +592,42 @@ redacts `discordUserId`/`discordUsername` server-side for any session without
 "leak" Archon described doesn't reach the wire. Not fixed; the suggested "fix" (gating the
 client `useQuery` on `session`) would have been a no-op relative to the actual protection
 already in place.
+
+### PR #100 — `Recipe list polish: icons, layout, and search fixes` (noticket)
+Both reviewers active (`greptile` label added mid-loop after PR open). Greptile: 4/5 → 5/5,
+2 rounds. Archon: 1 finding raised and fixed, 2 rounds; 2 low-importance "code suggestions"
+both **confirmed false positives**, not fixed.
+
+**Confirmed real, fixed**: both reviewers independently caught the same race in
+`character-recipes.tsx`'s new optimistic recipe-toggle checkboxes — the per-call `disabled`
+guard had been deliberately removed this same PR (per explicit user request for a truly
+optimistic UI), so a rapid check-then-uncheck of the same recipe fired two concurrent
+mutations. Whichever `onSuccess`/`onError` settled first called a shared
+`clearOptimisticState(recipeSpellId)`, wiping out the *other*, still-in-flight toggle's
+optimistic value — and since the two HTTP requests had no ordering guarantee, the server's
+completion order could persist the opposite of the user's actual last click. Fixed by
+chaining each recipe's mutations onto its own promise queue (serializing them in click
+order) and gating the optimistic-state clear on a per-recipe sequence counter so only the
+*latest* queued toggle's settlement clears it.
+
+**Confirmed false positives** (Archon's `PR Code Suggestions`, both unchanged/stale across
+rounds — still tagged to an earlier commit than the round they appeared valid in):
+1. *"Keep enchant tier in displayed names"* — claimed `formatRecipeName` strips the
+   `Greater`/`Lesser`/`Mighty` tier words "on the assumption that the amount is visible,
+   but no numeric amount is rendered anywhere in these rows." False: the same function
+   unwraps `(+N)` into `+N` (`.replace(/\(([^)]+)\)/g, "$1")`) rather than deleting it, so
+   the amount stays visible and is exactly what disambiguates same-name tiers (verified
+   with a standalone script against every real seeded recipe name — zero collisions).
+2. *"Derive panel height from layout"* — suggested replacing the Rare Recipes table's
+   `h-[calc(100vh-260px)]` with `flex-1`, calling the hardcoded offset fragile. False as
+   proposed: none of the panel's ancestors up to the nearest `display:flex` context use
+   `flex flex-col` (they're `space-y-*` stacks), so `flex-1` on the panel would be inert
+   and collapse it back to its `min-h-[480px]` floor — regressing the very
+   viewport-fill behavior the PR added. The `calc(100vh-Npx)` pattern is also the
+   established convention elsewhere in this codebase (`character-manager.tsx`), not a
+   one-off hack.
+
+Second pattern-confirmation (after PR #97's `worldBuff.getAll` false positive) of Archon
+producing a structurally-confident claim ("no amount is rendered anywhere", "the parent
+flex context") that doesn't hold up against the actual file — worth checking claims like
+these against the real DOM/layout chain rather than the finding's own framing.
