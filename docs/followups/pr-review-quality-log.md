@@ -672,3 +672,27 @@ every prior review. Third occurrence of this log's core pattern (PR #52, #97): a
 structurally-confident claim about shape/cardinality that a direct schema read disproves in
 under a minute. Not fixed — adding an `orderBy` here would paper over a non-problem and
 diverge from the established sibling pattern for no reason.
+
+**Round 2** (after the `greptile` label was added and substantial live-feedback iteration
+had landed post-round-1): Greptile's check never appeared within the grace window despite
+the label being present — treated as unavailable per the skill's rule, not waited out.
+Archon's Reviewer Guide (the freshness-authoritative comment, correctly tagged to the actual
+current HEAD) surfaced exactly **1 new finding**, confirmed real and fixed:
+1. `OriginIcon` (added later in the session, after round 1, for the direction-aware
+   transition icons) passed a signup's raw `className` straight into `ClassIcon`. Raid
+   Helper reports tank signups with `className` literally `"Tank"` — not a real class, only
+   resolvable via `specName` — so `classifySignupBucket("Tank")` falls through to
+   `"confirmed"` and the component requested a nonexistent `class_tank.png`, silently
+   breaking the icon for the common case of a tank changing signup state. Fixed by resolving
+   through `resolveSignupClass` like every other render path in the file already did; while
+   in there, applied the identical fix to `memberTooltipText`'s "…from X" text (same raw-
+   `className` bug, just text instead of an image — not separately flagged by Archon, but
+   the same root cause).
+
+Archon's **Code Suggestions** comment in this same round re-listed items 2–4 from round 1
+verbatim — all three already fixed/disproven in the current code (verified directly against
+the file, not just against the log). This is the known repo-specific gotcha in play: the
+Code Suggestions comment doesn't reliably re-tag to the latest commit the way the Reviewer
+Guide does, so it can echo stale findings from earlier in a long-lived PR's history. Treat
+the Reviewer Guide as the authoritative "what's actually new" signal and cross-check Code
+Suggestions against the real file before spending a round on it.

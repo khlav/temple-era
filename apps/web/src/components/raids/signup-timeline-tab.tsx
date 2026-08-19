@@ -78,20 +78,27 @@ function stateNameClass(state: SignupChangeState): string {
 /** The origin-specific icon for a move/switch chip — a real class shows that class's own
  * icon; a non-class status (Bench/Tentative/Late reuse their own status icon, Absence/
  * Absent gets a dedicated one) shows its status icon. Lets the icon itself say where
- * someone came from without needing the tooltip. */
-function OriginIcon({ fromClassName }: { fromClassName: string }) {
-  if (classifySignupBucket(fromClassName) === "confirmed") {
+ * someone came from without needing the tooltip.
+ *
+ * Takes the full signup entry, not just className — Raid Helper reports tank signups
+ * with className literally "Tank" (the real class lives in specName), so classifying
+ * "confirmed" isn't enough on its own; the class icon needs resolveSignupClass to know
+ * which class's icon to render. */
+function OriginIcon({ from }: { from: TimelineSignupEntry }) {
+  if (classifySignupBucket(from.className) === "confirmed") {
+    const resolvedClass = resolveSignupClass(from);
+    if (!resolvedClass) return null;
     return (
       <ClassIcon
-        characterClass={fromClassName.toLowerCase()}
+        characterClass={resolvedClass.toLowerCase()}
         px={12}
         className="rounded-[3px] opacity-75"
       />
     );
   }
-  const StatusIcon = ABSENT_SIGNUP_CLASS_NAMES.has(fromClassName)
+  const StatusIcon = ABSENT_SIGNUP_CLASS_NAMES.has(from.className)
     ? UserX
-    : RAIDHELPER_STATUS_ICONS[fromClassName];
+    : RAIDHELPER_STATUS_ICONS[from.className];
   return StatusIcon ? <StatusIcon className="h-3 w-3" /> : null;
 }
 
@@ -110,7 +117,7 @@ function transitionIcon(member: RoleGroupMember): React.ReactNode {
     return (
       <span className="inline-flex shrink-0 items-center gap-0.5 text-primary">
         <ArrowLeftRight className="h-3 w-3" />
-        <OriginIcon fromClassName={member.from.className} />
+        <OriginIcon from={member.from} />
       </span>
     );
   }
@@ -126,19 +133,26 @@ function transitionIcon(member: RoleGroupMember): React.ReactNode {
     return (
       <span className="inline-flex shrink-0 items-center gap-0.5 text-primary">
         <Direction className="h-3 w-3" />
-        <OriginIcon fromClassName={member.from.className} />
+        <OriginIcon from={member.from} />
       </span>
     );
   }
   return null;
 }
 
+/** The display name for a signup's class/status — resolves a real class (Raid Helper
+ * reports tanks as literal className "Tank") and falls back to the raw name for genuine
+ * non-class statuses (Bench/Tentative/Late/Absence), which don't resolve to a class. */
+function displaySignupName(entry: TimelineSignupEntry): string {
+  return resolveSignupClass(entry) ?? entry.className;
+}
+
 /** Tooltip text explaining a member's change — null (no tooltip) for a held member, or a
  * fresh arrival with no prior state worth naming. */
 function memberTooltipText(member: RoleGroupMember): string | null {
-  if (member.ghost) return member.to ? `…to ${member.to.className}` : "Left the event";
+  if (member.ghost) return member.to ? `…to ${displaySignupName(member.to)}` : "Left the event";
   if ((member.state === "moved" || member.state === "classSwitch") && member.from) {
-    return `…from ${member.from.className}`;
+    return `…from ${displaySignupName(member.from)}`;
   }
   return null;
 }
