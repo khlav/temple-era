@@ -31,7 +31,10 @@ import {
   type TimelineSlot,
 } from "~/lib/signup-timeline";
 
-const LOG_KINDS: ChangeLogKind[] = ["New", "Moved", "Class switch", "Left"];
+// "Left" (a signup vanishing from Raid Helper entirely) has no dedicated filter pill —
+// nobody can remove their own signup, only move to Absence, so the count is effectively
+// always 0. Departures still show up under "All" and in the log itself if one ever occurs.
+const LOG_KINDS: ChangeLogKind[] = ["New", "Moved", "Class switch"];
 
 // Held dots use CLASS_COLORS' rgba string directly at a slightly higher alpha (.34 vs the
 // constant's .28) for legibility at 11px — see the design handoff's "Held-dot alpha" note.
