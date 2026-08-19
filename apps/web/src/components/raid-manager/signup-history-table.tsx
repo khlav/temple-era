@@ -91,8 +91,14 @@ export function SignupHistoryTable() {
   // still-unmatched occurrences come from `unmatchedPastOccurrences` instead (our own
   // captured snapshots), same convention as the dashboard's upcoming-events widget.
   const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({ allowableHoursPastStart: 2 });
+  // Computed once per mount, not inline in the query call — a fresh `new Date()` on every
+  // render would change the query input each time, defeating caching and firing a refetch
+  // on every re-render.
+  const [pastLookbackFrom] = useState(
+    () => new Date(Date.now() - UNMATCHED_LOOKBACK_HOURS * 60 * 60 * 1000),
+  );
   const pastSnapshotsQuery = api.raidSignupLink.unmatchedPastOccurrences.useQuery({
-    startTimeFrom: new Date(Date.now() - UNMATCHED_LOOKBACK_HOURS * 60 * 60 * 1000),
+    startTimeFrom: pastLookbackFrom,
   });
 
   const invalidate = () => void utils.raidSignupLink.list.invalidate();
@@ -334,7 +340,7 @@ export function SignupHistoryTable() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {row.startTime > Date.now() ? "upcoming" : "no log yet"}
+                        {row.startTime > Date.now() ? "upcoming" : "no log"}
                       </Badge>
                     </TableCell>
                     <TableCell>
