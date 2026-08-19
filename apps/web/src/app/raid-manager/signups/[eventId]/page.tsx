@@ -51,7 +51,7 @@ export default async function SignupTimelinePage({
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Signup History
+        Link Signups &lt;-&gt; Raids
       </Link>
       <h2 className="mt-2 text-3xl font-bold tracking-tight">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">

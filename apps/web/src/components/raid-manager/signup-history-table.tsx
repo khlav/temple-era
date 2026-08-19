@@ -218,7 +218,7 @@ export function SignupHistoryTable() {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs italic text-muted-foreground">
-                        Not yet linked — no raid log for this event yet
+                        Not linked - no raid log for this event yet
                       </span>
                     </TableCell>
                     <TableCell>
