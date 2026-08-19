@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, CornerDownRight, UserX } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, UserX } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { ClassIcon } from "~/components/ui/class-icon";
@@ -14,6 +14,7 @@ import {
   buildChangeLog,
   buildTimeline,
   checkpointTickLabel,
+  classifySignupBucket,
   computeCheckpointDelta,
   computeSignupStates,
   findPreviousCapturedIndex,
@@ -71,61 +72,85 @@ function stateNameClass(state: SignupChangeState): string {
   }
 }
 
-/** The origin-specific icon for a "moved" chip — Bench/Tentative/Late reuse their own
- * status icon, Absence/Absent gets a dedicated one, so the icon itself says where someone
- * came from without needing the tooltip. */
-function originStatusIcon(fromClassName: string) {
-  if (ABSENT_SIGNUP_CLASS_NAMES.has(fromClassName)) return UserX;
-  return RAIDHELPER_STATUS_ICONS[fromClassName];
-}
-
-/** A small icon rather than inline "↓ from X" / "⇄ was X" text — keeps dense name lists
- * compact, with the exact detail on hover, but the icon itself (a status icon for a bucket
- * move, the prior class's own icon for a class switch) is enough to tell at a glance where
- * someone came from without hovering. */
-function MoveChip({ member }: { member: RoleGroupMember }) {
-  if (member.state === "moved" && member.from) {
-    const OriginIcon = originStatusIcon(member.from.className);
+/** The origin-specific icon for a move/switch chip — a real class shows that class's own
+ * icon; a non-class status (Bench/Tentative/Late reuse their own status icon, Absence/
+ * Absent gets a dedicated one) shows its status icon. Lets the icon itself say where
+ * someone came from without needing the tooltip. */
+function OriginIcon({ fromClassName }: { fromClassName: string }) {
+  if (classifySignupBucket(fromClassName) === "confirmed") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className="inline-flex shrink-0 items-center gap-0.5 text-primary"
-            aria-label={`Moved from ${member.from.className}`}
-          >
-            <CornerDownRight className="h-3 w-3" />
-            {OriginIcon ? <OriginIcon className="h-3 w-3" /> : null}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent className="bg-secondary text-muted-foreground">
-          Moved from {member.from.className}
-        </TooltipContent>
-      </Tooltip>
+      <ClassIcon
+        characterClass={fromClassName.toLowerCase()}
+        px={12}
+        className="rounded-[3px] opacity-75"
+      />
     );
   }
+  const StatusIcon = ABSENT_SIGNUP_CLASS_NAMES.has(fromClassName)
+    ? UserX
+    : RAIDHELPER_STATUS_ICONS[fromClassName];
+  return StatusIcon ? <StatusIcon className="h-3 w-3" /> : null;
+}
+
+/**
+ * A small icon rather than inline "↓ from X" / "⇄ was X" text — keeps dense name lists
+ * compact, with the exact detail on hover. The direction arrow encodes the transition
+ * *type*, the paired OriginIcon encodes *what it was*:
+ * - joined a real class from a non-class status (Bench/Tentative/Late/Absence) -> up arrow
+ * - left a real class for a non-class status -> down arrow
+ * - switched between two real classes, or between two non-class statuses -> the
+ *   left-then-right double arrow (not a single bidirectional glyph)
+ */
+function MoveChip({ member }: { member: RoleGroupMember }) {
   if (member.state === "classSwitch" && member.from) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className="inline-flex shrink-0 items-center gap-0.5"
-            aria-label={`Was ${member.from.className}`}
-          >
-            <ArrowLeftRight className="h-3 w-3 text-primary" />
-            <ClassIcon
-              characterClass={member.from.className.toLowerCase()}
-              px={12}
-              className="rounded-[3px] opacity-75"
-            />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent className="bg-secondary text-muted-foreground">
-          Was {member.from.className}
-        </TooltipContent>
-      </Tooltip>
+      <MoveChipIcon
+        Direction={ArrowLeftRight}
+        fromClassName={member.from.className}
+        label={`Was ${member.from.className}`}
+      />
+    );
+  }
+  if (member.state === "moved" && member.from) {
+    const fromBucket = classifySignupBucket(member.from.className);
+    const toBucket = classifySignupBucket(member.signup.className);
+    const Direction =
+      fromBucket !== "confirmed" && toBucket === "confirmed"
+        ? ArrowUp
+        : fromBucket === "confirmed" && toBucket !== "confirmed"
+          ? ArrowDown
+          : ArrowLeftRight;
+    return (
+      <MoveChipIcon
+        Direction={Direction}
+        fromClassName={member.from.className}
+        label={`Moved from ${member.from.className}`}
+      />
     );
   }
   return null;
+}
+
+function MoveChipIcon({
+  Direction,
+  fromClassName,
+  label,
+}: {
+  Direction: React.ComponentType<{ className?: string }>;
+  fromClassName: string;
+  label: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex shrink-0 items-center gap-0.5 text-primary" aria-label={label}>
+          <Direction className="h-3 w-3" />
+          <OriginIcon fromClassName={fromClassName} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="bg-secondary text-muted-foreground">{label}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function ClassIconWithState({ className, state }: { className: string; state: SignupChangeState }) {
