@@ -673,7 +673,7 @@ export function SignupTimelineView({
                   ri < TIMELINE_ROLE_ORDER.length - 1 && "border-b border-border/50",
                 )}
               >
-                <div className="w-24 flex-none">
+                <div className="w-20 flex-none">
                   <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                     {role}
                   </div>
