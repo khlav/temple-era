@@ -848,9 +848,25 @@ function BucketCard({
   );
 }
 
+/** Same direction convention as transitionIcon (used in the role breakdown): down = left a
+ * real class for a non-class status, up = the inverse, left-right = a lateral switch
+ * (class<->class or non-class-status<->non-class-status). */
+function changeLogGlyph(row: ChangeLogRow): React.ReactNode {
+  if (row.kind === "New") return "+";
+  if (row.kind === "Left") return "−";
+  if (row.kind === "Class switch") return <ArrowLeftRight className="h-3 w-3" />;
+  const fromBucket = row.from ? classifySignupBucket(row.from.className) : null;
+  const toBucket = classifySignupBucket(row.signup.className);
+  const Icon =
+    fromBucket === "confirmed" && toBucket !== "confirmed"
+      ? ArrowDown
+      : fromBucket !== "confirmed" && toBucket === "confirmed"
+        ? ArrowUp
+        : ArrowLeftRight;
+  return <Icon className="h-3 w-3" />;
+}
+
 function ChangeLogRowView({ row }: { row: ChangeLogRow }) {
-  const glyph =
-    row.kind === "New" ? "+" : row.kind === "Left" ? "−" : row.kind === "Moved" ? "↕" : "⇄";
   const glyphColor =
     row.kind === "New" ? "text-chart-2" : row.kind === "Left" ? "text-destructive" : "text-primary";
   const state: SignupChangeState =
@@ -868,7 +884,14 @@ function ChangeLogRowView({ row }: { row: ChangeLogRow }) {
 
   return (
     <div className="flex items-center gap-2 border-b border-border/45 px-3 py-2 last:border-b-0">
-      <span className={cn("w-3 flex-none text-center font-mono text-xs", glyphColor)}>{glyph}</span>
+      <span
+        className={cn(
+          "flex w-3 flex-none items-center justify-center font-mono text-xs",
+          glyphColor,
+        )}
+      >
+        {changeLogGlyph(row)}
+      </span>
       {resolvedClass ? (
         <ClassIconWithState className={resolvedClass} state={state} />
       ) : (
