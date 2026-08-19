@@ -45,6 +45,11 @@ function signupTimelineHref(eventId: string, startTimeMs: number) {
   return `/raid-manager/signups/${eventId}?startTime=${encodeURIComponent(new Date(startTimeMs).toISOString())}`;
 }
 
+// A raid's WCL log is usually imported within a few days, but shouldn't vanish from this
+// list just because it took longer — 30 days covers that lag without pulling in Raid
+// Helper's full, unbounded event history (TEMPLE-115).
+const UNMATCHED_EVENT_LOOKBACK_HOURS = 24 * 30;
+
 export function SignupHistoryTable() {
   const { toast } = useToast();
   const [reassignTarget, setReassignTarget] = useState<{ raidId: number; raidName: string } | null>(
@@ -60,7 +65,9 @@ export function SignupHistoryTable() {
 
   const utils = api.useUtils();
   const listQuery = api.raidSignupLink.list.useQuery();
-  const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({ allowableHoursPastStart: 1 });
+  const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({
+    allowableHoursPastStart: UNMATCHED_EVENT_LOOKBACK_HOURS,
+  });
 
   const invalidate = () => void utils.raidSignupLink.list.invalidate();
 
@@ -228,7 +235,9 @@ export function SignupHistoryTable() {
                       <span className="text-xs text-muted-foreground">—</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">upcoming</Badge>
+                      <Badge variant="outline">
+                        {row.startTime > Date.now() ? "upcoming" : "no log yet"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">—</span>
