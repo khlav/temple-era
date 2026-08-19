@@ -356,6 +356,14 @@ export interface RoleGroup {
 /** Groups *confirmed*-bucket signups by role then class. `states` should come from
  * computeSignupStates(prevCapturedSignups, signups) — pass an empty-map for "no comparison
  * available" (every member then defaults to "held"). */
+/** Stable partition: held members first (in their original relative order), then
+ * new/moved/classSwitch members. Without this, a newly-added or newly-changed signup lands
+ * wherever Raid Helper's own array happened to put them — often mid-list — rather than
+ * somewhere a reviewer would expect to find "what's different" at a glance. */
+function sortHeldFirst(members: RoleGroupMember[]): RoleGroupMember[] {
+  return [...members].sort((a, b) => (a.state === "held" ? 0 : 1) - (b.state === "held" ? 0 : 1));
+}
+
 export function groupByRole(
   signups: TimelineSignupEntry[],
   states: Map<string, SignupStateInfo>,
@@ -378,7 +386,7 @@ export function groupByRole(
   return TIMELINE_ROLE_ORDER.map((role) => {
     const classMap = byRole.get(role)!;
     const byClass = [...classMap.entries()]
-      .map(([className, members]) => ({ className, members }))
+      .map(([className, members]) => ({ className, members: sortHeldFirst(members) }))
       .sort((a, b) => b.members.length - a.members.length);
     return { role, members: byClass.flatMap((g) => g.members), byClass };
   });
@@ -391,9 +399,10 @@ export function groupByBucket(
   bucket: SignupBucket,
   states: Map<string, SignupStateInfo>,
 ): RoleGroupMember[] {
-  return signups
+  const members = signups
     .filter((s) => classifySignupBucket(s.className) === bucket)
     .map((signup) => ({ signup, ...(states.get(signup.userId) ?? { state: "held" as const }) }));
+  return sortHeldFirst(members);
 }
 
 export type ChangeLogKind = "New" | "Moved" | "Class switch" | "Left";

@@ -292,6 +292,27 @@ describe("groupByRole", () => {
     const tanks = groups.find((g) => g.role === "Tanks")!;
     expect(tanks.members).toHaveLength(0);
   });
+
+  it("sorts held members before new/changed ones within a class, held order preserved", () => {
+    const signups = [
+      signup({ userId: "new1", className: "Warrior", roleName: "Melee" }),
+      signup({ userId: "held1", className: "Warrior", roleName: "Melee" }),
+      signup({ userId: "held2", className: "Warrior", roleName: "Melee" }),
+      signup({ userId: "moved1", className: "Warrior", roleName: "Melee" }),
+    ];
+    const states = new Map<string, { state: "new" | "moved"; from?: TimelineSignupEntry }>([
+      ["new1", { state: "new" }],
+      ["moved1", { state: "moved" }],
+    ]);
+    const groups = groupByRole(signups, states);
+    const melee = groups.find((g) => g.role === "Melee")!;
+    expect(melee.byClass[0]!.members.map((m) => m.signup.userId)).toEqual([
+      "held1",
+      "held2",
+      "new1",
+      "moved1",
+    ]);
+  });
 });
 
 describe("groupByBucket", () => {

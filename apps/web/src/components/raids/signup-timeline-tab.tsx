@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowLeftRight, CornerDownRight, UserX } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Button } from "~/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { RAIDHELPER_STATUS_ICONS } from "~/components/raid-planner/constants";
+import { ABSENT_SIGNUP_CLASS_NAMES } from "~/lib/raid-signup-status";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
 import {
   buildChangeLog,
@@ -68,19 +71,58 @@ function stateNameClass(state: SignupChangeState): string {
   }
 }
 
+/** The origin-specific icon for a "moved" chip — Bench/Tentative/Late reuse their own
+ * status icon, Absence/Absent gets a dedicated one, so the icon itself says where someone
+ * came from without needing the tooltip. */
+function originStatusIcon(fromClassName: string) {
+  if (ABSENT_SIGNUP_CLASS_NAMES.has(fromClassName)) return UserX;
+  return RAIDHELPER_STATUS_ICONS[fromClassName];
+}
+
+/** A small icon rather than inline "↓ from X" / "⇄ was X" text — keeps dense name lists
+ * compact, with the exact detail on hover, but the icon itself (a status icon for a bucket
+ * move, the prior class's own icon for a class switch) is enough to tell at a glance where
+ * someone came from without hovering. */
 function MoveChip({ member }: { member: RoleGroupMember }) {
   if (member.state === "moved" && member.from) {
+    const OriginIcon = originStatusIcon(member.from.className);
     return (
-      <span className="ml-0.5 font-mono text-[10px] text-primary">
-        ↓ from {member.from.className}
-      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5 text-primary"
+            aria-label={`Moved from ${member.from.className}`}
+          >
+            <CornerDownRight className="h-3 w-3" />
+            {OriginIcon ? <OriginIcon className="h-3 w-3" /> : null}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="bg-secondary text-muted-foreground">
+          Moved from {member.from.className}
+        </TooltipContent>
+      </Tooltip>
     );
   }
   if (member.state === "classSwitch" && member.from) {
     return (
-      <span className="ml-0.5 font-mono text-[10px] text-primary">
-        ⇄ was {member.from.className}
-      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5"
+            aria-label={`Was ${member.from.className}`}
+          >
+            <ArrowLeftRight className="h-3 w-3 text-primary" />
+            <ClassIcon
+              characterClass={member.from.className.toLowerCase()}
+              px={12}
+              className="rounded-[3px] opacity-75"
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="bg-secondary text-muted-foreground">
+          Was {member.from.className}
+        </TooltipContent>
+      </Tooltip>
     );
   }
   return null;
@@ -138,19 +180,17 @@ function StatusName({ member }: { member: RoleGroupMember }) {
   );
 }
 
-function dotStyle(className: string, state: SignupChangeState, index: number): React.CSSProperties {
+function dotStyle(className: string, state: SignupChangeState): React.CSSProperties {
   const hex = CLASS_HEX[className] ?? "#8a8a8a";
   const rgb = CLASS_RGB[className] ?? "138,138,138";
-  const marginRight = index % 10 === 4 ? 5 : undefined;
-  if (state === "new") return { background: hex, marginRight };
+  if (state === "new") return { background: hex };
   if (state === "gone")
-    return { border: `1.5px dashed ${hex}`, boxSizing: "border-box", opacity: 0.75, marginRight };
+    return { border: `1.5px dashed ${hex}`, boxSizing: "border-box", opacity: 0.75 };
   if (state === "moved" || state === "classSwitch")
     return {
       background: `linear-gradient(45deg, hsl(var(--foreground) / .12) 0 48%, ${hex} 52% 100%)`,
-      marginRight,
     };
-  return { background: `rgba(${rgb},.34)`, marginRight };
+  return { background: `rgba(${rgb},.34)` };
 }
 
 function DeltaText({
@@ -166,11 +206,16 @@ function DeltaText({
     return <span className="text-muted-foreground">{suffix ? "no change" : "—"}</span>;
   const d = current - previous;
   if (d === 0)
-    return <span className="text-muted-foreground">no change{suffix ? ` ${suffix}` : ""}</span>;
+    return (
+      <span className="text-muted-foreground">
+        no change
+        {suffix ? <span className="block">{suffix}</span> : null}
+      </span>
+    );
   return (
     <span className={d > 0 ? "text-chart-2" : "text-destructive"}>
       {d > 0 ? `+${d}` : d}
-      {suffix ? ` ${suffix}` : ""}
+      {suffix ? <span className="block">{suffix}</span> : null}
     </span>
   );
 }
@@ -638,16 +683,16 @@ export function SignupTimelineView({
                         <span className="font-display w-5 flex-none text-right text-[13px] font-bold leading-[18px]">
                           {g.members.length}
                         </span>
-                        <span className="flex w-[165px] flex-none flex-wrap gap-[5px] pt-[3px]">
-                          {g.members.map((m, i) => (
+                        <span className="grid flex-none grid-cols-[repeat(5,11px)] gap-x-[5px] gap-y-1 pt-[3px]">
+                          {g.members.map((m) => (
                             <span
                               key={m.signup.userId}
                               className="h-[11px] w-[11px] flex-none rounded-[2px]"
-                              style={dotStyle(g.className, m.state, i)}
+                              style={dotStyle(g.className, m.state)}
                             />
                           ))}
                         </span>
-                        <span className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-2">
+                        <span className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-1">
                           {g.members.map((m) => (
                             <SignupName key={m.signup.userId} member={m} />
                           ))}
