@@ -94,9 +94,13 @@ export function SignupHistoryTable() {
 
   const rows = useMemo<HistoryRow[]>(() => {
     const links = listQuery.data ?? [];
-    const matchedKeys = new Set(
-      links.map((link) => `${link.raidHelperEventId}:${new Date(link.startTime).getTime()}`),
-    );
+    // Keyed on raidHelperEventId alone, not the occurrence's exact startTime: Raid
+    // Helper reuses one stable "channel" event id across a recurring event's weekly
+    // occurrences, and the live scheduled-events list's startTime for that id can drift
+    // slightly from what got captured (and linked) for a given week — an exact-tuple
+    // match let an already-linked event reappear as a false "unmatched" duplicate once
+    // the lookback window was wide enough to expose the drift (TEMPLE-115).
+    const matchedEventIds = new Set(links.map((link) => link.raidHelperEventId));
 
     const matchedRows: HistoryRow[] = links.map((link) => ({
       kind: "matched",
@@ -105,7 +109,7 @@ export function SignupHistoryTable() {
     }));
 
     const unmatchedRows: HistoryRow[] = (scheduledQuery.data ?? [])
-      .filter((event) => !matchedKeys.has(`${event.id}:${event.startTime * 1000}`))
+      .filter((event) => !matchedEventIds.has(event.id))
       .map((event) => ({ kind: "unmatched", startTime: event.startTime * 1000, event }));
 
     return [...matchedRows, ...unmatchedRows].sort((a, b) => b.startTime - a.startTime);
