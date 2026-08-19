@@ -313,6 +313,56 @@ describe("groupByRole", () => {
       "moved1",
     ]);
   });
+
+  it("shows a ghost at the old class when someone class-switches away from it", () => {
+    const prev = [signup({ userId: "ramson", className: "Rogue", roleName: "Melee" })];
+    const next = [
+      signup({
+        userId: "ramson",
+        className: "Druid",
+        specName: "Restoration",
+        roleName: "Healers",
+      }),
+    ];
+    const states = computeSignupStates(prev, next);
+    const groups = groupByRole(next, states);
+
+    const melee = groups.find((g) => g.role === "Melee")!;
+    expect(melee.members).toHaveLength(0); // real headcount excludes the ghost
+    const rogueGhosts = melee.byClass.find((c) => c.className === "Rogue")!;
+    expect(rogueGhosts.members).toHaveLength(1);
+    expect(rogueGhosts.members[0]).toMatchObject({ state: "gone", ghost: true });
+    expect(rogueGhosts.members[0]!.signup.userId).toBe("ramson");
+    expect(rogueGhosts.members[0]!.to?.className).toBe("Druid");
+
+    const healers = groups.find((g) => g.role === "Healers")!;
+    expect(healers.members).toHaveLength(1);
+    expect(healers.members[0]).toMatchObject({ state: "classSwitch" });
+    expect(healers.members[0]!.ghost).toBeFalsy();
+  });
+
+  it("shows a ghost when someone leaves confirmed for a non-class status", () => {
+    const prev = [signup({ userId: "1", className: "Mage", roleName: "Ranged" })];
+    const next = [signup({ userId: "1", className: "Bench" })];
+    const states = computeSignupStates(prev, next);
+    const groups = groupByRole(next, states); // "next" has no confirmed signups at all
+
+    const ranged = groups.find((g) => g.role === "Ranged")!;
+    expect(ranged.members).toHaveLength(0);
+    expect(ranged.byClass[0]).toMatchObject({ className: "Mage" });
+    expect(ranged.byClass[0]!.members[0]).toMatchObject({ state: "gone", ghost: true });
+  });
+
+  it("shows a ghost when someone leaves the event entirely", () => {
+    const prev = [signup({ userId: "1", className: "Priest", roleName: "Healers" })];
+    const next: TimelineSignupEntry[] = [];
+    const states = computeSignupStates(prev, next);
+    const groups = groupByRole(next, states);
+
+    const healers = groups.find((g) => g.role === "Healers")!;
+    expect(healers.members).toHaveLength(0);
+    expect(healers.byClass[0]!.members[0]).toMatchObject({ state: "gone", ghost: true });
+  });
 });
 
 describe("groupByBucket", () => {

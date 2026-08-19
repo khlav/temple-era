@@ -93,22 +93,22 @@ function OriginIcon({ fromClassName }: { fromClassName: string }) {
 }
 
 /**
- * A small icon rather than inline "↓ from X" / "⇄ was X" text — keeps dense name lists
- * compact, with the exact detail on hover. The direction arrow encodes the transition
- * *type*, the paired OriginIcon encodes *what it was*:
+ * The direction + origin icon pair for a moved/classSwitch entry — no tooltip of its own.
+ * The direction arrow encodes the transition *type*, the paired OriginIcon encodes *what
+ * it was*:
  * - joined a real class from a non-class status (Bench/Tentative/Late/Absence) -> up arrow
  * - left a real class for a non-class status -> down arrow
  * - switched between two real classes, or between two non-class statuses -> the
  *   left-then-right double arrow (not a single bidirectional glyph)
+ * The whole entry (icon + name + this) is the tooltip's hit area — see EntryTooltip.
  */
-function MoveChip({ member }: { member: RoleGroupMember }) {
+function transitionIcon(member: RoleGroupMember): React.ReactNode {
   if (member.state === "classSwitch" && member.from) {
     return (
-      <MoveChipIcon
-        Direction={ArrowLeftRight}
-        fromClassName={member.from.className}
-        label={`Was ${member.from.className}`}
-      />
+      <span className="inline-flex shrink-0 items-center gap-0.5 text-primary">
+        <ArrowLeftRight className="h-3 w-3" />
+        <OriginIcon fromClassName={member.from.className} />
+      </span>
     );
   }
   if (member.state === "moved" && member.from) {
@@ -121,34 +121,40 @@ function MoveChip({ member }: { member: RoleGroupMember }) {
           ? ArrowDown
           : ArrowLeftRight;
     return (
-      <MoveChipIcon
-        Direction={Direction}
-        fromClassName={member.from.className}
-        label={`Moved from ${member.from.className}`}
-      />
+      <span className="inline-flex shrink-0 items-center gap-0.5 text-primary">
+        <Direction className="h-3 w-3" />
+        <OriginIcon fromClassName={member.from.className} />
+      </span>
     );
   }
   return null;
 }
 
-function MoveChipIcon({
-  Direction,
-  fromClassName,
-  label,
+/** Tooltip text explaining a member's change — null (no tooltip) for a held member, or a
+ * fresh arrival with no prior state worth naming. */
+function memberTooltipText(member: RoleGroupMember): string | null {
+  if (member.ghost) return member.to ? `Became ${member.to.className}` : "Left the event";
+  if (member.state === "moved" && member.from) return `Moved from ${member.from.className}`;
+  if (member.state === "classSwitch" && member.from) return `Was ${member.from.className}`;
+  return null;
+}
+
+/** The tooltip's hitbox is the whole entry (icon, name, and transition chip together),
+ * not just the small chip icon — easier to hover, and the detail is relevant to the
+ * whole row, not just the chip. */
+function EntryTooltip({
+  member,
+  children,
 }: {
-  Direction: React.ComponentType<{ className?: string }>;
-  fromClassName: string;
-  label: string;
+  member: RoleGroupMember;
+  children: React.ReactElement;
 }) {
+  const text = memberTooltipText(member);
+  if (!text) return children;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0 items-center gap-0.5 text-primary" aria-label={label}>
-          <Direction className="h-3 w-3" />
-          <OriginIcon fromClassName={fromClassName} />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="bg-secondary text-muted-foreground">{label}</TooltipContent>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent className="bg-secondary text-muted-foreground">{text}</TooltipContent>
     </Tooltip>
   );
 }
@@ -179,13 +185,15 @@ function ClassIconWithState({ className, state }: { className: string; state: Si
 function SignupName({ member }: { member: RoleGroupMember }) {
   const resolvedClass = resolveSignupClass(member.signup) ?? "Warrior";
   return (
-    <span className={cn("flex items-center gap-1.5 text-[13px]", stateNameClass(member.state))}>
-      <ClassIconWithState className={resolvedClass} state={member.state} />
-      <span style={member.state === "new" ? { color: CLASS_HEX[resolvedClass] } : undefined}>
-        {member.signup.name}
+    <EntryTooltip member={member}>
+      <span className={cn("flex items-center gap-1.5 text-[13px]", stateNameClass(member.state))}>
+        <ClassIconWithState className={resolvedClass} state={member.state} />
+        <span style={member.state === "new" ? { color: CLASS_HEX[resolvedClass] } : undefined}>
+          {member.signup.name}
+        </span>
+        {transitionIcon(member)}
       </span>
-      <MoveChip member={member} />
-    </span>
+    </EntryTooltip>
   );
 }
 
@@ -197,11 +205,13 @@ function SignupName({ member }: { member: RoleGroupMember }) {
 function StatusName({ member }: { member: RoleGroupMember }) {
   const StatusIcon = RAIDHELPER_STATUS_ICONS[member.signup.className];
   return (
-    <span className={cn("flex items-center gap-1.5 text-[13px]", stateNameClass(member.state))}>
-      {StatusIcon ? <StatusIcon className="h-3.5 w-3.5 shrink-0 opacity-70" /> : null}
-      <span>{member.signup.name}</span>
-      <MoveChip member={member} />
-    </span>
+    <EntryTooltip member={member}>
+      <span className={cn("flex items-center gap-1.5 text-[13px]", stateNameClass(member.state))}>
+        {StatusIcon ? <StatusIcon className="h-3.5 w-3.5 shrink-0 opacity-70" /> : null}
+        <span>{member.signup.name}</span>
+        {transitionIcon(member)}
+      </span>
+    </EntryTooltip>
   );
 }
 
@@ -706,7 +716,7 @@ export function SignupTimelineView({
                           className="mt-px shrink-0 rounded-[4px] opacity-90"
                         />
                         <span className="font-display w-5 flex-none text-right text-[13px] font-bold leading-[18px]">
-                          {g.members.length}
+                          {g.members.filter((m) => !m.ghost).length}
                         </span>
                         <span className="grid flex-none grid-cols-[repeat(5,11px)] gap-x-[5px] gap-y-1 pt-[3px]">
                           {g.members.map((m) => (
@@ -765,10 +775,12 @@ export function SignupTimelineView({
           <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-2">
             {(changesOnly ? absentMembers.filter((m) => m.state !== "held") : absentMembers).map(
               (m) => (
-                <span key={m.signup.userId} className={cn("text-[13px]", stateNameClass(m.state))}>
-                  {m.signup.name}
-                  <MoveChip member={m} />
-                </span>
+                <EntryTooltip key={m.signup.userId} member={m}>
+                  <span className={cn("text-[13px]", stateNameClass(m.state))}>
+                    {m.signup.name}
+                    {transitionIcon(m)}
+                  </span>
+                </EntryTooltip>
               ),
             )}
             {absentMembers.length === 0 ? (

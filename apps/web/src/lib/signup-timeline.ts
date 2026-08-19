@@ -340,6 +340,14 @@ export interface RoleGroupMember {
   signup: TimelineSignupEntry;
   state: SignupChangeState;
   from?: TimelineSignupEntry;
+  /** A synthetic "no longer here" entry — the prior class of a class switch, or the
+   * prior class of someone who left confirmed entirely (for a non-class status, or the
+   * event altogether). Rendered "gone"-styled (crossed out, dashed) at their *old*
+   * class/role so a headcount drop is never invisible, but excluded from every count. */
+  ghost?: boolean;
+  /** Where a ghost went — their current signup, when they're still on the roster
+   * (class switch, or moved to a non-class status). Absent for a full departure. */
+  to?: TimelineSignupEntry;
 }
 
 export interface RoleGroupClass {
@@ -349,21 +357,30 @@ export interface RoleGroupClass {
 
 export interface RoleGroup {
   role: TimelineRoleName;
+  /** Real (non-ghost) members only — drives the role's headcount number and delta. */
   members: RoleGroupMember[];
   byClass: RoleGroupClass[];
 }
 
-/** Groups *confirmed*-bucket signups by role then class. `states` should come from
- * computeSignupStates(prevCapturedSignups, signups) — pass an empty-map for "no comparison
- * available" (every member then defaults to "held"). */
 /** Stable partition: held members first (in their original relative order), then
- * new/moved/classSwitch members. Without this, a newly-added or newly-changed signup lands
- * wherever Raid Helper's own array happened to put them — often mid-list — rather than
- * somewhere a reviewer would expect to find "what's different" at a glance. */
+ * new/moved/classSwitch/ghost members. Without this, a newly-added or newly-changed
+ * signup lands wherever Raid Helper's own array happened to put them — often mid-list —
+ * rather than somewhere a reviewer would expect to find "what's different" at a glance. */
 function sortHeldFirst(members: RoleGroupMember[]): RoleGroupMember[] {
   return [...members].sort((a, b) => (a.state === "held" ? 0 : 1) - (b.state === "held" ? 0 : 1));
 }
 
+/**
+ * Groups *confirmed*-bucket signups by role then class. `states` should come from
+ * computeSignupStates(prevCapturedSignups, signups) — pass an empty map for "no comparison
+ * available" (every member then defaults to "held").
+ *
+ * Also synthesizes a ghost entry at anyone's *old* class/role when they moved away from
+ * a real class — a class switch (still confirmed, different class), a move out of
+ * confirmed into a non-class status, or a full departure. Without this, someone who
+ * switched from Rogue to Druid simply vanishes from the Rogue row with no visible trace,
+ * even though Rogue's headcount visibly dropped by one.
+ */
 export function groupByRole(
   signups: TimelineSignupEntry[],
   states: Map<string, SignupStateInfo>,
@@ -371,24 +388,46 @@ export function groupByRole(
   const byRole = new Map<TimelineRoleName, Map<string, RoleGroupMember[]>>(
     TIMELINE_ROLE_ORDER.map((role) => [role, new Map<string, RoleGroupMember[]>()]),
   );
+  const addMember = (role: TimelineRoleName, className: string, member: RoleGroupMember) => {
+    const classMap = byRole.get(role)!;
+    const list = classMap.get(className) ?? [];
+    list.push(member);
+    classMap.set(className, list);
+  };
 
   for (const signup of signups) {
     if (classifySignupBucket(signup.className) !== "confirmed") continue;
     const resolvedClass = resolveSignupClass(signup) ?? "Unknown";
     const role = resolveSignupRole(signup, resolvedClass === "Unknown" ? null : resolvedClass);
     const stateInfo = states.get(signup.userId) ?? { state: "held" as const };
-    const classMap = byRole.get(role)!;
-    const list = classMap.get(resolvedClass) ?? [];
-    list.push({ signup, ...stateInfo });
-    classMap.set(resolvedClass, list);
+    addMember(role, resolvedClass, { signup, ...stateInfo });
+  }
+
+  const signupsById = new Map(signups.map((s) => [s.userId, s]));
+  for (const [userId, info] of states) {
+    if (info.state !== "moved" && info.state !== "classSwitch" && info.state !== "gone") continue;
+    if (!info.from || classifySignupBucket(info.from.className) !== "confirmed") continue;
+    const fromResolvedClass = resolveSignupClass(info.from) ?? "Unknown";
+    const fromRole = resolveSignupRole(
+      info.from,
+      fromResolvedClass === "Unknown" ? null : fromResolvedClass,
+    );
+    // For a full departure there's no current entry to point at; for a class switch or a
+    // move out of confirmed, `to` is that same person's current (post-change) signup.
+    const to = info.state === "gone" ? undefined : signupsById.get(userId);
+    addMember(fromRole, fromResolvedClass, { signup: info.from, state: "gone", ghost: true, to });
   }
 
   return TIMELINE_ROLE_ORDER.map((role) => {
     const classMap = byRole.get(role)!;
     const byClass = [...classMap.entries()]
       .map(([className, members]) => ({ className, members: sortHeldFirst(members) }))
-      .sort((a, b) => b.members.length - a.members.length);
-    return { role, members: byClass.flatMap((g) => g.members), byClass };
+      .sort(
+        (a, b) =>
+          b.members.filter((m) => !m.ghost).length - a.members.filter((m) => !m.ghost).length,
+      );
+    const realMembers = byClass.flatMap((g) => g.members.filter((m) => !m.ghost));
+    return { role, members: realMembers, byClass };
   });
 }
 
