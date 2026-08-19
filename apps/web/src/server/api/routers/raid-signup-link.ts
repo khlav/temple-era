@@ -39,6 +39,7 @@ export const raidSignupLinkRouter = createTRPCRouter({
           name: raids.name,
           date: raids.date,
           zone: raids.zone,
+          attendanceWeight: raids.attendanceWeight,
         },
       })
       .from(raidSignupSnapshotLinks)
@@ -176,5 +177,30 @@ export const raidSignupLinkRouter = createTRPCRouter({
       );
 
       return { snapshots };
+    }),
+
+  /**
+   * Past occurrences we've captured a signup snapshot for, in the given window — the
+   * "past, not yet linked" half of the Signup Linking table's unmatched rows (TEMPLE-115).
+   * Deliberately sourced from OUR OWN captured snapshots rather than Raid Helper's live
+   * /events list: that list can carry drift or a second, separate posting for the exact
+   * same slot, which showed up as a false duplicate of an already-linked raid. A captured
+   * snapshot is the same ground truth generateSignupLinkCandidatesForRaid itself matches
+   * against, so it can't disagree with what's already linked the way the live list did.
+   */
+  unmatchedPastOccurrences: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ startTimeFrom: z.coerce.date() }))
+    .query(async ({ input }) => {
+      const occurrences = await getLatestSignupSnapshotsByOccurrence({
+        startTimeFrom: input.startTimeFrom,
+        startTimeTo: new Date(),
+      });
+
+      return occurrences.map((o) => ({
+        raidHelperEventId: o.raidHelperEventId,
+        startTime: o.startTime,
+        title: o.title,
+        signUpCount: o.signUpCount,
+      }));
     }),
 });

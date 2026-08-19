@@ -696,3 +696,40 @@ Code Suggestions comment doesn't reliably re-tag to the latest commit the way th
 Guide does, so it can echo stale findings from earlier in a long-lived PR's history. Treat
 the Reviewer Guide as the authoritative "what's actually new" signal and cross-check Code
 Suggestions against the real file before spending a round on it.
+
+### PR #102 — "Raid detail tab in URL; surface past unlogged raids in signup linking" (TEMPLE-115)
+Greptile ran unintentionally (label was added then removed within seconds — the async
+webhook had already fired; see `feedback_never_add_greptile_unprompted` memory, this
+should not recur). Confidence 4/5, 1 round. Archon: no score line, 1 round, 1 Reviewer
+Guide finding + 2 Code Suggestions (same underlying finding, different framing).
+
+**Confirmed real, fixed** (Greptile): "Time-only dedup hides occurrences" — the
+signup-linking table's unmatched-row filtering excluded a candidate occurrence from the
+table entirely whenever its start time fell within 15 minutes of an already-matched raid's
+start time, regardless of whether the Raid Helper event id actually matched. Since the
+manual-link dialog no longer accepts a raw event id (redesigned this same PR to a raid
+picker), a wrongly-suppressed occurrence had **no recovery path** — it would simply never
+appear again. Fixed by never hard-excluding on time-tolerance alone: only an exact event-id
+match is treated as "already linked and safe to hide"; a time-proximity-only match is kept
+in the table but annotated with a `possibleDuplicateOf` hint (the matched raid's or nearby
+candidate's name) so a human can judge it instead of the code silently deciding.
+
+**Confirmed false positive** (Archon Reviewer Guide + both Code Suggestions, same claim):
+"App Router desync" / "Sync tab URL with router state" — claimed `window.history.pushState`
+"is not guaranteed to re-render" `useSearchParams()`, calling it "undocumented,
+version-dependent behavior," and recommended `router.replace()` instead. Disproven by
+reading the actual installed Next.js 16.2.12 source
+(`node_modules/next/dist/client/components/app-router.js` lines 236, 249–251): the App
+Router explicitly patches `window.history.pushState`/`replaceState` for exactly this
+purpose, with the literal comment "Ensures usePathname and useSearchParams hold the newly
+provided url." Not a version-dependent accident — a documented, intentional feature, and
+the one this PR's own code comment already cited. Switching to `router.replace()` as
+suggested would have traded away the deliberate reason `pushState` was chosen in the first
+place (avoiding an RSC refetch on every tab click) for zero behavioral benefit. The second
+Code Suggestion in the same comment ("Skip duplicate tab history entries," re-clicking the
+active tab pushes a no-op history entry) was independent and valid — applied that one.
+
+Second confirmed case (after PR #101's `raidId` `.limit(1)` claim) where an Archon finding
+asserted a framework/library behavior as broken without checking the installed
+source — worth checking `node_modules` directly for any claim about a dependency's runtime
+behavior, the same way a schema read settles a cardinality claim.

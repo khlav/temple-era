@@ -21,11 +21,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
-import { formatRaidDate, formatEasternDateTime } from "~/lib/raid-formatting";
+import { formatEasternDateTime, formatRaidDate } from "~/lib/raid-formatting";
+import { ZoneBadge } from "~/components/ui/zone-badge";
+import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
+
+// No "zzz" — the Raid/RaidHelper Signup columns are dense enough without the timezone
+// abbreviation; every time on this page is Eastern anyway.
+const COMPACT_DATETIME_FORMAT = "EEE, MMM d 'at' h:mm a";
 
 const ZONE_QUALITY_LABEL: Record<string, string> = {
   exact_softres: "SoftRes match",
@@ -35,32 +47,65 @@ const ZONE_QUALITY_LABEL: Record<string, string> = {
 };
 
 type MatchedLink = RouterOutputs["raidSignupLink"]["list"][number];
-type ScheduledEvent = RouterOutputs["raidHelper"]["getScheduledEvents"][number];
+
+// An unmatched occurrence's fields, regardless of which source produced it — see the two
+// mapping sites in `rows` below.
+type UnmatchedOccurrence = {
+  raidHelperEventId: string;
+  startTime: number;
+  title: string;
+  signUpCount: number;
+  // Set when this occurrence's id doesn't exactly match anything already linked, but its
+  // start time lands close to something that does (or to another unmatched candidate) —
+  // a hint, not a verdict. Never used to hide the row: a distinct Raid Helper posting
+  // must always stay discoverable/linkable here, even one that turns out to be a stale
+  // duplicate of the named raid (TEMPLE-115).
+  possibleDuplicateOf?: string;
+};
 
 type HistoryRow =
   | { kind: "matched"; startTime: number; link: MatchedLink }
-  | { kind: "unmatched"; startTime: number; event: ScheduledEvent };
+  | { kind: "unmatched"; startTime: number; occurrence: UnmatchedOccurrence };
 
 function signupTimelineHref(eventId: string, startTimeMs: number) {
   return `/raid-manager/signups/${eventId}?startTime=${encodeURIComponent(new Date(startTimeMs).toISOString())}`;
 }
 
+// A raid's WCL log is usually imported within a few days, but shouldn't vanish from this
+// list just because it took longer — 30 days covers that lag without pulling in Raid
+// Helper's full, unbounded event history (TEMPLE-115).
+const UNMATCHED_LOOKBACK_HOURS = 24 * 30;
+
+// Duplicates across sources (two Raid Helper postings for the same slot, or a captured
+// snapshot vs. the live list drifting a few minutes apart) are collapsed if they land
+// within this tolerance of each other, rather than requiring exact equality (TEMPLE-115).
+const DUPLICATE_TOLERANCE_MS = 15 * 60 * 1000;
+
 export function SignupHistoryTable() {
   const { toast } = useToast();
-  const [reassignTarget, setReassignTarget] = useState<{ raidId: number; raidName: string } | null>(
-    null,
-  );
-  const [reassignEventId, setReassignEventId] = useState("");
-  const [reassignStartTime, setReassignStartTime] = useState("");
-  const parsedReassignStartTime = useMemo(() => {
-    if (!reassignStartTime.trim()) return null;
-    const parsed = new Date(reassignStartTime.trim());
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }, [reassignStartTime]);
+  const [reassignTarget, setReassignTarget] = useState<{
+    raidHelperEventId: string;
+    startTime: number;
+    title: string;
+  } | null>(null);
+  const [reassignRaidId, setReassignRaidId] = useState<string | null>(null);
 
   const utils = api.useUtils();
   const listQuery = api.raidSignupLink.list.useQuery();
-  const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({ allowableHoursPastStart: 1 });
+  const raidsQuery = api.raid.getRaids.useQuery();
+  // Only genuinely upcoming/just-started events need the live Raid Helper list — past,
+  // still-unmatched occurrences come from `unmatchedPastOccurrences` instead (our own
+  // captured snapshots), same convention as the dashboard's upcoming-events widget.
+  const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({ allowableHoursPastStart: 2 });
+  // Computed once per mount, not inline in the query call — a fresh `new Date()` on every
+  // render would change the query input each time, defeating caching and firing a refetch
+  // on every re-render.
+  const [pastLookbackFrom] = useState(
+    () => new Date(Date.now() - UNMATCHED_LOOKBACK_HOURS * 60 * 60 * 1000),
+  );
+  const pastSnapshotsQuery = api.raidSignupLink.unmatchedPastOccurrences.useQuery({
+    startTimeFrom: pastLookbackFrom,
+  });
 
   const invalidate = () => void utils.raidSignupLink.list.invalidate();
 
@@ -78,18 +123,32 @@ export function SignupHistoryTable() {
     onSuccess: () => {
       toast({ title: "Link reassigned" });
       setReassignTarget(null);
-      setReassignEventId("");
-      setReassignStartTime("");
+      setReassignRaidId(null);
       invalidate();
     },
     onError: onError("reassign link"),
   });
 
+  const matchedEventIds = useMemo(
+    () => new Set((listQuery.data ?? []).map((link) => link.raidHelperEventId)),
+    [listQuery.data],
+  );
+  const matchedStartTimeEntries = useMemo(
+    () =>
+      (listQuery.data ?? []).map((link) => ({
+        startTime: new Date(link.startTime).getTime(),
+        raidName: link.raid.name,
+      })),
+    [listQuery.data],
+  );
+
+  const raidOptions = useMemo(
+    () => (raidsQuery.data ?? []).map((r) => ({ value: String(r.raidId), raid: r })),
+    [raidsQuery.data],
+  );
+
   const rows = useMemo<HistoryRow[]>(() => {
     const links = listQuery.data ?? [];
-    const matchedKeys = new Set(
-      links.map((link) => `${link.raidHelperEventId}:${new Date(link.startTime).getTime()}`),
-    );
 
     const matchedRows: HistoryRow[] = links.map((link) => ({
       kind: "matched",
@@ -97,14 +156,75 @@ export function SignupHistoryTable() {
       link,
     }));
 
-    const unmatchedRows: HistoryRow[] = (scheduledQuery.data ?? [])
-      .filter((event) => !matchedKeys.has(`${event.id}:${event.startTime * 1000}`))
-      .map((event) => ({ kind: "unmatched", startTime: event.startTime * 1000, event }));
+    // Snapshot-sourced (past) candidates are listed first so they win a same-slot
+    // collision against the live list — they're the ground truth the auto-matcher
+    // itself trusts, whereas the live list can carry drift/duplicate postings.
+    const candidates: UnmatchedOccurrence[] = [
+      ...(pastSnapshotsQuery.data ?? []).map((s) => ({
+        raidHelperEventId: s.raidHelperEventId,
+        startTime: new Date(s.startTime).getTime(),
+        title: s.title ?? s.raidHelperEventId,
+        signUpCount: s.signUpCount,
+      })),
+      ...(scheduledQuery.data ?? []).map((event) => ({
+        raidHelperEventId: event.id,
+        startTime: event.startTime * 1000,
+        title: event.displayTitle || event.title,
+        signUpCount: event.signUpCount,
+      })),
+    ];
+
+    const accepted: UnmatchedOccurrence[] = [];
+    for (const candidate of candidates) {
+      // Exact event id already linked, or already represented in `accepted` — genuinely
+      // the same occurrence (e.g. seen via both our snapshot capture and the live list),
+      // safe to drop outright.
+      if (matchedEventIds.has(candidate.raidHelperEventId)) continue;
+      if (accepted.some((a) => a.raidHelperEventId === candidate.raidHelperEventId)) continue;
+
+      // A different id landing close in time to something already linked, or to another
+      // unmatched candidate, might be a stale re-posting of the same real slot — or might
+      // just as easily be a genuinely distinct raid. Flag it rather than hiding it: this
+      // table's whole purpose is letting a manager find and link exactly this kind of row.
+      const nearMatched = matchedStartTimeEntries.find(
+        (m) => Math.abs(m.startTime - candidate.startTime) <= DUPLICATE_TOLERANCE_MS,
+      );
+      const nearCandidate = accepted.find(
+        (a) => Math.abs(a.startTime - candidate.startTime) <= DUPLICATE_TOLERANCE_MS,
+      );
+
+      accepted.push({
+        ...candidate,
+        possibleDuplicateOf: nearMatched?.raidName ?? nearCandidate?.title,
+      });
+    }
+
+    const unmatchedRows: HistoryRow[] = accepted.map((occurrence) => ({
+      kind: "unmatched",
+      startTime: occurrence.startTime,
+      occurrence,
+    }));
 
     return [...matchedRows, ...unmatchedRows].sort((a, b) => b.startTime - a.startTime);
-  }, [listQuery.data, scheduledQuery.data]);
+  }, [
+    listQuery.data,
+    scheduledQuery.data,
+    pastSnapshotsQuery.data,
+    matchedEventIds,
+    matchedStartTimeEntries,
+  ]);
 
-  const isLoading = listQuery.isLoading || scheduledQuery.isLoading;
+  const isLoading = listQuery.isLoading || scheduledQuery.isLoading || pastSnapshotsQuery.isLoading;
+
+  const openReassignDialog = (target: {
+    raidHelperEventId: string;
+    startTime: number;
+    title: string;
+    currentRaidId?: number;
+  }) => {
+    setReassignRaidId(target.currentRaidId ? String(target.currentRaidId) : null);
+    setReassignTarget(target);
+  };
 
   return (
     <div className="space-y-4">
@@ -145,22 +265,31 @@ export function SignupHistoryTable() {
                         {row.link.snapshot?.title ?? row.link.raidHelperEventId}
                       </Link>
                       <div className="text-xs text-muted-foreground">
-                        {formatEasternDateTime(new Date(row.link.startTime))}
+                        {formatEasternDateTime(
+                          new Date(row.link.startTime),
+                          COMPACT_DATETIME_FORMAT,
+                        )}
                         {row.link.snapshot ? ` • ${row.link.snapshot.signUpCount} signed up` : ""}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/raids/${row.link.raidId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium hover:text-primary hover:underline"
-                      >
-                        {row.link.raid.name}
-                        <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
-                      </Link>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Link
+                          href={`/raids/${row.link.raidId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate font-medium hover:text-primary hover:underline"
+                        >
+                          {row.link.raid.name}
+                          <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
+                        </Link>
+                        <ZoneBadge zoneName={row.link.raid.zone} />
+                        <RaidAttendenceWeightBadge
+                          attendanceWeight={row.link.raid.attendanceWeight}
+                        />
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatRaidDate(row.link.raid.date)} • {row.link.raid.zone}
+                        {formatEasternDateTime(new Date(row.startTime), COMPACT_DATETIME_FORMAT)}
                       </div>
                     </TableCell>
                     <TableCell>{Math.round(row.link.confidence * 100)}%</TableCell>
@@ -190,12 +319,14 @@ export function SignupHistoryTable() {
                           size="sm"
                           variant="outline"
                           onClick={() =>
-                            setReassignTarget({
-                              raidId: row.link.raidId,
-                              raidName: row.link.raid.name,
+                            openReassignDialog({
+                              raidHelperEventId: row.link.raidHelperEventId,
+                              startTime: row.startTime,
+                              title: row.link.snapshot?.title ?? row.link.raidHelperEventId,
+                              currentRaidId: row.link.raidId,
                             })
                           }
-                          title="Reassign to a different event"
+                          title="Link to a different raid"
                         >
                           <Repeat className="h-3.5 w-3.5" />
                         </Button>
@@ -203,22 +334,24 @@ export function SignupHistoryTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  <TableRow key={`${row.event.id}:${row.startTime}`}>
+                  <TableRow key={`${row.occurrence.raidHelperEventId}:${row.startTime}`}>
                     <TableCell>
                       <Link
-                        href={signupTimelineHref(row.event.id, row.startTime)}
+                        href={signupTimelineHref(row.occurrence.raidHelperEventId, row.startTime)}
                         className="font-medium hover:text-primary hover:underline"
                       >
-                        {row.event.displayTitle || row.event.title}
+                        {row.occurrence.title}
                       </Link>
                       <div className="text-xs text-muted-foreground">
-                        {formatEasternDateTime(new Date(row.startTime))} • {row.event.signUpCount}{" "}
-                        signed up
+                        {formatEasternDateTime(new Date(row.startTime), COMPACT_DATETIME_FORMAT)} •{" "}
+                        {row.occurrence.signUpCount} signed up
                       </div>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs italic text-muted-foreground">
-                        Not linked - no raid log for this event yet
+                        {row.occurrence.possibleDuplicateOf
+                          ? `Not linked — may be a duplicate of "${row.occurrence.possibleDuplicateOf}"`
+                          : "Not linked - no raid log for this event yet"}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -228,10 +361,25 @@ export function SignupHistoryTable() {
                       <span className="text-xs text-muted-foreground">—</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">upcoming</Badge>
+                      <Badge variant="outline">
+                        {row.startTime > Date.now() ? "upcoming" : "no log"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          openReassignDialog({
+                            raidHelperEventId: row.occurrence.raidHelperEventId,
+                            startTime: row.startTime,
+                            title: row.occurrence.title,
+                          })
+                        }
+                        title="Link to a raid"
+                      >
+                        <Repeat className="h-3.5 w-3.5" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ),
@@ -247,55 +395,50 @@ export function SignupHistoryTable() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reassign {reassignTarget?.raidName}</DialogTitle>
+            <DialogTitle>Link &quot;{reassignTarget?.title}&quot; to a raid</DialogTitle>
             <DialogDescription>
-              Manually point this raid at a different Raid Helper event occurrence. Replaces this
-              raid's current link.
+              Point this Raid Helper signup at a specific raid. Replaces that raid&apos;s current
+              signup link, if any.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="reassign-event-id">Raid Helper event ID</Label>
-              <Input
-                id="reassign-event-id"
-                value={reassignEventId}
-                onChange={(e) => setReassignEventId(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="reassign-start-time">Event start time (ISO)</Label>
-              <Input
-                id="reassign-start-time"
-                placeholder="2026-01-20T20:00:00Z"
-                value={reassignStartTime}
-                onChange={(e) => setReassignStartTime(e.target.value)}
-              />
-              {reassignStartTime.trim() && !parsedReassignStartTime ? (
-                <p className="text-xs text-destructive">Not a valid date/time.</p>
-              ) : null}
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="reassign-raid">Raid</Label>
+            <Select value={reassignRaidId ?? undefined} onValueChange={setReassignRaidId}>
+              <SelectTrigger id="reassign-raid">
+                <SelectValue placeholder="Select a raid…" />
+              </SelectTrigger>
+              <SelectContent>
+                {raidOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate">{option.raid.name}</span>
+                      <ZoneBadge zoneName={option.raid.zone} />
+                      <RaidAttendenceWeightBadge attendanceWeight={option.raid.attendanceWeight} />
+                      <span className="shrink-0 text-muted-foreground">
+                        - {formatRaidDate(option.raid.date)}
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReassignTarget(null)}>
               Cancel
             </Button>
             <Button
-              disabled={
-                !reassignTarget ||
-                !reassignEventId.trim() ||
-                !parsedReassignStartTime ||
-                reassignMutation.isPending
-              }
+              disabled={!reassignTarget || !reassignRaidId || reassignMutation.isPending}
               onClick={() => {
-                if (!reassignTarget || !parsedReassignStartTime) return;
+                if (!reassignTarget || !reassignRaidId) return;
                 reassignMutation.mutate({
-                  raidId: reassignTarget.raidId,
-                  raidHelperEventId: reassignEventId.trim(),
-                  startTime: parsedReassignStartTime,
+                  raidId: Number(reassignRaidId),
+                  raidHelperEventId: reassignTarget.raidHelperEventId,
+                  startTime: new Date(reassignTarget.startTime),
                 });
               }}
             >
-              Reassign
+              Link
             </Button>
           </DialogFooter>
         </DialogContent>

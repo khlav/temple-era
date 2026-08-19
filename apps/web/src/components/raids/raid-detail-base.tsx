@@ -10,7 +10,7 @@ import { Edit, Link2, RefreshCw } from "lucide-react";
 import { WCLIcon } from "~/components/ui/wcl-icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import React, { useMemo, useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
@@ -84,9 +84,9 @@ export function RaidDetailBase({
   isPreview?: boolean;
 }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<RaidDetailTab>("overview");
   const utils = api.useUtils();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const { data: raidParticipants, isLoading: isLoadingParticipants } =
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
@@ -124,6 +124,29 @@ export function RaidDetailBase({
   };
 
   const curPath = usePathname();
+
+  // Tab state lives in the URL (?tab=) rather than component state, so it survives a
+  // refresh/back-navigation and can be shared/deep-linked (TEMPLE-115). Written via a raw
+  // history call rather than router.push/replace to avoid an RSC refetch for a pure tab
+  // switch — Next.js keeps useSearchParams reactive to it regardless.
+  const tabParam = searchParams.get("tab");
+  const activeTab: RaidDetailTab = (RAID_DETAIL_TABS as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as RaidDetailTab)
+    : "overview";
+
+  const setActiveTab = (tab: RaidDetailTab) => {
+    // Re-clicking the already-active tab would otherwise push a no-op history entry,
+    // making back/forward walk through identical tab states.
+    if (tab === activeTab) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    window.history.pushState(null, "", query ? `${curPath}?${query}` : curPath);
+  };
 
   // One combined Character / Credited to / Status table, per the redesign hi-fi spec —
   // replaces the old two-card attendees/bench split (CharactersTable ×2).
