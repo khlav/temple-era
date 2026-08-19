@@ -20,6 +20,7 @@ import { RaidManagerOnlyIcon } from "~/components/ui/raid-manager-only-icon";
 import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
+import { SignupTimelineTab } from "~/components/raids/signup-timeline-tab";
 
 const RAID_DETAIL_TABS = ["overview", "signups", "attendance"] as const;
 type RaidDetailTab = (typeof RAID_DETAIL_TABS)[number];
@@ -468,9 +469,10 @@ export function RaidDetailBase({
         {canViewSignupLink && (
           <>
             <TabsContent value="signups" className="mt-3">
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Signup timeline coming soon.
-              </p>
+              <SignupTimelineTab
+                raidId={raidData.raidId ?? -1}
+                enabled={canViewSignupLink && !!raidData.raidId}
+              />
             </TabsContent>
             <TabsContent value="attendance" className="mt-3">
               <p className="py-8 text-center text-sm text-muted-foreground">

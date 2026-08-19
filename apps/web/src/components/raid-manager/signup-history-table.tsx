@@ -120,15 +120,9 @@ export function SignupHistoryTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/raid-manager/signups/${link.raidHelperEventId}/raw?startTime=${encodeURIComponent(new Date(link.startTime).toISOString())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary hover:underline"
-                    >
+                    <div className="font-medium">
                       {link.snapshot?.title ?? link.raidHelperEventId}
-                      <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
-                    </Link>
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {formatEasternDateTime(new Date(link.startTime))}
                       {link.snapshot ? ` • ${link.snapshot.signUpCount} signed up` : ""}

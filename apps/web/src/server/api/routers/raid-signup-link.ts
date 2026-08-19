@@ -7,6 +7,7 @@ import { raids, raidSignupSnapshotLinks } from "~/server/db/schema";
 import {
   getLatestSignupSnapshotForOccurrence,
   getLatestSignupSnapshotsByOccurrence,
+  getSignupSnapshotHistoryForOccurrence,
 } from "~/server/services/raid-helper-snapshot-queries";
 import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
 import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
@@ -132,5 +133,31 @@ export const raidSignupLinkRouter = createTRPCRouter({
     .input(z.object({ raidId: z.number().int() }))
     .query(async ({ input }) => {
       return getSignupSnapshotForRaid(input.raidId);
+    }),
+
+  /**
+   * Full checkpoint history for the Signup Timeline tab (TEMPLE-97). Never throws for a
+   * missing link or empty history — the UI renders its own empty states for both.
+   */
+  timelineForRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const [link] = await ctx.db
+        .select({
+          raidHelperEventId: raidSignupSnapshotLinks.raidHelperEventId,
+          startTime: raidSignupSnapshotLinks.startTime,
+        })
+        .from(raidSignupSnapshotLinks)
+        .where(eq(raidSignupSnapshotLinks.raidId, input.raidId))
+        .limit(1);
+
+      if (!link) return { link: null, snapshots: [] };
+
+      const snapshots = await getSignupSnapshotHistoryForOccurrence(
+        link.raidHelperEventId,
+        link.startTime,
+      );
+
+      return { link, snapshots };
     }),
 });

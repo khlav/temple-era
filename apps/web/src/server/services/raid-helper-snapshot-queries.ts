@@ -1,4 +1,4 @@
-import { and, desc, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raidHelperSignupSnapshots } from "~/server/db/schema";
 
@@ -70,4 +70,25 @@ export async function getLatestSignupSnapshotForOccurrence(
     raidHelperEventIds: [raidHelperEventId],
   });
   return rows.find((row) => row.startTime.getTime() === startTime.getTime());
+}
+
+/**
+ * Every captured checkpoint for one occurrence, oldest first, no dedup — the opposite of
+ * the latest-only helpers above. Backs the Signup Timeline tab (TEMPLE-97), which needs
+ * the full checkpoint history rather than a single "current" snapshot.
+ */
+export async function getSignupSnapshotHistoryForOccurrence(
+  raidHelperEventId: string,
+  startTime: Date,
+): Promise<LatestSignupSnapshot[]> {
+  return db
+    .select()
+    .from(raidHelperSignupSnapshots)
+    .where(
+      and(
+        eq(raidHelperSignupSnapshots.raidHelperEventId, raidHelperEventId),
+        eq(raidHelperSignupSnapshots.startTime, startTime),
+      ),
+    )
+    .orderBy(asc(raidHelperSignupSnapshots.capturedAt));
 }
