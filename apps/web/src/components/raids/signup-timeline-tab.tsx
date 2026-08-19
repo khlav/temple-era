@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowLeftRight, ArrowUp, UserX } from "lucide-react";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { Button } from "~/components/ui/button";
@@ -272,6 +272,22 @@ function DeltaText({
   );
 }
 
+/** The live 0h checkpoint must compare against raw Raid Helper signups, same as every
+ * captured checkpoint — getEventDetails' assigned/unassigned entries carry a raid-plan
+ * assignment's className/specName instead when one exists (e.g. an off-spec fill), which
+ * would otherwise read as a spurious class switch/move between the last real checkpoint
+ * and "Current" purely from an unrelated planning decision. */
+function toLiveSignupEntries(
+  data: RouterOutputs["raidHelper"]["getEventDetails"] | undefined,
+): TimelineSignupEntry[] | null {
+  if (!data) return null;
+  return [...data.signups.assigned, ...data.signups.unassigned].map((s) => ({
+    ...s,
+    className: s.rawClassName,
+    specName: s.rawSpecName,
+  }));
+}
+
 interface SignupTimelineTabProps {
   raidId: number;
   enabled: boolean;
@@ -297,9 +313,7 @@ export function SignupTimelineTab({ raidId, enabled }: SignupTimelineTabProps) {
     { eventId: link?.raidHelperEventId ?? "" },
     { enabled: !!link, retry: false },
   );
-  const live: TimelineSignupEntry[] | null = liveQuery.data
-    ? [...liveQuery.data.signups.assigned, ...liveQuery.data.signups.unassigned]
-    : null;
+  const live = toLiveSignupEntries(liveQuery.data);
 
   const slots = useMemo(
     () => buildTimeline(timelineQuery.data?.snapshots ?? [], live),
@@ -344,9 +358,7 @@ export function SignupTimelineByOccurrence({
     { eventId: raidHelperEventId },
     { retry: false },
   );
-  const live: TimelineSignupEntry[] | null = liveQuery.data
-    ? [...liveQuery.data.signups.assigned, ...liveQuery.data.signups.unassigned]
-    : null;
+  const live = toLiveSignupEntries(liveQuery.data);
 
   const slots = useMemo(
     () => buildTimeline(timelineQuery.data?.snapshots ?? [], live),
