@@ -56,6 +56,15 @@ describe("resolveSignupClass", () => {
     expect(resolveSignupClass(signup({ userId: "2", className: "Tentative" }))).toBeNull();
     expect(resolveSignupClass(signup({ userId: "3", className: "Absence" }))).toBeNull();
   });
+
+  it("doesn't crash when Raid Helper omits specName despite the required type", () => {
+    const withoutSpec = {
+      ...signup({ userId: "1", className: "Warrior" }),
+      specName: undefined as unknown as string,
+    };
+    expect(resolveSignupClass(withoutSpec)).toBe("Warrior");
+    expect(resolveSignupClass({ ...withoutSpec, className: "Tank" })).toBeNull();
+  });
 });
 
 describe("resolveSignupRole", () => {

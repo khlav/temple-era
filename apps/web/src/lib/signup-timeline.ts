@@ -91,7 +91,9 @@ export function countSignupBuckets(signups: TimelineSignupEntry[]): SignupBucket
  * Warrior/Paladin "Protection" ambiguity instead of guessing a new answer.
  */
 export function resolveSignupClass(signup: TimelineSignupEntry): string | null {
-  const strippedSpec = signup.specName.replace(/[0-9]/g, "");
+  // specName is typed as required, but Raid Helper's real API omits it for some entries
+  // (observed on live "Current" fetches) — guard rather than trust the type.
+  const strippedSpec = (signup.specName ?? "").replace(/[0-9]/g, "");
   return resolveClassName(signup.className, strippedSpec);
 }
 
@@ -129,7 +131,7 @@ export function resolveSignupRole(
   const aliased = ROLE_NAME_ALIASES[signup.roleName];
   if (aliased) return aliased;
   if (resolvedClass) {
-    const strippedSpec = signup.specName.replace(/[0-9]/g, "");
+    const strippedSpec = (signup.specName ?? "").replace(/[0-9]/g, "");
     return TALENT_ROLE_TO_LABEL[inferTalentRole(resolvedClass, strippedSpec)];
   }
   return "Melee";
