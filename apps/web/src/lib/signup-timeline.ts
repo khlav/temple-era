@@ -176,7 +176,15 @@ export function diffSnapshots(
     const nextBucket = classifySignupBucket(signup.className);
     if (priorBucket !== nextBucket) {
       moves.push({ signup, from: prior });
-    } else if (nextBucket === "confirmed" && prior.className !== signup.className) {
+    } else if (
+      nextBucket === "confirmed" &&
+      // Compare resolved classes, not raw className: Raid Helper can represent the same
+      // tank as either "Tank"+specName or a plain class name across snapshots, which
+      // would otherwise read as a spurious class switch. Fall back to the raw name only
+      // if resolution genuinely fails (shouldn't happen for a confirmed-bucket signup).
+      (resolveSignupClass(prior) ?? prior.className) !==
+        (resolveSignupClass(signup) ?? signup.className)
+    ) {
       classSwitches.push({ signup, from: prior });
     }
   }
@@ -313,12 +321,13 @@ export function computeCheckpointDelta(
   return { confirmedGain, benchGain, confirmedLoss };
 }
 
-/** Percentage-width basis for the rail bars — the busiest *captured* snapshot's
- * confirmed+bench+absent total, so every row's bar is comparable. Never zero. */
+/** Percentage-width basis for the rail bars — the busiest *displayable* (captured or
+ * live) slot's confirmed+bench+absent total, so every row's bar is comparable and none
+ * overflows its track. Never zero. */
 export function maxTimelineBarTotal(slots: TimelineSlot[]): number {
   let max = 1;
   for (const slot of slots) {
-    if (!slot.captured) continue;
+    if (!slot.captured && !slot.isLive) continue;
     const total = slot.counts.confirmed + slot.counts.bench + slot.counts.absent;
     if (total > max) max = total;
   }

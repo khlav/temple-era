@@ -237,9 +237,25 @@ export function SignupTimelineView({
   loading,
   noHistoryDetail,
 }: SignupTimelineViewProps) {
-  const [selected, setSelected] = useState(6);
+  // `manualSelected` is null until the user clicks a row — until then, `selected` tracks
+  // whichever slot is currently the latest displayable one (captured or live), so a raid
+  // whose 0h slot never captured and whose live fetch failed doesn't default to an empty
+  // checkpoint. Once the user picks a row, that choice sticks (rows are only clickable
+  // when displayable, so manualSelected is always valid once set).
+  const [manualSelected, setManualSelected] = useState<number | null>(null);
   const [changesOnly, setChangesOnly] = useState(false);
   const [logFilter, setLogFilter] = useState<"All" | ChangeLogKind>("All");
+
+  const latestDisplayableIndex = useMemo(() => {
+    for (let i = slots.length - 1; i >= 0; i--) {
+      if (slots[i]?.captured || slots[i]?.isLive) return i;
+    }
+    return 6;
+  }, [slots]);
+  const selected =
+    manualSelected !== null && (slots[manualSelected]?.captured || slots[manualSelected]?.isLive)
+      ? manualSelected
+      : latestDisplayableIndex;
 
   const selectedSlot = slots[selected]!;
   const prevIndex = findPreviousCapturedIndex(slots, selected);
@@ -378,7 +394,7 @@ export function SignupTimelineView({
                   key={slot.checkpoint}
                   type="button"
                   disabled={!displayable}
-                  onClick={() => setSelected(i)}
+                  onClick={() => setManualSelected(i)}
                   className={cn(
                     "flex items-center gap-2.5 rounded-[10px] border px-2.5 py-[7px]",
                     displayable ? "cursor-pointer" : "cursor-default",

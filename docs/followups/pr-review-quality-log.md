@@ -631,3 +631,44 @@ Second pattern-confirmation (after PR #97's `worldBuff.getAll` false positive) o
 producing a structurally-confident claim ("no amount is rendered anywhere", "the parent
 flex context") that doesn't hold up against the actual file — worth checking claims like
 these against the real DOM/layout chain rather than the finding's own framing.
+
+### PR #101 — `feat(raids): add Signup Timeline tab to raid detail page` (TEMPLE-97)
+Greptile inactive (no `greptile` label). Archon: no score line, 1 round, 4 findings —
+3 **confirmed real and fixed**, 1 **confirmed false positive**.
+
+**Confirmed real, fixed**:
+1. `maxTimelineBarTotal` only scanned `captured` slots for the rail's bar-width basis, but
+   the rail also renders the synthetic `isLive` (T-0h "Current") slot. A raid with no
+   captured checkpoints yet, where the live slot is the only displayable row, would divide
+   by 1 regardless of its real headcount — bar segments summed past 100% and the
+   `overflow-hidden` track silently clipped the bench/absent portions. Fixed by including
+   `isLive` slots in the max scan.
+2. `selected` defaulted to the hardcoded index 6 (T-0h) regardless of whether that slot was
+   actually displayable. With `getEventDetails`'s live fetch on `retry: false`, a raid whose
+   latest capture was e.g. T-144h and whose live fetch errored would open on an empty slot —
+   every role row reading "No signups," the summary line reading "0(+0) signups," while real
+   data sat one row up, unselected. Archon's own proposed diff was flagged by itself as
+   "slightly incomplete" (didn't propagate into row-highlight); fixed more completely with a
+   `manualSelected: number | null` pattern instead — `null` means "track whichever slot is
+   currently the latest displayable one," recomputed live via `useMemo` off `slots`, so it
+   self-corrects as data loads without needing an effect, and a real user click permanently
+   overrides it (rows are only clickable when displayable, so a manual selection is always
+   valid once set).
+3. (Code suggestion) `diffSnapshots`' class-switch check compared raw `className` strings.
+   Raid Helper represents the same tank signup as either `"Tank"`+`specName` or a plain
+   class name across different capture paths, which would read as a spurious "⇄ was Tank"
+   log row and a false split-dot for someone whose actual class never changed. Fixed by
+   comparing `resolveSignupClass(prior)`/`resolveSignupClass(signup)` instead, falling back
+   to the raw name only when resolution genuinely fails.
+
+**Confirmed false positive**: "Make occurrence selection deterministic" claimed
+`raidSignupSnapshotLinks`' `.limit(1)` with no `orderBy` was ambiguous because "a raid can
+have more than one linked occurrence." Disproven by the schema itself:
+`raid-signup-link-schema.ts` puts a `uniqueIndex` directly on `raidId`
+(`raid_signup_snapshot_link__raid_id_idx`), with an explicit comment ("At most one row per
+raid — `raidId` is unique") — and the sibling `getSignupSnapshotForRaid` function already
+uses the identical no-`orderBy` `.limit(1)` pattern against the same column, unremarked in
+every prior review. Third occurrence of this log's core pattern (PR #52, #97): a
+structurally-confident claim about shape/cardinality that a direct schema read disproves in
+under a minute. Not fixed — adding an `orderBy` here would paper over a non-problem and
+diverge from the established sibling pattern for no reason.

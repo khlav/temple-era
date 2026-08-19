@@ -119,6 +119,14 @@ describe("diffSnapshots", () => {
     expect(diff.arrivals).toHaveLength(0);
     expect(diff.departures).toHaveLength(0);
   });
+
+  it("does not flag a class switch when Raid Helper just changed how it represents the same class", () => {
+    const prev = [signup({ userId: "1", className: "Tank", specName: "Protection1" })];
+    const next = [signup({ userId: "1", className: "Warrior" })];
+    const diff = diffSnapshots(prev, next);
+    expect(diff.classSwitches).toHaveLength(0);
+    expect(diff.moves).toHaveLength(0);
+  });
 });
 
 describe("computeSignupStates", () => {
@@ -248,6 +256,15 @@ describe("maxTimelineBarTotal", () => {
       null,
     );
     expect(maxTimelineBarTotal(slots)).toBe(3);
+  });
+
+  it("includes the live slot, so a busy live checkpoint doesn't overflow its bar", () => {
+    const live = [
+      signup({ userId: "1", className: "Warrior" }),
+      signup({ userId: "2", className: "Mage" }),
+    ];
+    const slots = buildTimeline([], live);
+    expect(maxTimelineBarTotal(slots)).toBe(2);
   });
 });
 
