@@ -133,9 +133,10 @@ function transitionIcon(member: RoleGroupMember): React.ReactNode {
 /** Tooltip text explaining a member's change — null (no tooltip) for a held member, or a
  * fresh arrival with no prior state worth naming. */
 function memberTooltipText(member: RoleGroupMember): string | null {
-  if (member.ghost) return member.to ? `Became ${member.to.className}` : "Left the event";
-  if (member.state === "moved" && member.from) return `Moved from ${member.from.className}`;
-  if (member.state === "classSwitch" && member.from) return `Was ${member.from.className}`;
+  if (member.ghost) return member.to ? `…to ${member.to.className}` : "Left the event";
+  if ((member.state === "moved" || member.state === "classSwitch") && member.from) {
+    return `…from ${member.from.className}`;
+  }
   return null;
 }
 
