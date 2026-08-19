@@ -717,7 +717,7 @@ export function SignupTimelineView({
                             />
                           ))}
                         </span>
-                        <span className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-1">
+                        <span className="ml-2.5 flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-1">
                           {g.members.map((m) => (
                             <SignupName key={m.signup.userId} member={m} />
                           ))}
