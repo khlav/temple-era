@@ -94,13 +94,8 @@ export function SignupHistoryTable() {
 
   const rows = useMemo<HistoryRow[]>(() => {
     const links = listQuery.data ?? [];
-    // Keyed on raidHelperEventId alone, not the occurrence's exact startTime: Raid
-    // Helper reuses one stable "channel" event id across a recurring event's weekly
-    // occurrences, and the live scheduled-events list's startTime for that id can drift
-    // slightly from what got captured (and linked) for a given week — an exact-tuple
-    // match let an already-linked event reappear as a false "unmatched" duplicate once
-    // the lookback window was wide enough to expose the drift (TEMPLE-115).
     const matchedEventIds = new Set(links.map((link) => link.raidHelperEventId));
+    const matchedStartTimes = links.map((link) => new Date(link.startTime).getTime());
 
     const matchedRows: HistoryRow[] = links.map((link) => ({
       kind: "matched",
@@ -108,8 +103,22 @@ export function SignupHistoryTable() {
       link,
     }));
 
+    // A scheduled event is suppressed from "unmatched" if it shares either its Raid
+    // Helper event id OR (within a tolerance) its start time with an already-matched
+    // link. ID alone isn't enough: Raid Helper sometimes has a second, separate event
+    // id posted for the exact same raid slot (e.g. a recreated/reposted signup form)
+    // that never accumulates its own log — that shows up as a same-time, different-id,
+    // different-signup-count "duplicate" of an already-linked raid (TEMPLE-115). A
+    // 15-minute tolerance (rather than exact-ms equality) also absorbs any minor clock
+    // drift between a captured snapshot's startTime and the live list's startTime for
+    // what is genuinely the same occurrence.
+    const DUPLICATE_TOLERANCE_MS = 15 * 60 * 1000;
     const unmatchedRows: HistoryRow[] = (scheduledQuery.data ?? [])
-      .filter((event) => !matchedEventIds.has(event.id))
+      .filter((event) => {
+        if (matchedEventIds.has(event.id)) return false;
+        const eventStart = event.startTime * 1000;
+        return !matchedStartTimes.some((t) => Math.abs(t - eventStart) <= DUPLICATE_TOLERANCE_MS);
+      })
       .map((event) => ({ kind: "unmatched", startTime: event.startTime * 1000, event }));
 
     return [...matchedRows, ...unmatchedRows].sort((a, b) => b.startTime - a.startTime);
