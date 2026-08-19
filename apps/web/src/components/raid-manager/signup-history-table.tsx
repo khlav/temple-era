@@ -55,6 +55,12 @@ type UnmatchedOccurrence = {
   startTime: number;
   title: string;
   signUpCount: number;
+  // Set when this occurrence's id doesn't exactly match anything already linked, but its
+  // start time lands close to something that does (or to another unmatched candidate) —
+  // a hint, not a verdict. Never used to hide the row: a distinct Raid Helper posting
+  // must always stay discoverable/linkable here, even one that turns out to be a stale
+  // duplicate of the named raid (TEMPLE-115).
+  possibleDuplicateOf?: string;
 };
 
 type HistoryRow =
@@ -127,8 +133,12 @@ export function SignupHistoryTable() {
     () => new Set((listQuery.data ?? []).map((link) => link.raidHelperEventId)),
     [listQuery.data],
   );
-  const matchedStartTimes = useMemo(
-    () => (listQuery.data ?? []).map((link) => new Date(link.startTime).getTime()),
+  const matchedStartTimeEntries = useMemo(
+    () =>
+      (listQuery.data ?? []).map((link) => ({
+        startTime: new Date(link.startTime).getTime(),
+        raidName: link.raid.name,
+      })),
     [listQuery.data],
   );
 
@@ -166,17 +176,27 @@ export function SignupHistoryTable() {
 
     const accepted: UnmatchedOccurrence[] = [];
     for (const candidate of candidates) {
-      const isMatched =
-        matchedEventIds.has(candidate.raidHelperEventId) ||
-        matchedStartTimes.some((t) => Math.abs(t - candidate.startTime) <= DUPLICATE_TOLERANCE_MS);
-      if (isMatched) continue;
+      // Exact event id already linked, or already represented in `accepted` — genuinely
+      // the same occurrence (e.g. seen via both our snapshot capture and the live list),
+      // safe to drop outright.
+      if (matchedEventIds.has(candidate.raidHelperEventId)) continue;
+      if (accepted.some((a) => a.raidHelperEventId === candidate.raidHelperEventId)) continue;
 
-      const isDuplicate = accepted.some(
-        (a) =>
-          a.raidHelperEventId === candidate.raidHelperEventId ||
-          Math.abs(a.startTime - candidate.startTime) <= DUPLICATE_TOLERANCE_MS,
+      // A different id landing close in time to something already linked, or to another
+      // unmatched candidate, might be a stale re-posting of the same real slot — or might
+      // just as easily be a genuinely distinct raid. Flag it rather than hiding it: this
+      // table's whole purpose is letting a manager find and link exactly this kind of row.
+      const nearMatched = matchedStartTimeEntries.find(
+        (m) => Math.abs(m.startTime - candidate.startTime) <= DUPLICATE_TOLERANCE_MS,
       );
-      if (!isDuplicate) accepted.push(candidate);
+      const nearCandidate = accepted.find(
+        (a) => Math.abs(a.startTime - candidate.startTime) <= DUPLICATE_TOLERANCE_MS,
+      );
+
+      accepted.push({
+        ...candidate,
+        possibleDuplicateOf: nearMatched?.raidName ?? nearCandidate?.title,
+      });
     }
 
     const unmatchedRows: HistoryRow[] = accepted.map((occurrence) => ({
@@ -191,7 +211,7 @@ export function SignupHistoryTable() {
     scheduledQuery.data,
     pastSnapshotsQuery.data,
     matchedEventIds,
-    matchedStartTimes,
+    matchedStartTimeEntries,
   ]);
 
   const isLoading = listQuery.isLoading || scheduledQuery.isLoading || pastSnapshotsQuery.isLoading;
@@ -329,7 +349,9 @@ export function SignupHistoryTable() {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs italic text-muted-foreground">
-                        Not linked - no raid log for this event yet
+                        {row.occurrence.possibleDuplicateOf
+                          ? `Not linked — may be a duplicate of "${row.occurrence.possibleDuplicateOf}"`
+                          : "Not linked - no raid log for this event yet"}
                       </span>
                     </TableCell>
                     <TableCell>

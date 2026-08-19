@@ -135,6 +135,9 @@ export function RaidDetailBase({
     : "overview";
 
   const setActiveTab = (tab: RaidDetailTab) => {
+    // Re-clicking the already-active tab would otherwise push a no-op history entry,
+    // making back/forward walk through identical tab states.
+    if (tab === activeTab) return;
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "overview") {
       params.delete("tab");
