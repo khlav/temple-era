@@ -56,7 +56,7 @@ export const APP_PAGES: AppPage[] = [
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
-    name: "Manage mains v. alts",
+    name: "Manage Mains <-> Alts",
     path: "/raid-manager/characters",
     icon: Users,
     area: "Raid Manager",
@@ -70,7 +70,7 @@ export const APP_PAGES: AppPage[] = [
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
-    name: "SoftRes Scan",
+    name: "Scan Softres",
     path: "/softres",
     icon: ScanLine,
     area: "Raid Manager",

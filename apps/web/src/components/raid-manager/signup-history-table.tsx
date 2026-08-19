@@ -23,7 +23,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { useToast } from "~/hooks/use-toast";
 import { formatRaidDate, formatEasternDateTime } from "~/lib/raid-formatting";
 
@@ -33,6 +33,17 @@ const ZONE_QUALITY_LABEL: Record<string, string> = {
   unavailable: "No zone data",
   mismatch: "Zone name differs",
 };
+
+type MatchedLink = RouterOutputs["raidSignupLink"]["list"][number];
+type ScheduledEvent = RouterOutputs["raidHelper"]["getScheduledEvents"][number];
+
+type HistoryRow =
+  | { kind: "matched"; startTime: number; link: MatchedLink }
+  | { kind: "unmatched"; startTime: number; event: ScheduledEvent };
+
+function signupTimelineHref(eventId: string, startTimeMs: number) {
+  return `/raid-manager/signups/${eventId}?startTime=${encodeURIComponent(new Date(startTimeMs).toISOString())}`;
+}
 
 export function SignupHistoryTable() {
   const { toast } = useToast();
@@ -49,6 +60,7 @@ export function SignupHistoryTable() {
 
   const utils = api.useUtils();
   const listQuery = api.raidSignupLink.list.useQuery();
+  const scheduledQuery = api.raidHelper.getScheduledEvents.useQuery({ allowableHoursPastStart: 1 });
 
   const invalidate = () => void utils.raidSignupLink.list.invalidate();
 
@@ -73,7 +85,26 @@ export function SignupHistoryTable() {
     onError: onError("reassign link"),
   });
 
-  const links = useMemo(() => listQuery.data ?? [], [listQuery.data]);
+  const rows = useMemo<HistoryRow[]>(() => {
+    const links = listQuery.data ?? [];
+    const matchedKeys = new Set(
+      links.map((link) => `${link.raidHelperEventId}:${new Date(link.startTime).getTime()}`),
+    );
+
+    const matchedRows: HistoryRow[] = links.map((link) => ({
+      kind: "matched",
+      startTime: new Date(link.startTime).getTime(),
+      link,
+    }));
+
+    const unmatchedRows: HistoryRow[] = (scheduledQuery.data ?? [])
+      .filter((event) => !matchedKeys.has(`${event.id}:${event.startTime * 1000}`))
+      .map((event) => ({ kind: "unmatched", startTime: event.startTime * 1000, event }));
+
+    return [...matchedRows, ...unmatchedRows].sort((a, b) => b.startTime - a.startTime);
+  }, [listQuery.data, scheduledQuery.data]);
+
+  const isLoading = listQuery.isLoading || scheduledQuery.isLoading;
 
   return (
     <div className="space-y-4">
@@ -81,8 +112,8 @@ export function SignupHistoryTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Raid</TableHead>
               <TableHead>RaidHelper Signup</TableHead>
+              <TableHead>Raid</TableHead>
               <TableHead className="w-[110px]">Confidence</TableHead>
               <TableHead className="w-[140px]">Zone Match</TableHead>
               <TableHead className="w-[90px]">Source</TableHead>
@@ -90,87 +121,121 @@ export function SignupHistoryTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {listQuery.isLoading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                   Loading…
                 </TableCell>
               </TableRow>
-            ) : links.length === 0 ? (
+            ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  No raids have been matched to a signup event yet.
+                  No signup events found.
                 </TableCell>
               </TableRow>
             ) : (
-              links.map((link) => (
-                <TableRow key={link.id}>
-                  <TableCell>
-                    <Link
-                      href={`/raids/${link.raidId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium hover:text-primary hover:underline"
-                    >
-                      {link.raid.name}
-                      <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
-                    </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {formatRaidDate(link.raid.date)} • {link.raid.zone}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/raid-manager/signups/${link.raidHelperEventId}/raw?startTime=${encodeURIComponent(new Date(link.startTime).toISOString())}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary hover:underline"
-                    >
-                      {link.snapshot?.title ?? link.raidHelperEventId}
-                      <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
-                    </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {formatEasternDateTime(new Date(link.startTime))}
-                      {link.snapshot ? ` • ${link.snapshot.signUpCount} signed up` : ""}
-                    </div>
-                  </TableCell>
-                  <TableCell>{Math.round(link.confidence * 100)}%</TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">
-                      {ZONE_QUALITY_LABEL[link.matchReason.zoneMatchQuality] ??
-                        link.matchReason.zoneMatchQuality}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={link.source === "manual" ? "default" : "secondary"}>
-                      {link.source}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={rerunMutation.isPending}
-                        onClick={() => rerunMutation.mutate({ raidId: link.raidId })}
-                        title="Re-run matching"
+              rows.map((row) =>
+                row.kind === "matched" ? (
+                  <TableRow key={row.link.id}>
+                    <TableCell>
+                      <Link
+                        href={signupTimelineHref(row.link.raidHelperEventId, row.startTime)}
+                        className="font-medium hover:text-primary hover:underline"
                       >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setReassignTarget({ raidId: link.raidId, raidName: link.raid.name })
-                        }
-                        title="Reassign to a different event"
+                        {row.link.snapshot?.title ?? row.link.raidHelperEventId}
+                      </Link>
+                      <div className="text-xs text-muted-foreground">
+                        {formatEasternDateTime(new Date(row.link.startTime))}
+                        {row.link.snapshot ? ` • ${row.link.snapshot.signUpCount} signed up` : ""}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/raids/${row.link.raidId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:text-primary hover:underline"
                       >
-                        <Repeat className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {row.link.raid.name}
+                        <ExternalLinkIcon className="ml-1 inline-block h-3 w-3 align-text-top" />
+                      </Link>
+                      <div className="text-xs text-muted-foreground">
+                        {formatRaidDate(row.link.raid.date)} • {row.link.raid.zone}
+                      </div>
+                    </TableCell>
+                    <TableCell>{Math.round(row.link.confidence * 100)}%</TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {ZONE_QUALITY_LABEL[row.link.matchReason.zoneMatchQuality] ??
+                          row.link.matchReason.zoneMatchQuality}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.link.source === "manual" ? "default" : "secondary"}>
+                        {row.link.source}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={rerunMutation.isPending}
+                          onClick={() => rerunMutation.mutate({ raidId: row.link.raidId })}
+                          title="Re-run matching"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setReassignTarget({
+                              raidId: row.link.raidId,
+                              raidName: row.link.raid.name,
+                            })
+                          }
+                          title="Reassign to a different event"
+                        >
+                          <Repeat className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow key={`${row.event.id}:${row.startTime}`}>
+                    <TableCell>
+                      <Link
+                        href={signupTimelineHref(row.event.id, row.startTime)}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {row.event.displayTitle || row.event.title}
+                      </Link>
+                      <div className="text-xs text-muted-foreground">
+                        {formatEasternDateTime(new Date(row.startTime))} • {row.event.signUpCount}{" "}
+                        signed up
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs italic text-muted-foreground">
+                        Not linked - no raid log for this event yet
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">upcoming</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </TableCell>
+                  </TableRow>
+                ),
+              )
             )}
           </TableBody>
         </Table>

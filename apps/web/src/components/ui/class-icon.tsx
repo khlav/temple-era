@@ -4,10 +4,12 @@ export const ClassIcon = ({
   characterClass,
   px,
   className,
+  style,
 }: {
   characterClass: string;
   px?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) => {
   const size = px ?? 128;
 
@@ -19,7 +21,7 @@ export const ClassIcon = ({
       <span
         title="Unknown class"
         className={`inline-flex items-center justify-center rounded-sm bg-muted text-muted-foreground ${className ?? ""}`}
-        style={{ width: size, height: size, fontSize: size * 0.6 }}
+        style={{ width: size, height: size, fontSize: size * 0.6, ...style }}
       >
         ?
       </span>
@@ -33,6 +35,7 @@ export const ClassIcon = ({
       width={size}
       height={size}
       className={className ?? ""}
+      style={style}
     />
   );
 };

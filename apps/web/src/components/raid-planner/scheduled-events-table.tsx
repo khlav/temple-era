@@ -1,11 +1,8 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { ExternalLink, Loader2, Users } from "lucide-react";
-import { api } from "~/trpc/react";
-import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
+import { ExternalLink, History } from "lucide-react";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { formatRaidDay, formatRaidTime } from "~/utils/date-formatting";
@@ -43,19 +40,12 @@ interface ScheduledEventsTableProps {
         }
       >
     | undefined;
-  onFindPlayers: (
-    eventId: string,
-    eventTitle: string,
-    eventStartTime: number,
-    matchResults: SignupMatchResult[],
-  ) => void;
   onSelectEvent: (eventId: string) => void; // For creating a plan
 }
 
 export function ScheduledEventsTable({
   events,
   existingPlans,
-  onFindPlayers,
   onSelectEvent,
 }: ScheduledEventsTableProps) {
   if (!events || events.length === 0) {
@@ -94,7 +84,6 @@ export function ScheduledEventsTable({
               key={event.id}
               event={event}
               existingPlan={existingPlans?.[event.id]}
-              onFindPlayers={onFindPlayers}
               onSelect={() => onSelectEvent(event.id)}
             />
           ))}
@@ -107,7 +96,6 @@ export function ScheduledEventsTable({
 function EventRow({
   event,
   existingPlan,
-  onFindPlayers,
   onSelect,
 }: {
   event: ScheduledEvent;
@@ -120,57 +108,14 @@ function EventRow({
       image: string | null;
     } | null;
   };
-  onFindPlayers: (
-    eventId: string,
-    eventTitle: string,
-    eventStartTime: number,
-    matchResults: SignupMatchResult[],
-  ) => void;
   onSelect: () => void;
 }) {
-  const [isLoadingFindPlayers, setIsLoadingFindPlayers] = useState(false);
-  const utils = api.useUtils();
-
   // Use standardized formatting
   // Note: event.startTime is in seconds (unix timestamp), Date constructor takes ms
   const dateObj = new Date(event.startTime * 1000);
   const formattedDate = formatRaidDay(dateObj);
   const formattedTime = formatRaidTime(dateObj);
-
-  const handleFindPlayers = async () => {
-    setIsLoadingFindPlayers(true);
-    try {
-      // Fetch event details
-      const eventDetails = await utils.raidHelper.getEventDetails.fetch({
-        eventId: event.id,
-      });
-
-      // Prepare signups for matching
-      const allSignups = [...eventDetails.signups.assigned, ...eventDetails.signups.unassigned];
-      const signupsForMatching = allSignups.map((s) => ({
-        userId: s.userId,
-        discordName: s.name,
-        className: s.className,
-        specName: s.specName,
-        partyId: s.partyId,
-        slotId: s.slotId,
-      }));
-
-      // Match signups to characters
-      const matchResults = await utils.raidHelper.matchSignupsToCharacters.fetch({
-        signups: signupsForMatching,
-      });
-
-      onFindPlayers(
-        event.id,
-        eventDetails.event.displayTitle || eventDetails.event.title,
-        event.startTime,
-        matchResults,
-      );
-    } finally {
-      setIsLoadingFindPlayers(false);
-    }
-  };
+  const signupTimelineHref = `/raid-manager/signups/${event.id}?startTime=${encodeURIComponent(dateObj.toISOString())}`;
 
   const target = getRaidTarget(event.title, event.channelName);
   const colors = getSignupStatusColor(event.signUpCount ?? 0, target);
@@ -229,22 +174,19 @@ function EventRow({
                 variant="outline"
                 size="sm"
                 className="h-7 border-border/60 px-2 lg:px-2.5"
-                onClick={handleFindPlayers}
-                disabled={isLoadingFindPlayers}
+                asChild
               >
-                {isLoadingFindPlayers ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Users className="h-4 w-4" />
-                )}
-                <span className="sr-only lg:not-sr-only lg:ml-1.5">Find Gamers</span>
+                <Link href={signupTimelineHref}>
+                  <History className="h-4 w-4" />
+                  <span className="sr-only lg:not-sr-only lg:ml-1.5">Signup Timeline</span>
+                </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent
               side="top"
               className="whitespace-pre-line rounded bg-secondary px-3 py-1 text-xs text-muted-foreground shadow-sm transition-all"
             >
-              Find Gamers
+              Signup Timeline
             </TooltipContent>
           </Tooltip>
           <span className={`min-w-[2ch] text-right text-sm font-medium ${colors.text}`}>

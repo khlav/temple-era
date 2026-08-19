@@ -67,7 +67,7 @@ const managerNav = [
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
-    label: "Manage mains/alts",
+    label: "Manage Mains <-> Alts",
     href: "/raid-manager/characters",
     icon: Users,
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
@@ -79,12 +79,12 @@ const managerNav = [
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
   {
-    label: "Signup History",
+    label: "Link Signups <-> Raids",
     href: "/raid-manager/signups",
     icon: Link2,
     requiredScope: SCOPE.RAIDPLAN_MANAGE,
   },
-  { label: "SoftRes scan", href: "/softres", icon: ScanLine, requiredScope: SCOPE.SOFTRES_ACCESS },
+  { label: "Scan Softres", href: "/softres", icon: ScanLine, requiredScope: SCOPE.SOFTRES_ACCESS },
 ];
 
 const adminNav = [

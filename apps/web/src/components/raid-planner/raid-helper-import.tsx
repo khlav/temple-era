@@ -30,8 +30,6 @@ import { MRTCodec } from "~/lib/mrt-codec";
 import { useToast } from "~/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { WOW_SERVERS, VALID_WRITE_IN_CLASSES } from "./constants";
-import { FindGamersDialog } from "./find-gamers-dialog";
-import type { SignupMatchResult } from "~/server/api/routers/raid-helper";
 import { Badge } from "~/components/ui/badge";
 import { ZoneSelect } from "./zone-select";
 import { ScheduledEventsTable } from "./scheduled-events-table";
@@ -72,18 +70,8 @@ function detectZoneFromTitle(title: string): string | null {
   return firstMatch?.zoneId ?? null;
 }
 
-// State for Find Players dialog
-interface FindPlayersState {
-  eventId: string;
-  eventTitle: string;
-  eventStartTime: number;
-  detectedZone: string | null;
-  matchResults: SignupMatchResult[];
-}
-
 export function RaidPlannerImport() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [findPlayersState, setFindPlayersState] = useState<FindPlayersState | null>(null);
   const [isUrlImportOpen, setIsUrlImportOpen] = useState(false);
 
   const {
@@ -106,25 +94,6 @@ export function RaidPlannerImport() {
     currentEventIds: eventIds,
     limit: 20,
   });
-
-  const handleFindPlayers = useCallback(
-    (
-      eventId: string,
-      eventTitle: string,
-      eventStartTime: number,
-      matchResults: SignupMatchResult[],
-    ) => {
-      const detectedZone = detectZoneFromTitle(eventTitle);
-      setFindPlayersState({
-        eventId,
-        eventTitle,
-        eventStartTime,
-        detectedZone,
-        matchResults,
-      });
-    },
-    [],
-  );
 
   return (
     <div className="space-y-8">
@@ -166,7 +135,6 @@ export function RaidPlannerImport() {
           <ScheduledEventsTable
             events={events}
             existingPlans={existingPlans}
-            onFindPlayers={handleFindPlayers}
             onSelectEvent={setSelectedEventId}
           />
         )}
@@ -179,19 +147,6 @@ export function RaidPlannerImport() {
         onOpenChange={(open) => !open && setSelectedEventId(null)}
         pastPlans={pastPlans}
       />
-
-      {/* Find Players Dialog */}
-      {findPlayersState && (
-        <FindGamersDialog
-          open={!!findPlayersState}
-          onOpenChange={(open) => !open && setFindPlayersState(null)}
-          eventId={findPlayersState.eventId}
-          eventTitle={findPlayersState.eventTitle}
-          eventStartTime={findPlayersState.eventStartTime}
-          detectedZone={findPlayersState.detectedZone}
-          currentSignups={findPlayersState.matchResults}
-        />
-      )}
 
       {/* Past Plans Section */}
       <div className="space-y-4 pt-4">

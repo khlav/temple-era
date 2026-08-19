@@ -435,6 +435,12 @@ export const raidHelperRouter = createTRPCRouter({
           // Use assigned class/spec if available, fallback to signup class/spec
           className: assignment?.className ?? signup.className,
           specName: assignment?.specName ?? signup.specName,
+          // Unoverridden Raid Helper class/spec — a raid-plan assignment (e.g. an
+          // off-spec fill) can differ from what someone actually signed up as, and a
+          // consumer comparing against raw historical snapshots (which never see plan
+          // assignments) needs the true signup value, not the merged one above.
+          rawClassName: signup.className,
+          rawSpecName: signup.specName,
           partyId: assignment?.partyId ?? null,
           slotId: assignment?.slotId ?? null,
           isAssigned: !!assignment,
