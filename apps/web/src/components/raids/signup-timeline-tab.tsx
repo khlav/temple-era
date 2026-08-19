@@ -204,8 +204,7 @@ function SignupName({ member }: { member: RoleGroupMember }) {
 /** Bench/Tentative names show a status icon (Armchair/CircleHelp/Clock), not a class icon —
  * className here is literally "Bench"/"Tentative"/"Late", and specName alone can't
  * disambiguate a shared spec name across classes (e.g. Warrior vs Paladin "Protection")
- * without guessing. Matches the existing convention in character-card.tsx /
- * find-gamers-dialog.tsx. */
+ * without guessing. Matches the existing convention in character-card.tsx. */
 function StatusName({ member }: { member: RoleGroupMember }) {
   const StatusIcon = RAIDHELPER_STATUS_ICONS[member.signup.className];
   return (
@@ -302,6 +301,51 @@ export function SignupTimelineTab({ raidId, enabled }: SignupTimelineTabProps) {
       hasLink={!!link}
       loading={timelineQuery.isLoading || (!!link && liveQuery.isLoading)}
       noHistoryDetail="This raid isn't linked to a Raid Helper event."
+    />
+  );
+}
+
+interface SignupTimelineByOccurrenceProps {
+  raidHelperEventId: string;
+  startTime: Date;
+}
+
+/**
+ * Occurrence-keyed sibling of SignupTimelineTab, for the standalone
+ * /raid-manager/signups/[eventId] page — a scheduled/upcoming event has no `raids` row
+ * yet (a raid is only created from a WCL log after the event happens), so there's no
+ * raidId to resolve a link through. Reads checkpoint history directly via
+ * timelineForOccurrence instead of going through raidSignupLinkRouter's raid-keyed path.
+ */
+export function SignupTimelineByOccurrence({
+  raidHelperEventId,
+  startTime,
+}: SignupTimelineByOccurrenceProps) {
+  const timelineQuery = api.raidSignupLink.timelineForOccurrence.useQuery({
+    raidHelperEventId,
+    startTime,
+  });
+
+  const liveQuery = api.raidHelper.getEventDetails.useQuery(
+    { eventId: raidHelperEventId },
+    { retry: false },
+  );
+  const live: TimelineSignupEntry[] | null = liveQuery.data
+    ? [...liveQuery.data.signups.assigned, ...liveQuery.data.signups.unassigned]
+    : null;
+
+  const slots = useMemo(
+    () => buildTimeline(timelineQuery.data?.snapshots ?? [], live),
+    // liveQuery.data is the real dependency; `live` is derived fresh each render.
+    [timelineQuery.data?.snapshots, liveQuery.data],
+  );
+
+  return (
+    <SignupTimelineView
+      slots={slots}
+      hasLink={true}
+      loading={timelineQuery.isLoading || liveQuery.isLoading}
+      noHistoryDetail="No signup history available for this event."
     />
   );
 }

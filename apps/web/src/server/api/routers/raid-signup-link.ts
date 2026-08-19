@@ -160,4 +160,21 @@ export const raidSignupLinkRouter = createTRPCRouter({
 
       return { link, snapshots };
     }),
+
+  /**
+   * Same checkpoint history as `timelineForRaid`, but keyed directly on the Raid Helper
+   * occurrence rather than a `raids` row — for scheduled/upcoming events, which have no
+   * raid yet (a raid is only created from a WCL log after the event happens). Backs the
+   * standalone `/raid-manager/signups/[eventId]` page.
+   */
+  timelineForOccurrence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidHelperEventId: z.string().min(1), startTime: z.coerce.date() }))
+    .query(async ({ input }) => {
+      const snapshots = await getSignupSnapshotHistoryForOccurrence(
+        input.raidHelperEventId,
+        input.startTime,
+      );
+
+      return { snapshots };
+    }),
 });
