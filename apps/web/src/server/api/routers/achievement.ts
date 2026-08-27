@@ -13,6 +13,11 @@ import {
   createSeason,
   listSeasons,
 } from "~/server/services/achievement-service";
+import {
+  getUnseenAwards,
+  getDisplayCatalog,
+  getAwardById,
+} from "~/server/services/achievement-queries";
 
 const achievementTierLevelSchema = z.enum(["bronze", "silver", "gold", "platinum"]);
 const achievementScopeSchema = z.enum(["season", "all_time"]);
@@ -100,4 +105,25 @@ export const achievementRouter = createTRPCRouter({
   listAwardsForFamily: protectedProcedure
     .input(z.object({ primaryCharacterId: z.number().int() }))
     .query(({ input }) => listAwardsForFamily(input.primaryCharacterId)),
+
+  // Backs the FAB badge count and the reveal overlay's hero+strip batch — always the caller's
+  // own family, never another character's.
+  getUnseenAwards: protectedProcedure.query(async ({ ctx }) => {
+    const primaryCharacterId = await resolveSessionPrimaryCharacterId(ctx.session.user.id);
+    if (primaryCharacterId === null) return [];
+    return getUnseenAwards(ctx.db, primaryCharacterId);
+  }),
+
+  // Backs achievement-display.tsx on both the character page (any viewed character's family) and
+  // the Trophy Case (the caller's own family) — takes an explicit primaryCharacterId rather than
+  // always resolving the caller's own, since the character page needs to show whichever
+  // character is being viewed.
+  getDisplayCatalog: protectedProcedure
+    .input(z.object({ primaryCharacterId: z.number().int() }))
+    .query(({ ctx, input }) => getDisplayCatalog(ctx.db, input.primaryCharacterId)),
+
+  // Backs Trophy Case replay — works regardless of seenAt, unlike getUnseenAwards.
+  getAwardById: protectedProcedure
+    .input(z.object({ achievementAwardId: z.string().uuid() }))
+    .query(({ ctx, input }) => getAwardById(ctx.db, input.achievementAwardId)),
 });

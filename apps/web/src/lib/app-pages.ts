@@ -18,6 +18,7 @@ import {
   ScanLine,
   ShieldCheck,
   Flame,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ export const APP_PAGES: AppPage[] = [
   { name: "Rare recipes & crafters", path: "/rare-recipes", icon: BookOpen },
   { name: "World Buffs", path: "/world-buffs", icon: Flame },
   { name: "Attendance reports", path: "/reports/attendance", icon: BarChart3 },
+  { name: "Trophies", path: "/trophies", icon: Trophy },
   {
     name: "Create new raid",
     path: "/raids/new",

@@ -12,7 +12,7 @@ import { AttendanceProgressBar } from "~/components/common/attendance-progress-b
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { api } from "~/trpc/react";
-import { CharacterBadges } from "~/components/characters/character-badges";
+import { AchievementDisplay } from "~/components/achievements/achievement-display";
 
 function AttendanceCardContent({
   characterId,
@@ -166,7 +166,9 @@ export function CharacterDetail({
 
             <Card>
               <CardContent className="pt-4 sm:pt-4">
-                <CharacterBadges characterId={characterId} />
+                <AchievementDisplay
+                  primaryCharacterId={characterData.primaryCharacterId ?? characterId}
+                />
               </CardContent>
             </Card>
 

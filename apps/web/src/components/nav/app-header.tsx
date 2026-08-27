@@ -53,6 +53,7 @@ const primaryNav = [
   { label: "Recipes", href: "/rare-recipes" },
   { label: "World Buffs", href: "/world-buffs" },
   { label: "Reports", href: "/reports/attendance" },
+  { label: "Trophies", href: "/trophies" },
 ];
 
 // Each entry's requiredScope must match its destination's own layout/route guard — gating on

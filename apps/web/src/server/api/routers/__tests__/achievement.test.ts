@@ -28,6 +28,16 @@ vi.mock("~/server/services/achievement-service", () => ({
   listSeasons: vi.fn(),
 }));
 
+// achievement-queries.ts is NOT mocked — its db-injected functions (getUnseenAwards,
+// getDisplayCatalog, getAwardById) run for real against a fake db passed via callerWithDb below,
+// per the spec's own Pattern to follow (achievement-rules.ts's DI convention). Only the rule-tier
+// lookups it composes (achievement-rules.ts) are mocked, so these tests exercise achievement-
+// queries' own hidden-exclusion/ordering logic without needing a full rule-engine fixture.
+vi.mock("~/server/services/achievement-rules", () => ({
+  getHighestTierPerAchievement: vi.fn(),
+  getNextTierProgress: vi.fn(),
+}));
+
 import { createCaller } from "~/server/api/root";
 import {
   createAchievement as mockCreateAchievement,
@@ -36,6 +46,10 @@ import {
   resolveSessionPrimaryCharacterId as mockResolveSessionPrimaryCharacterId,
   createSeason as mockCreateSeason,
 } from "~/server/services/achievement-service";
+import {
+  getHighestTierPerAchievement as mockGetHighestTierPerAchievement,
+  getNextTierProgress as mockGetNextTierProgress,
+} from "~/server/services/achievement-rules";
 
 const TIER_ID_1 = "00000000-0000-4000-8000-000000000001";
 const AWARD_ID_1 = "00000000-0000-4000-8000-0000000000a1";
@@ -52,6 +66,18 @@ function callerWithScopes(scopes: string[]) {
   const session = makeSession(scopes);
   return createCaller({
     db: {} as never,
+    headers: new Headers(),
+    session,
+    getSession: async () => session,
+  });
+}
+
+/** Same as callerWithScopes, but with a real (fake) db object instead of `{}` — for the three
+ *  query procedures that call achievement-queries.ts's real, db-injected functions. */
+function callerWithDb(scopes: string[], fakeDb: unknown) {
+  const session = makeSession(scopes);
+  return createCaller({
+    db: fakeDb as never,
     headers: new Headers(),
     session,
     getSession: async () => session,
@@ -178,5 +204,117 @@ describe("achievement router: mark-seen", () => {
 
     expect(result).toEqual({ updated: 0 });
     expect(mockMarkAchievementAwardsSeen).not.toHaveBeenCalled();
+  });
+});
+
+describe("achievement router: getUnseenAwards", () => {
+  it("resolves the caller's own primaryCharacterId before querying awards", async () => {
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(null);
+    const caller = callerWithScopes([]);
+
+    const result = await caller.achievement.getUnseenAwards();
+
+    expect(result).toEqual([]);
+    expect(mockResolveSessionPrimaryCharacterId).toHaveBeenCalledWith("user-1");
+  });
+});
+
+describe("achievement-queries", () => {
+  it("display-catalog: a hidden achievement with zero awards for the family never appears in either bucket", async () => {
+    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(new Map());
+    const fakeDb = { query: { achievements: { findMany: vi.fn().mockResolvedValueOnce([]) } } };
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
+
+    expect(result.hiddenEarned).toEqual([]);
+    expect(fakeDb.query.achievements.findMany).toHaveBeenCalledTimes(1); // hidden query never ran
+  });
+
+  it("display-catalog: the same achievement, after being earned, appears in hiddenEarned with progress null", async () => {
+    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(
+      new Map([["ach-hidden", "bronze"]]),
+    );
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce([]) // visible
+      .mockResolvedValueOnce([{ id: "ach-hidden", name: "Secret", icon: "trophy", hidden: true }]); // hidden, earned
+    const fakeDb = { query: { achievements: { findMany } } };
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
+
+    expect(result.hiddenEarned).toEqual([
+      {
+        achievementId: "ach-hidden",
+        name: "Secret",
+        icon: "trophy",
+        highestTierEarned: "bronze",
+        progress: null,
+      },
+    ]);
+    expect(mockGetNextTierProgress).not.toHaveBeenCalled();
+  });
+
+  it("display-catalog: a visible achievement at platinum has progress null, not an error", async () => {
+    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(new Map([["ach-1", "platinum"]]));
+    vi.mocked(mockGetNextTierProgress).mockResolvedValue(null); // maxed out
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { id: "ach-1", name: "Attendance", icon: "calendar-check", hidden: false },
+      ])
+      .mockResolvedValueOnce([]);
+    const fakeDb = { query: { achievements: { findMany } } };
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
+
+    expect(result.visible).toEqual([
+      {
+        achievementId: "ach-1",
+        name: "Attendance",
+        icon: "calendar-check",
+        highestTierEarned: "platinum",
+        progress: null,
+      },
+    ]);
+  });
+
+  it("getUnseenAwards orders platinum before gold before silver before bronze, most-recent first within a tier", async () => {
+    const row = (id: string, tier: string, awardedAt: string) => ({
+      id,
+      awardedAt: new Date(awardedAt),
+      achievementTier: {
+        tier,
+        achievementId: `ach-${id}`,
+        achievement: { name: id, icon: "trophy" },
+      },
+    });
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findMany: vi
+            .fn()
+            .mockResolvedValue([
+              row("silver-old", "silver", "2026-08-01"),
+              row("gold-1", "gold", "2026-08-10"),
+              row("platinum-1", "platinum", "2026-08-05"),
+              row("silver-new", "silver", "2026-08-15"),
+            ]),
+        },
+      },
+    };
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(1);
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getUnseenAwards();
+
+    expect(result.map((a) => a.achievementAwardId)).toEqual([
+      "platinum-1",
+      "gold-1",
+      "silver-new",
+      "silver-old",
+    ]);
   });
 });
