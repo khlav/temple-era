@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Implementation Notes — Phase 4</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f7f3;
+        --fg: #191b1d;
+        --muted: #50555a;
+        --border: #dededf;
+        --accent: #2b46c7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131417;
+          --fg: #e9e9e4;
+          --muted: #a8aaa6;
+          --border: #2d3036;
+          --accent: #93a7ff;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 2rem 1.25rem 4rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .doc-header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 2rem; }
+      .doc-header h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+      .doc-meta { margin: 0; color: var(--muted); font-size: 0.875rem; }
+      .note-entry { border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+      .note-entry h3 { margin: 0 0 0.75rem; font-size: 1.05rem; color: var(--accent); }
+      .note-entry dl { margin: 0; }
+      .note-entry dt { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-top: 0.75rem; }
+      .note-entry dt:first-child { margin-top: 0; }
+      .note-entry dd { margin: 0.15rem 0 0; }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        background: color-mix(in srgb, var(--fg) 8%, transparent);
+        padding: 0.1em 0.3em;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="doc-header">
+      <h1>Implementation Notes — Phase 4</h1>
+      <p class="doc-meta">Achievement Engine · 2026-08-27 · QStash Evaluation Trigger</p>
+    </header>
+    <main class="doc-content">
+      <section class="note-entry">
+        <h3>Added a third publish call site the spec didn't name — <code>raid.ts</code>'s own <code>createRaid</code> mutation</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's File Changes table wires <code>signup_link_resolved</code> publishing into exactly one call site: <code>POST /api/v1/raids</code>, right after its <code>runPostRaidCreationSignupLinking(result.raidId)</code> call. The scout's dependency-awareness pass found a second, structurally identical call to <code>runPostRaidCreationSignupLinking</code> that the spec never mentions: <code>apps/web/src/server/api/routers/raid.ts:246</code>, inside the web UI's own <code>createRaid</code> tRPC mutation — the path a raid manager uses when creating a raid directly from the site rather than through Discord/Templar's v1 endpoint.</dd>
+          <dt>Decision</dt>
+          <dd>Added the same <code>publishAchievementEvaluate(insertedRaidInfo.raidId, "signup_link_resolved")</code> call immediately after <code>raid.ts</code>'s own <code>runPostRaidCreationSignupLinking</code> call, using the identical non-throwing helper as the other two sites. Leaving this site unwired would mean a whole class of raids — anything created through the site's own admin UI instead of the v1 API — never fires the signup-link-resolved trigger, so Consistency/Flexibility achievements depending on that raid's signup snapshot would silently never evaluate for those raids. That contradicts the phase's own stated goal (evaluate wherever a crossing could occur), and the fix is additive/safe by the same idempotency argument the spec already makes for firing the other two triggers twice.</dd>
+          <dt>Alternative</dt>
+          <dd>Leave the gap and only wire the two literally-named call sites (rejected — would leave UI-created raids permanently unable to earn Consistency/Flexibility, a real functional gap rather than a stylistic one; the fix costs one line plus an import, using code already written for this phase).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3>Introduced a small shared publish helper, not in the spec's File Changes</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's own route snippet inlines the <code>qstashClient.publishJSON(...)</code> call directly at each of its two named call sites. With a third call site added (see above), inlining the same try/catch-and-log block three times risked the non-throwing discipline drifting between copies — exactly the kind of duplication this codebase's QStash publish sites are careful about (see <code>raid-helper-discovery/route.ts</code>'s own <code>cancelQstashMessage</code> helper for the same instinct).</dd>
+          <dt>Decision</dt>
+          <dd>Factored the publish + non-throwing discipline into <code>apps/web/src/server/services/achievement-evaluate-publish.ts</code>'s <code>publishAchievementEvaluate(raidId, trigger)</code>, imported by all three call sites (<code>raidlog.ts</code>, <code>api/v1/raids/route.ts</code>, <code>raid.ts</code>). Single place to get the try/catch, the <code>NEXT_PUBLIC_APP_URL</code> guard, and the log shape right once.</dd>
+          <dt>Alternative</dt>
+          <dd>Inline the publish call at all three sites (rejected — three copies of try/catch discipline that must never diverge is worse than one shared four-line function).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3>Review finding: the achievement-evaluate publish chain broke two test files under true zero-env CI conditions</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>Review cycle 1 (critical) caught that <code>achievement-evaluate-publish.ts</code> imports <code>~/env</code> directly. CI's <code>Test</code> step (<code>.github/workflows/ci.yml:100-101</code>) runs with zero env vars set at all — <code>SKIP_ENV_VALIDATION</code> is only set on the later <code>Build</code> step — and <code>@t3-oss/env-nextjs</code>'s <code>createEnv()</code> throws synchronously the moment <code>~/env</code> is imported under those conditions, regardless of whether anything inside the importing module is actually invoked. The reviewer's initial suggested fix (make <code>qstash-client.ts</code>'s <code>Client</code> construction lazy, mirroring <code>qstash-verify.ts</code>'s <code>Receiver</code>) was tried first and verified <em>not</em> to fix it — that pattern solves a different problem (<code>next build</code>'s page-data-collection step, which runs with <code>SKIP_ENV_VALIDATION=1</code> so <code>createEnv()</code> itself succeeds but individual secret values are <code>undefined</code>). Here <code>createEnv()</code> itself throws at import time, before any lazy construction inside the module would even matter, so that fix was reverted.</dd>
+          <dt>Decision</dt>
+          <dd>Root-caused with a direct reproduction of CI's exact condition (<code>env -u SKIP_ENV_VALIDATION -u QSTASH_TOKEN ... npx vitest run</code>) and fixed by mocking the actual import chain in each affected test file, following this codebase's own established convention (mock <code>~/server/db</code> rather than make production code "test-import-safe") rather than inventing a new one:
+          <ul>
+            <li><code>v1/raids/__tests__/route.test.ts</code> — mock <code>~/server/services/achievement-evaluate-publish</code> (this file's contract is the Templar 201 response, not the QStash side effect).</li>
+            <li><code>achievement.test.ts</code> — same mock, plus two more that turned out to be needed by tracing the failure one layer at a time: <code>~/server/db</code> (root.ts already registers <code>discord.ts</code>/<code>search.ts</code>, both of which import the real <code>db</code> singleton at module scope, <strong>pre-existing and unrelated to this phase</strong> — this file simply never ran under true zero-env conditions before this review), and <code>~/env</code> directly (needed one level deeper still: <code>trpc.ts</code> itself — unavoidably imported, since it's the router machinery <code>createCaller</code> is built on — imports <code>~/env</code> at module scope for a try/catch-guarded, never-exercised-by-these-tests logging helper). Verified the full fix by re-running the exact zero-env repro against the whole suite: 214/214 pass.</li>
+          </ul>
+          </dd>
+          <dt>Alternative</dt>
+          <dd>Make every touched production module (<code>qstash-client.ts</code>, <code>achievement-evaluate-publish.ts</code>) "test-import-safe" via dynamic <code>import()</code> of <code>~/env</code> at call time (considered, rejected — no precedent anywhere in this codebase, and the actual fix is smaller: this file's own tests were always going to need to mock whatever they don't want touched, the same as every other router test here already does).</dd>
+        </dl>
+      </section>
+    </main>
+  </body>
+</html>

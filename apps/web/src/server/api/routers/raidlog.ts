@@ -11,6 +11,7 @@ import { convertParticipantArrayToCollection } from "~/server/api/routers/charac
 import { Slugify } from "~/server/api/wcl-helpers";
 import { SCOPE } from "~/lib/scopes";
 import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
+import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
 /*
   Reusable router functions
  */
@@ -158,6 +159,12 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
     raidDate: input.startTimeUTC,
     actingUserId: session.user.id,
   });
+
+  // Only when this raid log is already linked to a raid — an import that hasn't been
+  // assigned a raidId yet has nothing for achievement evaluation to scope to.
+  if (input.raidId) {
+    await publishAchievementEvaluate(input.raidId, "raid_log_import");
+  }
 };
 
 const inputInsertRaidLogWithAttendees = z.object({

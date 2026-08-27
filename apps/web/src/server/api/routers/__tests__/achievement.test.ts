@@ -38,6 +38,34 @@ vi.mock("~/server/services/achievement-rules", () => ({
   getNextTierProgress: vi.fn(),
 }));
 
+// createCaller (below) statically imports every router in root.ts, including raidlog.ts and
+// raid.ts — both of which now import achievement-evaluate-publish.ts, which imports ~/env.
+// CI's Test step runs with zero env vars set (SKIP_ENV_VALIDATION is only set on the later
+// Build step), so an unmocked ~/env import throws at module-evaluation time, before any test
+// in this file runs. Mocking it here follows the same convention this codebase already uses
+// for ~/server/db (see raidlog.ts's own tests) — this file has no reason to exercise the real
+// QStash-publish side effect anyway.
+vi.mock("~/server/services/achievement-evaluate-publish", () => ({
+  publishAchievementEvaluate: vi.fn(),
+}));
+
+// A pre-existing gap, not introduced by this phase: root.ts also registers discord.ts and
+// search.ts, both of which already import the real `db` singleton from ~/server/db at module
+// scope (unconditionally, unrelated to anything achievement-specific). That singleton's own
+// module imports ~/env, so createCaller has always thrown under true zero-env conditions —
+// this file just never actually ran that way until this phase's CI-mirroring repro caught it.
+// Every test below injects its own fake db via callerWithDb, so the real module is never
+// otherwise touched; mocking it here only prevents the module from loading at all.
+vi.mock("~/server/db", () => ({ db: {} }));
+
+// trpc.ts itself (unavoidably imported — it's the router machinery createCaller and every
+// router are built on) also imports ~/env directly at module scope, for a query-logging
+// helper (isLocalDatabase) that's try/catch-guarded and never exercised by these tests.
+// Same pre-existing gap as above, one level deeper — mocking ~/env directly is the only way
+// to satisfy it without mocking trpc.ts itself (which would break the actual scope-gating
+// behavior these tests exist to verify).
+vi.mock("~/env", () => ({ env: {} }));
+
 import { createCaller } from "~/server/api/root";
 import {
   createAchievement as mockCreateAchievement,
