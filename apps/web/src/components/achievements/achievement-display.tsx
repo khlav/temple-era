@@ -7,7 +7,8 @@ import { Progress } from "~/components/ui/progress";
 import { TIER_LABEL, type AchievementTierLevel } from "~/components/achievements/reveal-overlay";
 import type { DisplayAchievement } from "~/server/services/achievement-queries";
 
-// Highest tier first, then "not yet earned" — mirrors character-badges.tsx's rarity grouping.
+// Highest tier first, then "not yet earned" — mirrors Season 1's badge-rarity grouping
+// (the display convention carried over; the badge system itself was retired in Phase 5).
 const TIER_GROUP_ORDER: (AchievementTierLevel | "unearned")[] = [
   "platinum",
   "gold",
