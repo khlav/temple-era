@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Implementation Notes — Phase 1</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f7f3;
+        --fg: #191b1d;
+        --muted: #50555a;
+        --border: #dededf;
+        --accent: #2b46c7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131417;
+          --fg: #e9e9e4;
+          --muted: #a8aaa6;
+          --border: #2d3036;
+          --accent: #93a7ff;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 2rem 1.25rem 4rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .doc-header { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 2rem; }
+      .doc-header h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+      .doc-meta { margin: 0; color: var(--muted); font-size: 0.875rem; }
+      .note-entry { border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+      .note-entry h3 { margin: 0 0 0.75rem; font-size: 1.05rem; color: var(--accent); }
+      .note-entry dl { margin: 0; }
+      .note-entry dt { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-top: 0.75rem; }
+      .note-entry dt:first-child { margin-top: 0; }
+      .note-entry dd { margin: 0.15rem 0 0; }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+        background: color-mix(in srgb, var(--fg) 8%, transparent);
+        padding: 0.1em 0.3em;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="doc-header">
+      <h1>Implementation Notes — Phase 1</h1>
+      <p class="doc-meta">Achievement Engine · 2026-08-27 · Season + Achievement Schema + Manual Grant</p>
+    </header>
+    <main class="doc-content">
+      <section class="note-entry">
+        <h3>Admin UI placement — new route outside <code>/admin/*</code></h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's implementation steps said to build the two-step manual admin flow "same admin section" as <code>role-editor.tsx</code>, implying under <code>/admin/*</code>. Scout flagged that <code>apps/web/src/app/admin/layout.tsx</code> gates the entire subtree on <code>userpermissions:manage</code>, not per-page.</dd>
+          <dt>Decision</dt>
+          <dd>Created a standalone route at <code>/achievements/manage</code> with its own server-side scope check against <code>achievement:manage</code> specifically, mirroring <code>admin/layout.tsx</code>'s redirect pattern but scoped correctly. An officer who holds <code>achievement:manage</code> but not full <code>userpermissions:manage</code> can now reach the page; nesting under <code>/admin</code> would have incorrectly blocked them, contradicting the spec's own success criterion that only <code>achievement:manage</code> gates the flow.</dd>
+          <dt>Alternative</dt>
+          <dd>Nest under <code>/admin/achievements</code> and accept double-gating (rejected — would silently narrow who can use the feature beyond what was specified) or add a bypass to <code>admin/layout.tsx</code> for this one subroute (rejected — more invasive, touches shared layout logic for a single page).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3>Season creation — added <code>createSeason</code>/<code>listSeasons</code></h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's schema includes a <code>season</code> table and notes "Season 2's real start/end date is provided later... seeded as a follow-up data change once known," but named no procedure for creating one, and the admin UI needs a season to exist before a season-scoped custom achievement can be created.</dd>
+          <dt>Decision</dt>
+          <dd>Added a minimal <code>createSeason</code> mutation (name/startDate/endDate, <code>achievement:manage</code>-scoped) and a <code>listSeasons</code> query, both in <code>achievement-service.ts</code>/<code>achievement.ts</code>. This is additive — it doesn't change any spec-named surface — and unblocks the admin UI from being usable at all before Season 2's real dates are known.</dd>
+          <dt>Alternative</dt>
+          <dd>Require a season to be inserted directly via <code>db:studio</code>/a raw SQL seed before the admin UI is usable (rejected — leaves the shipped UI non-functional for its primary season-scoped use case out of the box).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3>Test assertion — <code>UNAUTHORIZED</code>, not <code>FORBIDDEN</code></h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's own success criterion and "Experiment" wording both say a missing-scope call should be tested for <code>FORBIDDEN</code>.</dd>
+          <dt>Decision</dt>
+          <dd>Tests assert <code>UNAUTHORIZED</code>, matching <code>scopedProcedure</code>'s actual implementation in <code>trpc.ts</code> (it throws <code>TRPCError({ code: "UNAUTHORIZED", ... })</code> for both "not logged in" and "missing scope" — there is no <code>FORBIDDEN</code> path anywhere in this codebase's tRPC layer). Scout flagged this exact spec/reality mismatch before the build started.</dd>
+          <dt>Alternative</dt>
+          <dd>Change <code>trpc.ts</code> to throw <code>FORBIDDEN</code> for missing-scope specifically (rejected — out of this phase's scope, and would be a breaking change to every other scoped procedure in the app for the sake of matching one spec's wording rather than the wording being wrong).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3><code>awarded_by_user_id</code> — real FK, not a bare varchar</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec's own Drizzle sketch typed this column as an unconstrained <code>varchar(255)</code>, deferring to an Open Item ("confirm users table's PK type").</dd>
+          <dt>Decision</dt>
+          <dd>Used <code>uuid("awarded_by_user_id").references(() =&gt; users.id, { onDelete: "set null" })</code>, matching <code>auth_user.id</code>'s real type (confirmed via <code>auth-schema.ts</code>) and the <code>CreatedBy</code>/<code>UpdatedBy</code> helper pattern every other actor-attribution column in this codebase follows.</dd>
+          <dt>Alternative</dt>
+          <dd>Ship the spec's literal unconstrained varchar and fix it in a later migration (rejected — the correct type was directly confirmable this pass, no reason to ship a known-wrong column).</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3>Test file split — router tests vs. service tests</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec named a single test file, <code>src/server/api/routers/__tests__/achievement.test.ts</code>, for both scope-gating and DB-touching logic (season validation, rule-managed-tier rejection, unique-constraint mapping, mark-seen idempotency).</dd>
+          <dt>Decision</dt>
+          <dd>Split into two files: the named router file (scope gating + wiring only, mocking the whole service module) and a new <code>src/server/services/__tests__/achievement-service.test.ts</code> (real service logic, mocking only <code>~/server/db</code>). Mocking the service module for router tests and then re-importing "the real" module in service-level tests within the *same* file collide — <code>vi.mock</code> affects every import of a given path in a test file, so the service-level tests were silently exercising the mocked functions instead of the real ones. This split also matches this codebase's existing convention (service tests live beside their service, e.g. <code>raid-signup-link-matching.test.ts</code>).</dd>
+          <dt>Alternative</dt>
+          <dd><code>vi.doUnmock</code> mid-file to un-mock between describe blocks (rejected — fragile, depends on Vitest's mock-hoisting order rather than being structurally obvious). The spec's two named <code>cmd</code> checks (<code>-t manual-grant</code>, <code>-t mark-seen</code>) still pass against the router file alone; the service file is additional coverage the spec didn't explicitly require but the codebase's testing convention calls for.</dd>
+        </dl>
+      </section>
+      <section class="note-entry">
+        <h3><code>resolveSessionPrimaryCharacterId</code> — resolved the spec's Open Item</h3>
+        <dl>
+          <dt>Context</dt>
+          <dd>The spec flagged as an Open Item: "confirm the exact session→primaryCharacterId resolution helper... this codebase likely already has a 'my own characters' pattern used elsewhere."</dd>
+          <dt>Decision</dt>
+          <dd>Scout located it: <code>profile.ts</code>'s <code>getMyProfile</code> resolves via <code>users.findFirst({ with: { character: { primaryCharacterId, characterId } } })</code>, then <code>character.primaryCharacterId ?? character.characterId</code> (self is primary when null, matching <code>characters.isPrimary</code>'s generated-column semantics). Implemented the same join, extracted as its own reusable function since no prior helper existed in isolation (only inlined inside <code>getMyProfile</code>).</dd>
+          <dt>Alternative</dt>
+          <dd>None — this was a confirmed pattern to follow, not a design choice.</dd>
+        </dl>
+      </section>
+    </main>
+  </body>
+</html>
