@@ -1,0 +1,208 @@
+{
+  "projectName": "Achievement Engine",
+  "slug": "achievement-engine",
+  "date": "2026-08-26",
+  "status": "Approved",
+  "supersedes": null,
+  "gates": {
+    "dimensions": [
+      {
+        "key": "problem",
+        "label": "Problem Clarity",
+        "status": "ready",
+        "evidence": "Season 1's badges are ephemeral (recomputed client-side against a rolling window, can silently un-earn) and officers have no way to manually recognize things that can't be rule-verified (e.g. self-reported recipes)."
+      },
+      {
+        "key": "goals",
+        "label": "Goal Definition",
+        "status": "ready",
+        "evidence": "Every rule-satisfied tier crossing and every manual grant produces exactly one permanent achievement_award row, scoped correctly to season or all-time; unseen awards drive a FAB-triggered reveal that marks seenAt on dismiss."
+      },
+      {
+        "key": "criteria",
+        "label": "Success Criteria",
+        "status": "ready",
+        "evidence": "9 rule shapes each have a synthetic-data vitest case, plus idempotency, append-per-crossing, season/all-time window correctness, family-level attribution, manual-grant scope-gating, and old-system removal — see successCriteria."
+      },
+      {
+        "key": "scope",
+        "label": "Scope Boundaries",
+        "status": "ready",
+        "evidence": "MVP/full/out-of-scope explicitly enumerated: rip-and-replace Season 1 (archived to docs first), 9 achievements (one per shape) plus one all-time example, recipes are manual-grant-only, QStash-triggered evaluation, full reveal wiring."
+      },
+      {
+        "key": "consistency",
+        "label": "Consistency",
+        "status": "ready",
+        "evidence": "Permanence (never revoked) and season-scoping (window clips to [season.start, now]) operate at different layers — the window decides what CAN evaluate true; once true, it freezes forever. No unresolved contradictions surfaced."
+      }
+    ]
+  },
+  "problem": [
+    "Temple Era guild raiders have no permanent record of what they've accomplished in a season. Season 1's badge system is evaluated entirely client-side, on every render, against a rolling 6-week attendance window — a badge a raider held last month can silently vanish this month as the window rolls forward, even though they genuinely earned it. There is no fanfare, no persistent trophy case, and no way for an officer to manually recognize something that can't be reduced to a rule (Season 1's recipe data is self-reported and can be temporarily faked, so it can never be trusted for automated verification).",
+    "Season 2 needs achievements that are permanent once earned, evaluated by rule against actual data scoped correctly to a season's own lockout weeks (never bleeding in pre-season history) or, for a smaller set of exceptionally hard achievements, across all history — with room for officers to manually grant recognition outside the rule engine entirely."
+  ],
+  "goals": [
+    "Every tier crossing (bronze through platinum) that a rule is satisfied for during its correct window — season-clipped or all-time — is captured exactly once as a permanent achievement_award row, keyed to the family that earned it, with no duplicates and no missed crossings.",
+    "A family that goes bronze then later silver on the same achievement ends up with two permanent, individually-replayable award rows, while still being trivially queryable for 'current highest tier' per achievement per season.",
+    "A raider with unseen awards sees a badged FAB on the dashboard; clicking it plays the already-validated reveal ceremony (hero + strip for multiple awards) against real data, every image preloaded before the sequence starts.",
+    "Dismissing the reveal marks seenAt for every shown award; a new Trophy Case surface lets a raider replay any past reveal on demand, independent of seen state.",
+    "Season 1's ephemeral badge system is fully retired — code removed, its old achievement/rule definitions preserved only as documentation — replaced entirely by the new permanent model.",
+    "The rule engine supports all 9 identified rule shapes, plus the season-bound/all-time scope dimension, as pure configuration — a new achievement requires no new engineering, only new data.",
+    "Visible achievements show, on both the character page and the Trophy Case, the highest tier a family has earned plus a progress bar toward the next tier; hidden achievements occupy no display space at all until the family earns their first tier of one, after which earned hidden achievements surface in a dedicated 'Hidden Achievements Earned' section — never revealing an unearned hidden achievement's existence."
+  ],
+  "successCriteria": [
+    { "criterion": "Achievement schema (season, achievement, achievement_tier, achievement_award) typechecks and Drizzle relations compile.", "check": { "cmd": "pnpm --filter temple-era-web typecheck", "expect": "exits 0" } },
+    { "criterion": "Raid Attendance (threshold-over-window) awards the correct tier at each boundary against synthetic lockout-week data (e.g. 59%/4wk = none, 60%/4wk = bronze, 100%/10wk = platinum).", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t attendance", "expect": "exits 0" } },
+    { "criterion": "Consistency (same-character signup↔attend match) requires BOTH an early-checkpoint confirmed signup AND matching actual attendance by that same character; a synthetic case with only one half does not award. An ambiguous or unmatched signup-to-character match (match-signups.ts's MatchStatus) is excluded, not counted.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t consistency", "expect": "exits 0" } },
+    { "criterion": "Flexibility (cross-character family signup↔attend match) awards when the signed-up and attending characters differ but share a family, and does not award when the attending character isn't linked to the signed-up one. An ambiguous or unmatched signup match is excluded, not counted.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t flexibility", "expect": "exits 0" } },
+    { "criterion": "Bench Credit (discrete event count) increments only on bench-classified signup buckets against synthetic multi-raid signup history.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t bench-credit", "expect": "exits 0" } },
+    { "criterion": "Zone Attendance (per-zone threshold) evaluates each 40-man raid zone independently — attendance in one zone doesn't count toward another zone's tier.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t zone-attendance", "expect": "exits 0" } },
+    { "criterion": "Raid Marathon (per-week raid density) counts distinct raids attended within a single lockout week, not raw attendance count across weeks.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t raid-marathon", "expect": "exits 0" } },
+    { "criterion": "Zone Breadth (per-window zone breadth) counts distinct zones raided within a window; attending the same zone twice does not double-count.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t zone-breadth", "expect": "exits 0" } },
+    { "criterion": "Class Breadth (per-window class breadth) counts distinct classes the family raided as within a season window.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t class-breadth", "expect": "exits 0" } },
+    { "criterion": "Family Double-Up (per-raid family co-occurrence) awards when two characters from the same family both appear in one raid's attendee set.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t family-double-up", "expect": "exits 0" } },
+    { "criterion": "An all-time-scoped achievement (reusing the Class Breadth rule, unbounded window) counts qualifying data from a season two seasons prior — all-time scope is NOT clipped to the current season.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t all-time", "expect": "exits 0" } },
+    { "criterion": "A season-bound achievement's window clips to [season.startDate, now] — synthetic qualifying data from before the season start does not count toward it.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t season-scoping", "expect": "exits 0" } },
+    { "criterion": "Evaluation is idempotent — running the same evaluation twice against unchanged data produces zero duplicate achievement_award rows.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t idempotent", "expect": "exits 0" } },
+    { "criterion": "Crossing bronze then later silver on the same achievement within one season produces two permanent rows, not one overwritten row, and 'current highest tier' is trivially queryable from them.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t append-per-crossing", "expect": "exits 0" } },
+    { "criterion": "A new achievement definition that reuses an existing rule shape (e.g. a second all-time Class Breadth variant) can be added in achievement-definitions.ts alone, with zero diff to achievement-rules.ts, and evaluates correctly — proving goal 6's 'no new engineering, only new data' claim.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t extensibility", "expect": "exits 0" } },
+    { "criterion": "Each rule shape's evaluator exposes a raw progress value (current metric, next tier's threshold) alongside tier-crossing pass/fail, computed from the same window/scope logic — not a second parallel implementation.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/services/__tests__/achievement-rules.test.ts -t progress", "expect": "exits 0" } },
+    { "criterion": "A visible achievement always renders on the character page and the Trophy Case with its highest earned tier (or 'not yet earned') and a progress bar toward the next tier; a hidden achievement renders nowhere until the family earns its first tier of it, after which it appears only inside a Hidden Achievements Earned section on both surfaces.", "check": { "judgment": "reviewer seeds one visible achievement mid-progress and one hidden achievement (unearned, then earned) and checks both surfaces reflect the correct display state" } },
+    { "criterion": "Creating a custom award definition (name, icon, tier, season|all-time scope, no rule attached) and granting it are two separate achievement:manage-scoped mutations — an unscoped session is rejected from both, and the same definition can be granted to multiple different families over time, each grant producing its own achievement_award row.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/api/routers/__tests__/achievement.test.ts -t manual-grant", "expect": "exits 0" } },
+    { "criterion": "A dedicated mark-seen mutation sets seenAt on every achievement_award row passed to it, scoped to the calling user's own family, and is idempotent if called twice.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/server/api/routers/__tests__/achievement.test.ts -t mark-seen", "expect": "exits 0" } },
+    { "criterion": "The QStash evaluation route rejects an unsigned request and, given a valid signed request, evaluates only the triggering raid's attendees against a synthetic roster.", "check": { "cmd": "pnpm --filter temple-era-web vitest run src/app/api/qstash/achievement-evaluate/__tests__/route.test.ts", "expect": "exits 0" } },
+    { "criterion": "Season 1's badge-definitions.ts, badge-evaluator.ts, and character-badges.tsx are deleted, and their content is preserved in a written archive doc.", "check": { "cmd": "test ! -f apps/web/src/lib/badge-definitions.ts && test ! -f apps/web/src/lib/badge-evaluator.ts && test -f docs/followups/season-1-badges-archive.md", "expect": "exits 0" } },
+    { "criterion": "The reveal overlay plays end-to-end against real data: the FAB's badge count matches unseen rows, clicking preloads every icon before the sequence starts, and the Trophy Case's replay button re-fires a past reveal on demand.", "check": { "judgment": "reviewer clicks through FAB → reveal → dismiss → Trophy Case replay in a real browser against seeded achievement_award data" } },
+    { "criterion": "Wired-to-real-data reveal choreography (timing, layering, per-tier effect ladder) matches the validated docs/followups/mockups/reveal-overlay.html mockup with no regressions from the ladder documented in reveal-overlay-notes.md, for bronze through platinum only — the diamond path is not ported at MVP.", "check": { "judgment": "reviewer compares the live reveal side-by-side against the mockup for at least one bronze-tier and one platinum-tier crossing" } }
+  ],
+  "scope": {
+    "mvp": [
+      { "item": "season table (id, name, startDate, endDate nullable) with every rule window resolving against it", "reason": "prevents the exact pre-season instant-earn bug flagged in the interview" },
+      { "item": "achievement + achievement_tier + achievement_award schema — family-level attribution (primaryCharacterId, not characterId), append-per-crossing (one permanent row per tier crossed, never overwritten), season|all-time scope flag, hidden boolean flag (whole achievement, not per-tier)", "reason": "the unified permanent data model replacing the old ephemeral badge / hand-awarded trophy split; hidden mirrors Season 1's hidden-badge concept" },
+      { "item": "achievement:manage scope + two-step manual admin flow: (1) create a custom award definition (name, icon, tier, season|all-time scope, hidden flag) with no rule attached, (2) grant that definition to any family, repeatable over time for sequential recipients (1st, 2nd, Nth) — each grant its own achievement_award row", "reason": "officers need to define ad-hoc recognition (not just seed-script edits) and grant recipe-sourced or one-off awards that can never be rule-verified" },
+      { "item": "Character page + Trophy Case achievement display: highest tier earned + progress bar toward the next tier for visible achievements; hidden achievements are invisible until first earned, then shown in a dedicated Hidden Achievements Earned section on both surfaces", "reason": "the two real surfaces raiders check their standing on; user specified this display behavior directly" },
+      { "item": "Rule engine supporting all 9 identified rule shapes and the season/all-time scope dimension: one fully-specified achievement per shape for the 8 non-zone shapes, plus 1 reusing Class Breadth's logic at all-time scope (10 total there), and Zone Attendance defined once per 40-man raid zone the guild clears this season (Onyxia and 20-man raids excluded) rather than a single zone", "reason": "proves the engine generalizes; more achievements become pure data afterward — Zone Attendance's full zone list is itself just more data rows, no new engineering" },
+      { "item": "QStash route: re-evaluate the triggering raid's attendees' achievements right after mutateInsertRaidLogWithAttendees succeeds", "reason": "reuses the existing discovery/capture QStash pattern, fires precisely when new data could cross a threshold" },
+      { "item": "Season 1 badge system removed; badge-definitions.ts/badge-evaluator.ts/character-badges.tsx content archived to a doc first", "reason": "explicit rip-and-replace decision — no dual-running old and new systems" },
+      { "item": "Dashboard FAB badged with unseen-award count, mounted globally alongside the existing GlobalQuickLauncher pattern in layout.tsx", "reason": "reveal only fires on deliberate click, never automatically — decided during the earlier mockup-design phase" },
+      { "item": "Reveal overlay wired to real achievement_award data — preload every icon before the sequence starts, mark seenAt on dismiss, hero+strip layout for >1 unseen award", "reason": "the already-validated mockup choreography, made real" },
+      { "item": "Trophy Case surface with a per-award replay button", "reason": "decided during the earlier mockup-design phase — replay independent of seen/unseen state" }
+    ],
+    "full": [],
+    "stretch": [],
+    "outOfScope": [
+      { "item": "Recipe-based rule evaluation", "reason": "recipe data is self-reported and unverifiable; recipes are manual-grant only, confirmed in interview" },
+      { "item": "Signup-timing-precision achievements (exact minutes-early)", "reason": "the unused entryTime field would need new instrumentation; deferred per interview" },
+      { "item": "Recipe-fulfillment tracking ('crafted for a guildmate')", "reason": "no request/transaction model exists today; a real new feature, deferred per interview" },
+      { "item": "Trophy icon next to every character name render site", "reason": "explicitly stretch/polish in the original plan doc (old Phase 5), gates nothing here" },
+      { "item": "Editing or retuning rule-based achievement definitions (thresholds, windows) through an admin UI", "reason": "user confirmed all rule-based achievements are permanently code-based (achievement-definitions.ts); the admin UI's only job is the MVP two-step manual-grant flow for custom, non-rule awards" }
+    ],
+    "future": [
+      "More achievements of any of the 9 shapes, or new shapes entirely",
+      "Precise signup-timing achievements, once entryTime is wired up",
+      "Recipe-fulfillment tracking and 'crafted for guildmates' achievements",
+      "Diamond tier's use case is undecided — the reveal mockup's ceremony art/code (runDiamondBuildup, fireSupernova, DIAMOND_CADENCE) already exists and stays unported reference until one is defined"
+    ]
+  },
+  "decisions": [
+    { "decision": "Rip out and replace Season 1's badge system entirely, archiving old definitions/rules to documentation only", "rejected": "Coexist alongside the new permanent achievement system", "reason": "user explicitly said 'no need to preserve anything more than documentation' — avoids maintaining two parallel recognition systems" },
+    { "decision": "Recipes are manual-grant only, no rule engine involvement", "rejected": "Rule-evaluate recipe knowledge like the other datasets", "reason": "recipe data is self-reported and can be temporarily faked, unsuitable for automated verification" },
+    { "decision": "Evaluation window granularity lives on the tier row (per-tier), not the achievement row", "rejected": "One window per achievement, shared by all tiers", "reason": "user said window design 'will depend on the achievements we define' — per-tier is a strict superset that doesn't foreclose future flexibility" },
+    { "decision": "QStash message published after mutateInsertRaidLogWithAttendees succeeds, scoped to that raid's attendees", "rejected": "Periodic full-roster nightly QStash schedule", "reason": "fires precisely when new data could cause a crossing, reuses the existing discovery/capture pattern, avoids up-to-a-day lag" },
+    { "decision": "Real season entity with start/end dates; achievements re-earnable per season", "rejected": "Hardcode Season 2's start date as a constant", "reason": "cheap now, avoids a painful migration when Season 3 launches" },
+    { "decision": "Full 9-achievement catalog designed now (one per rule shape) rather than deferred", "rejected": "Ship just one MVP achievement and treat the rest as a follow-up task", "reason": "user chose 'full catalog now' once the shape-based framing made the scope tractable" },
+    { "decision": "Attribution is family-level (primaryCharacterId) — matches how attendance already aggregates across a character's alts", "rejected": "Character-level attribution (one award row per specific character)", "reason": "a same-day orphaned contract (docs/ideation/season-2-awards/contract.md) had already independently reached family-level attribution for the same feature; user confirmed it over character-level once surfaced" },
+    { "decision": "Permanence is append-per-crossing — a new row for every tier crossed, never overwritten", "rejected": "Ratchet — one row per season updated in place to the highest tier reached", "reason": "matches the mockup's per-crossing reveal ceremony and lets each crossing be individually replayed; 'current highest tier' stays trivially queryable per the interview's explicit note" },
+    { "decision": "A rule engine covering 9 generalized shapes is core scope, not hardcoded per-achievement logic", "rejected": "Hardcoded evaluation with no rule engine (the orphaned contract's out-of-scope call)", "reason": "this session's interview drove toward an explicit, reusable rule-shape taxonomy across attendance, signups, and family structure — superseding the earlier, less-informed exclusion" },
+    { "decision": "Diamond tier is NOT reserved exclusively for all-time achievements; all-time achievements can use the full bronze→platinum ladder like season-bound ones", "rejected": "Diamond = all-time-only capstone tier, reviving the orphaned contract's + mockup's existing diamond tier design", "reason": "user declined — all-time achievements aren't necessarily single-tier; diamond's eventual use case is left undecided" },
+    { "decision": "Phase 3 ports only the bronze→platinum reveal choreography; the mockup's diamond buildup/supernova path stays unported reference until a concrete diamond achievement exists", "rejected": "Port the full ladder including diamond now, since the mockup already built it", "reason": "over-engineering critic finding — no achievement uses diamond, scope.future already calls its use case undecided, and criterion 20 was already judgment-scoped to bronze/platinum only; porting an unused, untested animation path was pure risk with no consumer" },
+    { "decision": "Achievement evaluation fires from two hook points — after mutateInsertRaidLogWithAttendees succeeds, AND again after runPostRaidCreationSignupLinking resolves in POST /api/v1/raids", "rejected": "A single hook on mutateInsertRaidLogWithAttendees only", "reason": "hidden-dependency critic finding — Consistency/Flexibility depend on raidSignupSnapshotLinks, which is created later by a separate, unrelated request; evaluation is already idempotent (criterion 13) so firing twice is safe and simpler than guaranteeing one exact ordering" },
+    { "decision": "Ambiguous or unmatched Raid Helper signup matches (match-signups.ts's MatchStatus) are excluded from Consistency/Flexibility evaluation, not counted", "rejected": "Best-effort include ambiguous matches", "reason": "hidden-dependency critic flagged this as previously unspecified; excluding is the conservative default that avoids awarding on an uncertain identity match" },
+    { "decision": "Zone Attendance ships in MVP with one achievement per 40-man raid zone the guild clears this season (Onyxia and 20-man raids excluded), not a single current-zone achievement with the rest deferred", "rejected": "MVP ships one Zone Attendance achievement for the current raid tier's zone only; remaining zones deferred to Stretch", "reason": "user clarified they're clearing all zones and want every 40-man zone covered from the start; it's still pure data per goal 6, so no engineering-risk reason to defer it" },
+    { "decision": "Achievements can be hidden or visible; visible ones show highest-tier-earned plus a progress bar toward the next tier on the character page and Trophy Case; hidden ones occupy no display space until first earned, then move into a dedicated Hidden Achievements Earned section on both surfaces", "rejected": "All achievements always visible with a locked/grayed state, no hidden concept and no progress display", "reason": "user specified this directly — mirrors Season 1's hidden-badge concept but adds progress-bar display for visible achievements and a distinct post-first-earn reveal section for hidden ones" }
+  ],
+  "execution": {
+    "strategy": "Hybrid: a sequential foundation (schema) unlocks two parallel phases (rule engine, reveal UI), which converge before a final cleanup phase removes the old system.",
+    "phases": [
+      {
+        "title": "Season + Achievement Schema + Manual Grant",
+        "risk": "low",
+        "blocking": true,
+        "notes": "season, achievement, achievement_tier, achievement_award (family-level, append-per-crossing, season|all-time scope) Drizzle schema + migration; achievement:manage scope added to scopes.ts + role-editor.tsx description map; two-step manual admin flow as its own tRPC procedures — createAchievement (definition only, no rule) and grantAchievement (definition + family -> new award row, repeatable) — plus minimal admin UI for both. Season 2's real start/end date is provided later by the user (~Sept-Dec) and seeded as a follow-up data change once known — tests use a synthetic season, this phase does not block on the real date.",
+        "files": [
+          "apps/web/src/server/db/models/achievement-schema.ts",
+          "apps/web/src/server/db/schema.ts",
+          "apps/web/src/lib/scopes.ts",
+          "apps/web/src/components/admin/role-editor.tsx",
+          "apps/web/src/server/api/routers/achievement.ts",
+          "apps/web/src/server/api/routers/__tests__/achievement.test.ts",
+          "apps/web/src/server/api/root.ts"
+        ],
+        "specPath": "docs/ideation/achievement-engine/spec-phase-1.md"
+      },
+      {
+        "title": "Rule Engine + 9 Achievement Definitions",
+        "risk": "high",
+        "blocking": true,
+        "prereqs": ["Season + Achievement Schema + Manual Grant"],
+        "notes": "Rule evaluator supporting all 9 shapes plus season-bound vs. all-time window resolution; concrete achievement definitions (illustrative thresholds, tunable later) — one per non-zone shape plus the all-time example, and Zone Attendance defined once per 40-man raid zone the guild clears this season (Onyxia and 20-man raids excluded); idempotency; append-per-crossing with an easy 'current highest tier' query/view. No precedent in this codebase for server-side rule evaluation at this complexity — highest-risk phase. Consistency/Flexibility resolve signups via match-signups.ts's heuristic matcher (raidSignupSnapshotLinks), whose MatchStatus can be ambiguous or unmatched, not just matched — only matched signups count toward those two shapes. Each rule-shape test title should encode its key boundary values (e.g. 'attendance: 59%@4wk=none, 60%@4wk=bronze, 100%@10wk=platinum') so coverage is verifiable by title alone, not just tag presence. Each shape's evaluator also returns a raw progress value (current metric vs. next tier's threshold) for display, computed via the same window/scope logic as tier-crossing — not a second implementation.",
+        "files": [
+          "apps/web/src/server/services/achievement-rules.ts",
+          "apps/web/src/server/services/__tests__/achievement-rules.test.ts",
+          "apps/web/src/server/services/achievement-definitions.ts",
+          "apps/web/src/server/api/helpers/match-signups.ts",
+          "apps/web/src/server/db/models/raid-signup-link-schema.ts"
+        ],
+        "specPath": "docs/ideation/achievement-engine/spec-phase-2.md"
+      },
+      {
+        "title": "Reveal Overlay + FAB + Trophy Case",
+        "risk": "medium",
+        "blocking": false,
+        "prereqs": ["Season + Achievement Schema + Manual Grant"],
+        "notes": "Can develop against manually-granted awards from Phase 1 alone, in parallel with Phase 2. Ports the validated docs/followups/mockups/reveal-overlay.html choreography into a real React component, bronze through platinum only — the mockup's diamond buildup/supernova path is not ported (see decisions and scope.future); dashboard FAB; preload-before-play; seenAt-on-dismiss (calls Phase 1's mark-seen mutation); Trophy Case page with replay button, linked from app-header.tsx so it's reachable from navigation, not just by URL. Also adds the shared achievement-display component (highest tier earned + progress bar toward next tier for visible achievements; hidden achievements invisible until first earned, then shown in a Hidden Achievements Earned section) used on both the Trophy Case and the character page, replacing character-badges.tsx's old slot in character-detail.tsx.",
+        "files": [
+          "apps/web/src/components/achievements/reveal-overlay.tsx",
+          "apps/web/src/components/achievements/reveal-fab.tsx",
+          "apps/web/src/components/achievements/achievement-display.tsx",
+          "apps/web/src/app/trophies/page.tsx",
+          "apps/web/src/app/layout.tsx",
+          "apps/web/src/components/nav/app-header.tsx",
+          "apps/web/src/lib/app-pages.ts",
+          "apps/web/src/components/characters/character-detail.tsx"
+        ],
+        "specPath": "docs/ideation/achievement-engine/spec-phase-3.md"
+      },
+      {
+        "title": "QStash Evaluation Trigger",
+        "risk": "medium",
+        "blocking": false,
+        "prereqs": ["Rule Engine + 9 Achievement Definitions"],
+        "notes": "New api/qstash/achievement-evaluate route following the existing discovery/capture pattern. Fires from TWO hook points, both idempotent (criterion 13 covers safety): (1) after mutateInsertRaidLogWithAttendees succeeds, covering the 7 shapes that don't depend on signup data; (2) after runPostRaidCreationSignupLinking resolves in POST /api/v1/raids, re-evaluating so Consistency/Flexibility see the now-created raidSignupSnapshotLinks — raid-log import and signup-link creation are separate, sequential requests, so a single hook would miss those two shapes' dependency (hidden-dependency critic finding).",
+        "files": [
+          "apps/web/src/app/api/qstash/achievement-evaluate/route.ts",
+          "apps/web/src/app/api/qstash/achievement-evaluate/__tests__/route.test.ts",
+          "apps/web/src/server/api/routers/raidlog.ts",
+          "apps/web/src/app/api/v1/raids/route.ts",
+          "apps/web/src/server/services/raid-signup-link-matching.ts"
+        ],
+        "specPath": "docs/ideation/achievement-engine/spec-phase-4.md"
+      },
+      {
+        "title": "Retire Season 1 Badges",
+        "risk": "low",
+        "blocking": false,
+        "prereqs": ["Rule Engine + 9 Achievement Definitions", "Reveal Overlay + FAB + Trophy Case"],
+        "notes": "Archive Season 1's badge definitions/rules to docs/followups/season-1-badges-archive.md, then delete badge-definitions.ts, badge-evaluator.ts, character-badges.tsx and its usage. Sequenced last so the new system is proven live before the old one is removed.",
+        "files": [
+          "apps/web/src/lib/badge-definitions.ts",
+          "apps/web/src/lib/badge-evaluator.ts",
+          "apps/web/src/components/characters/character-badges.tsx",
+          "docs/followups/season-1-badges-archive.md"
+        ],
+        "specPath": "docs/ideation/achievement-engine/spec-phase-5.md"
+      }
+    ]
+  }
+}
