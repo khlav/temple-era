@@ -46,8 +46,9 @@ import {
 } from "~/server/services/achievement-rules";
 import type { AchievementRuleConfig } from "~/server/db/schema";
 
-// db/primaryCharacterId are unused by every shape except attendance_threshold — a dummy value
-// keeps every other scoreByShape call site terse.
+// db/primaryCharacterId are unused by every current shape (scoreByShape's signature just leaves
+// room for a future one that needs real I/O) — a dummy value keeps every scoreByShape call site
+// terse.
 const NOOP_DB = {} as never;
 
 function chainable<T>(result: T) {
@@ -114,55 +115,111 @@ function ctx(overrides: Partial<RuleEvaluationContext> = {}): RuleEvaluationCont
   return {
     familyCharacterIds: [1, 2],
     attendedRaids: [],
+    benchedRaids: [],
     matchedSignups: [],
     raidsInWindow: [],
     ...overrides,
   };
 }
 
-function attendanceFixture(total: number, attendedCount: number) {
-  const raidsInWindow = Array.from({ length: total }, (_, i) => ({
-    raidId: i + 1,
-    startTime: new Date("2026-09-10"),
-  }));
-  const attendedRaids = Array.from({ length: attendedCount }, (_, i) => ({
-    raidId: i + 1,
-    characterId: 1,
-    zone: "Molten Core",
-    class: "Warrior",
-    lockoutWeekStart: new Date(),
-    startTime: new Date("2026-09-10"),
-  }));
-  return ctx({ raidsInWindow, attendedRaids });
-}
-
-describe("shape: attendance", () => {
-  it("attendance: 59%@4wk=none, 60%@4wk=bronze, 100%@10wk=platinum", async () => {
+describe("shape: weighted-attendance", () => {
+  it("weighted-attendance: sums per-raid attendanceWeight per lockout week, dedupes a same-zone re-log within one week, and caps each week's total at 3", async () => {
     const config: AchievementRuleConfig = {
-      shape: "attendance_threshold",
-      minPercent: 60,
-      lockoutWeeks: 4,
+      shape: "weighted_attendance_threshold",
+      minPercent: 50,
+      lockoutWeeks: 2,
     };
+    const week1 = new Date("2026-09-01T00:00:00Z");
+    const week2 = new Date("2026-09-08T00:00:00Z");
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1,
+          zone: "Naxxramas",
+          class: "Warrior",
+          lockoutWeekStart: week1,
+          startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
+        },
+        {
+          // same zone, same week as raid 1 — must not double-count toward that week's total
+          raidId: 2,
+          characterId: 1,
+          zone: "Naxxramas",
+          class: "Warrior",
+          lockoutWeekStart: week1,
+          startTime: new Date("2026-09-02"),
+          attendanceWeight: 1,
+        },
+        {
+          raidId: 3,
+          characterId: 1,
+          zone: "Blackwing Lair",
+          class: "Warrior",
+          lockoutWeekStart: week1,
+          startTime: new Date("2026-09-03"),
+          attendanceWeight: 1,
+        },
+        {
+          raidId: 4,
+          characterId: 1,
+          zone: "Temple of Ahn'Qiraj",
+          class: "Warrior",
+          lockoutWeekStart: week1,
+          startTime: new Date("2026-09-04"),
+          attendanceWeight: 1,
+        },
+        {
+          // week1 pre-cap total: 1 (Naxx) + 1 (BWL) + 1 (AQ) + 0.5 (MC) = 3.5, capped to 3
+          raidId: 5,
+          characterId: 1,
+          zone: "Molten Core",
+          class: "Warrior",
+          lockoutWeekStart: week1,
+          startTime: new Date("2026-09-05"),
+          attendanceWeight: 0.5,
+        },
+        {
+          raidId: 6,
+          characterId: 1,
+          zone: "Molten Core",
+          class: "Warrior",
+          lockoutWeekStart: week2,
+          startTime: new Date("2026-09-08"),
+          attendanceWeight: 0.5,
+        },
+      ],
+    });
+    // earned = 3 (week1, capped) + 0.5 (week2) = 3.5; target = lockoutWeeks(2) * 3 = 6
+    const result = await scoreByShape(NOOP_DB, 1, context, config, WINDOW);
+    expect(result.progress).toEqual({ current: 58, target: 50 });
+    expect(result.crossed).toBe(true);
+  });
 
-    const below = await scoreByShape(NOOP_DB, 1, attendanceFixture(100, 59), config, WINDOW);
-    expect(below.crossed).toBe(false);
-
-    const at = await scoreByShape(NOOP_DB, 1, attendanceFixture(100, 60), config, WINDOW);
-    expect(at.crossed).toBe(true);
-
-    const platinumConfig: AchievementRuleConfig = {
-      shape: "attendance_threshold",
-      minPercent: 100,
-      lockoutWeeks: 10,
+  it("weighted-attendance: the percent denominator is a fixed lockoutWeeks*3 point cap, not actual-elapsed-weeks-with-data — a season that hasn't run the full window yet doesn't get an inflated percentage", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "weighted_attendance_threshold",
+      minPercent: 50,
+      lockoutWeeks: 6,
     };
-    const platinum = await scoreByShape(
-      NOOP_DB,
-      1,
-      attendanceFixture(20, 20),
-      platinumConfig,
-      WINDOW,
-    );
-    expect(platinum.crossed).toBe(true);
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1,
+          zone: "Naxxramas",
+          class: "Warrior",
+          lockoutWeekStart: new Date("2026-09-01"),
+          startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
+        },
+      ],
+    });
+    // earned = 1; target = lockoutWeeks(6) * 3 = 18 — NOT 1 week's worth
+    const result = await scoreByShape(NOOP_DB, 1, context, config, WINDOW);
+    expect(result.progress).toEqual({ current: 6, target: 50 });
+    expect(result.crossed).toBe(false);
   });
 });
 
@@ -196,6 +253,7 @@ describe("shape: consistency", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
         },
       ],
       matchedSignups: [
@@ -228,6 +286,7 @@ describe("shape: consistency", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
         },
       ],
       matchedSignups: [],
@@ -252,6 +311,7 @@ describe("shape: flexibility", () => {
           class: "Mage",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
         },
       ],
       matchedSignups: [
@@ -279,35 +339,26 @@ describe("shape: flexibility", () => {
 });
 
 describe("shape: bench-credit", () => {
-  it("bench-credit: increments only on bench-classified signup buckets, deduped per raid", async () => {
+  it("bench-credit: counts officer-entered raid_bench_map rows (benchedRaids), deduped per raid, ignoring attendance/signup data entirely", async () => {
     const config: AchievementRuleConfig = {
       shape: "bench_credit_count",
       minCount: 2,
       lockoutWeeks: 6,
     };
+    const benched = (raidId: number, dateStr: string) => ({
+      raidId,
+      characterId: 1,
+      zone: "Naxxramas",
+      class: "Warrior",
+      lockoutWeekStart: new Date(dateStr),
+      startTime: new Date(dateStr),
+      attendanceWeight: 1,
+    });
     const context = ctx({
+      benchedRaids: [benched(1, "2026-09-10"), benched(2, "2026-09-11")],
+      // A "confirmed" attendance signal must never contribute — bench credit is unrelated to
+      // matchedSignups now, whatever bucket it carries.
       matchedSignups: [
-        {
-          raidId: 1,
-          signedUpCharacterId: 1,
-          bucket: "bench",
-          checkpointHoursBeforeStart: 96,
-          raidStartTime: new Date("2026-09-10"),
-        },
-        {
-          raidId: 1,
-          signedUpCharacterId: 1,
-          bucket: "bench",
-          checkpointHoursBeforeStart: 0,
-          raidStartTime: new Date("2026-09-10"),
-        }, // same raid, later checkpoint
-        {
-          raidId: 2,
-          signedUpCharacterId: 1,
-          bucket: "bench",
-          checkpointHoursBeforeStart: 48,
-          raidStartTime: new Date("2026-09-11"),
-        },
         {
           raidId: 3,
           signedUpCharacterId: 1,
@@ -318,7 +369,7 @@ describe("shape: bench-credit", () => {
       ],
     });
     const result = await scoreByShape(NOOP_DB, 1, context, config, WINDOW);
-    expect(result.progress.current).toBe(2); // raids 1 and 2 — not 3, and raid 1 counted once
+    expect(result.progress.current).toBe(2); // raids 1 and 2 only
     expect(result.crossed).toBe(true);
   });
 });
@@ -340,6 +391,7 @@ describe("shape: zone-attendance", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
         },
         {
           raidId: 2,
@@ -348,11 +400,47 @@ describe("shape: zone-attendance", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-12"),
+          attendanceWeight: 1,
         },
       ],
     });
     const result = await scoreByShape(NOOP_DB, 1, context, config, WINDOW);
     expect(result.progress.current).toBe(1); // only Molten Core counts
+    expect(result.crossed).toBe(false);
+  });
+});
+
+describe("shape: class-attendance", () => {
+  it("class-attendance: same pattern as zone-attendance, keyed by class instead of zone", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "class_attendance_threshold",
+      class: "Warrior",
+      minCount: 2,
+    };
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1,
+          zone: "Molten Core",
+          class: "Warrior",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
+        },
+        {
+          raidId: 2,
+          characterId: 1,
+          zone: "Blackwing Lair",
+          class: "Mage",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-12"),
+          attendanceWeight: 1,
+        },
+      ],
+    });
+    const result = await scoreByShape(NOOP_DB, 1, context, config, WINDOW);
+    expect(result.progress.current).toBe(1); // only the Warrior raid counts
     expect(result.crossed).toBe(false);
   });
 });
@@ -375,6 +463,7 @@ describe("shape: raid-marathon", () => {
           class: "Warrior",
           lockoutWeekStart: week1,
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
         {
           raidId: 2,
@@ -383,6 +472,7 @@ describe("shape: raid-marathon", () => {
           class: "Warrior",
           lockoutWeekStart: week1,
           startTime: new Date("2026-09-02"),
+          attendanceWeight: 1,
         },
         {
           raidId: 3,
@@ -391,6 +481,7 @@ describe("shape: raid-marathon", () => {
           class: "Warrior",
           lockoutWeekStart: week2,
           startTime: new Date("2026-09-08"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -416,6 +507,7 @@ describe("shape: zone-breadth", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
         {
           raidId: 2,
@@ -424,6 +516,7 @@ describe("shape: zone-breadth", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-08"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -449,6 +542,7 @@ describe("shape: class-breadth", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
         {
           raidId: 2,
@@ -457,6 +551,7 @@ describe("shape: class-breadth", () => {
           class: "Mage",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-08"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -481,6 +576,7 @@ describe("shape: family-double-up", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
         {
           raidId: 1,
@@ -489,6 +585,7 @@ describe("shape: family-double-up", () => {
           class: "Mage",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -516,6 +613,7 @@ describe("shape: all-time", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2024-01-01"),
+          attendanceWeight: 1,
         }, // two seasons ago
         {
           raidId: 2,
@@ -524,6 +622,7 @@ describe("shape: all-time", () => {
           class: "Mage",
           lockoutWeekStart: new Date(),
           startTime: new Date("2024-01-08"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -548,6 +647,7 @@ describe("progress", () => {
           class: "Warrior",
           lockoutWeekStart: new Date(),
           startTime: new Date("2026-09-01"),
+          attendanceWeight: 1,
         },
       ],
     });
@@ -564,7 +664,8 @@ describe("buildRuleEvaluationContext", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(chainable([]))
+      .mockReturnValueOnce(chainable([])) // attendanceRows
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
 
@@ -580,6 +681,7 @@ describe("buildRuleEvaluationContext", () => {
       .mockReturnValueOnce(
         chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
       )
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]); // no link for raid 1
 
@@ -593,7 +695,8 @@ describe("buildRuleEvaluationContext", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(chainable([]))
+      .mockReturnValueOnce(chainable([])) // attendanceRows
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([
       { raidId: 1, raidHelperEventId: "evt-1", startTime: new Date("2026-09-10") },
@@ -729,8 +832,10 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
       )
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
+    mockDb.query.achievementAwards.findMany.mockResolvedValueOnce([]); // pre-fetch: none held yet
     mockDb.insert.mockReturnValueOnce(insertChain([{ id: "award-1" }])); // first run: inserted
 
     const first = await evaluateAchievementsForFamily(mockDb as never, 1, new Date("2026-09-15"));
@@ -744,12 +849,21 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
       )
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
-    mockDb.insert.mockReturnValueOnce(insertChain([])); // onConflictDoNothing — no row returned
+    // The pre-fetch now reports tier-bronze as already held (as it would be for real, after the
+    // first run's insert committed) — the in-memory skip should short-circuit before ever
+    // reaching the DB a second time, so no insert mock is queued for this call.
+    mockDb.query.achievementAwards.findMany.mockResolvedValueOnce([
+      { achievementTierId: "tier-bronze", primaryCharacterId: 1 },
+    ]);
 
     const second = await evaluateAchievementsForFamily(mockDb as never, 1, new Date("2026-09-15"));
     expect(second.newAwards).toHaveLength(0);
+    // Still 1 — the one real insert from the first run above. The in-memory skip means the
+    // second run never calls db.insert at all (no second call queued for it via mockReturnValueOnce).
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
   });
 
   it("append-per-crossing: bronze then silver on the same achievement produce two rows; highest tier is queryable", async () => {
@@ -776,8 +890,10 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
       )
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
+    mockDb.query.achievementAwards.findMany.mockResolvedValueOnce([]);
     mockDb.insert.mockReturnValueOnce(insertChain([{ id: "award-2" }]));
 
     const result = await evaluateAchievementsForFamily(mockDb as never, 1, new Date("2026-09-15"));
@@ -790,6 +906,7 @@ describe("getNextTierProgress", () => {
     mockDb.query.achievementTiers.findMany.mockResolvedValue([
       {
         id: "tier-1",
+        achievementId: "ach-1",
         tier: "bronze",
         ruleConfig: { shape: "zone_breadth_window", minDistinctZones: 3, lockoutWeeks: 6 },
         achievement: { scope: "all_time", season: null },
@@ -803,6 +920,7 @@ describe("getNextTierProgress", () => {
       .mockReturnValueOnce(
         chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
       )
+      .mockReturnValueOnce(chainable([])) // benchRows
       .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
 
@@ -814,6 +932,7 @@ describe("getNextTierProgress", () => {
     mockDb.query.achievementTiers.findMany.mockResolvedValue([
       {
         id: "tier-1",
+        achievementId: "ach-1",
         tier: "bronze",
         ruleConfig: { shape: "zone_breadth_window", minDistinctZones: 3, lockoutWeeks: 6 },
         achievement: { scope: "all_time", season: null },

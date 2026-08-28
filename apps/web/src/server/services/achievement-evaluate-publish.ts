@@ -2,7 +2,10 @@ import { logger } from "~/lib/logger";
 import { env } from "~/env";
 import { qstashClient } from "~/server/services/qstash-client";
 
-export type AchievementEvaluateTrigger = "raid_log_import" | "signup_link_resolved";
+export type AchievementEvaluateTrigger =
+  | "raid_log_import"
+  | "signup_link_resolved"
+  | "bench_updated";
 
 /** Fire-and-forget publish shared by every raid-creation/raid-log-import call site — never
  *  throws. A publish failure (QStash outage, misconfigured signing key, unset

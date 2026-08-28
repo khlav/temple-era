@@ -6,6 +6,7 @@ import { db } from "~/server/db";
 import { raids, raidBenchMap } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { SCOPE } from "~/lib/scopes";
+import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -80,6 +81,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         },
       });
     });
+
+    // Templar-frozen route — publishAchievementEvaluate never throws, so this can't affect the
+    // response contract. See achievement-evaluate-publish.ts's own doc comment.
+    await publishAchievementEvaluate(raidId, "bench_updated");
 
     return NextResponse.json({
       bench: bench.map((b) => b.character),

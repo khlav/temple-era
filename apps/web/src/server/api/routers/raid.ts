@@ -310,6 +310,8 @@ export const raid = createTRPCRouter({
       benchDeleteResult = benchDelete ?? undefined;
       benchInsertResult = benchInsert ?? undefined;
 
+      await publishAchievementEvaluate(input.raidId, "bench_updated");
+
       return {
         raid: updatedRaidInfo,
         raidLogs: raidLogUpdateResult,
@@ -355,6 +357,10 @@ export const raid = createTRPCRouter({
             createdById: ctx.session.user.id,
           })),
         );
+      }
+
+      if (newCharacterIds.length > 0) {
+        await publishAchievementEvaluate(input.raidId, "bench_updated");
       }
 
       // Return full updated bench with character details
