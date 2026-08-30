@@ -211,15 +211,16 @@ gh api "repos/$REPO/issues/$PR/comments" \
 - **Out of scope** → skip. A PR that fixes a doc should not grow a refactor
   because a reviewer noticed something adjacent.
 
-Before taking a finding on faith either way, check
-`docs/followups/pr-review-quality-log.md` for a prior entry on the same kind
-of claim (structural/YAML claims, ticket-linking, test-coverage callouts) —
-this repo's own review history, not a general reputation for either bot.
-After judging, append an entry there if something is actually worth
+`docs/followups/pr-review-quality-log.md` — this repo's own running record of
+what Greptile/Archon have gotten right or wrong — is kept local-only by
+choice (gitignored, not on every clone). If it exists on disk here, check it
+before taking a finding on faith either way, for a prior entry on the same
+kind of claim (structural/YAML claims, ticket-linking, test-coverage
+callouts), and append an entry after judging if something is actually worth
 recording: a finding you independently verified as correct (especially if
 non-obvious), one you disproved, or a reviewer being notably shallow or deep
 relative to its score. A routine clean round with nothing surprising doesn't
-need an entry.
+need an entry. If the file isn't present, skip this step — don't recreate it.
 
 Then verify, using the repo's real gate:
 
