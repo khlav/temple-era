@@ -83,20 +83,37 @@ describe("resolveEvaluationWindow", () => {
   it("season-scoping: clips to season start even when lockoutWeeks would reach further back", () => {
     const seasonStart = new Date("2026-09-01T00:00:00Z");
     const asOf = new Date("2026-09-15T00:00:00Z"); // ~2 weeks into the season
-    const window = resolveEvaluationWindow("season", seasonStart, 10, asOf); // 10wk lookback would reach before season start
+    const window = resolveEvaluationWindow("season", seasonStart, null, 10, asOf); // 10wk lookback would reach before season start
     expect(window.start!.getTime()).toBe(seasonStart.getTime());
   });
 
   it("season-scoping: uses the lockback floor when it's inside the season", () => {
     const seasonStart = new Date("2026-01-01T00:00:00Z");
     const asOf = new Date("2026-09-15T00:00:00Z");
-    const window = resolveEvaluationWindow("season", seasonStart, 4, asOf);
+    const window = resolveEvaluationWindow("season", seasonStart, null, 4, asOf);
     expect(window.start!.getTime()).toBeGreaterThan(seasonStart.getTime());
+  });
+
+  it("season-scoping: clips end to the season's endDate once asOf is past it, instead of scoring post-season activity", () => {
+    const seasonStart = new Date("2026-09-01T00:00:00Z");
+    const seasonEnd = new Date("2027-01-04T23:59:59Z");
+    const asOf = new Date("2027-02-01T00:00:00Z"); // well after the season closed
+    const window = resolveEvaluationWindow("season", seasonStart, seasonEnd, undefined, asOf);
+    expect(window.end.getTime()).toBe(seasonEnd.getTime());
+  });
+
+  it("season-scoping: end stays at asOf while still inside the season (no premature clip)", () => {
+    const seasonStart = new Date("2026-09-01T00:00:00Z");
+    const seasonEnd = new Date("2027-01-04T23:59:59Z");
+    const asOf = new Date("2026-09-15T00:00:00Z");
+    const window = resolveEvaluationWindow("season", seasonStart, seasonEnd, undefined, asOf);
+    expect(window.end.getTime()).toBe(asOf.getTime());
   });
 
   it("all-time: start is null (fully unbounded) when no lockoutWeeks given", () => {
     const window = resolveEvaluationWindow(
       "all_time",
+      null,
       null,
       undefined,
       new Date("2026-09-15T00:00:00Z"),
@@ -105,7 +122,7 @@ describe("resolveEvaluationWindow", () => {
   });
 
   it("season-scoping: a season-scoped tier with no seasonStartDate throws rather than silently unbounding", () => {
-    expect(() => resolveEvaluationWindow("season", null, 4, new Date())).toThrow();
+    expect(() => resolveEvaluationWindow("season", null, null, 4, new Date())).toThrow();
   });
 });
 
@@ -676,6 +693,7 @@ describe("shape: all-time", () => {
     const config: AchievementRuleConfig = { shape: "class_breadth_window", minDistinctClasses: 2 }; // no lockoutWeeks = unbounded
     const window = resolveEvaluationWindow(
       "all_time",
+      null,
       null,
       config.lockoutWeeks,
       new Date("2026-09-15"),

@@ -11,6 +11,7 @@ import { characters } from "~/server/db/models/raid-schema";
 import { and, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { evaluateRecipeAchievementsForFamily } from "~/server/services/achievement-rules";
+import { logger } from "~/lib/logger";
 import type {
   Recipe,
   NewRecipe,
@@ -262,8 +263,21 @@ export const recipe = createTRPCRouter({
       // is why that trigger is async via QStash). removeRecipeFromCharacter deliberately does NOT
       // get this call: the award engine only ever inserts, never revokes, so a recipe removal can
       // never newly cross a threshold.
+      //
+      // Failure-isolated like every other achievement trigger in this system (see the QStash
+      // route's per-family isolation): the recipe insert above already committed, so an
+      // evaluation error here (transient DB error, malformed rule config) must not fail this
+      // otherwise-successful mutation — that would surface as a confusing "already assigned"
+      // on retry, since the mapping really is already there.
       const familyPrimaryId = characterExists.primaryCharacterId ?? characterExists.characterId;
-      await evaluateRecipeAchievementsForFamily(ctx.db, familyPrimaryId, new Date());
+      try {
+        await evaluateRecipeAchievementsForFamily(ctx.db, familyPrimaryId, new Date());
+      } catch (error) {
+        logger.error(
+          { err: error, characterId: input.characterId, familyPrimaryId },
+          "Achievement evaluation failed after recipe add",
+        );
+      }
 
       return {
         success: true,

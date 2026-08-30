@@ -72,30 +72,35 @@ export async function createAchievement(input: CreateAchievementInput, actingUse
     }
   }
 
-  const [achievement] = await db
-    .insert(achievements)
-    .values({
-      name: input.name,
-      description: input.description ?? null,
-      icon: input.icon,
-      scope: input.scope,
-      seasonId: input.scope === "season" ? input.seasonId : null,
-      ruleShape: null,
-      hidden: true,
-      createdById: actingUserId,
-    })
-    .returning();
+  // Transactional: a custom achievement always has exactly one tier (see this function's own doc
+  // comment), so a tier-insert failure after the achievement insert already committed would leave
+  // a tier-less row the admin panel can't render sensibly.
+  return db.transaction(async (tx) => {
+    const [achievement] = await tx
+      .insert(achievements)
+      .values({
+        name: input.name,
+        description: input.description ?? null,
+        icon: input.icon,
+        scope: input.scope,
+        seasonId: input.scope === "season" ? input.seasonId : null,
+        ruleShape: null,
+        hidden: true,
+        createdById: actingUserId,
+      })
+      .returning();
 
-  const [tier] = await db
-    .insert(achievementTiers)
-    .values({
-      achievementId: achievement!.id,
-      tier: input.tier,
-      ruleConfig: null,
-    })
-    .returning();
+    const [tier] = await tx
+      .insert(achievementTiers)
+      .values({
+        achievementId: achievement!.id,
+        tier: input.tier,
+        ruleConfig: null,
+      })
+      .returning();
 
-  return { achievementId: achievement!.id, achievementTierId: tier!.id };
+    return { achievementId: achievement!.id, achievementTierId: tier!.id };
+  });
 }
 
 export interface UpdateAchievementInput {
@@ -149,22 +154,26 @@ export async function updateAchievement(achievementId: string, input: UpdateAchi
     }
   }
 
-  await db
-    .update(achievements)
-    .set({
-      name: input.name,
-      description: input.description ?? null,
-      icon: input.icon,
-      scope: input.scope,
-      seasonId: input.scope === "season" ? input.seasonId : null,
-    })
-    .where(eq(achievements.id, achievementId));
-
   const [tierId] = achievement.tiers;
-  await db
-    .update(achievementTiers)
-    .set({ tier: input.tier })
-    .where(eq(achievementTiers.id, tierId!.id));
+  // Transactional: without this, a failure between the two updates leaves the catalog row
+  // renamed/re-iconed but still at the old tier level (or vice versa) — a half-applied edit.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(achievements)
+      .set({
+        name: input.name,
+        description: input.description ?? null,
+        icon: input.icon,
+        scope: input.scope,
+        seasonId: input.scope === "season" ? input.seasonId : null,
+      })
+      .where(eq(achievements.id, achievementId));
+
+    await tx
+      .update(achievementTiers)
+      .set({ tier: input.tier })
+      .where(eq(achievementTiers.id, tierId!.id));
+  });
 
   return { achievementId, achievementTierId: tierId!.id };
 }

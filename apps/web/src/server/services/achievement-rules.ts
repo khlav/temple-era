@@ -69,6 +69,7 @@ function lockoutFloorFor(lockoutWeeks: number, asOf: Date): Date {
 export function resolveEvaluationWindow(
   achievementScope: "season" | "all_time",
   seasonStartDate: Date | null,
+  seasonEndDate: Date | null,
   lockoutWeeks: number | undefined,
   asOf: Date,
 ): EvaluationWindow {
@@ -87,7 +88,11 @@ export function resolveEvaluationWindow(
   }
 
   const start = lockoutFloor && lockoutFloor > seasonStartDate ? lockoutFloor : seasonStartDate;
-  return { start, end: asOf };
+  // Clamp the end too, not just the start — without this, a trigger firing after the season
+  // closed (asOf > seasonEndDate) would still score raids/recipes that happened after the
+  // season ended, awarding e.g. Season 2 achievements for post-season activity.
+  const end = seasonEndDate && seasonEndDate < asOf ? seasonEndDate : asOf;
+  return { start, end };
 }
 
 function withinWindow(date: Date, window: EvaluationWindow): boolean {
@@ -830,6 +835,7 @@ export async function evaluateAchievementsForFamilies(
         const window = resolveEvaluationWindow(
           tier.achievement.scope,
           tier.achievement.season?.startDate ?? null,
+          tier.achievement.season?.endDate ?? null,
           config.lockoutWeeks,
           asOf,
         );
@@ -1081,6 +1087,7 @@ export async function getNextTierProgressForAchievements(
     const window = resolveEvaluationWindow(
       next.achievement.scope,
       next.achievement.season?.startDate ?? null,
+      next.achievement.season?.endDate ?? null,
       config.lockoutWeeks,
       asOf,
     );
