@@ -822,6 +822,28 @@ describe("buildRuleEvaluationContext", () => {
     expect(context.matchedSignups).toEqual([]);
   });
 
+  it("context: a raid's bare `date` column is anchored to Eastern midnight, not UTC midnight — so a raid dated the season's opening day lands on the same instant as SEASON_2.startDate, not up to 5 hours before it", async () => {
+    mockDb.select
+      .mockReturnValueOnce(
+        chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
+      )
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, zone: "Naxxramas", date: "2026-09-01", characterId: 1 }]),
+      )
+      .mockReturnValueOnce(chainable([])) // benchRows
+      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-01" }]));
+    mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
+
+    const context = await buildRuleEvaluationContext(
+      mockDb as never,
+      1,
+      null,
+      new Date("2026-09-15"),
+    );
+
+    expect(context.attendedRaids[0]!.startTime.toISOString()).toBe("2026-09-01T04:00:00.000Z");
+  });
+
   it("context: resolves a real signup link end-to-end — includes matched(confirmed) and skipped-with-family(bench), excludes ambiguous and other-family rows", async () => {
     mockDb.select
       .mockReturnValueOnce(

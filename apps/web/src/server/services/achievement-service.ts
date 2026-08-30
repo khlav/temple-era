@@ -4,6 +4,7 @@ import {
   achievements,
   achievementTiers,
   achievementAwards,
+  characters,
   seasons,
   users,
 } from "~/server/db/schema";
@@ -175,7 +176,12 @@ export interface GrantAchievementInput {
 
 /** Step 2 of the two-step manual admin flow: grants an existing manual (non-rule) tier to a
  *  family, repeatable across families over time. Each grant is its own permanent
- *  `achievement_award` row. */
+ *  `achievement_award` row. `input.primaryCharacterId` is normalized to the character's actual
+ *  family-primary id before persisting — every other award read filters strictly on the real
+ *  primary (see e.g. markAchievementAwardsSeen, listAwardsForFamily), so a grant stored under a
+ *  secondary character's own id would silently never show up in that family's own views. The
+ *  admin UI already only offers primaries via CharacterSelector's `characterSet="primary"`, but
+ *  the v1 REST grant endpoint takes a raw id from an external caller with no such guarantee. */
 export async function grantAchievement(input: GrantAchievementInput, actingUserId: string) {
   const tier = await db.query.achievementTiers.findFirst({
     where: eq(achievementTiers.id, input.achievementTierId),
@@ -190,12 +196,21 @@ export async function grantAchievement(input: GrantAchievementInput, actingUserI
     );
   }
 
+  const character = await db.query.characters.findFirst({
+    where: eq(characters.characterId, input.primaryCharacterId),
+    columns: { characterId: true, primaryCharacterId: true },
+  });
+  if (!character) {
+    throw new AchievementServiceError("NOT_FOUND", "Character not found");
+  }
+  const familyPrimaryCharacterId = character.primaryCharacterId ?? character.characterId;
+
   try {
     const [award] = await db
       .insert(achievementAwards)
       .values({
         achievementTierId: input.achievementTierId,
-        primaryCharacterId: input.primaryCharacterId,
+        primaryCharacterId: familyPrimaryCharacterId,
         source: "manual",
         awardedByUserId: actingUserId,
       })
@@ -314,16 +329,20 @@ export async function deleteAchievement(achievementId: string) {
   }
 
   const tierIds = achievement.tiers.map((t) => t.id);
-  const deletedAwards = tierIds.length
-    ? await db
-        .delete(achievementAwards)
-        .where(inArray(achievementAwards.achievementTierId, tierIds))
-        .returning({ id: achievementAwards.id })
-    : [];
+  const deletedAwardCount = await db.transaction(async (tx) => {
+    const deletedAwards = tierIds.length
+      ? await tx
+          .delete(achievementAwards)
+          .where(inArray(achievementAwards.achievementTierId, tierIds))
+          .returning({ id: achievementAwards.id })
+      : [];
 
-  await db.delete(achievements).where(eq(achievements.id, achievementId));
+    await tx.delete(achievements).where(eq(achievements.id, achievementId));
 
-  return { deletedAwardCount: deletedAwards.length };
+    return deletedAwards.length;
+  });
+
+  return { deletedAwardCount };
 }
 
 /** Resolves the calling session's own family (primary character id) via the same

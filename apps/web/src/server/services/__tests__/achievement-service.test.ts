@@ -7,14 +7,20 @@ const { mockDb } = vi.hoisted(() => {
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    transaction: vi.fn(),
     query: {
       seasons: { findFirst: vi.fn(), findMany: vi.fn() },
       achievementTiers: { findFirst: vi.fn(), findMany: vi.fn() },
       achievements: { findMany: vi.fn(), findFirst: vi.fn() },
       achievementAwards: { findMany: vi.fn(), findFirst: vi.fn() },
+      characters: { findFirst: vi.fn() },
       users: { findFirst: vi.fn() },
     },
   };
+  // Real db.transaction runs its callback with a tx handle scoped to one connection; the tests
+  // only assert on the calls made inside, so replaying the same mockDb (already configured with
+  // whatever delete/insert mocks a given test set up) is equivalent here.
+  mockDb.transaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
   return { mockDb };
 });
 
@@ -262,6 +268,10 @@ describe("grantAchievement", () => {
 
   it("maps a unique-constraint conflict (repeat grant of the same tier+family pair) to CONFLICT", async () => {
     mockDb.query.achievementTiers.findFirst.mockResolvedValue({ id: "tier-1", ruleConfig: null });
+    mockDb.query.characters.findFirst.mockResolvedValue({
+      characterId: 1,
+      primaryCharacterId: null,
+    });
     mockDb.insert.mockReturnValueOnce(mockInsertChainRejecting({ cause: { code: "23505" } }));
 
     await expect(
@@ -269,8 +279,36 @@ describe("grantAchievement", () => {
     ).rejects.toThrow(AchievementServiceError);
   });
 
+  it("rejects granting to a character id that doesn't exist (NOT_FOUND)", async () => {
+    mockDb.query.achievementTiers.findFirst.mockResolvedValue({ id: "tier-1", ruleConfig: null });
+    mockDb.query.characters.findFirst.mockResolvedValueOnce(undefined);
+
+    await expect(
+      grantAchievement({ achievementTierId: "tier-1", primaryCharacterId: 999 }, "user-1"),
+    ).rejects.toThrow(AchievementServiceError);
+  });
+
+  it("normalizes a secondary character's id to its family's primary id before persisting", async () => {
+    mockDb.query.achievementTiers.findFirst.mockResolvedValue({ id: "tier-1", ruleConfig: null });
+    // characterId 55 is a secondary whose family primary is 42.
+    mockDb.query.characters.findFirst.mockResolvedValueOnce({
+      characterId: 55,
+      primaryCharacterId: 42,
+    });
+    const values = vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: "a" }]) });
+    mockDb.insert.mockReturnValueOnce({ values });
+
+    await grantAchievement({ achievementTierId: "tier-1", primaryCharacterId: 55 }, "user-1");
+
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ primaryCharacterId: 42 }));
+  });
+
   it("succeeds granting the same tier to two different families", async () => {
     mockDb.query.achievementTiers.findFirst.mockResolvedValue({ id: "tier-1", ruleConfig: null });
+    mockDb.query.characters.findFirst.mockResolvedValue({
+      characterId: 1,
+      primaryCharacterId: null,
+    });
     mockDb.insert
       .mockReturnValueOnce(mockInsertChain([{ id: "award-1" }]))
       .mockReturnValueOnce(mockInsertChain([{ id: "award-2" }]));
@@ -330,6 +368,10 @@ describe("grantCustomAchievement", () => {
     mockDb.query.achievementTiers.findFirst.mockResolvedValueOnce({
       id: "tier-1",
       ruleConfig: null,
+    });
+    mockDb.query.characters.findFirst.mockResolvedValueOnce({
+      characterId: 1,
+      primaryCharacterId: null,
     });
     mockDb.insert.mockReturnValueOnce(mockInsertChain([{ id: "award-1" }]));
 

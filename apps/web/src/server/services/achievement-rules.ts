@@ -1,4 +1,5 @@
 import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { fromZonedTime } from "date-fns-tz";
 import { type db as database } from "~/server/db";
 import {
   achievementAwards,
@@ -13,6 +14,7 @@ import {
   type AchievementRuleConfig,
 } from "~/server/db/schema";
 import { getTuesdayAnchoredWeekStart } from "~/lib/lockout-weeks";
+import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
 import { getSignupSnapshotHistoryForOccurrence } from "~/server/services/raid-helper-snapshot-queries";
 import {
   matchSignupsToCharacters,
@@ -34,6 +36,17 @@ export interface EvaluationResult {
 export interface EvaluationWindow {
   start: Date | null;
   end: Date;
+}
+
+/** `raids.date` is a bare Postgres `date` column (no time-of-day) representing an Eastern-Time
+ *  raid night. Naively parsing it with `new Date(dateString)` treats it as UTC midnight instead —
+ *  up to 5 hours earlier than the Eastern midnight it actually means — which is enough to place a
+ *  season's opening-day raid before that season's real (Eastern-midnight) `startDate` and drop it
+ *  from season-scoped scoring entirely. Anchoring through `fromZonedTime` fixes that: a raid dated
+ *  identically to the season's start date lands on the same instant as `SEASON_2.startDate`, and
+ *  `withinWindow`'s inclusive `>=` then keeps it in scope. */
+function raidDateToInstant(date: string): Date {
+  return fromZonedTime(`${date}T00:00:00`, EASTERN_TIMEZONE);
 }
 
 /**
@@ -223,8 +236,8 @@ export async function buildRuleEvaluationContextsForFamilies(
       characterId: r.characterId,
       zone: r.zone,
       class: classByCharacterId.get(r.characterId) ?? "Unknown",
-      lockoutWeekStart: getTuesdayAnchoredWeekStart(new Date(r.date)),
-      startTime: new Date(r.date),
+      lockoutWeekStart: getTuesdayAnchoredWeekStart(raidDateToInstant(r.date)),
+      startTime: raidDateToInstant(r.date),
       attendanceWeight: r.attendanceWeight,
     };
     const list = attendedRaidsByCharacterId.get(r.characterId) ?? [];
@@ -263,8 +276,8 @@ export async function buildRuleEvaluationContextsForFamilies(
       characterId: r.characterId,
       zone: r.zone,
       class: classByCharacterId.get(r.characterId) ?? "Unknown",
-      lockoutWeekStart: getTuesdayAnchoredWeekStart(new Date(r.date)),
-      startTime: new Date(r.date),
+      lockoutWeekStart: getTuesdayAnchoredWeekStart(raidDateToInstant(r.date)),
+      startTime: raidDateToInstant(r.date),
       attendanceWeight: r.attendanceWeight,
     };
     const list = benchedRaidsByCharacterId.get(r.characterId) ?? [];
@@ -281,7 +294,7 @@ export async function buildRuleEvaluationContextsForFamilies(
     .where(and(floorStr ? gte(raids.date, floorStr) : undefined, lte(raids.date, asOfStr)));
   const raidsInWindow = allRaidsInRangeRows.map((r) => ({
     raidId: r.raidId,
-    startTime: new Date(r.date),
+    startTime: raidDateToInstant(r.date),
   }));
 
   // Scoped by the link's own startTime, NOT by attendedRaids — Consistency/Flexibility need
