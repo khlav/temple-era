@@ -2,5 +2,5 @@
   "labels": ["greptile"],
   "triggerOnUpdates": true,
   "statusCheck": true,
-  "ignorePatterns": "pnpm-lock.yaml\ndocs/baselines/**\napps/web/drizzle/meta/**"
+  "ignorePatterns": "pnpm-lock.yaml\ndocs/baselines/**\napps/web/drizzle/meta/**\ndocs/ideation/**"
 }

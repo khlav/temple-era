@@ -159,7 +159,12 @@ jobs:
           # configurable via the same env-var convention as config.model
           # above. The .sql migration files themselves are NOT included -
           # those stay in scope for review.
-          ignore.glob: '["apps/web/drizzle/meta/**"]'
+          # docs/ideation/** (contracts, specs, context maps, generated
+          # contract.html/.md) is the ideation skill's own planning/process
+          # output, not application code - same "not worth an LLM review
+          # cycle" reasoning as the drizzle snapshots, and greptile.json
+          # mirrors this pattern too.
+          ignore.glob: '["apps/web/drizzle/meta/**", "docs/ideation/**"]'
           # repo_context_files defaults to ["AGENTS.md"] - repo-RELATIVE, so
           # only the root file was ever loaded and apps/web/AGENTS.md (478
           # lines of tRPC/Drizzle/API detail) was invisible to the reviewer.
