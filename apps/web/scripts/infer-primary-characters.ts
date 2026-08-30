@@ -72,7 +72,9 @@ async function fetchGuildMembersWithNick(): Promise<DiscordGuildMemberFull[]> {
       headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}` },
     });
     if (!response.ok) {
-      throw new Error(`Discord API error fetching guild members: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Discord API error fetching guild members: ${response.status} ${response.statusText}`,
+      );
     }
 
     const page: DiscordGuildMemberFull[] = await response.json();
@@ -145,7 +147,10 @@ async function main() {
   for (const result of signupMatchResults) {
     if (result.status !== "matched" || result.matchedPrimaryCharacterId == null) continue;
     const votes = signupFamilyVotesByDiscordId.get(result.userId) ?? new Map<number, number>();
-    votes.set(result.matchedPrimaryCharacterId, (votes.get(result.matchedPrimaryCharacterId) ?? 0) + 1);
+    votes.set(
+      result.matchedPrimaryCharacterId,
+      (votes.get(result.matchedPrimaryCharacterId) ?? 0) + 1,
+    );
     signupFamilyVotesByDiscordId.set(result.userId, votes);
   }
 
@@ -187,7 +192,8 @@ async function main() {
         const tokenFamilies = new Set<number>();
         for (const token of tokens) {
           const found = normalizedNameToCharacters.get(token);
-          if (found) for (const c of found) tokenFamilies.add(c.primaryCharacterId ?? c.characterId);
+          if (found)
+            for (const c of found) tokenFamilies.add(c.primaryCharacterId ?? c.characterId);
         }
         if (tokenFamilies.size === 1) {
           const familyId = [...tokenFamilies][0]!;
@@ -218,9 +224,20 @@ async function main() {
     });
   }
 
+  function agreementFor(o: Outcome): boolean {
+    return (
+      !!o.nicknameMatch && !!o.signupMatch && o.nicknameMatch.familyId === o.signupMatch.familyId
+    );
+  }
+
+  // Both signals present but pointing at different families — neither is more trustworthy than
+  // the other, so this needs a human call rather than the apply loop silently picking one.
+  function isConflict(o: Outcome): boolean {
+    return !!o.nicknameMatch && !!o.signupMatch && !agreementFor(o);
+  }
+
   function suggestionFor(o: Outcome): { name: string; familyId: number } {
-    const agree =
-      !!o.nicknameMatch && !!o.signupMatch && o.nicknameMatch.familyId === o.signupMatch.familyId;
+    const agree = agreementFor(o);
     const name = agree ? o.nicknameMatch!.name : (o.signupMatch?.name ?? o.nicknameMatch?.name)!;
     const familyId = agree
       ? o.nicknameMatch!.familyId
@@ -228,17 +245,19 @@ async function main() {
     return { name, familyId };
   }
 
-  console.log(`\n${outcomes.length} of ${candidates.length} unlinked users have a potential match:\n`);
+  console.log(
+    `\n${outcomes.length} of ${candidates.length} unlinked users have a potential match:\n`,
+  );
 
   for (const o of outcomes) {
-    const agree = !!o.nicknameMatch && !!o.signupMatch && o.nicknameMatch.familyId === o.signupMatch.familyId;
+    const agree = agreementFor(o);
     const { name: suggestion, familyId: suggestedFamilyId } = suggestionFor(o);
     console.log(
       `- ${o.siteUserName ?? "(no name)"} <${o.siteUserEmail ?? "no email"}> [discord:${o.discordUserId}]\n` +
         `    Discord nickname: ${o.displayName ? `"${o.displayName}"` : "(not currently in Discord server)"}\n` +
         `    Nickname match:   ${o.nicknameMatch ? `${o.nicknameMatch.name} (family ${o.nicknameMatch.familyId})` : "-"}\n` +
         `    Signup match:     ${o.signupMatch ? `${o.signupMatch.name} (family ${o.signupMatch.familyId}, ${o.signupMatch.votes} matched signup${o.signupMatch.votes === 1 ? "" : "s"})` : "-"}\n` +
-        `    => Suggested primary: ${suggestion} (family ${suggestedFamilyId})${agree ? " — both signals agree" : ""}${o.nicknameMatch && o.signupMatch && !agree ? " — CONFLICT, needs a human call" : ""}\n`,
+        `    => Suggested primary: ${suggestion} (family ${suggestedFamilyId})${agree ? " — both signals agree" : ""}${isConflict(o) ? " — CONFLICT, needs a human call, will be SKIPPED by --apply" : ""}\n`,
     );
   }
 
@@ -247,10 +266,18 @@ async function main() {
     return;
   }
 
-  console.log(`\nApplying ${outcomes.length} link${outcomes.length === 1 ? "" : "s"}...\n`);
+  const conflicts = outcomes.filter(isConflict);
+  const applyable = outcomes.filter((o) => !isConflict(o));
+  console.log(
+    `\nApplying ${applyable.length} link${applyable.length === 1 ? "" : "s"}` +
+      (conflicts.length
+        ? ` (skipping ${conflicts.length} CONFLICT outcome${conflicts.length === 1 ? "" : "s"} — resolve those by hand)`
+        : "") +
+      "...\n",
+  );
   let applied = 0;
   let skipped = 0;
-  for (const o of outcomes) {
+  for (const o of applyable) {
     const { name, familyId } = suggestionFor(o);
     const updated = await db
       .update(users)
@@ -267,7 +294,9 @@ async function main() {
       );
     }
   }
-  console.log(`\nApplied ${applied}, skipped ${skipped} (already linked).`);
+  console.log(
+    `\nApplied ${applied}, skipped ${skipped} (already linked), ${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} left for manual review.`,
+  );
 }
 
 main()
