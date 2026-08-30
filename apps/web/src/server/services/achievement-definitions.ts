@@ -1,3 +1,4 @@
+import { inArray } from "drizzle-orm";
 import { type db as database } from "~/server/db";
 import { achievements, achievementTiers } from "~/server/db/schema";
 import type { AchievementRuleConfig } from "~/server/db/schema";
@@ -325,16 +326,29 @@ export function getAchievementDefinitions(): AchievementDefinition[] {
 
 /** Seeds every rule-based achievement definition, each tier's config included. Distinct from the
  *  admin panel's manual-grant `createAchievement` (no rule attached) — this is the code-level
- *  seeding path for the real, finalized catalog. Idempotent per-run only via the caller checking
- *  first; this function itself always inserts fresh rows (intended as a one-time or
- *  reseeded-from-scratch operation, not something called on every evaluation). */
+ *  seeding path for the real, finalized catalog. Idempotent per-definition, not just per-run: an
+ *  interrupted prior call (crash, transient DB error) can leave some definitions inserted and
+ *  others not, so this skips only the names that already exist rather than an all-or-nothing
+ *  batch check — a re-run always converges to the full catalog regardless of where a previous
+ *  attempt stopped. */
 export async function seedAchievementDefinitions(
   db: DB,
   seasonId: string,
   actingUserId?: string,
 ): Promise<{ achievementIds: string[] }> {
+  const definitions = getAchievementDefinitions();
+  const existing = await db.query.achievements.findMany({
+    where: inArray(
+      achievements.name,
+      definitions.map((d) => d.name),
+    ),
+    columns: { name: true },
+  });
+  const existingNames = new Set(existing.map((a) => a.name));
+
   const achievementIds: string[] = [];
-  for (const definition of getAchievementDefinitions()) {
+  for (const definition of definitions) {
+    if (existingNames.has(definition.name)) continue;
     const tierConfigs = Object.values(definition.tiers) as AchievementRuleConfig[];
     const ruleShape = tierConfigs[0]?.shape ?? null;
 

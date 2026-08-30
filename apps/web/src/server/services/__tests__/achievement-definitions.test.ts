@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { mockDb } = vi.hoisted(() => ({
-  mockDb: { insert: vi.fn() },
+  mockDb: {
+    insert: vi.fn(),
+    query: { achievements: { findMany: vi.fn().mockResolvedValue([]) } },
+  },
 }));
 vi.mock("~/server/db", () => ({ db: mockDb }));
 

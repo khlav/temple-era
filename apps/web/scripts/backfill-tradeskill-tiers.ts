@@ -7,18 +7,22 @@
 // or import `convertOrCreateTradeskillAchievements`/`evaluateRecipeSetThresholdAwards` from a
 // larger bootstrap script (see bootstrap-achievements.ts).
 //
-// Idempotent: re-running is safe. The tier-conversion UPDATEs converge to the same end state, the
-// fresh-insert path is guarded by checking for the achievement's fixed ID first, the Gold-tier
-// insert uses onConflictDoNothing against achievement_tier's (achievementId, tier) unique index,
-// and the evaluation pass only ever inserts award rows that don't already exist.
+// Idempotent per achievement, not just per full run: the achievement-row upsert uses
+// onConflictDoUpdate, and which thorium action to take (create it fresh / demote an existing
+// arcanite row / leave an already-converted one alone) is decided from that achievement's actual
+// tier state, not from whether the achievement row itself exists — so a run interrupted at any
+// point (crash between the achievement insert and its tier insert included) converges to the same
+// finished shape on retry instead of getting stuck reporting "already converted" for an
+// achievement that in fact has no tier at all. The Gold-tier insert uses onConflictDoNothing
+// against achievement_tier's (achievementId, tier) unique index, and the evaluation pass only
+// ever inserts award rows that don't already exist.
 //
-// Mid-build correction (see docs/ideation/tradeskill-mastery-tiers/implementation-notes-phase-1.html):
-// dev's existing single tier on all 8 achievements was found to be `arcanite`, not `thorium` as the
-// contract assumed. Resolved with the user: demote the existing tier row's `tier` value to
-// `thorium` (same achievement_tier.id — existing awards/awardedAt/source untouched, only the enum
-// value changes) and add a new `gold` tier below it for the 6 graduated achievements. A database
-// that never had the old custom achievements (prod) has nothing to demote — it gets the Thorium/Gold
-// tiers inserted directly instead.
+// Mid-build correction: dev's existing single tier on all 8 achievements was found to be
+// `arcanite`, not `thorium` as originally planned. Resolved with the user: demote the existing
+// tier row's `tier` value to `thorium` (same achievement_tier.id — existing awards/awardedAt/
+// source untouched, only the enum value changes) and add a new `gold` tier below it for the 6
+// graduated achievements. A database that never had the old custom achievements (prod) has
+// nothing to demote — it gets the Thorium/Gold tiers inserted directly instead.
 
 import { eq, and, inArray } from "drizzle-orm";
 import { db } from "~/server/db";
@@ -50,7 +54,8 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
     icon: "inv_potion_62",
     recipeSpellIds: [17635, 17636, 17637],
     goldMinCount: 2,
-    description: "Has {countPhrase} key flask recipes: Titans, Distilled Wisdom, and Supreme Power.",
+    description:
+      "Has {countPhrase} key flask recipes: Titans, Distilled Wisdom, and Supreme Power.",
     goalDescription:
       "Get {countPhrase} key flask recipes: Titans, Distilled Wisdom, and Supreme Power.",
   },
@@ -79,7 +84,8 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
     icon: "inv_misc_cape_16",
     recipeSpellIds: [28208, 28205, 28207, 28209],
     goldMinCount: 2,
-    description: "Has {countPhrase} key cloth frost-resist patterns: Cloak, Gloves, Vest, and Wrists.",
+    description:
+      "Has {countPhrase} key cloth frost-resist patterns: Cloak, Gloves, Vest, and Wrists.",
     goalDescription:
       "Get {countPhrase} key cloth frost-resist patterns: Cloak, Gloves, Vest, and Wrists.",
   },
@@ -128,16 +134,37 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
  *  converted — no-op. */
 export async function convertOrCreateTradeskillAchievements(): Promise<void> {
   const preSnapshot = new Map<string, number>();
+  // Captured here and reused below rather than re-derived per achievement in the second loop —
+  // also fixes a real gap: branching the second loop on "does the achievement row exist" (as
+  // opposed to "does its thorium tier exist") meant a run that crashed after inserting the
+  // achievement row but before its tier row would, on retry, land in the convert branch, find no
+  // `arcanite` tier to demote, log "already converted", and leave the achievement permanently
+  // tier-less. Branching on tier state directly makes every combination — no achievement row, row
+  // but no tier, or a real arcanite-to-demote — converge to the same finished shape.
+  const tierStateByAchievementId = new Map<
+    string,
+    { arcaneTier: { id: string } | null; thoriumTier: { id: string } | null }
+  >();
   for (const [achievementId, cfg] of Object.entries(ACHIEVEMENTS)) {
     const arcaneTier = await db.query.achievementTiers.findFirst({
-      where: and(eq(achievementTiers.achievementId, achievementId), eq(achievementTiers.tier, "arcanite")),
+      where: and(
+        eq(achievementTiers.achievementId, achievementId),
+        eq(achievementTiers.tier, "arcanite"),
+      ),
     });
-    const thoriumTierAlready = arcaneTier
+    const thoriumTier = arcaneTier
       ? null
       : await db.query.achievementTiers.findFirst({
-          where: and(eq(achievementTiers.achievementId, achievementId), eq(achievementTiers.tier, "thorium")),
+          where: and(
+            eq(achievementTiers.achievementId, achievementId),
+            eq(achievementTiers.tier, "thorium"),
+          ),
         });
-    const existingTier = arcaneTier ?? thoriumTierAlready;
+    tierStateByAchievementId.set(achievementId, {
+      arcaneTier: arcaneTier ?? null,
+      thoriumTier: thoriumTier ?? null,
+    });
+    const existingTier = arcaneTier ?? thoriumTier;
     const awardCount = existingTier
       ? await db.query.achievementAwards.findMany({
           where: eq(achievementAwards.achievementTierId, existingTier.id),
@@ -148,7 +175,7 @@ export async function convertOrCreateTradeskillAchievements(): Promise<void> {
     console.log(
       existingTier
         ? `[snapshot] ${cfg.name}: ${awardCount.length} existing award(s) on tier ${existingTier.tier}`
-        : `[snapshot] ${cfg.name}: no existing achievement row (fresh bootstrap)`,
+        : `[snapshot] ${cfg.name}: no existing tier row (fresh bootstrap or a prior interrupted run)`,
     );
   }
 
@@ -161,19 +188,19 @@ export async function convertOrCreateTradeskillAchievements(): Promise<void> {
     const goldConfig: AchievementRuleConfig | null =
       cfg.goldMinCount === null
         ? null
-        : { shape: "recipe_set_threshold", recipeSpellIds: cfg.recipeSpellIds, minCount: cfg.goldMinCount };
+        : {
+            shape: "recipe_set_threshold",
+            recipeSpellIds: cfg.recipeSpellIds,
+            minCount: cfg.goldMinCount,
+          };
 
-    const existingAchievement = await db.query.achievements.findFirst({
-      where: eq(achievements.id, achievementId),
-    });
-
-    if (!existingAchievement) {
-      // Fresh bootstrap: nothing to convert, insert the finished shape directly. hidden: false —
-      // these render in their own always-visible "Professions" section (achievement-display.tsx),
-      // not folded into the earned-only Legendary Feats bucket. scope: "all_time" — tradeskill
-      // mastery isn't a per-season grind, so seasonId stays null regardless of whether a season
-      // row exists yet.
-      await db.insert(achievements).values({
+    // hidden: false — these render in their own always-visible "Professions" section
+    // (achievement-display.tsx), not folded into the earned-only Legendary Feats bucket.
+    // scope: "all_time" — tradeskill mastery isn't a per-season grind, so seasonId stays null
+    // regardless of whether a season row exists yet.
+    await db
+      .insert(achievements)
+      .values({
         id: achievementId,
         name: cfg.name,
         description: cfg.description,
@@ -183,30 +210,33 @@ export async function convertOrCreateTradeskillAchievements(): Promise<void> {
         seasonId: null,
         ruleShape: "recipe_set_threshold",
         hidden: false,
-      });
-      await db.insert(achievementTiers).values({ achievementId, tier: "thorium", ruleConfig: thoriumConfig });
-      if (goldConfig) {
-        await db.insert(achievementTiers).values({ achievementId, tier: "gold", ruleConfig: goldConfig });
-      }
-      console.log(`[create] ${cfg.name}: inserted fresh (Thorium${goldConfig ? " + Gold" : ""})`);
-      continue;
-    }
-
-    await db
-      .update(achievements)
-      .set({
-        ruleShape: "recipe_set_threshold",
-        hidden: false,
-        description: cfg.description,
-        goalDescription: cfg.goalDescription,
       })
-      .where(eq(achievements.id, achievementId));
+      .onConflictDoUpdate({
+        target: achievements.id,
+        set: {
+          ruleShape: "recipe_set_threshold",
+          hidden: false,
+          description: cfg.description,
+          goalDescription: cfg.goalDescription,
+        },
+      });
 
-    const demoted = await db
-      .update(achievementTiers)
-      .set({ tier: "thorium", ruleConfig: thoriumConfig })
-      .where(and(eq(achievementTiers.achievementId, achievementId), eq(achievementTiers.tier, "arcanite")))
-      .returning({ id: achievementTiers.id });
+    const { arcaneTier, thoriumTier } = tierStateByAchievementId.get(achievementId)!;
+    let thoriumAction: "created" | "demoted" | "already-thorium";
+    if (thoriumTier) {
+      thoriumAction = "already-thorium";
+    } else if (arcaneTier) {
+      await db
+        .update(achievementTiers)
+        .set({ tier: "thorium", ruleConfig: thoriumConfig })
+        .where(eq(achievementTiers.id, arcaneTier.id));
+      thoriumAction = "demoted";
+    } else {
+      await db
+        .insert(achievementTiers)
+        .values({ achievementId, tier: "thorium", ruleConfig: thoriumConfig });
+      thoriumAction = "created";
+    }
 
     if (goldConfig) {
       await db
@@ -216,14 +246,17 @@ export async function convertOrCreateTradeskillAchievements(): Promise<void> {
     }
 
     console.log(
-      `[convert] ${cfg.name}: ruleShape set${demoted.length > 0 ? ", tier demoted to thorium" : " (tier already converted, skipped)"}${goldConfig ? ", gold tier ensured" : ""}`,
+      `[convert] ${cfg.name}: thorium tier ${thoriumAction}${goldConfig ? ", gold tier ensured" : ""}`,
     );
   }
 
   console.log("\n--- Post-migration Thorium award counts (should match snapshot above) ---");
   for (const [achievementId, cfg] of Object.entries(ACHIEVEMENTS)) {
     const thoriumTier = await db.query.achievementTiers.findFirst({
-      where: and(eq(achievementTiers.achievementId, achievementId), eq(achievementTiers.tier, "thorium")),
+      where: and(
+        eq(achievementTiers.achievementId, achievementId),
+        eq(achievementTiers.tier, "thorium"),
+      ),
     });
     if (!thoriumTier) {
       console.error(`[verify] ${cfg.name}: no thorium tier found post-migration!`);
@@ -311,12 +344,20 @@ export async function evaluateRecipeSetThresholdAwards(): Promise<number> {
     awardedAt: Date;
   }> = [];
   for (const tier of recipeTiers) {
-    const config = tier.ruleConfig as Extract<AchievementRuleConfig, { shape: "recipe_set_threshold" }>;
+    const config = tier.ruleConfig as Extract<
+      AchievementRuleConfig,
+      { shape: "recipe_set_threshold" }
+    >;
     for (const [familyId, known] of knownByFamily) {
       if (alreadyAwardedKeys.has(`${tier.id}:${familyId}`)) continue;
       const current = config.recipeSpellIds.filter((id) => known.has(id)).length;
       if (current < config.minCount) continue;
-      newAwardRows.push({ achievementTierId: tier.id, primaryCharacterId: familyId, source: "rule", awardedAt: asOf });
+      newAwardRows.push({
+        achievementTierId: tier.id,
+        primaryCharacterId: familyId,
+        source: "rule",
+        awardedAt: asOf,
+      });
     }
   }
 
@@ -324,7 +365,9 @@ export async function evaluateRecipeSetThresholdAwards(): Promise<number> {
     await db
       .insert(achievementAwards)
       .values(newAwardRows)
-      .onConflictDoNothing({ target: [achievementAwards.achievementTierId, achievementAwards.primaryCharacterId] });
+      .onConflictDoNothing({
+        target: [achievementAwards.achievementTierId, achievementAwards.primaryCharacterId],
+      });
   }
   console.log(`[evaluate] total new awards granted: ${newAwardRows.length}`);
   return newAwardRows.length;

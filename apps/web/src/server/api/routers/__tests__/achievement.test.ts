@@ -73,6 +73,7 @@ import {
   revokeAward as mockRevokeAward,
   markAchievementAwardsSeen as mockMarkAchievementAwardsSeen,
   resolveSessionPrimaryCharacterId as mockResolveSessionPrimaryCharacterId,
+  listAwardsForFamily as mockListAwardsForFamily,
 } from "~/server/services/achievement-service";
 import { getNextTierProgress as mockGetNextTierProgress } from "~/server/services/achievement-rules";
 
@@ -372,6 +373,29 @@ describe("achievement router: getUnseenAwards", () => {
 
     expect(result).toEqual([]);
     expect(mockResolveSessionPrimaryCharacterId).toHaveBeenCalledWith("user-1");
+  });
+});
+
+describe("achievement router: listAwardsForFamily", () => {
+  it("takes no input — always resolves the caller's own primaryCharacterId, never an arbitrary one, since awards carry private per-account state (seenAt, awardedByUserId)", async () => {
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(42);
+    vi.mocked(mockListAwardsForFamily).mockResolvedValue([]);
+    const caller = callerWithScopes([]);
+
+    await caller.achievement.listAwardsForFamily();
+
+    expect(mockResolveSessionPrimaryCharacterId).toHaveBeenCalledWith("user-1");
+    expect(mockListAwardsForFamily).toHaveBeenCalledWith(42);
+  });
+
+  it("returns an empty list rather than throwing when the caller has no linked character", async () => {
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(null);
+    const caller = callerWithScopes([]);
+
+    const result = await caller.achievement.listAwardsForFamily();
+
+    expect(result).toEqual([]);
+    expect(mockListAwardsForFamily).not.toHaveBeenCalled();
   });
 });
 

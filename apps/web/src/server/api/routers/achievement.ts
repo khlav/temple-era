@@ -170,9 +170,14 @@ export const achievementRouter = createTRPCRouter({
 
   listAchievements: protectedProcedure.query(() => listAchievements()),
 
-  listAwardsForFamily: protectedProcedure
-    .input(z.object({ primaryCharacterId: z.number().int() }))
-    .query(({ input }) => listAwardsForFamily(input.primaryCharacterId)),
+  // Always the caller's own family, same privacy boundary as getUnseenAwards/getAllAwards —
+  // seenAt, awardedByUserId, and source are private per-account state, so this must not take an
+  // arbitrary primaryCharacterId the way getPublicCatalog does for the public character page.
+  listAwardsForFamily: protectedProcedure.query(async ({ ctx }) => {
+    const primaryCharacterId = await resolveSessionPrimaryCharacterId(ctx.session.user.id);
+    if (primaryCharacterId === null) return [];
+    return listAwardsForFamily(primaryCharacterId);
+  }),
 
   // Backs the FAB badge count and the reveal overlay's hero+strip batch — always the caller's
   // own family, never another character's.

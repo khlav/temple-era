@@ -6,7 +6,9 @@
 // achievements need a real seasonId), everything else is independent. Idempotent as a whole —
 // each step guards itself and re-running after a partial or full prior run converges safely:
 //   1. Season row       — upsert by name, matching the SEASON_2 constant exactly.
-//   2. Core/Class/hidden — seedAchievementDefinitions(), skipped if any of its names already exist.
+//   2. Core/Class/hidden — seedAchievementDefinitions(), which skips per-definition names that
+//                          already exist rather than the whole batch, so a prior run that died
+//                          partway through still converges to the full catalog on retry.
 //   3. Guild Armorist    — insert-if-missing at a fixed ID, rule-based from creation (no legacy
 //                          custom-achievement history to convert, unlike the tradeskill 8).
 //   4. Tradeskill 8       — convertOrCreateTradeskillAchievements() (backfill-tradeskill-tiers.ts).
@@ -21,7 +23,7 @@
 // Not worth optimizing for what's meant to be a one-time bootstrap; if this script ever needs to
 // run *repeatedly* at this scale, that redundant scoring is the first thing to fix.
 
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { achievements, achievementTiers, characters, seasons } from "~/server/db/schema";
 import type { AchievementRuleConfig } from "~/server/db/schema";
@@ -59,19 +61,14 @@ async function ensureSeason(): Promise<string> {
 }
 
 async function ensureCoreAndClassAchievements(seasonId: string): Promise<void> {
-  const wantedNames = getAchievementDefinitions().map((d) => d.name);
-  const existing = await db.query.achievements.findMany({
-    where: inArray(achievements.name, wantedNames),
-    columns: { name: true },
-  });
-  if (existing.length > 0) {
-    console.log(
-      `[seed] skipped — ${existing.length}/${wantedNames.length} Core/Class/hidden achievements already exist (seedAchievementDefinitions is insert-only; re-running would duplicate them)`,
-    );
-    return;
-  }
+  // seedAchievementDefinitions is idempotent per-definition (skips names that already exist), so
+  // it's always safe to call — including on a re-run after a prior call crashed partway through.
+  const wantedCount = getAchievementDefinitions().length;
   const { achievementIds } = await seedAchievementDefinitions(db, seasonId);
-  console.log(`[seed] inserted ${achievementIds.length} Core/Class/hidden achievements`);
+  console.log(
+    `[seed] inserted ${achievementIds.length}/${wantedCount} Core/Class/hidden achievements` +
+      (achievementIds.length < wantedCount ? " (the rest already existed)" : ""),
+  );
 }
 
 async function ensureGuildArmorist(): Promise<void> {
@@ -128,7 +125,9 @@ async function evaluateAllFamilies(): Promise<void> {
     else newAwardsTotal += result.newAwards.length;
   }
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-  console.log(`[evaluate-all] done in ${elapsed}s — new awards: ${newAwardsTotal}, failures: ${failures}`);
+  console.log(
+    `[evaluate-all] done in ${elapsed}s — new awards: ${newAwardsTotal}, failures: ${failures}`,
+  );
 }
 
 async function main() {
