@@ -1,0 +1,1162 @@
+/*
+ * Ported from docs/followups/mockups/reveal-overlay.html — see
+ * docs/followups/mockups/reveal-overlay-notes.md for the layer-stack and cue-sheet reference.
+ * Arcanite-tier rules (chromatic frame/ring/speedlines/title, sparkle particles, the escalating
+ * slash buildup, the supernova finish, continuous fireworks) are ported here too, once real
+ * top-tier achievements existed to justify it — see reveal-overlay.tsx's own header comment.
+ * Colors use this file's `--ro-tier`/`--ro-hi` custom properties rather than hardcoded hex
+ * values, matching every other tier here. Class names are prefixed `ro-` to avoid collision
+ * with the rest of this app's Tailwind-driven component library.
+ *
+ * The top tier was renamed from "Diamond" to "Arcanite" (see migration 0042 and
+ * achievement-schema.ts) once a real-world metals-value ordering turned out to put gold above
+ * platinum, making the bronze/silver/gold/platinum/diamond ladder indefensible as a value
+ * progression. The rename is also a mechanism change for .ro-frame.ro-arcanite specifically:
+ * the old `hue-rotate(360deg)` sweep cycles the *entire* spectrum no matter what colors it
+ * starts from, so simply recoloring it red/gold still flashed cyan/purple mid-cycle. The new
+ * `@property --spin`-driven angle rotation (below) keeps every stop confined to the fire
+ * palette instead — see the `--spin` declaration and `ro-moltenSpin` keyframe.
+ *
+ * GOTCHA (do not "fix" without reading reveal-overlay-notes.md first): .ro-group must never
+ * receive a `transform`. Any transform — even a pure scale/translate — creates a new stacking
+ * context, which traps .ro-beam/.ro-ring's z-index comparisons against .ro-speedlines/.ro-slash/
+ * the spark canvas (siblings of .ro-group) inside that context instead of the shared flat one
+ * they're deliberately interleaved in. Use `zoom` for rescaling and `padding` for a shift — never
+ * `transform: scale()`/`translateY()` on .ro-group.
+ */
+
+/* Must be a top-level at-rule (can't nest under a selector). Lets .ro-frame.ro-arcanite and its
+   .ro-frame-border rotate a shared conic-gradient angle in lockstep — inherits:true means the
+   border-image's own conic-gradient reads the same live value the background animates, with no
+   second animation needed on the border element itself. */
+@property --spin {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.ro-root {
+  --ro-copper: #8a4a28;
+  --ro-copper-hi: #c97a45;
+  --ro-silver: #aab4bd;
+  --ro-silver-hi: #dde5ec;
+  --ro-gold: #d9a441;
+  --ro-gold-hi: #f2cd6e;
+  --ro-thorium: #6d7a4f;
+  --ro-thorium-hi: #a8b86a;
+
+  --z-ro-speedlines: 1;
+  --z-ro-beam: 2;
+  --z-ro-slash: 3;
+  --z-ro-spark: 4;
+  --z-ro-medal: 5;
+  --z-ro-hitflash: 15;
+}
+
+.ro-blackout {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+}
+.ro-blackout.ro-on {
+  animation: ro-bo 0.4s ease both;
+}
+@keyframes ro-bo {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.ro-blackout.ro-off {
+  transition: opacity 0.3s;
+  opacity: 0 !important;
+}
+
+/*
+ * Dim/blur the app page behind the ceremony, every tier — not just thorium's separate
+ * .ro-blackout. The mockup does this via a `body.dimmed` class that filters the dashboard DOM
+ * directly; a portable overlay component can't reach into whatever page happens to be mounted
+ * behind it, so this uses `backdrop-filter` on the overlay itself instead — same visual effect
+ * (dim + slight blur + desaturate), without requiring every host page to cooperate with a body
+ * class. Found missing in review — see implementation-notes-phase-3.html.
+ */
+.ro-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  place-items: center;
+  overflow: hidden;
+  color: #e8ded2;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #0c0908e6;
+  backdrop-filter: blur(8px) brightness(0.35) saturate(0.6);
+  -webkit-backdrop-filter: blur(8px) brightness(0.35) saturate(0.6);
+}
+.ro-stage.ro-on {
+  display: grid;
+}
+.ro-stage-inner {
+  position: relative;
+  text-align: center;
+  z-index: var(--z-ro-medal);
+  transform-origin: 50% 28%;
+}
+
+.ro-stage.ro-windup .ro-stage-inner {
+  animation: ro-windup 0.5s ease-in-out;
+}
+@keyframes ro-windup {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    scale: 1;
+  }
+  20% {
+    transform: translate(1px, -1px) rotate(-0.1deg);
+    scale: 1.015;
+  }
+  40% {
+    transform: translate(-1.5px, 1px) rotate(0.12deg);
+    scale: 1.03;
+  }
+  60% {
+    transform: translate(2px, -1.5px) rotate(-0.16deg);
+    scale: 1.045;
+  }
+  80% {
+    transform: translate(-2.5px, 2px) rotate(0.2deg);
+    scale: 1.06;
+  }
+  100% {
+    transform: translate(0, 0) rotate(0);
+    scale: 1.07;
+  }
+}
+.ro-stage.ro-shake-hard .ro-stage-inner {
+  animation: ro-shakeHard 0.38s ease;
+}
+@keyframes ro-shakeHard {
+  0%,
+  100% {
+    transform: translate(0) rotate(0);
+  }
+  15% {
+    transform: translate(9px, -6px) rotate(-0.6deg);
+  }
+  35% {
+    transform: translate(-8px, 5px) rotate(0.5deg);
+  }
+  55% {
+    transform: translate(6px, 4px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate(-5px, -4px) rotate(0.3deg);
+  }
+}
+/* arcanite-only: escalating tremor that ramps in step with the slash flurry, cashing out into
+   ro-shake-hard at the supernova hit. Duration is set per-reveal via --ro-build-ms (matches
+   ARCANITE_BUILDUP_MS in reveal-overlay.tsx) since the buildup's length depends on slash count. */
+.ro-stage.ro-shake-build .ro-stage-inner {
+  animation: ro-shakeBuild var(--ro-build-ms, 0.6s) ease-in;
+}
+@keyframes ro-shakeBuild {
+  0% {
+    transform: translate(0, 0) rotate(0);
+  }
+  15% {
+    transform: translate(1px, -1px) rotate(-0.1deg);
+  }
+  30% {
+    transform: translate(-2px, 1px) rotate(0.15deg);
+  }
+  45% {
+    transform: translate(3px, -2px) rotate(-0.25deg);
+  }
+  60% {
+    transform: translate(-4px, 3px) rotate(0.35deg);
+  }
+  75% {
+    transform: translate(6px, -4px) rotate(-0.5deg);
+  }
+  90% {
+    transform: translate(-9px, 6px) rotate(0.7deg);
+  }
+  100% {
+    transform: translate(11px, -8px) rotate(-0.9deg);
+  }
+}
+
+.ro-speedlines {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 4deg,
+    color-mix(in srgb, var(--ro-tier) 16%, transparent) 4deg 4.6deg,
+    transparent 4.6deg 9deg,
+    rgba(255, 255, 255, 0.05) 9deg 9.4deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 22%,
+    black 34%,
+    black 62%,
+    transparent 74%
+  );
+  mask-image: radial-gradient(circle, transparent 22%, black 34%, black 62%, transparent 74%);
+  z-index: var(--z-ro-speedlines);
+}
+@keyframes ro-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.ro-speedlines.ro-on {
+  animation:
+    ro-spin 14s linear infinite,
+    ro-speedFade 0.6s ease-out both;
+}
+@keyframes ro-speedFade {
+  0% {
+    opacity: 0;
+    translate: -22vw 22vh;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.ro-slash {
+  position: fixed;
+  z-index: var(--z-ro-slash);
+  height: 9px;
+  width: 160vmax;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #fff 12%,
+    var(--ro-hi) 45%,
+    var(--ro-tier) 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--ro-tier) 80%, transparent),
+    0 0 60px color-mix(in srgb, var(--ro-hi) 40%, transparent);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.5) 22%,
+    #000 50%,
+    rgba(0, 0, 0, 0.5) 78%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.5) 22%,
+    #000 50%,
+    rgba(0, 0, 0, 0.5) 78%,
+    transparent 100%
+  );
+  animation: ro-slashCut 0.28s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+@keyframes ro-slashCut {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--ro-ang)) scaleX(0) scaleY(0.3);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) rotate(var(--ro-ang)) scaleX(0.72) scaleY(0.68);
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-50%, -50%) rotate(var(--ro-ang)) scaleX(1) scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--ro-ang)) scaleX(1) scaleY(1.22);
+    opacity: 0;
+  }
+}
+.ro-hitflash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-ro-hitflash);
+  background: #fff;
+  pointer-events: none;
+  animation: ro-hitFlash 0.14s steps(1) both;
+}
+@keyframes ro-hitFlash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* arcanite-only: supernova finish — brighter/bigger than a normal hitflash, caps the escalating
+   buildup. The flash stays fixed to the viewport (whitewashes everything); the core/ring burst is
+   appended INSIDE .ro-ring instead of the viewport, so heroZoom's transform (which fires 260ms
+   later) carries the burst along with the medal rather than leaving it orphaned at the old spot.
+   Named ro-nova-core/-ring/-ring2 (not ro-core/-ring/-ring2) since bare "ring" would collide with
+   the outer medal's own .ro-ring class and its higher-specificity rules. */
+.ro-supernova-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 16;
+  background: #fff;
+  pointer-events: none;
+  animation: ro-novaFlash 0.32s steps(1) both;
+}
+@keyframes ro-novaFlash {
+  0% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ro-supernova-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+.ro-supernova-burst .ro-nova-core,
+.ro-supernova-burst .ro-nova-ring,
+.ro-supernova-burst .ro-nova-ring2 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+}
+.ro-supernova-burst .ro-nova-core {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    var(--ro-hi) 40%,
+    var(--ro-tier) 68%,
+    transparent 78%
+  );
+  animation: ro-novaCore 0.55s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+@keyframes ro-novaCore {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(30);
+    opacity: 0;
+  }
+}
+.ro-supernova-burst .ro-nova-ring {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 6px solid var(--ro-hi);
+  box-shadow:
+    0 0 50px color-mix(in srgb, var(--ro-hi) 80%, transparent),
+    0 0 110px color-mix(in srgb, var(--ro-tier) 55%, transparent);
+  animation: ro-novaRing 0.85s cubic-bezier(0.15, 0.7, 0.25, 1) 0.04s both;
+}
+.ro-supernova-burst .ro-nova-ring2 {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 3px solid #fff;
+  opacity: 0.8;
+  animation: ro-novaRing 1.05s cubic-bezier(0.15, 0.7, 0.25, 1) 0.12s both;
+}
+@keyframes ro-novaRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    border-width: 10px;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(48);
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+.ro-beam {
+  position: absolute;
+  left: 50%;
+  top: -20%;
+  width: 340px;
+  height: 80%;
+  transform: translateX(-50%) scaleY(0.2);
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--ro-tier) 30%, transparent) 45%,
+    transparent 100%
+  );
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0% 100%);
+  filter: blur(4px);
+  z-index: var(--z-ro-beam);
+}
+.ro-beam.ro-on {
+  animation: ro-beamIn 0.55s ease both;
+}
+@keyframes ro-beamIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1);
+  }
+}
+
+.ro-ring {
+  width: 190px;
+  height: 190px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  z-index: var(--z-ro-medal);
+  animation: ro-descendZoom 1s cubic-bezier(0.25, 0.8, 0.3, 1) both;
+}
+.ro-stage.ro-ring-pop .ro-ring {
+  animation:
+    ro-descendZoom 1s cubic-bezier(0.25, 0.8, 0.3, 1) both,
+    ro-ringPop 0.35s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+}
+@keyframes ro-descendZoom {
+  0% {
+    opacity: 0;
+    transform: translateY(-52vh) translateX(14vw) rotate(-240deg) scale(0.12);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-4vh) rotate(-30deg) scale(2.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-4deg) scale(1);
+  }
+}
+@keyframes ro-ringPop {
+  from {
+    scale: 1;
+  }
+  50% {
+    scale: 1.18;
+  }
+  to {
+    scale: 1;
+  }
+}
+.ro-ring::before,
+.ro-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 3px solid var(--ro-tier);
+  box-shadow:
+    0 0 34px color-mix(in srgb, var(--ro-tier) 55%, transparent),
+    inset 0 0 24px color-mix(in srgb, var(--ro-tier) 30%, transparent);
+}
+.ro-ring::after {
+  inset: -13px;
+  border-color: color-mix(in srgb, var(--ro-tier) 45%, transparent);
+  border-style: dashed;
+  animation: ro-spin 10s linear infinite reverse;
+}
+.ro-coin {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  margin: 0 auto;
+  padding: 7px;
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle at 32% 26%,
+    color-mix(in srgb, var(--ro-hi) 85%, white) 0%,
+    var(--ro-tier) 42%,
+    color-mix(in srgb, var(--ro-tier) 55%, black) 78%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  box-shadow:
+    inset 0 -5px 9px rgba(0, 0, 0, 0.5),
+    inset 0 3px 4px rgba(255, 255, 255, 0.3),
+    0 8px 22px #000a;
+}
+.ro-coin img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.32),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.45),
+    inset 0 6px 10px rgba(255, 255, 255, 0.16);
+}
+/* Real WoW icon art, grayscale then re-tinted per tier — same pipeline as
+   docs/followups/mockups/wow-icon-medals.html, so the same icon reads as a different metal at
+   each tier instead of needing bespoke copper/silver/gold artwork. Tinting is done with a
+   mix-blend-mode:color overlay (.ro-coin-tint, below) driven by the same --ro-tier the coin's own
+   background gradient already uses, rather than per-tier hue-rotate/sepia approximations — those
+   made copper and gold nearly indistinguishable since both landed in a similar orange-brown hue
+   band. The blend mode takes hue+saturation straight from TIER_CONFIG's actual (distinct) hex
+   values and keeps the image's own luminance, so every tier reads as a genuinely different metal. */
+.ro-coin img {
+  filter: grayscale(1) contrast(1.1);
+}
+.ro-coin-tint {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--ro-tier);
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+.ro-coin::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2.5px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.55);
+  border-right-color: rgba(255, 255, 255, 0.14);
+  transform: rotate(-28deg);
+}
+
+.ro-frame {
+  width: 118px;
+  height: 118px;
+  margin: 0 auto;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  box-shadow:
+    inset 0 -6px 12px rgba(0, 0, 0, 0.5),
+    inset 0 3px 4px rgba(255, 255, 255, 0.28),
+    0 8px 22px #000a;
+}
+.ro-frame.ro-thorium {
+  background: radial-gradient(
+    circle at 30% 25%,
+    var(--ro-hi) 0%,
+    var(--ro-tier) 45%,
+    #4e5d6e 80%,
+    #2b333d 100%
+  );
+}
+/* arcanite: molten conic-gradient sweep instead of thorium's fixed radial — this is the actual
+   "chromatic" treatment the thorium reuse was missing. Stops are the palindrome
+   tier→orange→hi→orange→tier tiled TWICE around the ring (once per 180deg, not once per 360deg),
+   so color(angle) === color(angle+180deg) everywhere — opposite corners of the frame always
+   mirror each other's brightness as it spins, rather than only lining up for one instant per
+   rotation. Rotates via `--spin` (an angle custom property, declared with @property at the top
+   of this file) instead of `hue-rotate()` — hue-rotate cycles the ENTIRE spectrum regardless of
+   the gradient's own stops, so a red/gold-anchored version still flashed cyan/purple mid-cycle;
+   animating the gradient's own angle keeps every visible hue inside tier/#e2694a/hi always. */
+.ro-frame.ro-arcanite {
+  background: conic-gradient(
+    from var(--spin),
+    var(--ro-tier) 0%,
+    #e2694a 12.5%,
+    var(--ro-hi) 25%,
+    #e2694a 37.5%,
+    var(--ro-tier) 50%,
+    #e2694a 62.5%,
+    var(--ro-hi) 75%,
+    #e2694a 87.5%,
+    var(--ro-tier) 100%
+  );
+  animation:
+    ro-moltenSpin 9s linear infinite,
+    ro-heatBreath 3.2s ease-in-out infinite;
+}
+@keyframes ro-moltenSpin {
+  to {
+    --spin: 360deg;
+  }
+}
+/* radiant heat pulse on the frame's own drop shadow — reads as heat radiating outward rather
+   than a gem catching light, which is what a sparkle-only treatment would read as. */
+@keyframes ro-heatBreath {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 -6px 12px rgba(0, 0, 0, 0.5),
+      inset 0 3px 4px rgba(255, 255, 255, 0.28),
+      0 8px 22px #000a,
+      0 0 18px color-mix(in srgb, var(--ro-tier) 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 -6px 12px rgba(0, 0, 0, 0.5),
+      inset 0 3px 4px rgba(255, 255, 255, 0.28),
+      0 8px 22px #000a,
+      0 0 34px color-mix(in srgb, var(--ro-hi) 65%, transparent);
+  }
+}
+.ro-frame::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.15) 55%,
+      rgba(10, 14, 20, 0.55) 100%
+    ),
+    linear-gradient(180deg, rgba(20, 26, 34, 0.85), rgba(28, 36, 46, 0.7));
+}
+.ro-frame-border {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 4px;
+  border: 7px solid transparent;
+  border-image-slice: 1;
+}
+.ro-frame.ro-thorium .ro-frame-border {
+  border-image-source: radial-gradient(
+    circle at 30% 25%,
+    var(--ro-hi) 0%,
+    var(--ro-tier) 45%,
+    #4e5d6e 80%,
+    #2b333d 100%
+  );
+}
+/* No animation of its own — --spin inherits (see the @property declaration at the top of this
+   file), so this conic-gradient reads the same live angle .ro-frame.ro-arcanite's own background
+   is already animating, keeping the two in lockstep without a second identical animation here. */
+.ro-frame.ro-arcanite .ro-frame-border {
+  border-image-source: conic-gradient(
+    from var(--spin),
+    var(--ro-tier) 0%,
+    #e2694a 12.5%,
+    var(--ro-hi) 25%,
+    #e2694a 37.5%,
+    var(--ro-tier) 50%,
+    #e2694a 62.5%,
+    var(--ro-hi) 75%,
+    #e2694a 87.5%,
+    var(--ro-tier) 100%
+  );
+}
+.ro-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.28),
+    inset 0 -10px 16px rgba(0, 0, 0, 0.38),
+    inset 0 8px 12px rgba(255, 255, 255, 0.13);
+}
+/* thorium only: one-directional sheen pass, once per 3.5s. Arcanite gets rising embers instead
+   (below) — never both, matching the original medal class-choice pattern this was ported from. */
+.ro-frame.ro-thorium.ro-fxsweep::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgba(230, 240, 255, 0.42) 50%,
+      transparent 68%
+    )
+    no-repeat;
+  background-size: 260% 100%;
+  background-position: -160% 0;
+  animation: ro-platSweep 3.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes ro-platSweep {
+  0% {
+    background-position: -160% 0;
+  }
+  58% {
+    background-position: 260% 0;
+  }
+  100% {
+    background-position: 260% 0;
+  }
+}
+/* arcanite: rising embers scattered across the frame — warm-only palette (no pink/mint/purple),
+   drifting upward and flickering rather than diamond's scale+rotate sparkle, so it reads as heat
+   shedding off molten metal rather than a cut gem catching light. */
+.ro-frame.ro-arcanite .ro-embers {
+  position: absolute;
+  inset: 7px;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ro-frame.ro-arcanite .ro-embers i {
+  position: absolute;
+  font-style: normal;
+  border-radius: 50%;
+  opacity: 0;
+  text-shadow: 0 0 6px currentColor;
+  animation: ro-ember 2.4s ease-in infinite;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(1) {
+  bottom: 8%;
+  left: 20%;
+  color: #ffb347;
+  font-size: 8px;
+  animation-delay: 0.1s;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(2) {
+  bottom: 4%;
+  left: 60%;
+  color: #ff7a45;
+  font-size: 6px;
+  animation-delay: 0.9s;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(3) {
+  bottom: 14%;
+  left: 78%;
+  color: #ffd166;
+  font-size: 7px;
+  animation-delay: 1.5s;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(4) {
+  bottom: 2%;
+  left: 40%;
+  color: #e2694a;
+  font-size: 9px;
+  animation-delay: 0.5s;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(5) {
+  bottom: 10%;
+  left: 10%;
+  color: #ff9457;
+  font-size: 5px;
+  animation-delay: 1.9s;
+}
+.ro-frame.ro-arcanite .ro-embers i:nth-child(6) {
+  bottom: 6%;
+  left: 50%;
+  color: #ffb347;
+  font-size: 7px;
+  animation-delay: 1.2s;
+}
+@keyframes ro-ember {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46px) scale(0.2);
+  }
+}
+@keyframes ro-heroZoom {
+  to {
+    transform: scale(1.55) translateY(3%) rotate(-2deg);
+  }
+}
+
+.ro-title-block {
+  margin-top: 20px;
+  opacity: 0;
+}
+.ro-title-block.ro-on {
+  animation: ro-slamIn 0.26s cubic-bezier(0.1, 1.5, 0.3, 1) both;
+}
+@keyframes ro-slamIn {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) skewX(-14deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) skewX(-6deg);
+  }
+}
+.ro-title-block h1 {
+  display: inline-block;
+  font-size: clamp(30px, 5vw, 52px);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 900;
+  font-style: italic;
+  transform: skewX(-6deg);
+  color: var(--ro-hi);
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--ro-tier) 75%, transparent),
+    0 0 42px color-mix(in srgb, var(--ro-tier) 45%, transparent),
+    0 2px 2px rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+.ro-stage.ro-thorium-ring .ro-title-block h1 {
+  background: linear-gradient(
+    105deg,
+    var(--ro-hi) 20%,
+    #fff 46%,
+    var(--ro-hi) 62%,
+    var(--ro-tier) 90%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--ro-tier) 70%, transparent));
+}
+/* arcanite title: molten shimmer SWEEP (the gradient itself scrolls), distinct from thorium's
+   fixed chromatic split above. This mechanism was already safe — background-position sliding
+   only ever shows the colors named in its own stops, unlike hue-rotate — so the rename only
+   needed recoloring, not the angle-rotation rework .ro-frame.ro-arcanite got. */
+.ro-stage.ro-arcanite-ring .ro-title-block h1 {
+  background: linear-gradient(
+    110deg,
+    #fff3e0 15%,
+    var(--ro-hi) 35%,
+    #e2694a 55%,
+    var(--ro-hi) 75%,
+    #fff3e0 95%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--ro-hi) 75%, transparent));
+  animation: ro-shimmerSlide 5s linear infinite;
+}
+/* background-position percentages are (container_size - image_size) * percent, NOT a plain
+   percentage of the container — so for a 200% background-size, the pixel-exact one-tile shift is
+   -200% (this pairing happens to be a fixed point of that formula; it does NOT generalize to
+   other sizes — e.g. 220% needs -183.33%, not -220%, which is what actually caused the visible
+   jump here: size and travel distance were set equal on the mistaken assumption that they should
+   match). Repeating this exactly at the loop boundary makes the restart pixel-perfect, so no
+   hold/pause is needed to hide it. */
+@keyframes ro-shimmerSlide {
+  to {
+    background-position: -200% 0;
+  }
+}
+.ro-tier-sub {
+  margin-top: 6px;
+  font-size: clamp(13px, 1.6vw, 18px);
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  transform: skewX(-6deg);
+  color: var(--ro-tier);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--ro-tier) 70%, transparent);
+}
+.ro-title-block p {
+  color: #9a8c7c;
+  margin-top: 8px;
+  font-size: 15px;
+}
+.ro-description {
+  color: #9a8c7c;
+  margin: 10px auto 0;
+  max-width: 640px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+@keyframes ro-fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.ro-continue-row {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  transform: skewX(6deg);
+}
+.ro-title-block.ro-on .ro-continue-row {
+  animation: ro-fadeIn 0.4s ease 0.5s both;
+}
+.ro-continue {
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #9a8c7c;
+}
+.ro-continue::after {
+  content: " \25B8";
+  animation: ro-pulse 1s ease-in-out infinite;
+}
+.ro-continue-sep {
+  color: #5a4f45;
+  font-size: 11px;
+}
+.ro-view-link {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ro-hi);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--ro-hi) 55%, transparent);
+  padding-bottom: 1px;
+  transition: opacity 0.15s ease;
+}
+.ro-view-link:hover {
+  opacity: 0.75;
+}
+@keyframes ro-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.ro-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --ro-gscale: 1;
+  zoom: var(--ro-gscale);
+  padding-bottom: 0;
+  transition: padding-bottom 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s;
+}
+.ro-stage.ro-strip-open .ro-group {
+  padding-bottom: 36px;
+}
+/* 1000px, not 820 — a real 1658×864 viewport (a common laptop height once browser chrome is
+   subtracted from a 1080p display) still overflowed the bottom of the page at full scale. */
+@media (max-height: 1000px), (max-width: 1440px) {
+  .ro-group {
+    --ro-gscale: 0.85;
+  }
+}
+@media (max-height: 680px), (max-width: 1180px) {
+  .ro-group {
+    --ro-gscale: 0.72;
+  }
+}
+/* The "Also earned" strip (opened via .ro-strip-open) adds real height on top of the hero
+   alone — enough that the base tiers above still weren't enough at a real reported 1658×867
+   viewport with the strip open. Scale it down further specifically for that combination rather
+   than dropping the base tiers for every reveal, most of which never open a strip at all. */
+@media (max-height: 1000px) {
+  .ro-stage.ro-strip-open .ro-group {
+    --ro-gscale: 0.68;
+  }
+}
+@media (max-height: 680px) {
+  .ro-stage.ro-strip-open .ro-group {
+    --ro-gscale: 0.56;
+  }
+}
+.ro-strip {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s;
+  /* Hugs however many chips are actually shown (1 to 5 + the "+N more" chip) instead of
+     always claiming the full 640px cap — a 1-2 chip strip used to render as a mostly-empty
+     panel. Still caps/wraps at the same max width once the max real chip count is hit. */
+  width: fit-content;
+  max-width: min(640px, 90vw);
+  margin: 0 auto;
+  transform: skewX(6deg);
+}
+.ro-strip.ro-open {
+  grid-template-rows: 1fr;
+}
+.ro-strip-inner {
+  overflow: hidden;
+}
+.ro-strip-panel {
+  margin-top: 20px;
+  background: linear-gradient(180deg, #1d1815 0%, #171310 100%);
+  border: 1px solid #2b241f;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.ro-strip-head {
+  font-size: 10.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #9a8c7c;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.ro-strip-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ro-chip {
+  text-align: center;
+  width: 92px;
+}
+.ro-chip .ro-coin,
+.ro-chip .ro-frame {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 8px;
+}
+.ro-chip .ro-coin::after {
+  inset: 5px;
+  border-width: 1.125px;
+}
+.ro-chip .ro-frame-border {
+  border-width: 3px;
+}
+.ro-chip .ro-medal-wrap {
+  opacity: 0;
+  animation: ro-chipIn 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes ro-chipIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.ro-chip .ro-label {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: #e8ded2;
+  opacity: 0;
+  animation: ro-labelIn 0.35s ease both;
+}
+.ro-chip .ro-label small {
+  display: block;
+  color: #9a8c7c;
+  font-size: 9px;
+  margin-top: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+@keyframes ro-labelIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ro-chip.ro-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* flex-start, not center — a normal .ro-chip top-aligns its icon via block flow, and
+     .ro-strip-row stretches every chip to the tallest sibling's height, so centering here would
+     visibly drop this icon below the others whenever any label wraps to two lines. */
+  justify-content: flex-start;
+}
+.ro-chip.ro-more .ro-plus {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #2b241f;
+  color: #9a8c7c;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  opacity: 0;
+  animation: ro-chipIn 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.ro-chip.ro-more .ro-label {
+  opacity: 0;
+  animation: ro-labelIn 0.35s ease both;
+}
+
+/* Static (non-reveal-context) small medal icon — the achievement list/card rows use the same
+   coin/frame art as the reveal ceremony and strip, just at list-icon size and with none of the
+   reveal's own entrance animations (.ro-coin/.ro-frame have no animation of their own — the
+   descendZoom/chipIn motion lives on .ro-ring/.ro-medal-wrap, ancestors this context never
+   renders — so nothing needs to be turned off here, only resized). */
+.ro-icon-sm .ro-coin,
+.ro-icon-sm .ro-frame {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 4px;
+}
+.ro-icon-sm .ro-coin::after {
+  inset: 4px;
+  border-width: 1px;
+}
+.ro-icon-sm .ro-frame-border {
+  border-width: 3px;
+}
+
+/* Smaller still (~2/3 of .ro-icon-sm's 44px) — the reveal strip's "+N more" tooltip, where the
+   medal sits inline alongside text rather than being the row's primary visual. */
+.ro-icon-xs .ro-coin,
+.ro-icon-xs .ro-frame {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 3px;
+}
+.ro-icon-xs .ro-coin::after {
+  inset: 3px;
+  border-width: 1px;
+}
+.ro-icon-xs .ro-frame-border {
+  border-width: 2px;
+}

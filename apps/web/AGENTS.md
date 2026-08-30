@@ -39,6 +39,10 @@ pnpm start            # Start production server
 pnpm preview          # Build and start production server locally
 ```
 
+**A dev server is usually already running** (port 3000, or 3001 if 3000 is taken).
+Don't start, restart, or kill one unless the user asks — `curl -s http://localhost:3000`
+(or `:3001`) to check whether one's already up, or ask the user to verify a page for you.
+
 ### Database Commands
 
 ```bash
@@ -280,6 +284,12 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Prefer transactions for multi-step operations
 - Migrations are **not** part of `build` — run them explicitly via `pnpm db:deploy`
   (`drizzle-kit migrate`). See the `db:deploy` note above.
+- Never conclude DB state — a null column, a "missing" row — is expected or historical
+  without querying it directly. A prior session assumed null snapshot metadata was fine
+  until a direct query showed it wasn't; read before concluding.
+- Production writes/imports go through Drizzle, never raw SQL that bypasses column
+  defaults (e.g. `id` generation) — a prior import did this and had to be rolled back.
+  Validate against a single row before running a bulk import.
 
 #### Styling
 
@@ -357,6 +367,8 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `POST /api/v1/world-buffs/assignments` - Schedule a turn-in; requires `worldbuff:manage`
 - `PATCH /api/v1/world-buffs/assignments/:id` - Reschedule/re-link a turn-in (partial update); requires `worldbuff:manage`
 - `DELETE /api/v1/world-buffs/assignments/:id` - Delete a scheduled turn-in (hard delete, no cancelled state); requires `worldbuff:manage`
+- `POST /api/v1/achievements` - Create a custom (manual-grant) achievement, always hidden, exactly one tier; requires `achievement:manage`
+- `POST /api/v1/achievements/:id/grant` - Grant a custom achievement's tier to a family by achievement ID (tier resolved automatically); requires `achievement:manage`
 
 ### Admin
 

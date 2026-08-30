@@ -15,6 +15,7 @@ import { raidPlanRouter } from "~/server/api/routers/raid-plan";
 import { raidPlanTemplateRouter } from "~/server/api/routers/raid-plan-template";
 import { raidSignupLinkRouter } from "~/server/api/routers/raid-signup-link";
 import { worldBuffRouter } from "~/server/api/routers/world-buff";
+import { achievementRouter } from "~/server/api/routers/achievement";
 
 /**
  * This is the primary router for your server.
@@ -38,6 +39,7 @@ export const appRouter = createTRPCRouter({
   raidPlanTemplate: raidPlanTemplateRouter,
   raidSignupLink: raidSignupLinkRouter,
   worldBuff: worldBuffRouter,
+  achievement: achievementRouter,
 });
 
 // export type definition of API

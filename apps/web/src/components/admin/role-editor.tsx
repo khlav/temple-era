@@ -45,6 +45,8 @@ const SCOPE_DESCRIPTIONS: Record<Scope, string> = {
   [SCOPE.API_TOKEN_ACCESS]: "generate a personal API token.",
   [SCOPE.WORLDBUFF_MANAGE]:
     "mark world-buff turn-ins as dropped, and create/cancel scheduled assignments.",
+  [SCOPE.ACHIEVEMENT_MANAGE]:
+    "create custom achievement awards and grant them to characters, and mark achievement reveals seen on others' behalf.",
 };
 
 function RoleFormDialog({

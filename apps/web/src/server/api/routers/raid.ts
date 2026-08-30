@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { SCOPE } from "~/lib/scopes";
 import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
 import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
+import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
 
 type DB = typeof db;
 
@@ -244,6 +245,7 @@ export const raid = createTRPCRouter({
         // comment for why this must never fail raid creation.
         await raidLogUpdateResult;
         await runPostRaidCreationSignupLinking(insertedRaidInfo.raidId);
+        await publishAchievementEvaluate(insertedRaidInfo.raidId, "signup_link_resolved");
       }
 
       return {
@@ -308,6 +310,8 @@ export const raid = createTRPCRouter({
       benchDeleteResult = benchDelete ?? undefined;
       benchInsertResult = benchInsert ?? undefined;
 
+      await publishAchievementEvaluate(input.raidId, "bench_updated");
+
       return {
         raid: updatedRaidInfo,
         raidLogs: raidLogUpdateResult,
@@ -353,6 +357,10 @@ export const raid = createTRPCRouter({
             createdById: ctx.session.user.id,
           })),
         );
+      }
+
+      if (newCharacterIds.length > 0) {
+        await publishAchievementEvaluate(input.raidId, "bench_updated");
       }
 
       // Return full updated bench with character details

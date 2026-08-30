@@ -42,7 +42,7 @@ export function AttendanceReport({ currentUserCharacterId }: { currentUserCharac
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex items-center gap-1.5">
           <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-            Attendance Leaderboard
+            Weighted Attendance Leaderboard
           </div>
           <Tooltip>
             <TooltipTrigger asChild>

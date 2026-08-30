@@ -6,6 +6,7 @@ import * as AccessSchema from "~/server/db/models/access-schema";
 import * as RaidHelperSnapshotSchema from "~/server/db/models/raid-helper-snapshot-schema";
 import * as RaidSignupLinkSchema from "~/server/db/models/raid-signup-link-schema";
 import * as WorldBuffSchema from "~/server/db/models/world-buff-schema";
+import * as AchievementSchema from "~/server/db/models/achievement-schema";
 import * as ViewsSchema from "~/server/db/models/views-schema";
 
 // NOTE: views-schema is defined but not imported due to Drizzle
@@ -145,6 +146,38 @@ export const {
   worldBuffStateEnum,
   worldBuffQueueTypeEnum,
 } = WorldBuffSchema;
+
+export const {
+  // Tables
+  seasons,
+  achievements,
+  achievementTiers,
+  achievementAwards,
+
+  // Relations
+  achievementsRelations,
+  achievementTiersRelations,
+  achievementAwardsRelations,
+
+  // Enums
+  achievementScopeEnum,
+  achievementTierLevelEnum,
+  achievementRuleShapeEnum,
+  achievementAwardSourceEnum,
+} = AchievementSchema;
+export type {
+  AchievementRuleConfig,
+  AchievementRuleConfigConsistencyMatch,
+  AchievementRuleConfigFlexibilityMatch,
+  AchievementRuleConfigBenchCreditCount,
+  AchievementRuleConfigZoneAttendanceThreshold,
+  AchievementRuleConfigRaidMarathonDensity,
+  AchievementRuleConfigZoneBreadthWindow,
+  AchievementRuleConfigClassBreadthWindow,
+  AchievementRuleConfigFamilyDoubleUpCooccurrence,
+  AchievementRuleConfigWeightedAttendanceThreshold,
+  AchievementRuleConfigClassAttendanceThreshold,
+} from "~/server/db/models/achievement-schema";
 
 export const {
   primaryRaidAttendeeMap,

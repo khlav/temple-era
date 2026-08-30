@@ -565,13 +565,13 @@ export function RaidPlanDetail({ planId, initialBreadcrumbData }: RaidPlanDetail
                                   plan.characters as RaidPlanCharacter[],
                                 )
                               }
-                              className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                              className="flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground"
                             >
                               {aaCopied ? (
                                 "Copied!"
                               ) : (
                                 <>
-                                  <Copy className="mr-1 inline h-3 w-3" />
+                                  <Copy className="h-3 w-3" />
                                   AA
                                 </>
                               )}
@@ -684,13 +684,13 @@ export function RaidPlanDetail({ planId, initialBreadcrumbData }: RaidPlanDetail
                                     plan.characters as RaidPlanCharacter[],
                                   )
                                 }
-                                className="h-7 rounded-md bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90"
+                                className="flex h-7 items-center gap-1 rounded-md border border-input bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground"
                               >
                                 {aaCopied ? (
                                   "Copied!"
                                 ) : (
                                   <>
-                                    <Copy className="mr-1 inline h-3 w-3" />
+                                    <Copy className="h-3 w-3" />
                                     AA
                                   </>
                                 )}

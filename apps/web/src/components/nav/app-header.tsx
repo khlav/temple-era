@@ -18,6 +18,7 @@ import {
   FilePlus,
   ListRestart,
   Link2,
+  Award,
 } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
@@ -44,6 +45,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { cn } from "~/lib/utils";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { SCOPE } from "~/lib/scopes";
+import {
+  REVEAL_DEBUG_PARAM,
+  isAchievementsLive,
+  useUrlParamPresent,
+} from "~/lib/achievements-launch";
 
 const primaryNav = [
   { label: "Dashboard", href: "/" },
@@ -52,6 +58,7 @@ const primaryNav = [
   { label: "Characters", href: "/characters" },
   { label: "Recipes", href: "/rare-recipes" },
   { label: "World Buffs", href: "/world-buffs" },
+  { label: "Achievements", href: "/achievements" },
   { label: "Reports", href: "/reports/attendance" },
 ];
 
@@ -87,6 +94,15 @@ const managerNav = [
   { label: "Scan Softres", href: "/softres", icon: ScanLine, requiredScope: SCOPE.SOFTRES_ACCESS },
 ];
 
+const achievementsNav = [
+  {
+    label: "Manage achievements",
+    href: "/achievements/manage",
+    icon: Award,
+    requiredScope: SCOPE.ACHIEVEMENT_MANAGE,
+  },
+];
+
 const adminNav = [
   {
     label: "User permissions",
@@ -107,9 +123,20 @@ export const AppHeader = () => {
   const { data: session } = useSession();
   const { setOpen } = useGlobalQuickLauncher();
 
+  const revealDebugPresent = useUrlParamPresent(REVEAL_DEBUG_PARAM);
+  const achievementsRevealed = isAchievementsLive() || revealDebugPresent;
+  const visiblePrimaryNav = useMemo(
+    () => primaryNav.filter((item) => item.href !== "/achievements" || achievementsRevealed),
+    [achievementsRevealed],
+  );
+
   const scopes = session?.user?.scopes;
   const visibleManagerNav = useMemo(
     () => managerNav.filter((item) => scopes?.includes(item.requiredScope) ?? false),
+    [scopes],
+  );
+  const visibleAchievementsNav = useMemo(
+    () => achievementsNav.filter((item) => scopes?.includes(item.requiredScope) ?? false),
     [scopes],
   );
   const visibleAdminNav = useMemo(
@@ -117,8 +144,8 @@ export const AppHeader = () => {
     [scopes],
   );
   const utilityLinks = useMemo(
-    () => [...visibleManagerNav, ...visibleAdminNav],
-    [visibleManagerNav, visibleAdminNav],
+    () => [...visibleManagerNav, ...visibleAchievementsNav, ...visibleAdminNav],
+    [visibleManagerNav, visibleAchievementsNav, visibleAdminNav],
   );
 
   const handleSignIn = () =>
@@ -131,14 +158,14 @@ export const AppHeader = () => {
   };
 
   useEffect(() => {
-    for (const item of primaryNav) {
+    for (const item of visiblePrimaryNav) {
       router.prefetch(item.href);
     }
 
     for (const item of utilityLinks) {
       router.prefetch(item.href);
     }
-  }, [router, utilityLinks]);
+  }, [router, visiblePrimaryNav, utilityLinks]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 backdrop-blur-xl">
@@ -169,8 +196,8 @@ export const AppHeader = () => {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex">
-            {primaryNav.map((item) => {
+          <nav className="hidden items-center gap-1 xl:flex">
+            {visiblePrimaryNav.map((item) => {
               const active = isActivePath(pathname, item.href);
               return (
                 <Link
@@ -197,7 +224,7 @@ export const AppHeader = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setOpen(true)}
-                className="hidden min-w-[108px] justify-center gap-2 lg:inline-flex"
+                className="hidden min-w-[108px] justify-center gap-2 xl:inline-flex"
               >
                 <Search className="h-4 w-4" />
                 Search
@@ -209,7 +236,7 @@ export const AppHeader = () => {
           {utilityLinks.length > 0 ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:inline-flex">
+                <Button variant="ghost" size="sm" className="hidden xl:inline-flex">
                   <Settings2 className="h-4 w-4" />
                   Guild Tools
                 </Button>
@@ -232,6 +259,27 @@ export const AppHeader = () => {
                       </div>
                       <div className="grid gap-2">
                         {visibleManagerNav.map((item) => (
+                          <SheetClose asChild key={item.href}>
+                            <Link
+                              href={item.href}
+                              className="panel-subtle flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
+                            >
+                              <item.icon className="h-4 w-4 text-primary" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </SheetClose>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {visibleAchievementsNav.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Achievements</Badge>
+                      </div>
+                      <div className="grid gap-2">
+                        {visibleAchievementsNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
                               href={item.href}
@@ -273,7 +321,7 @@ export const AppHeader = () => {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
+              <Button variant="ghost" size="icon" className="xl:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Open navigation</span>
               </Button>
@@ -288,7 +336,7 @@ export const AppHeader = () => {
               </SheetHeader>
               <div className="mt-4 space-y-4">
                 <div className="grid gap-1.5">
-                  {primaryNav.map((item) => {
+                  {visiblePrimaryNav.map((item) => {
                     const active = isActivePath(pathname, item.href);
                     return (
                       <SheetClose asChild key={item.href}>

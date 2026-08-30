@@ -2063,6 +2063,117 @@ registry.registerPath({
   },
 });
 
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+const AchievementTierLevelSchema = z
+  .enum(["copper", "silver", "gold", "thorium", "arcanite"])
+  .openapi({ example: "gold" });
+
+export const CreateAchievementSchema = registry.register(
+  "CreateAchievement",
+  z.object({
+    name: z.string().trim().min(1).max(128).openapi({ example: "MVP of the Week" }),
+    description: z.string().max(512).nullable().optional().openapi({
+      example: "Went above and beyond this week",
+    }),
+    icon: z.string().trim().min(1).max(128).openapi({
+      description: "A real wow.zamimg.com icon-texture name (no extension)",
+      example: "spell_holy_holybolt",
+    }),
+    tier: AchievementTierLevelSchema,
+    scope: z.enum(["season", "all_time"]).openapi({ example: "season" }),
+    seasonId: z.string().uuid().nullable().optional().openapi({
+      description: "Required when scope is 'season'",
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    }),
+  }),
+);
+
+export const CreateAchievementResponseSchema = registry.register(
+  "CreateAchievementResponse",
+  z.object({
+    achievementId: z.string().uuid().openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
+    achievementTierId: z
+      .string()
+      .uuid()
+      .openapi({ example: "c3d4e5f6-a7b8-9012-cdef-123456789012" }),
+  }),
+);
+
+export const GrantCustomAchievementSchema = registry.register(
+  "GrantCustomAchievement",
+  z.object({
+    primaryCharacterId: z.number().int().openapi({ example: 12345 }),
+  }),
+);
+
+export const GrantCustomAchievementResponseSchema = registry.register(
+  "GrantCustomAchievementResponse",
+  z.object({
+    achievementAwardId: z
+      .string()
+      .uuid()
+      .openapi({ example: "d4e5f6a7-b8c9-0123-def0-234567890123" }),
+  }),
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/achievements",
+  operationId: "createAchievement",
+  tags: ["Achievements"],
+  summary: "Create a custom achievement",
+  description:
+    "Defines a custom (manual-grant) achievement with exactly one tier — no rule is attached. Always hidden, regardless of scope/season. Grant it to a family with POST /api/v1/achievements/{id}/grant. Requires achievement:manage.",
+  security: [{ BearerToken: [] }],
+  request: {
+    body: { content: { "application/json": { schema: CreateAchievementSchema } } },
+  },
+  responses: {
+    201: {
+      description: "Achievement created",
+      content: { "application/json": { schema: CreateAchievementResponseSchema } },
+    },
+    400: {
+      description:
+        "Validation error, unknown icon name, or seasonId missing/not found for scope 'season'",
+    },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing achievement:manage scope" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/achievements/{id}/grant",
+  operationId: "grantAchievement",
+  tags: ["Achievements"],
+  summary: "Grant a custom achievement to a family",
+  description:
+    "Grants the achievement's single tier to a family, identified by its primary character ID. Repeatable across families over time — each grant is its own permanent award. Only custom (manual-grant) achievements can be granted this way; rule-based achievements are managed by the evaluation engine. Requires achievement:manage.",
+  security: [{ BearerToken: [] }],
+  request: {
+    params: z.object({
+      id: z.string().uuid().openapi({ example: "b2c3d4e5-f601-7890-abcd-ef1234567890" }),
+    }),
+    body: { content: { "application/json": { schema: GrantCustomAchievementSchema } } },
+  },
+  responses: {
+    201: {
+      description: "Achievement granted",
+      content: { "application/json": { schema: GrantCustomAchievementResponseSchema } },
+    },
+    400: {
+      description:
+        "Invalid achievement ID, validation error, or achievement is not a custom achievement",
+    },
+    401: { description: "Invalid or missing API token" },
+    403: { description: "Missing achievement:manage scope" },
+    404: { description: "Achievement not found" },
+    409: { description: "This family has already been awarded this achievement" },
+  },
+});
+
 // ─── Document builder ─────────────────────────────────────────────────────────
 
 export function buildOpenApiSpec() {

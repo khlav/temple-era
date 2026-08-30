@@ -10,6 +10,8 @@ import { ClassIcon } from "~/components/ui/class-icon";
 import { AttendanceProgressBar } from "~/components/common/attendance-progress-bar";
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
 import { CharacterSelector } from "~/components/characters/character-selector";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 export function PersonalAttendanceSummary({
   currentUserSession,
@@ -269,8 +271,27 @@ export function PersonalAttendanceSummary({
               </span>
             </Link>
             <span className="font-display truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-              — Attendance, Last 6 Lockouts
+              — Weighted Attendance, Last 6 Lockouts
             </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle size={13} className="shrink-0 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="rounded-md bg-secondary text-muted-foreground"
+              >
+                <div>Each week, raiders can earn up to 3pts:</div>
+                <div className="pt-1">
+                  - Naxx, AQ40, BWL : +1
+                  <br />- Molten Core : +0.5
+                </div>
+                <div className="italic">Note: Points are only earned once per zone+week.</div>
+                <div className="mt-1 border-t border-border/60 pt-1">
+                  Last 6 full lockouts · 50%+ = able to SR
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
         ) : undefined,
       )}

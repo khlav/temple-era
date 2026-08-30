@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SCOPE } from "~/lib/scopes";
 
+// route.ts now also calls publishAchievementEvaluate after signup-link matching, which
+// imports ~/env directly. CI's Test step runs with zero env vars set (SKIP_ENV_VALIDATION
+// is only set on the later Build step), so an unmocked ~/env import throws at module-
+// evaluation time. Mocking it follows the same convention already used for ~/server/db
+// below — this file's own contract is the Templar 201 response, not the QStash publish
+// side effect.
+vi.mock("~/server/services/achievement-evaluate-publish", () => ({
+  publishAchievementEvaluate: vi.fn(),
+}));
+
 const mockValidateApiToken = vi.fn();
 vi.mock("~/server/api/v1-auth", () => ({
   validateApiToken: (...args: unknown[]) => mockValidateApiToken(...args),

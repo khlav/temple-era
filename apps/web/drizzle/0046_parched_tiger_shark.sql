@@ -1,0 +1,1 @@
+ALTER TABLE "achievement" ADD COLUMN "goal_description" varchar(512);

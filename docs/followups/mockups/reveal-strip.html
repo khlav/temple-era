@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reveal + strip mockup — multiple unseen awards</title>
+<style>
+  :root {
+    --bg: #14100e; --panel: #1d1815; --panel-edge: #2b241f; --text: #e8ded2; --muted: #9a8c7c;
+    --bronze:#a5673f; --bronze-hi:#c98a58;
+    --silver:#aab4bd; --silver-hi:#dde5ec;
+    --gold:#d9a441;   --gold-hi:#f2cd6e;
+    --plat:#8fa3b8;   --plat-hi:#e5e9f0;
+    --diamond:#b9f2ff; --diamond-hi:#eafcff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* ============ trigger bar ============ */
+  .triggers { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 400;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; background: #000a; backdrop-filter: blur(8px);
+    padding: 10px 14px; border-radius: 999px; border: 1px solid var(--panel-edge); max-width: 92vw; }
+  button { font: inherit; font-size: 12.5px; color: var(--text); background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 999px; padding: 7px 14px; cursor: pointer; transition: border-color .15s; }
+  button:hover { border-color: var(--gold); color: var(--gold-hi); }
+
+  /* ============ stage ============ */
+  #stage { position: fixed; inset: 0; z-index: 200; display: none; }
+  #stage.on { display: flex; align-items: center; justify-content: center; }
+  /* the whole group (hero + strip) is one flex column, centered as a unit — as the strip grows from 0 height
+     to its content height, the group's total height grows and re-centers, which is what visually reads as
+     "the hero shifts up to make room" without any manual transform math on the hero itself */
+  .group { display: flex; flex-direction: column; align-items: center; }
+
+  /* ============ hero ============ */
+  .hero { text-align: center; animation: heroIn .5s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes heroIn { 0% { opacity: 0; transform: scale(.4) translateY(20px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+
+  .coin, .frame { width: 128px; height: 128px; margin: 0 auto 18px; }
+  .coin { border-radius: 50%; padding: 8px; overflow: hidden; position: relative;
+    background: radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--hi) 85%, white) 0%, var(--tier) 42%, color-mix(in srgb, var(--tier) 55%, black) 78%, rgba(0,0,0,.75) 100%);
+    box-shadow: inset 0 -5px 9px rgba(0,0,0,.5), inset 0 3px 4px rgba(255,255,255,.3), 0 8px 22px #000a; }
+  .coin img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.32), inset 0 -8px 14px rgba(0,0,0,.45), inset 0 6px 10px rgba(255,255,255,.16); }
+  .coin::after { content: ""; position: absolute; inset: 12px; border-radius: 50%; pointer-events: none;
+    border: 2.5px solid transparent; border-top-color: rgba(255,255,255,.55); border-right-color: rgba(255,255,255,.14); transform: rotate(-28deg); }
+  .coin.bronze img { filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(.82) contrast(1.05); }
+  .coin.silver img { filter: grayscale(1) brightness(1.15) contrast(1.08); }
+  .coin.gold img   { filter: grayscale(1) sepia(1) saturate(3.4) hue-rotate(-8deg) brightness(1.02) contrast(1.05); }
+
+  .frame { position: relative; border-radius: 5px; overflow: hidden; padding: 8px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,.5), inset 0 3px 4px rgba(255,255,255,.28), 0 8px 22px #000a; }
+  .frame.plat { background: radial-gradient(circle at 30% 25%, var(--hi) 0%, var(--tier) 45%, #4e5d6e 80%, #2b333d 100%); }
+  .frame.diamond { background: conic-gradient(from 40deg, #9fdcf0, #e0c3fc, #7fd6c9, #eafcff, #c3a6ff, #9fdcf0); animation: prismSpin 9s linear infinite; }
+  @keyframes prismSpin { to { filter: hue-rotate(360deg); } }
+  .frame img { width: calc(100% + 6px); height: calc(100% + 6px); margin: -3px; object-fit: cover; z-index: 1; border-radius: 3px;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28), inset 0 -10px 16px rgba(0,0,0,.38), inset 0 8px 12px rgba(255,255,255,.13); }
+  .frame-border { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 5px;
+    border: 8px solid transparent; border-image-slice: 1; }
+  .frame.plat .frame-border { border-image-source: radial-gradient(circle at 30% 25%, var(--hi) 0%, var(--tier) 45%, #4e5d6e 80%, #2b333d 100%); }
+  .frame.diamond .frame-border { border-image-source: conic-gradient(from 40deg, #9fdcf0, #e0c3fc, #7fd6c9, #eafcff, #c3a6ff, #9fdcf0);
+    animation: prismSpin 9s linear infinite; }
+
+  .hero h1 { font-size: clamp(26px, 4vw, 40px); letter-spacing: 2px; text-transform: uppercase; font-weight: 900;
+    font-style: italic; transform: skewX(-6deg); display: inline-block;
+    color: var(--hi); text-shadow: 0 0 18px color-mix(in srgb, var(--tier) 75%, transparent), 0 0 42px color-mix(in srgb, var(--tier) 45%, transparent); }
+  .hero .tier-sub { margin-top: 4px; font-size: 13px; font-weight: 700; letter-spacing: 6px; text-transform: uppercase; color: var(--tier); }
+  .hero p { margin-top: 8px; color: var(--muted); font-size: 14px; }
+  .hero .continue { margin-top: 22px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted);
+    opacity: 0; animation: fadeIn .4s ease 1.3s forwards; }
+  .hero .continue::after { content: " ▸"; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ============ strip ============ */
+  /* grid-template-rows 0fr -> 1fr is what lets this animate to "auto" content height smoothly */
+  .strip { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .55s cubic-bezier(.2,.8,.3,1) .05s; width: min(640px, 90vw); }
+  .strip.open { grid-template-rows: 1fr; }
+  .strip-inner { overflow: hidden; }
+  .strip-panel { margin-top: 28px; background: linear-gradient(180deg, var(--panel) 0%, #171310 100%);
+    border: 1px solid var(--panel-edge); border-radius: 12px; padding: 16px 18px; }
+  .strip-head { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .strip-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .chip { text-align: center; width: 92px; }
+  .chip .coin, .chip .frame { width: 52px; height: 52px; margin: 0 auto 8px; }
+  .chip .coin::after { inset: 5px; border-width: 1.5px; }
+  .chip .frame-border { border-width: 4px; }
+  /* left-to-right settle: each chip starts larger + transparent, shrinks to rest size as it fades in;
+     the label rises in from below a beat after, so the medal always reads before its name does */
+  .chip .medal-wrap { opacity: 0; animation: chipIn .4s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes chipIn { 0% { opacity: 0; transform: scale(1.55); } 100% { opacity: 1; transform: scale(1); } }
+  .chip .label { margin-top: 2px; font-size: 10.5px; color: var(--text); opacity: 0;
+    animation: labelIn .35s ease both; }
+  .chip .label small { display: block; color: var(--muted); font-size: 9px; margin-top: 1px; text-transform: uppercase; letter-spacing: .5px; }
+  @keyframes labelIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+
+  .chip.more { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .chip.more .plus { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--panel-edge); color: var(--muted); font-size: 15px; font-weight: 700; margin-bottom: 8px;
+    opacity: 0; animation: chipIn .4s cubic-bezier(.2,.8,.3,1) both; }
+  .chip.more .label { opacity: 0; animation: labelIn .35s ease both; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div class="group">
+    <div class="hero" id="hero"></div>
+    <div class="strip" id="strip">
+      <div class="strip-inner">
+        <div class="strip-panel">
+          <div class="strip-head">Also earned</div>
+          <div class="strip-row" id="stripRow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="triggers">
+  <button onclick="runScenario(1)">1 unseen award</button>
+  <button onclick="runScenario(3)">3 unseen (hero + 2)</button>
+  <button onclick="runScenario(6)">6 unseen (hero + 5, capped)</button>
+  <button onclick="runScenario(9)">9 unseen (hero + 5 + "+3 more")</button>
+</div>
+
+<script>
+const TIERS = {
+  bronze:   { tier: "#a5673f", hi: "#c98a58", label: "Bronze",   rank: 0 },
+  silver:   { tier: "#aab4bd", hi: "#dde5ec", label: "Silver",   rank: 1 },
+  gold:     { tier: "#d9a441", hi: "#f2cd6e", label: "Gold",     rank: 2 },
+  platinum: { tier: "#8fa3b8", hi: "#e5e9f0", label: "Platinum", rank: 3 },
+  diamond:  { tier: "#b9f2ff", hi: "#eafcff", label: "Diamond",  rank: 4 },
+};
+
+/* sample pool — stands in for a real "unseen trophy_award rows for this account" query.
+   earnedAt is fabricated purely to demonstrate the "most-recently-earned breaks a rarity tie" rule. */
+const POOL = [
+  { tier: "bronze",   name: "Trailblazer",   context: "Cleared every current boss this season.",           art: "https://wow.zamimg.com/images/wow/icons/large/ability_hunter_pathfinding.jpg", earnedAt: "2026-08-20T19:10:00Z" },
+  { tier: "silver",   name: "Shapeshifter",  context: "Raided off-role 3 times this window.",               art: "https://wow.zamimg.com/images/wow/icons/large/ability_druid_catform.jpg",       earnedAt: "2026-08-21T20:02:00Z" },
+  { tier: "gold",     name: "Benchwarmer",   context: "Filled the bench on 8 raid nights this season.",     art: "https://wow.zamimg.com/images/wow/icons/large/ability_warrior_shieldwall.jpg",  earnedAt: "2026-08-22T21:15:00Z" },
+  { tier: "gold",     name: "Iron Resolve",  context: "95% attendance, 10-week streak.",                    art: "https://wow.zamimg.com/images/wow/icons/large/inv_shield_04.jpg",               earnedAt: "2026-08-23T19:40:00Z" },
+  { tier: "platinum", name: "Firstblood",    context: "Present for every first kill this season.",          art: "https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg",                earnedAt: "2026-08-24T22:05:00Z" },
+  { tier: "silver",   name: "Pack Mule",     context: "Carried consumables for the raid 5 times.",          art: "https://wow.zamimg.com/images/wow/icons/large/inv_misc_bag_10_blue.jpg",        earnedAt: "2026-08-24T22:06:00Z" },
+  { tier: "bronze",   name: "Early Bird",    context: "First to sign up for 4 raids this season.",          art: "https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg",      earnedAt: "2026-08-25T19:00:00Z" },
+  { tier: "diamond",  name: "69, Dudes!",    context: "Excellent! 🎸🤘",                                     art: "https://wow.zamimg.com/images/wow/icons/large/inv_misc_head_dragon_black.jpg",  earnedAt: "2026-08-25T23:58:00Z" },
+  { tier: "gold",     name: "Road Warrior",  context: "Attended raids on 3 different realms' invite times.", art: "https://wow.zamimg.com/images/wow/icons/large/ability_hunter_pathfinding.jpg", earnedAt: "2026-08-26T18:30:00Z" },
+];
+
+function medalHTML(tierName, art, size) {
+  const isSquare = tierName === "platinum" || tierName === "diamond";
+  if (isSquare) {
+    return `<div class="frame ${tierName === "platinum" ? "plat" : "diamond"}"><img src="${art}"><span class="frame-border"></span></div>`;
+  }
+  return `<div class="coin ${tierName}"><img src="${art}"></div>`;
+}
+
+const stage = document.getElementById("stage");
+const hero = document.getElementById("hero");
+const strip = document.getElementById("strip");
+const stripRow = document.getElementById("stripRow");
+
+/* rarest first, most-recently-earned breaks ties — same rule as the plan doc */
+function pickHero(awards) {
+  return [...awards].sort((a, b) => {
+    const r = TIERS[b.tier].rank - TIERS[a.tier].rank;
+    if (r !== 0) return r;
+    return new Date(b.earnedAt) - new Date(a.earnedAt);
+  })[0];
+}
+
+function runScenario(count) {
+  const awards = POOL.slice(0, count);
+  const heroAward = pickHero(awards);
+  const rest = awards.filter(a => a !== heroAward);
+
+  const t = TIERS[heroAward.tier];
+  hero.style.setProperty("--tier", t.tier);
+  hero.style.setProperty("--hi", t.hi);
+  hero.innerHTML = `
+    ${medalHTML(heroAward.tier, heroAward.art)}
+    <h1>${heroAward.name}</h1>
+    <div class="tier-sub">${t.label}</div>
+    <p>${heroAward.context}</p>
+    <div class="continue">click or spacebar to continue</div>`;
+
+  strip.classList.remove("open");
+  stripRow.innerHTML = "";
+
+  stage.className = "on";
+  document.addEventListener("click", closeOnce);
+  document.addEventListener("keydown", escOnce);
+
+  if (rest.length === 0) return; // single award: hero only, nothing shifts
+
+  const CAP = 5;
+  const shown = rest.slice(0, CAP);
+  const overflow = rest.length - shown.length;
+
+  shown.forEach((a, i) => {
+    const at = TIERS[a.tier];
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.style.setProperty("--tier", at.tier);
+    chip.style.setProperty("--hi", at.hi);
+    const medalDelay = i * 0.12;
+    const labelDelay = medalDelay + 0.18;
+    chip.innerHTML = `
+      <div class="medal-wrap" style="animation-delay:${medalDelay}s">${medalHTML(a.tier, a.art)}</div>
+      <div class="label" style="animation-delay:${labelDelay}s"><b>${a.name}</b><small>${at.label}</small></div>`;
+    stripRow.appendChild(chip);
+  });
+
+  if (overflow > 0) {
+    const more = document.createElement("div");
+    more.className = "chip more";
+    const delay = shown.length * 0.12;
+    more.innerHTML = `
+      <div class="plus" style="animation-delay:${delay}s">+${overflow}</div>
+      <div class="label" style="animation-delay:${delay + 0.18}s">more</div>`;
+    stripRow.appendChild(more);
+  }
+
+  // strip slides in ~1s after the hero lands, giving the hero a beat to read on its own first
+  setTimeout(() => strip.classList.add("open"), 1000);
+}
+
+function closeStage() {
+  stage.className = "";
+  document.removeEventListener("click", closeOnce);
+  document.removeEventListener("keydown", escOnce);
+}
+function closeOnce(e) { if (!e.target.closest(".triggers")) closeStage(); }
+function escOnce(e) { if (e.key === " " || e.key === "Escape") { e.preventDefault(); closeStage(); } }
+</script>
+</body>
+</html>

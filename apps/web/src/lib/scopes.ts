@@ -19,6 +19,7 @@ export const SCOPE = {
   SOFTRES_ACCESS: "softres:access",
   API_TOKEN_ACCESS: "api-token:access",
   WORLDBUFF_MANAGE: "worldbuff:manage",
+  ACHIEVEMENT_MANAGE: "achievement:manage",
 } as const;
 
 export type Scope = (typeof SCOPE)[keyof typeof SCOPE];
@@ -40,6 +41,7 @@ export const SCOPES = [
   SCOPE.SOFTRES_ACCESS,
   SCOPE.API_TOKEN_ACCESS,
   SCOPE.WORLDBUFF_MANAGE,
+  SCOPE.ACHIEVEMENT_MANAGE,
 ] as const;
 
 // Compile-time guard: adding a scope to SCOPE but forgetting to list it in SCOPES (so it would

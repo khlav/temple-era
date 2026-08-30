@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reveal Overlay mockup — anime cut v2</title>
+<!-- PixiJS on standby: uncomment for real glow/bloom post-processing experiments -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script> -->
+<style>
+  :root {
+    --bg: #14100e;
+    --panel: #1d1815;
+    --panel-edge: #2b241f;
+    --text: #e8ded2;
+    --muted: #9a8c7c;
+    --bronze: #a5673f; --bronze-hi: #c98a58;
+    --silver: #aab4bd; --silver-hi: #dde5ec;
+    --gold: #d9a441;   --gold-hi: #f2cd6e;
+    --plat: #7fd6c9;   --plat-hi: #c4f4ea;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* ============ fake dashboard ============ */
+  .dashboard { padding: 40px; display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); max-width: 1100px; margin: 0 auto; }
+  .dash-card { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px; padding: 18px; min-height: 120px; }
+  .dash-card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 10px; }
+  .skeleton { height: 10px; border-radius: 5px; background: var(--panel-edge); margin-top: 8px; }
+  .skeleton.short { width: 60%; }
+  .dashboard { transition: filter .45s ease; }
+  body.dimmed .dashboard { filter: blur(6px) brightness(0.3) saturate(.6); }
+
+  /* cabinet */
+  .cabinet { position: fixed; top: 18px; right: 22px; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px; padding: 10px 14px; z-index: 50; }
+  .cabinet h4 { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .cabinet .shelf { display: flex; gap: 6px; min-height: 26px; align-items: center; }
+  .cabinet .shelf span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; box-shadow: inset 0 -2px 3px rgba(0,0,0,.5), inset 0 1px 2px rgba(255,255,255,.25); }
+  .fly-home { position: fixed; z-index: 300; pointer-events: none; transition: all .55s cubic-bezier(.5,-0.2,.7,.5); width:52px;height:52px;font-size:26px;display:grid;place-items:center;border-radius:50%; }
+
+  /* triggers */
+  .triggers { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 400; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; background: #000a; backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 999px; border: 1px solid var(--panel-edge); max-width: 92vw; }
+  button { font: inherit; font-size: 12.5px; color: var(--text); background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 999px; padding: 7px 14px; cursor: pointer; transition: border-color .15s; }
+  button:hover { border-color: var(--gold); color: var(--gold-hi); }
+
+  /* ============ stage ============ */
+  #stage { position: fixed; inset: 0; z-index: 200; display: none; place-items: center; overflow: hidden; }
+  #stage.on { display: grid; }
+  .stage-inner { position: relative; text-align: center; z-index: var(--z-medal); transform-origin: 50% 28%; }
+  /* half-second wind-up before any slash/shake/flash lands (gold+): a gentle escalating tremor + a slight grow,
+     building tension. Ends back at rest (translate 0 / rotate 0), matching shakeHard's own 0% state, so the
+     transform handoff is seamless — only the standalone `scale` grow releases as the strike lands, which reads
+     as the coiled-up tension being unleashed rather than a stray glitch. */
+  #stage.windup .stage-inner { animation: windup .5s ease-in-out; }
+  @keyframes windup {
+    0%   { transform: translate(0,0) rotate(0); scale: 1; }
+    20%  { transform: translate(1px,-1px) rotate(-.1deg); scale: 1.015; }
+    40%  { transform: translate(-1.5px,1px) rotate(.12deg); scale: 1.03; }
+    60%  { transform: translate(2px,-1.5px) rotate(-.16deg); scale: 1.045; }
+    80%  { transform: translate(-2.5px,2px) rotate(.2deg); scale: 1.06; }
+    100% { transform: translate(0,0) rotate(0); scale: 1.07; }
+  }
+  #stage.shake-hard .stage-inner { animation: shakeHard .38s ease; }
+  @keyframes shakeHard {
+    0%,100%{transform:translate(0) rotate(0)}
+    15%{transform:translate(9px,-6px) rotate(-.6deg)}
+    35%{transform:translate(-8px,5px) rotate(.5deg)}
+    55%{transform:translate(6px,4px) rotate(-.4deg)}
+    75%{transform:translate(-5px,-4px) rotate(.3deg)}
+  }
+  /* diamond-only: escalating tremor that ramps in step with the slash flurry, cashing out into shakeHard at the supernova hit */
+  #stage.shake-build .stage-inner { animation: shakeBuild var(--build-ms, .6s) ease-in; }
+  @keyframes shakeBuild {
+    0%   { transform: translate(0,0) rotate(0); }
+    15%  { transform: translate(1px,-1px) rotate(-.1deg); }
+    30%  { transform: translate(-2px,1px) rotate(.15deg); }
+    45%  { transform: translate(3px,-2px) rotate(-.25deg); }
+    60%  { transform: translate(-4px,3px) rotate(.35deg); }
+    75%  { transform: translate(6px,-4px) rotate(-.5deg); }
+    90%  { transform: translate(-9px,6px) rotate(.7deg); }
+    100% { transform: translate(11px,-8px) rotate(-.9deg); }
+  }
+  body.dimmed { animation: bgHue 3s ease forwards; }
+  @keyframes bgHue { to { filter: hue-rotate(8deg); } }
+
+  /* --- speed lines: spinning conic rays behind medal --- */
+  .speedlines { position: absolute; left: 50%; top: 50%; width: 160vmax; height: 160vmax; transform: translate(-50%,-50%);
+    opacity: 0;
+    background: repeating-conic-gradient(from 0deg,
+      transparent 0deg 4deg, color-mix(in srgb, var(--tier) 16%, transparent) 4deg 4.6deg,
+      transparent 4.6deg 9deg, rgba(255,255,255,.05) 9deg 9.4deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 22%, black 34%, black 62%, transparent 74%);
+            mask-image: radial-gradient(circle, transparent 22%, black 34%, black 62%, transparent 74%);
+    z-index: var(--z-speedlines); }
+  @keyframes spin { to { rotate: 360deg; } }
+  /* held back until JS flips this on, just after the hero zoom lands — see runCrossing */
+  .speedlines.on { animation: spin 14s linear infinite, speedFade .6s ease-out both; }
+  /* diamond rays cycle hue too, in step with the ring and frame */
+  #stage.diamond-ring .speedlines.on { animation: spin 14s linear infinite, speedFade .6s ease-out both, prismSpin 6s linear infinite; }
+  /* origin point sweeps in from the bottom-left corner and settles centered, instead of just fading in place */
+  @keyframes speedFade { 0% { opacity: 0; translate: -22vw 22vh; } 100% { opacity: 1; translate: 0 0; } }
+
+  /* --- anime slashes: full-screen diagonal cuts --- */
+  .slash { position: fixed; z-index: var(--z-slash); height: 9px; width: 160vmax; left: 50%; top: 50%;
+    transform-origin: center; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, #fff 12%, var(--hi) 45%, var(--tier) 70%, transparent 100%);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--tier) 80%, transparent), 0 0 60px color-mix(in srgb, var(--hi) 40%, transparent);
+    /* soft top/bottom feather so the bar reads as an energy streak, not a hard-edged rectangle */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.5) 22%, #000 50%, rgba(0,0,0,.5) 78%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.5) 22%, #000 50%, rgba(0,0,0,.5) 78%, transparent 100%);
+    animation: slashCut .28s cubic-bezier(.1,.8,.2,1) both; }
+  @keyframes slashCut {
+    /* starts thin and short, thickens as it extends, then keeps swelling slightly through the fade-out */
+    0%   { transform: translate(-50%, -50%) rotate(var(--ang)) scaleX(0) scaleY(.3); opacity: 1; }
+    30%  { transform: translate(-50%, -50%) rotate(var(--ang)) scaleX(.72) scaleY(.68); opacity: 1; }
+    55%  { transform: translate(-50%, -50%) rotate(var(--ang)) scaleX(1) scaleY(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(var(--ang)) scaleX(1) scaleY(1.22); opacity: 0; }
+  }
+  /* impact flash frame */
+  .hitflash { position: fixed; inset: 0; z-index: var(--z-hitflash); background: #fff; pointer-events: none;
+    animation: hitFlash .14s steps(1) both; }
+  @keyframes hitFlash { 0%{opacity:.95} 100%{opacity:0} }
+  /* inverted frame hold */
+  .invert { animation: invertHold .18s steps(1) .12s both; }
+  @keyframes invertHold { 0%{filter: invert(1) hue-rotate(180deg);} 100%{filter:none;} }
+
+  /* diamond-only: supernova finish — brighter/bigger than a normal hitflash, caps the escalating buildup.
+     the full-screen flash stays fixed to the viewport (it's meant to whitewash everything), but the core/ring
+     burst is nested INSIDE .ring (the medal itself) instead of being a one-time viewport-coordinate snapshot —
+     heroZoom starts 260ms after this fires and scales/moves the whole medal via transform; a fixed-position
+     burst would stay anchored to the old spot while the medal zoomed away from it, ending up as a small
+     orphaned circle+ring sitting where the medal used to be. Nesting it means heroZoom carries it along too.
+     Named nova-core/nova-ring/nova-ring2 (NOT core/ring/ring2) deliberately — bare "ring" collides with the
+     outer medal .ring class itself: its own animation/::before/::after rules (one carrying a #stage id, so it
+     wins on specificity) would hijack this nested element instead of playing novaRing on it. */
+  .supernova-flash { position: fixed; inset: 0; z-index: var(--z-novaflash); background: #fff; pointer-events: none;
+    animation: novaFlash .32s steps(1) both; }
+  @keyframes novaFlash { 0%{opacity:1} 55%{opacity:1} 100%{opacity:0} }
+  .supernova-burst { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .supernova-burst .nova-core, .supernova-burst .nova-ring, .supernova-burst .nova-ring2 { position: absolute; left: 50%; top: 50%; border-radius: 50%; }
+  .supernova-burst .nova-core { width: 30px; height: 30px; margin: -15px 0 0 -15px;
+    background: radial-gradient(circle, #fff 0%, var(--hi) 40%, var(--tier) 68%, transparent 78%);
+    animation: novaCore .55s cubic-bezier(.1,.8,.2,1) both; }
+  @keyframes novaCore {
+    0%   { transform: translate(-50%,-50%) scale(0);  opacity: 1; }
+    25%  { transform: translate(-50%,-50%) scale(4);  opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(30); opacity: 0; }
+  }
+  .supernova-burst .nova-ring { width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 6px solid var(--hi);
+    box-shadow: 0 0 50px color-mix(in srgb, var(--hi) 80%, transparent), 0 0 110px color-mix(in srgb, var(--tier) 55%, transparent);
+    animation: novaRing .85s cubic-bezier(.15,.7,.25,1) .04s both; }
+  .supernova-burst .nova-ring2 { width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 3px solid #fff; opacity: .8;
+    animation: novaRing 1.05s cubic-bezier(.15,.7,.25,1) .12s both; }
+  @keyframes novaRing {
+    0%   { transform: translate(-50%,-50%) scale(0);  opacity: 1; border-width: 10px; }
+    100% { transform: translate(-50%,-50%) scale(48); opacity: 0; border-width: .5px; }
+  }
+
+  .beam { position: absolute; left: 50%; top: -20%; width: 340px; height: 80%; transform: translateX(-50%) scaleY(.2);
+    opacity: 0;
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--tier) 30%, transparent) 45%, transparent 100%);
+    clip-path: polygon(38% 0, 62% 0, 100% 100%, 0% 100%); filter: blur(4px);
+    z-index: var(--z-beam); }
+  /* JS-triggered in lockstep with heroZoom ("zoom up WITH spotlight") rather than a fixed CSS delay — gold+'s
+     wind-up pushes heroZoom's timing later, and a fixed delay would fire the beam mid-wind-up instead */
+  .beam.on { animation: beamIn .55s ease both; }
+  @keyframes beamIn { from { opacity: 0; transform: translateX(-50%) scaleY(.2); } to { opacity: 1; transform: translateX(-50%) scaleY(1); } }
+
+  .ring { width: 190px; height: 190px; margin: 0 auto 18px; border-radius: 50%;
+    display: grid; place-items: center; position: relative; z-index: var(--z-medal);
+    /* "both" (not just "backwards") so the final rotate(-4deg) tilt holds once the 1s animation ends, instead of
+       snapping back to transform:none (0deg) the instant it completes — that snap was an unanimated "tick" */
+    animation: descendZoom 1s cubic-bezier(.25,.8,.3,1) both; }
+  /* the springy overshoot bounce is an impact reaction — paired with the shake/flash that start at gold.
+     bronze/silver have neither, so this stays off for them entirely (one smooth fly-in-then-zoom motion).
+     JS-triggered (adds "ring-pop" right when the wind-up ends and the real impact begins) rather than a fixed
+     CSS delay — gold+'s wind-up pushes the actual impact moment later, and a fixed delay would fire the bounce
+     mid-wind-up instead of at the impact, fighting the wind-up's own scale-grow on the parent. */
+  #stage.ring-pop .ring { animation: descendZoom 1s cubic-bezier(.25,.8,.3,1) both, ringPop .35s cubic-bezier(.2,1.8,.4,1) both; }
+  /* medal flies in at an angle, overshoots PAST the camera huge, then whips back to rest in one motion.
+     (previously had an extra 75% stop that undershot to scale .82 before correcting back up to 1 — that
+     second reversal was reading as two more separate "beats" rather than a clean settle; removed.) */
+  @keyframes descendZoom {
+    0%   { opacity: 0; transform: translateY(-52vh) translateX(14vw) rotate(-240deg) scale(.12); }
+    55%  { opacity: 1; transform: translateY(-4vh) rotate(-30deg) scale(2.6); }
+    100% { opacity: 1; transform: translateY(0) rotate(-4deg) scale(1); }
+  }
+  @keyframes ringPop { from { scale: 1; } 50% { scale: 1.18; } to { scale: 1; } }
+  .ring::before, .ring::after { content:""; position:absolute; inset:-4px; border-radius:50%; border:3px solid var(--tier);
+    box-shadow: 0 0 34px color-mix(in srgb, var(--tier) 55%, transparent), inset 0 0 24px color-mix(in srgb, var(--tier) 30%, transparent); }
+  .ring::after { inset:-13px; border-color: color-mix(in srgb, var(--tier) 45%, transparent); border-style: dashed;
+    animation: spin 10s linear infinite reverse; }
+  /* diamond's dashed ring keeps rotating, same as every tier, but also picks up the hue-cycling */
+  #stage.diamond-ring .ring::after { animation: spin 10s linear infinite reverse, prismSpin 6s linear infinite; }
+  /* diamond ring picks up the same hue-cycling as the frame, so the aura reads as one prismatic object with the medal */
+  #stage.diamond-ring .ring::before { animation: prismSpin 6s linear infinite; }
+  /* bronze/silver/gold: real WoW icon, CSS-filtered into the tier metal, inside a layered circular coin — per wow-icon-medals.html */
+  .coin { width: 112px; height: 112px; border-radius: 50%; margin: 0 auto; padding: 7px; overflow: hidden; position: relative;
+    background: radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--hi) 85%, white) 0%, var(--tier) 42%, color-mix(in srgb, var(--tier) 55%, black) 78%, rgba(0,0,0,.75) 100%);
+    box-shadow: inset 0 -5px 9px rgba(0,0,0,.5), inset 0 3px 4px rgba(255,255,255,.3), 0 8px 22px #000a; }
+  .coin img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.32), inset 0 -8px 14px rgba(0,0,0,.45), inset 0 6px 10px rgba(255,255,255,.16); }
+  .coin::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; pointer-events: none;
+    border: 2.5px solid transparent; border-top-color: rgba(255,255,255,.55); border-right-color: rgba(255,255,255,.14); transform: rotate(-28deg); }
+  .coin.bronze img { filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(.82) contrast(1.05); }
+  .coin.silver img { filter: grayscale(1) brightness(1.15) contrast(1.08); }
+  .coin.gold img   { filter: grayscale(1) sepia(1) saturate(3.4) hue-rotate(-8deg) brightness(1.02) contrast(1.05); }
+
+  /* platinum/diamond: full-color icon in a beveled square frame — per wow-icon-medals.html */
+  .frame { width: 118px; height: 118px; margin: 0 auto; position: relative; border-radius: 4px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; padding: 7px;
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,.5), inset 0 3px 4px rgba(255,255,255,.28), 0 8px 22px #000a; }
+  .frame.plat { background: radial-gradient(circle at 30% 25%, var(--hi) 0%, var(--tier) 45%, #4e5d6e 80%, #2b333d 100%); }
+  .frame.diamond { background: conic-gradient(from 40deg, #9fdcf0, #e0c3fc, #7fd6c9, #eafcff, #c3a6ff, #9fdcf0); animation: prismSpin 9s linear infinite; }
+  @keyframes prismSpin { to { filter: hue-rotate(360deg); } }
+  .frame::before { content: ""; position: absolute; inset: 7px;
+    background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.4) 0%, rgba(255,255,255,.15) 55%, rgba(10,14,20,.55) 100%),
+      linear-gradient(180deg, rgba(20,26,34,.85), rgba(28,36,46,.7)); }
+  /* border ring painted on top of the (bled) icon, using the same gradient as the frame's own background,
+     so the bled icon edge can tuck underneath it without visually thinning the ring */
+  .frame-border { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 4px;
+    border: 7px solid transparent; border-image-slice: 1; }
+  .frame.plat .frame-border { border-image-source: radial-gradient(circle at 30% 25%, var(--hi) 0%, var(--tier) 45%, #4e5d6e 80%, #2b333d 100%); }
+  .frame.diamond .frame-border { border-image-source: conic-gradient(from 40deg, #9fdcf0, #e0c3fc, #7fd6c9, #eafcff, #c3a6ff, #9fdcf0);
+    animation: prismSpin 9s linear infinite; }
+  /* bled 3px past its box on every side (pulled back via negative margin to stay centered) so the source
+     icon's own slightly-rounded corners tuck underneath the frame's edge instead of showing as a gap */
+  .frame img { width: calc(100% + 6px); height: calc(100% + 6px); margin: -3px; object-fit: cover; z-index: 1; border-radius: 2px;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28), inset 0 -10px 16px rgba(0,0,0,.38), inset 0 8px 12px rgba(255,255,255,.13); }
+  .frame .glint { position: absolute; inset: 7px; z-index: 2; pointer-events: none; width: calc(100% - 14px); height: calc(100% - 14px); }
+  /* platinum: one-directional sheen pass, once per 3.5s */
+  .frame.plat.fxsweep::after { content: ""; position: absolute; inset: 7px; z-index: 2; pointer-events: none;
+    background: linear-gradient(105deg, transparent 32%, rgba(230,240,255,.42) 50%, transparent 68%) no-repeat;
+    background-size: 260% 100%; background-position: -160% 0;
+    animation: platSweep 3.5s cubic-bezier(.45,0,.55,1) infinite; }
+  @keyframes platSweep { 0% { background-position: -160% 0; } 58% { background-position: 260% 0; } 100% { background-position: 260% 0; } }
+  /* diamond: chromatic random twinkles */
+  .frame.diamond .tw { position: absolute; inset: 7px; z-index: 3; pointer-events: none; overflow: hidden; }
+  .frame.diamond .tw i { position: absolute; font-style: normal; opacity: 0; text-shadow: 0 0 7px currentColor; animation: twinkle 2.6s ease-in-out infinite; }
+  .frame.diamond .tw i:nth-child(1){top:10%;left:16%;color:#ff8ab0;font-size:13px;animation-delay:.2s;}
+  .frame.diamond .tw i:nth-child(2){top:62%;left:10%;color:#7ffdc9;font-size:10px;animation-delay:1.1s;}
+  .frame.diamond .tw i:nth-child(3){top:24%;left:78%;color:#c3a6ff;font-size:15px;animation-delay:1.7s;}
+  .frame.diamond .tw i:nth-child(4){top:70%;left:70%;color:#eafcff;font-size:11px;animation-delay:.6s;}
+  .frame.diamond .tw i:nth-child(5){top:44%;left:46%;color:#ffd166;font-size:9px;animation-delay:2.2s;}
+  .frame.diamond .tw i:nth-child(6){top:82%;left:38%;color:#7fb2ff;font-size:12px;animation-delay:1.4s;}
+  @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
+
+  /* hero zoom after impact — whole composition pushes toward camera, medal dominates frame */
+  @keyframes heroZoom {
+    to { transform: scale(1.55) translateY(3%) rotate(-2deg); }
+  }
+
+  /* title: anime slam treatment — held invisible until JS adds .on, just after the impact flash reads
+     (h1/tier-sub/p all reveal together as one container pop, rather than the sub-text sitting there from t=0) */
+  .title-block { margin-top: 20px; opacity: 0; }
+  .title-block.on { animation: slamIn .26s cubic-bezier(.1,1.5,.3,1) both; }
+  @keyframes slamIn { 0% { opacity: 0; transform: scale(2.6) skewX(-14deg); } 100% { opacity: 1; transform: scale(1) skewX(-6deg); } }
+  .title-block h1 {
+    display: inline-block; font-size: clamp(30px, 5vw, 52px); letter-spacing: 3px; text-transform: uppercase;
+    font-weight: 900; font-style: italic; transform: skewX(-6deg);
+    /* gold default: solid warm metal with a soft bloom — no chromatic split */
+    color: var(--hi);
+    text-shadow:
+      0 0 18px color-mix(in srgb, var(--tier) 75%, transparent),
+      0 0 42px color-mix(in srgb, var(--tier) 45%, transparent),
+      0 2px 2px rgba(0,0,0,.6);
+  }
+  #stage.platinum-ring .title-block h1 {
+    /* platinum keeps the full chromatic-gradient treatment */
+    background: linear-gradient(105deg, var(--hi) 20%, #fff 46%, var(--hi) 62%, var(--tier) 90%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tier) 70%, transparent));
+  }
+  #stage.platinum-ring .title-block h1::before { content: attr(data-text); position: absolute; inset: 0; transform: translate(3px,-2px);
+    color: #cfe3f5; z-index: -1; opacity: .85; }
+  #stage.platinum-ring .title-block h1::after { content: attr(data-text); position: absolute; inset: 0; transform: translate(-3px,2px);
+    color: #5a7ea6; z-index: -2; opacity: .8; }
+  .tier-sub {
+    margin-top: 6px; font-size: clamp(13px, 1.6vw, 18px); font-weight: 700;
+    letter-spacing: 8px; text-transform: uppercase; transform: skewX(-6deg);
+    color: var(--tier); text-shadow: 0 0 12px color-mix(in srgb, var(--tier) 70%, transparent);
+  }
+  /* diamond title: prismatic shimmer sweep — cycling icy-to-violet gradient, distinct from platinum's fixed chromatic split */
+  #stage.diamond-ring .title-block h1 {
+    background: linear-gradient(110deg, #eafcff 15%, #b9f2ff 35%, #e0c3fc 55%, #b9f2ff 75%, #eafcff 95%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 0 16px rgba(185,242,255,.75));
+    animation: shimmerSlide 5s linear infinite;
+  }
+  @keyframes shimmerSlide { to { background-position: -220% 0; } }
+  .title-block p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* .title-block itself carries a persistent skewX(-6deg) after slamIn finishes (see keyframes below) — h1/tier-sub
+     lean into that with their own extra skew, but .continue counter-skews back to upright since the "reveal" tilt
+     is meant to read on the title treatment only, not the whole block. */
+  .continue { margin-top: 26px; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); opacity: 0; transform: skewX(6deg); }
+  /* "both", not just "backwards" — same snap-back bug as the ring: without "forwards" it'd fade in then
+     immediately vanish back to the base opacity:0 the instant the animation finished */
+  .title-block.on .continue { animation: fadeIn .4s ease .5s both; }
+  .continue::after { content: " ▸"; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  /* ============ multi-award strip ============
+     Lives inside .title-block, between the context line and the continue prompt, so it reads as
+     part of the reveal's own copy block rather than a bolted-on section. As it grows from 0 height
+     to its content height, .title-block (and so .stage-inner, inside .group) grows taller and #stage's
+     centered .group re-centers as a whole — which is what reads as "the hero shifts up to make room";
+     JS additionally nudges .group up a bit further via --gshift once the strip is open, on top of that
+     natural recenter. .speedlines stays a direct sibling of .group (not nested inside it) so it keeps
+     covering the full stage regardless of the group's own layout. .strip counter-skews back to upright
+     (same reasoning as .continue) — the tilt reads on the title only, not on the strip beneath it. */
+  /* zoom, not transform:scale — transform (even just scale/translate) creates a new stacking context, which
+     would trap .beam/.ring's z-index comparisons against .speedlines/.slash/the spark canvas (siblings that
+     live outside .group) inside that context instead of the shared flat one they're deliberately interleaved
+     in — slashes and speedlines rendered in front of the medal/frame the one time this was tried with
+     transform. zoom rescales the same way without creating a stacking context, so the interleaving still works. */
+  .group { display: flex; flex-direction: column; align-items: center;
+    --gscale: 1; zoom: var(--gscale);
+    padding-bottom: 0; transition: padding-bottom .55s cubic-bezier(.2,.8,.3,1) .05s; }
+  /* extra nudge upward once the strip opens, layered on top of the natural recenter that its own height
+     growth already causes — bottom padding (not translateY, same stacking-context reason as above) grows
+     .group's box while every child still starts flush at its top, so #stage's centering shifts that top-anchored
+     content up by ~half the added padding without touching transform. */
+  #stage.strip-open .group { padding-bottom: 36px; }
+  @media (max-height: 820px), (max-width: 1440px) { .group { --gscale: 0.85; } }
+  @media (max-height: 680px), (max-width: 1180px) { .group { --gscale: 0.72; } }
+  .strip { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .55s cubic-bezier(.2,.8,.3,1) .05s;
+    width: min(640px, 90vw); margin: 0 auto; transform: skewX(6deg); }
+  .strip.open { grid-template-rows: 1fr; }
+  .strip-inner { overflow: hidden; }
+  .strip-panel { margin-top: 20px; background: linear-gradient(180deg, var(--panel) 0%, #171310 100%);
+    border: 1px solid var(--panel-edge); border-radius: 12px; padding: 16px 18px; }
+  .strip-head { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; text-align: center; }
+  .strip-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .chip { text-align: center; width: 92px; }
+  .chip .coin, .chip .frame { width: 52px; height: 52px; margin: 0 auto 8px; }
+  .chip .coin::after { inset: 5px; border-width: 1.5px; }
+  .chip .frame-border { border-width: 4px; }
+  /* left-to-right settle: each chip starts larger + transparent, shrinks to rest size as it fades in;
+     the label rises in from below a beat later, so the medal always reads before its name does */
+  .chip .medal-wrap { opacity: 0; animation: chipIn .4s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes chipIn { 0% { opacity: 0; transform: scale(1.55); } 100% { opacity: 1; transform: scale(1); } }
+  .chip .label { margin-top: 2px; font-size: 10.5px; color: var(--text); opacity: 0; animation: labelIn .35s ease both; }
+  .chip .label small { display: block; color: var(--muted); font-size: 9px; margin-top: 1px; text-transform: uppercase; letter-spacing: .5px; }
+  @keyframes labelIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .chip.more { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .chip.more .plus { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--panel-edge); color: var(--muted); font-size: 15px; font-weight: 700; margin-bottom: 8px;
+    opacity: 0; animation: chipIn .4s cubic-bezier(.2,.8,.3,1) both; }
+  .chip.more .label { opacity: 0; animation: labelIn .35s ease both; }
+
+  /* platinum/diamond blackout — pushed well back, comfortably behind #stage (z-index:200) and its medal,
+     while staying above the ambient dashboard/cabinet (z-index:50 or unset) so it still covers them */
+  .blackout { position: fixed; inset: 0; background: #000; z-index: 100; pointer-events: none; opacity: 0; }
+  .blackout.on { animation: bo .4s ease both; }
+  @keyframes bo { 0%{opacity:0} 40%{opacity:1} 100%{opacity:1} }
+  .blackout.off { transition: opacity .3s; opacity: 0 !important; }
+
+  /* scroll */
+  .scroll { width: 150px; height: 96px; margin: 0 auto 20px; border-radius: 6px;
+    background: linear-gradient(180deg, #e8d9b8, #cdb98e); color: #4a3720;
+    box-shadow: 0 12px 30px #000c, inset 0 0 0 2px #b49a6a;
+    display: grid; place-items: center; font-size: 40px; position: relative;
+    animation: scrollDrop .7s ease backwards; }
+  @keyframes scrollDrop { from { opacity:0; transform: translateY(-40vh) rotate(8deg);} to { opacity:1; transform:none; } }
+  /* scroll also flies past the camera at an angle before settling */
+  @keyframes descendZoomScroll {
+    0%   { opacity: 0; transform: translateY(-50vh) translateX(-16vw) rotate(16deg) scale(.15); }
+    60%  { opacity: 1; transform: translateY(-2vh) rotate(-5deg) scale(2.1); }
+    80%  { transform: translateY(1vh) scale(.9); }
+    100% { opacity: 1; transform: none; }
+  }
+  .scroll::before { content:""; position:absolute; inset:0; border-radius:6px; background:#5a4626; opacity:.95;
+    animation: crackOpen .5s ease-in var(--crack-at, .8s) forwards; }
+  /* paper shreds when the seal breaks */
+  .shred { position:absolute; inset:-40px; pointer-events:none;
+    background:
+      radial-gradient(3px 5px at 30% 30%, #e8d9b8 50%, transparent 51%),
+      radial-gradient(2px 4px at 62% 24%, #cdb98e 50%, transparent 51%),
+      radial-gradient(3px 4px at 74% 58%, #b49a6a 50%, transparent 51%),
+      radial-gradient(2px 5px at 42% 66%, #f2cd6e 50%, transparent 51%);
+    animation: shredOut .8s ease-out both; }
+  @keyframes shredOut { 0%{opacity:1; transform:scale(.4) rotate(0)} 100%{opacity:0; transform:scale(2.4) rotate(-18deg)} }
+  @keyframes crackOpen { to { opacity:0; clip-path: polygon(0 0, 46% 0, 54% 100%, 0 100%); transform: translateX(-14%) rotate(-6deg); } }
+  .scroll-msg { font-size: 14px; color: var(--text); max-width: 380px; line-height: 1.5; animation: fadeIn .5s ease 1.3s backwards; }
+  .scroll-msg b { color: var(--gold-hi); }
+</style>
+</head>
+<body>
+
+<div class="cabinet">
+  <h4>Trophy Cabinet</h4>
+  <div class="shelf" id="shelf"></div>
+</div>
+
+<div class="dashboard">
+  <div class="dash-card"><h3>Personal attendance</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+  <div class="dash-card"><h3>Next raid</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+  <div class="dash-card"><h3>Loot history</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+  <div class="dash-card"><h3>Signup status</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+  <div class="dash-card"><h3>Recent logs</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+  <div class="dash-card"><h3>SoftRes</h3><div class="skeleton"></div><div class="skeleton short"></div></div>
+</div>
+
+<div id="stage"></div>
+<div class="blackout" id="blackout"></div>
+
+<div class="triggers">
+  <button onclick="runBronze()">Bronze crossing (reveal)</button>
+  <button onclick="runSilver()">Silver crossing (reveal)</button>
+  <button onclick="runGold()">Gold crossing (slashes)</button>
+  <button onclick="runPlatinum()">Platinum (max drama)</button>
+  <button onclick="runDiamond()">Diamond crossing (fireworks)</button>
+  <button onclick="runMultiAward(3)">Multi-award (3)</button>
+  <button onclick="runMultiAward(6)">Multi-award (6, capped)</button>
+  <button onclick="runMultiAward(9)">Multi-award (9, "+more")</button>
+</div>
+
+<script>
+/* surface any runtime error on-screen so silent animation failures are visible */
+window.onerror = function(msg, src, line) {
+  console.error("[app error]", msg, "line", line);
+  return false;
+};
+</script>
+<script>
+const TIERS = {
+  bronze:  { tier:"#a5673f", hi:"#c98a58", label:"Bronze",   rank:0 },
+  silver:  { tier:"#aab4bd", hi:"#dde5ec", label:"Silver",   rank:1 },
+  gold:    { tier:"#d9a441", hi:"#f2cd6e", label:"Gold",     rank:2 },
+  platinum:{ tier:"#8fa3b8", hi:"#e5e9f0", label:"Platinum", rank:3 },
+  diamond: { tier:"#b9f2ff", hi:"#eafcff", label:"Diamond",  rank:4 },
+};
+
+/* ============ LAYER STACK ============
+   Every element that stacks WITHIN one reveal (the ceremony's own composition depth), back to front.
+   This is the single source of truth for it: CSS reads each value via var(--z-<name>) and never hardcodes
+   the number, so there is exactly one place to reorder a layer instead of N scattered z-index declarations
+   that can silently drift out of sync (see the .group zoom-vs-transform note in the CSS below for what
+   happens when a layer's stacking context assumption breaks).
+     1 speedlines  — spinning rays behind everything
+     2 beam        — spotlight cone
+     3 slash       — anime cut streaks (JS-appended)
+     4 spark       — particle-burst canvas (JS-appended)
+     5 medal       — .ring/.stage-inner — the coin/frame itself, title text lives inside this layer too
+    15 hitflash    — full-screen white impact flash (gold/platinum)
+    16 novaflash   — full-screen white nova flash (diamond only, brighter/longer than hitflash)
+   Page-level chrome (cabinet 50, blackout 100, #stage 200, fly-home 300, dev trigger bar 400) sits outside
+   this stack entirely and isn't part of a reveal's own composition — see reveal-overlay-notes.md. */
+const Z = { speedlines: 1, beam: 2, slash: 3, spark: 4, medal: 5, hitflash: 15, novaflash: 16 };
+for (const [name, val] of Object.entries(Z)) document.documentElement.style.setProperty(`--z-${name}`, val);
+
+/* ---- TierMedal: real WoW icon art, per wow-icon-medals.html.
+       bronze/silver/gold = one icon, CSS-filtered into the tier metal, in a circular coin.
+       platinum/diamond = full-color icon in a beveled square frame, with its own sheen/twinkle. ---- */
+let _medalUid = 0;
+/* rounded-rect catch-light glint for square platinum/diamond frames — appended per-instance */
+function addGlint(frameEl) {
+  const uid = "gl" + (++_medalUid);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "glint");
+  svg.setAttribute("viewBox", "0 0 104 104");
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="${uid}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".6"/>
+        <stop offset=".45" stop-color="#ffffff" stop-opacity=".18"/>
+        <stop offset=".7" stop-color="#ffffff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect x="2.5" y="2.5" width="99" height="99" rx="10" fill="none"
+          stroke="url(#${uid})" stroke-width="2.5" stroke-linecap="round"
+          stroke-dasharray="150 400" transform="rotate(-12 52 52)"/>`;
+  frameEl.appendChild(svg);
+}
+
+function medalHTML(tierName, iconUrl) {
+  if (tierName === "platinum" || tierName === "diamond") {
+    const twinkles = tierName === "diamond" ? '<span class="tw"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i></span>' : "";
+    return `<div class="frame ${tierName === "platinum" ? "plat fxsweep" : "diamond"}"><img src="${iconUrl}"><span class="frame-border"></span>${twinkles}</div>`;
+  }
+  return `<div class="coin ${tierName}"><img src="${iconUrl}"></div>`;
+}
+
+const shelf = document.getElementById("shelf");
+
+const stage = document.getElementById("stage");
+const blackoutEl = document.getElementById("blackout");
+
+function addToShelf(tierName, icon) {
+  const t = TIERS[tierName];
+  const s = document.createElement("span");
+  s.textContent = icon;
+  s.style.background = `radial-gradient(circle at 32% 28%, ${t.hi}, ${t.tier})`;
+  s.style.color = "#14100e";
+  shelf.appendChild(s);
+}
+addToShelf("gold", "🛡️"); addToShelf("platinum", "🐉");
+
+/* dismiss plumbing */
+let closer = null;
+const bindContinue = fn => { closer = fn; };
+document.addEventListener("click", e => { if (closer && !e.target.closest(".triggers")) closer(); });
+document.addEventListener("keydown", e => { if (closer && (e.key === " " || e.key === "Escape")) { e.preventDefault(); closer(); } });
+
+function ensureFxLayer() {
+  let fx = document.getElementById("fx-layer");
+  if (!fx) {
+    fx = document.createElement("div");
+    fx.id = "fx-layer";
+    fx.style.cssText = "position:fixed;inset:0;z-index:250;pointer-events:none;width:100vw;height:100vh";
+    document.body.appendChild(fx);
+  }
+  return fx;
+}
+
+function openStage(html, cls = "") {
+  document.body.classList.add("dimmed");
+  if (cls.includes("shake-hard")) document.body.classList.add("invert");
+  stage.className = ""; stage.id = "stage";
+  void stage.offsetWidth;
+  if (cls) stage.classList.add(...cls.split(" "));
+  stage.innerHTML = html;
+  ensureFxLayer();
+  stage.classList.add("on");
+}
+
+function closeStage() {
+  closer = null;
+  stopFireworks();
+  stage.classList.remove("on"); stage.className = ""; stage.id = "stage";
+  document.body.classList.remove("dimmed", "invert");
+}
+
+/* continuous fireworks: random small spark bursts until dismissed */
+let fwTimer = null;
+function startFireworks(tierName) {
+  const t = TIERS[tierName];
+  const colors = [t.hi, t.tier, "#ffffff", "#ffd166", "#ff5d8f"];
+  const diamond = tierName === "diamond";
+  fwTimer = setInterval(() => {
+    fireSparks(15 + Math.random() * 70, 12 + Math.random() * 38, {
+      colors, star: diamond,
+      count: (diamond ? 80 : 50) + Math.round(Math.random() * 50), scalar: 0.9 + Math.random() * 0.7,
+    });
+    // occasional double-pop
+    if (Math.random() < 0.35) {
+      setTimeout(() => fireSparks(20 + Math.random() * 60, 10 + Math.random() * 35, {
+        colors, count: 40, scalar: 0.8,
+      }), 180);
+    }
+  }, tierName === "diamond" ? 430 : 650);
+}
+function stopFireworks() { if (fwTimer) { clearInterval(fwTimer); fwTimer = null; } }
+
+function flyHome(icon, tierName) {
+  const t = TIERS[tierName];
+  const coin = stage.querySelector(".coin, .frame, .scroll");
+  if (!coin) { closeStage(); return; }
+  const c = coin.getBoundingClientRect();
+  const s = shelf.getBoundingClientRect();
+  const f = document.createElement("div");
+  f.className = "fly-home";
+  f.style.cssText += `left:${c.left + c.width/2 - 26}px;top:${c.top}px;
+    background:radial-gradient(circle at 32% 28%, ${t.hi}, ${t.tier});color:#14100e;`;
+  f.textContent = icon;
+  document.body.appendChild(f);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    f.style.left = (s.right - 34) + "px"; f.style.top = s.top + "px";
+    f.style.transform = "scale(.42)"; f.style.opacity = ".55";
+  }));
+  setTimeout(() => { f.remove(); addToShelf(tierName, icon); closeStage(); }, 600);
+}
+
+const SLASH_ANGLES = [-35, -145, -62, 12, -110, -198];
+/* slashes + hitflash fired at stamp time.
+   startIndex lets a caller place a single slash further along the escalation (used by the diamond buildup,
+   which fires one slash at a time rather than a simultaneous burst); withFlash can be turned off so a
+   run of individually-fired slashes doesn't stack a hitflash on every single one. */
+function fireSlashes(count = 2, startIndex = 0, withFlash = true) {
+  // aim point: the medal itself — coin (bronze/silver/gold) or frame (platinum/diamond); falls back to viewport center
+  const coin = stage.querySelector(".coin, .frame");
+  const r = coin ? coin.getBoundingClientRect() : null;
+  const ax = Math.round(r ? r.left + r.width / 2 : innerWidth / 2);
+  const ay = Math.round(r ? r.top + r.height / 2 : innerHeight / 2);
+  // anime beat order: SLASHES cut first, THEN the impact flash pops on their tail
+  for (let n = 0; n < count; n++) {
+    const i = startIndex + n;
+    const s = document.createElement("div");
+    s.className = "slash";
+    s.style.setProperty("--ang", `${SLASH_ANGLES[i % SLASH_ANGLES.length]}deg`);
+    s.style.left = ax + "px";
+    s.style.top = ay + "px";
+    // within one call's own burst (gold/platinum fire 2-3 at once) stagger them slightly for a rapid-hit rhythm;
+    // the diamond buildup spaces its calls itself via setTimeout, so this stays 0 there (n is always 0)
+    s.style.animationDelay = `${Math.min(n, 2) * 65}ms`;
+    // later cuts in a sequence land brighter, thicker, further hue-shifted — the escalation reads per-slash, not just via timing
+    const grow = Math.min(i, 5) / 5;
+    s.style.height = `${3 + grow * 14}px`;
+    s.style.filter = `hue-rotate(${(i * 47) % 360}deg) brightness(${1 + grow * .7})`;
+    stage.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+  // flash lands 140ms later, right as the cuts reach full width
+  if (withFlash) {
+    setTimeout(() => {
+      const fl = document.createElement("div");
+      fl.className = "hitflash";
+      stage.appendChild(fl);
+      setTimeout(() => fl.remove(), 300);
+    }, 140);
+  }
+}
+
+/* diamond-only: bigger finish than a hitflash — full-screen flash + an expanding core/double-ring burst.
+   The flash stays fixed to the viewport (whitewashes everything). The burst is appended INSIDE .ring instead
+   of positioned via a one-time getBoundingClientRect() snapshot — heroZoom fires 260ms later and scales/moves
+   the medal via transform, so a viewport-anchored burst would drift away from the medal as it zooms; nesting
+   it in .ring means it inherits that same transform and stays glued to the medal throughout. */
+function fireSupernova() {
+  const flash = document.createElement("div");
+  flash.className = "supernova-flash";
+  stage.appendChild(flash);
+  setTimeout(() => flash.remove(), 400);
+
+  const ring = stage.querySelector(".ring");
+  if (!ring) return;
+  const burst = document.createElement("div");
+  burst.className = "supernova-burst";
+  burst.innerHTML = `<div class="nova-ring"></div><div class="nova-ring2"></div><div class="nova-core"></div>`;
+  ring.appendChild(burst);
+  setTimeout(() => burst.remove(), 1100);
+}
+
+/* diamond-only: 6 slashes fired one at a time on an accelerating cadence (tension rising toward the finish),
+   an escalating tremor riding alongside, capped by a supernova instead of the other tiers' single hitflash.
+   Buildup duration scales with slash count on purpose — 6 cuts earn more real time on screen than gold's 2. */
+const DIAMOND_SLASH_COUNT = 6;
+const DIAMOND_CADENCE = [0, 130, 240, 335, 415, 485]; // shrinking gaps = accelerating toward the hit
+const DIAMOND_BUILDUP_MS = DIAMOND_CADENCE[DIAMOND_CADENCE.length - 1] + 120; // + a beat for the last cut to read before the flash
+function runDiamondBuildup() {
+  DIAMOND_CADENCE.slice(0, DIAMOND_SLASH_COUNT).forEach((d, i) => setTimeout(() => fireSlashes(1, i, false), d));
+  stage.style.setProperty("--build-ms", `${DIAMOND_BUILDUP_MS}ms`);
+  stage.classList.add("shake-build");
+  setTimeout(() => {
+    stage.classList.remove("shake-build");
+    stage.classList.add("shake-hard");
+    fireSupernova();
+    fireSparks(50, 42, {
+      big: true, star: true, count: 900, scalar: 1.3,
+      colors: [TIERS.diamond.hi, TIERS.diamond.tier, "#ffffff", "#ffd166", "#ff5d8f", "#7aa2ff"],
+    });
+  }, DIAMOND_BUILDUP_MS);
+}
+
+/* ---- Canvas2D spark burst: additive blending, glow points, trails. The premium option. ---- */
+function fireSparks(xPct, yPct, opts = {}) {
+  try {
+    const cv = document.createElement("canvas");
+    const overlayOpen = stage.classList.contains("on");
+    if (overlayOpen) {
+      // behind the medal/title (Z.medal) but above dim + beam — insert right before .group (.stage-inner's
+      // direct-child ancestor since the multi-award strip refactor; insertBefore requires a direct child)
+      cv.style.cssText = `position:absolute;inset:0;z-index:${Z.spark};pointer-events:none`;
+      cv.width = stage.clientWidth; cv.height = stage.clientHeight;
+      stage.insertBefore(cv, stage.querySelector(".group"));
+    } else {
+      // bare FX TEST: no overlay to sit behind, so full-screen fixed
+      cv.style.cssText = "position:fixed;inset:0;z-index:260;pointer-events:none;width:100vw;height:100vh";
+      cv.width = innerWidth; cv.height = innerHeight;
+      document.body.appendChild(cv);
+    }
+    const ctx = cv.getContext("2d");
+    const cx = cv.width * (xPct / 100), cy = cv.height * (yPct / 100);
+    const big = !!opts.big;
+    const colors = opts.colors ?? ["#f2cd6e", "#fff", "#d9a441"];
+
+    // soft-glow sprite: radial gradient white core -> color halo -> transparent
+    function makeSprite(color) {
+      const s = document.createElement("canvas"); s.width = s.height = 32;
+      const g = s.getContext("2d");
+      if (opts.star) {
+        // four-point glint: two elongated rhombi crossed + soft halo
+        const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, "rgba(255,255,255,.95)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grad; g.fillRect(0, 0, 32, 32);
+        g.fillStyle = color;
+        g.beginPath(); g.moveTo(16, 1); g.lineTo(19, 16); g.lineTo(16, 31); g.lineTo(13, 16); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(1, 16); g.lineTo(16, 13); g.lineTo(31, 16); g.lineTo(16, 19); g.closePath(); g.fill();
+        g.fillStyle = "#ffffff"; g.fillRect(15, 15, 2, 2);
+      } else {
+        const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.25, color);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grad; g.fillRect(0, 0, 32, 32);
+      }
+      return s;
+    }
+    const sprites = colors.map(makeSprite);
+
+    const N = opts.count ?? (big ? 480 : 280);
+    const parts = [];
+    for (let i = 0; i < N; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      // fast core + slow halo: strong velocity variance
+      const v = (Math.random() ** 2) * (big ? 18 : 13) + 1.5;
+      parts.push({
+        x: cx, y: cy,
+        vx: Math.cos(ang) * v * (1 + Math.random() * .4),
+        vy: Math.sin(ang) * v * (1 + Math.random() * .4),
+        life: 1,
+        decay: 0.005 + Math.random() * 0.014,         // fade curve variance — slower = longer-lived sparks
+        size: (2 + Math.random() * 5) * (opts.scalar ?? 1) * (big ? 2 : 1.6),
+        sprite: sprites[(Math.random() * sprites.length) | 0],
+        drag: 0.982 + Math.random() * 0.012,          // air resistance slows the halo
+        tw: opts.star ? Math.random() * Math.PI * 2 : null,   // twinkle phase (stars only)
+      });
+    }
+
+    let raf;
+    function frame() {
+      // trail trick for a TRANSPARENT overlay: erase alpha gradually (destination-out),
+      // never paint black — painting black is what dimmed the whole screen
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0,0,0,0.30)";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.globalCompositeOperation = "lighter";   // overlapping particles BLOOM
+
+      let alive = false;
+      for (const p of parts) {
+        if (p.life <= 0) continue;
+        alive = true;
+        p.vx *= p.drag; p.vy *= p.drag;
+        p.vy += 0.12;                              // faint gravity pull
+        p.x += p.vx; p.y += p.vy;
+        p.life -= p.decay;
+        const s = p.size * p.life * (p.tw !== null ? 1 + 0.35 * Math.sin(Date.now() / 90 + p.tw) : 1);
+        if (s < 0.3) { p.life = 0; continue; }
+        ctx.globalAlpha = Math.min(0.85, p.life * 1.2);
+        ctx.drawImage(p.sprite, p.x - s, p.y - s, s * 2, s * 2);
+      }
+      ctx.globalAlpha = 1;
+      if (alive) raf = requestAnimationFrame(frame);
+      else { cv.remove(); cancelAnimationFrame(raf); }
+    }
+    frame();
+    console.log("[fx] sparks fired:", N);
+    return true;
+  } catch (e) { console.error("[fx] sparks error:", e); return false; }
+}
+
+/* per-tier impact ladder: slashes + shake + flash are one bundle that only starts at gold — fireSlashes()
+   brings its own hitflash along with the cuts, so nothing separate is needed for that trio. Bronze/silver never
+   get any of the three; bronze is just the shared fly-in/zoom/spotlight, silver adds a spark burst on top of that.
+   Diamond isn't here — it runs its own longer buildup (see runDiamondBuildup). */
+const IMPACT = {
+  bronze:   { slashes: 0, shakeClass: null,         spark: null },
+  silver:   { slashes: 0, shakeClass: null,         spark: { count: 160, scalar: .85 } },
+  gold:     { slashes: 2, shakeClass: "shake-hard",  spark: { count: 280, scalar: 1 } },
+  platinum: { slashes: 3, shakeClass: "shake-hard",  spark: { big: true } },
+};
+function runImpact(tierName) {
+  const cfg = IMPACT[tierName];
+  const t = TIERS[tierName];
+  if (cfg.slashes > 0) fireSlashes(cfg.slashes);
+  if (cfg.spark) {
+    setTimeout(() => {
+      fireSparks(50, 42, Object.assign({ colors: [t.hi, t.tier, "#ffffff", "#ffd166", "#ffedc2"] }, cfg.spark));
+    }, 240);
+  }
+  if (cfg.shakeClass) stage.classList.add(cfg.shakeClass);
+}
+
+// tiers with a real impact beat (slashes + shake + flash/supernova) — everything else (bronze/silver) skips it
+const IMPACT_TIERS = new Set(["gold", "platinum", "diamond"]);
+const LAND_MS = 1000;
+const WINDUP_MS = 500; // gold/platinum/diamond: half-second shake+grow before the first cut lands
+
+/* ============ CUE SHEET ============
+   The whole beat sequence for one reveal, as a single flat list — like an edit decision list: every cue
+   names WHEN (t, ms from reveal start) and WHAT runs. playCueSheet() always plays cues back in t-order
+   regardless of the order they're pushed here, so this reads top-to-bottom as the actual timeline instead
+   of being reconstructed by chasing setTimeout calls scattered through (and interleaved with) other setup
+   code — which is what let the ringPop/.beam stale-delay bugs and the windup-timing stutter happen in the
+   first place. See docs/followups/mockups/reveal-overlay-notes.md for the rendered per-tier timing table. */
+function buildCueSheet(tierName, opts) {
+  const isImpact = IMPACT_TIERS.has(tierName);
+  const isDiamond = tierName === "diamond";
+
+  // when the impact actually reads — flash or supernova, per tier — everything else times off this
+  const impactMs = isDiamond ? LAND_MS + WINDUP_MS + DIAMOND_BUILDUP_MS
+    : isImpact ? LAND_MS + WINDUP_MS + 140
+    : LAND_MS + 140;
+  // hero zoom: whole composition pushes toward camera right after impact.
+  // diamond waits out its longer buildup + a beat to let the supernova read before the camera punches in.
+  // bronze/silver have no impact beat to wait for, so heroZoom starts BEFORE descendZoom's settle finishes —
+  // its heavy ease-out means the ring is nearly motionless for the last ~150-200ms anyway; overlapping the two
+  // means the zoom-forward picks up right as the zoom-back goes flat, instead of a dead stop then a second start.
+  const heroZoomMs = isDiamond ? impactMs + 260
+    : isImpact ? impactMs + 10
+    : LAND_MS - 150;
+
+  const cues = [];
+
+  // platinum/diamond blackout beat — self-contained here so runMultiAward can fire the full ceremony for any hero tier
+  if (tierName === "platinum" || isDiamond) {
+    cues.push({ t: 0, run: () => {
+      blackoutEl.classList.remove("off"); void blackoutEl.offsetWidth;
+      blackoutEl.classList.add("on");
+    } });
+    cues.push({ t: impactMs + 20,  run: () => blackoutEl.classList.add("off") });
+    cues.push({ t: impactMs + 460, run: () => blackoutEl.classList.remove("on", "off") });
+  }
+  if (isDiamond) {
+    cues.push({ t: impactMs + 700, run: () => startFireworks("diamond") });
+  }
+
+  // medal lands ~1s → wind-up (gold+ only) → slashes/flash/shake per the tier's effect ladder
+  // (diamond runs its own longer escalating buildup + supernova finish instead — see runDiamondBuildup)
+  if (isImpact) {
+    cues.push({ t: LAND_MS, run: () => stage.classList.add("windup") });
+    cues.push({ t: LAND_MS + WINDUP_MS, run: () => {
+      stage.classList.remove("windup");
+      stage.classList.add("ring-pop"); // medal bounce, synced to the real impact instead of a stale fixed delay
+      if (isDiamond) runDiamondBuildup(); else runImpact(tierName);
+    } });
+  } else {
+    cues.push({ t: LAND_MS, run: () => runImpact(tierName) });
+  }
+
+  // text waits until just after the impact reads, instead of slamming in before the hit lands
+  cues.push({ t: impactMs + 150, run: () => {
+    const tb = stage.querySelector(".title-block");
+    if (tb) tb.classList.add("on");
+  } });
+
+  cues.push({ t: heroZoomMs, run: () => {
+    const inner = stage.querySelector(".stage-inner");
+    if (inner) inner.style.animation = "heroZoom .5s cubic-bezier(.2,1.1,.3,1) forwards";
+    const beam = stage.querySelector(".beam");
+    if (beam) beam.classList.add("on");
+  } });
+  // speed lines rotate through right after the hero zoom lands — the final flourish once the shot has settled
+  cues.push({ t: heroZoomMs + 500, run: () => {
+    const sl = stage.querySelector(".speedlines");
+    if (sl) sl.classList.add("on");
+  } });
+  // multi-award hook: the strip (if any) slides in a beat after the hero has fully settled into its zoomed shot
+  if (opts.onSettle) {
+    cues.push({ t: heroZoomMs + 700, run: () => opts.onSettle() });
+  }
+
+  return cues;
+}
+
+// t:0 cues run synchronously (nothing to gain from a 0ms setTimeout); every other cue is scheduled by t,
+// not by push order, so cues can be authored in whatever order reads best above and still play correctly.
+function playCueSheet(cues) {
+  cues.slice().sort((a, b) => a.t - b.t).forEach(c => (c.t === 0 ? c.run() : setTimeout(c.run, c.t)));
+}
+
+function runCrossing(tierName, opts = {}) {
+  const t = TIERS[tierName];
+  stage.style.setProperty("--tier", t.tier); stage.style.setProperty("--hi", t.hi);
+  const clsList = opts.cls || "";
+  openStage(`
+    ${tierName === "bronze" ? "" : '<div class="speedlines"></div>'}
+    <div class="group">
+      <div class="stage-inner">
+        <div class="beam"></div>
+        <div class="ring">${medalHTML(tierName, opts.art)}</div>
+        <div class="title-block">
+          <h1 data-text="${opts.name}">${opts.name}</h1>
+          <div class="tier-sub">${opts.tier}</div>
+          <p>${opts.context}</p>
+          <div class="strip" id="strip"><div class="strip-inner"><div class="strip-panel">
+            <div class="strip-head">Also earned</div>
+            <div class="strip-row" id="stripRow"></div>
+          </div></div></div>
+          <div class="continue">click or spacebar to continue</div>
+        </div>
+      </div>
+    </div>`, clsList);
+  const frameEl = stage.querySelector(".frame");
+  if (frameEl) addGlint(frameEl);
+
+  playCueSheet(buildCueSheet(tierName, opts));
+  bindContinue(() => flyHome(opts.icon, tierName));
+}
+
+/* rarest first, most-recently-earned breaks ties — same rule as season-2-achievements-plan.md Phase 4 */
+function pickHero(awards) {
+  return [...awards].sort((a, b) => {
+    const r = TIERS[b.tier].rank - TIERS[a.tier].rank;
+    if (r !== 0) return r;
+    return new Date(b.earnedAt) - new Date(a.earnedAt);
+  })[0];
+}
+
+/* populates and opens the strip — called via runCrossing's onSettle hook once the hero has fully landed */
+function showStrip(items, overflow) {
+  const row = stage.querySelector("#stripRow");
+  const strip = stage.querySelector("#strip");
+  if (!row || !strip) return;
+  items.forEach((a, i) => {
+    const at = TIERS[a.tier];
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.style.setProperty("--tier", at.tier);
+    chip.style.setProperty("--hi", at.hi);
+    const medalDelay = i * 0.12, labelDelay = medalDelay + 0.18;
+    chip.innerHTML = `
+      <div class="medal-wrap" style="animation-delay:${medalDelay}s">${medalHTML(a.tier, a.art)}</div>
+      <div class="label" style="animation-delay:${labelDelay}s"><b>${a.name}</b><small>${at.label}</small></div>`;
+    row.appendChild(chip);
+  });
+  if (overflow > 0) {
+    const delay = items.length * 0.12;
+    const more = document.createElement("div");
+    more.className = "chip more";
+    more.innerHTML = `
+      <div class="plus" style="animation-delay:${delay}s">+${overflow}</div>
+      <div class="label" style="animation-delay:${delay + 0.18}s">more</div>`;
+    row.appendChild(more);
+  }
+  strip.classList.add("open");
+  stage.classList.add("strip-open");
+}
+
+/* sample pool — stands in for a real "unseen trophy_award rows for this account" query */
+const POOL = [
+  { tier:"bronze",   name:"Trailblazer",  icon:"🧭",  art:"https://wow.zamimg.com/images/wow/icons/large/ability_hunter_pathfinding.jpg", context:"Cleared every current boss this season.",         earnedAt:"2026-08-20T19:10:00Z" },
+  { tier:"silver",   name:"Shapeshifter", icon:"🎭",  art:"https://wow.zamimg.com/images/wow/icons/large/ability_druid_catform.jpg",       context:"Raided off-role 3 times this window.",             earnedAt:"2026-08-21T20:02:00Z" },
+  { tier:"gold",     name:"Benchwarmer",  icon:"🛋️", art:"https://wow.zamimg.com/images/wow/icons/large/ability_warrior_shieldwall.jpg",  context:"Filled the bench on 8 raid nights this season.",   earnedAt:"2026-08-22T21:15:00Z" },
+  { tier:"gold",     name:"Iron Resolve", icon:"🛡️", art:"https://wow.zamimg.com/images/wow/icons/large/inv_shield_04.jpg",               context:"95% attendance, 10-week streak.",                  earnedAt:"2026-08-23T19:40:00Z" },
+  { tier:"platinum", name:"Firstblood",   icon:"🐉",  art:"https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg",                context:"Present for every first kill this season.",        earnedAt:"2026-08-24T22:05:00Z" },
+  { tier:"silver",   name:"Pack Mule",    icon:"🎒",  art:"https://wow.zamimg.com/images/wow/icons/large/inv_misc_bag_10_blue.jpg",        context:"Carried consumables for the raid 5 times.",        earnedAt:"2026-08-24T22:06:00Z" },
+  { tier:"bronze",   name:"Early Bird",   icon:"⏰",  art:"https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg",      context:"First to sign up for 4 raids this season.",        earnedAt:"2026-08-25T19:00:00Z" },
+  { tier:"diamond",  name:"69, Dudes!",   icon:"💎",  art:"https://wow.zamimg.com/images/wow/icons/large/inv_misc_head_dragon_black.jpg",  context:"Excellent! 🎸🤘",                                   earnedAt:"2026-08-25T23:58:00Z" },
+  { tier:"gold",     name:"Road Warrior", icon:"🏍️", art:"https://wow.zamimg.com/images/wow/icons/large/ability_hunter_pathfinding.jpg",  context:"Attended raids across 3 different invite times.",  earnedAt:"2026-08-26T18:30:00Z" },
+];
+
+/* full ceremony for the rarest+most-recent award, then (if there's more than one) the strip slides in below
+   it via runCrossing's onSettle hook. Dismiss flies the hero to the shelf as usual AND sweeps every strip
+   award into the shelf too, so a multi-award sitting doesn't leave anything behind. */
+function runMultiAward(count) {
+  const awards = POOL.slice(0, count);
+  const hero = pickHero(awards);
+  const rest = awards.filter(a => a !== hero);
+  const shown = rest.slice(0, 5);
+  const overflow = rest.length - shown.length;
+
+  runCrossing(hero.tier, {
+    cls: hero.tier === "platinum" ? "platinum-ring" : hero.tier === "diamond" ? "diamond-ring" : "",
+    icon: hero.icon, art: hero.art, name: hero.name, tier: TIERS[hero.tier].label, context: hero.context,
+    onSettle: rest.length ? () => showStrip(shown, overflow) : undefined,
+  });
+
+  bindContinue(() => {
+    rest.forEach(a => addToShelf(a.tier, a.icon));
+    flyHome(hero.icon, hero.tier);
+  });
+}
+
+function runBronze() {
+  runCrossing("bronze", {
+    icon: "🧭", art: "https://wow.zamimg.com/images/wow/icons/large/ability_hunter_pathfinding.jpg",
+    name: "Trailblazer", tier: "Bronze",
+    context: "Cleared every current boss this season.",
+  });
+}
+
+function runSilver() {
+  runCrossing("silver", {
+    icon: "🎭", art: "https://wow.zamimg.com/images/wow/icons/large/ability_druid_catform.jpg",
+    name: "Shapeshifter", tier: "Silver",
+    context: "Raided off-role 3 times this window.",
+  });
+}
+
+function runGold() {
+  runCrossing("gold", {
+    icon: "🛋️", art: "https://wow.zamimg.com/images/wow/icons/large/ability_warrior_shieldwall.jpg",
+    name: "Benchwarmer", tier: "Gold",
+    context: "Filled the bench on 8 raid nights this season.",
+  });
+}
+
+function runPlatinum() {
+  runCrossing("platinum", {
+    cls: "platinum-ring",
+    icon: "🐉", art: "https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg",
+    name: "Firstblood", tier: "Platinum",
+    context: "Present for every first kill this season.",
+  });
+}
+
+/* diamond tier crossing — same reveal as any other award; fireworks are a property of the TIER, not of how it was awarded */
+function runDiamond() {
+  runCrossing("diamond", {
+    cls: "diamond-ring",
+    icon: "💎", art: "https://wow.zamimg.com/images/wow/icons/large/inv_misc_head_dragon_black.jpg",
+    name: "69, Dudes!", tier: TIERS.diamond.label,
+    context: "Excellent! 🎸🤘",
+  });
+}
+</script>
+</body>
+</html>

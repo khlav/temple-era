@@ -177,9 +177,31 @@ function compareFamilyScores(
 
 type DbClient = Pick<typeof database, "select">;
 
+export type CharacterRosterEntry = CharacterMatch;
+
+/** The roster shape `matchSignupsToCharacters` needs — extracted so a caller running the
+ *  matcher many times in a loop (achievement-rules.ts's per-snapshot-row batch) can fetch this
+ *  once and pass it in via `preloadedCharacters`, instead of every call re-querying the entire
+ *  non-ignored roster from scratch. */
+export async function fetchCharacterRosterForMatching(
+  db: DbClient,
+): Promise<CharacterRosterEntry[]> {
+  return db
+    .select({
+      characterId: characters.characterId,
+      name: characters.name,
+      server: characters.server,
+      class: characters.class,
+      primaryCharacterId: characters.primaryCharacterId,
+    })
+    .from(characters)
+    .where(eq(characters.isIgnored, false));
+}
+
 export async function matchSignupsToCharacters(
   db: DbClient,
   signups: SignupInput[],
+  preloadedCharacters?: CharacterRosterEntry[],
 ): Promise<SignupMatchResult[]> {
   const signupsWithResolved = signups.map((signup) => {
     const cleanedSpecName = signup.specName?.replace(/[0-9]/g, "") ?? "";
@@ -192,16 +214,7 @@ export async function matchSignupsToCharacters(
     };
   });
 
-  const allCharacters = await db
-    .select({
-      characterId: characters.characterId,
-      name: characters.name,
-      server: characters.server,
-      class: characters.class,
-      primaryCharacterId: characters.primaryCharacterId,
-    })
-    .from(characters)
-    .where(eq(characters.isIgnored, false));
+  const allCharacters = preloadedCharacters ?? (await fetchCharacterRosterForMatching(db));
 
   const allCharactersById = new Map(allCharacters.map((c) => [c.characterId, c]));
   const familyMap = new Map<number, CharacterMatch[]>();

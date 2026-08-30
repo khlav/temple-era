@@ -10,26 +10,36 @@ import { Skeleton } from "~/components/ui/skeleton";
 import React from "react";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { Separator } from "~/components/ui/separator";
+import { cn } from "~/lib/utils";
 
-export function PrimaryCharacterRaidsTableRowSkeleton({ rows = 10 }: { rows?: number }) {
+// Div-grid rows, not <tr>/<td> — PrimaryCharacterRaidsTable renders its rows as a plain div grid
+// (not a <table>), so a table-primitive skeleton here would put <tr> under a <div> and trigger a
+// hydration error. `gridColsClassName` mirrors that table's own GRID_COLS constant so the
+// skeleton's columns line up with the real rows.
+export function PrimaryCharacterRaidsRowSkeleton({
+  rows = 6,
+  gridColsClassName,
+}: {
+  rows?: number;
+  gridColsClassName: string;
+}) {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <TableRow key={rowIndex}>
-          {Array.from({ length: 4 }).map((_, cellIndex) => {
-            // Create a deterministic pseudo-random value
-            const seed = rowIndex * 3 + cellIndex; // Unique seed per cell
-            const pseudoRandomWidth = 40 + ((seed * 45) % 31); // Generates widths between 40% and 80%
-            return (
-              <TableCell key={cellIndex}>
-                <Skeleton className="my-1 h-4 px-2" style={{ width: `${pseudoRandomWidth}%` }} />
-              </TableCell>
-            );
-          })}
-          <TableCell key={rowIndex * 100} className="text-center">
-            <Skeleton className="m-auto h-6 w-6" />
-          </TableCell>
-        </TableRow>
+        <div
+          key={rowIndex}
+          className={cn(
+            "grid items-center gap-3 border-b border-border/45 px-4 py-2.5",
+            gridColsClassName,
+          )}
+        >
+          <div className="space-y-1.5">
+            <Skeleton className="h-4" style={{ width: `${40 + ((rowIndex * 45) % 31)}%` }} />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <Skeleton className="ml-auto h-4 w-10" />
+          <Skeleton className="m-auto h-4 w-4 rounded-full" />
+        </div>
       ))}
     </>
   );

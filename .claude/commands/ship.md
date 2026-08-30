@@ -79,7 +79,10 @@ Note: `pnpm build` does not run migrations — those live in `pnpm db:deploy`, w
 
 Read `.github/pull_request_template.md` for the expected structure.
 
-**Title**: Concise and user-friendly — not a raw commit message.
+**Title**: Concise and user-friendly — not a raw commit message. Name the concrete
+change and its surface (e.g. `signups: fix class/spec mapping for hybrid specs`),
+never a vague label like "cleanup" or "consistency pass" — see the root `AGENTS.md`
+PR titles rule.
 
 **Description**: Follow PR description guidelines from `AGENTS.md`:
 
@@ -93,8 +96,9 @@ Read `.github/pull_request_template.md` for the expected structure.
 `{ticket-id}` slot) closes automatically on merge — no action needed. If
 `$ARGUMENTS` or the conversation makes clear this PR *also* resolves a
 different ticket (e.g. "this also closes TEMPLE-9"), add a `Closes TEMPLE-9`
-line to the PR body for each one. See the root `AGENTS.md` Git conventions
-section for the full convention.
+line to the PR body for each one — **one ticket per line, never comma-joined**
+(`Closes TEMPLE-9, TEMPLE-10` closes only the first). See the root `AGENTS.md`
+Git conventions section for the full convention.
 
 **User-facing label logic**:
 

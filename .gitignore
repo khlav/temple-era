@@ -28,5 +28,12 @@ node-compile-cache/
 .pnpm-vs/
 .scratch/
 
+# ideation skill working directory — planning/process artifacts (contracts, specs,
+# context maps), not shipped content
+docs/ideation/
+
+# kept local-only by choice, not published to the shared repo
+docs/followups/pr-review-quality-log.md
+
 # OS
 .DS_Store

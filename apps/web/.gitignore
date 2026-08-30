@@ -62,7 +62,9 @@ bfg-replacements.txt
 
 # claude/llm local settings and testing
 .claude/settings*
-/scripts/*.ts
+# Scratch/throwaway scripts only (underscore-prefixed convention, e.g. scripts/_check.ts)
+# — a real, named script (backfill-*.ts, bootstrap-*.ts, etc.) should be committed.
+/scripts/_*.ts
 .worktrees/
 .env*
 

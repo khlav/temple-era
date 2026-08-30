@@ -23,6 +23,15 @@ read both.
 contracts belong in this file. App-specific changes belong in the app's own
 `AGENTS.md`.
 
+## Scope discipline
+
+- Implement exactly what was asked. Don't add labels, headers, extra UI chrome, or
+  side cleanups that weren't requested — propose them instead and let the user decide.
+- If an approach depends on a capability you haven't confirmed (an undocumented API, a
+  bot reading data it may not have access to), verify the capability first — cite the
+  actual doc, log output, or code that shows it's real — before writing code against it.
+  Guessing at an unverified pattern has cost a full feature branch before.
+
 ## What this repo is
 
 A pnpm + Turborepo workspace holding two previously separate applications, both histories preserved:
@@ -161,6 +170,17 @@ Single versions, pinned at root. Do not re-declare these in an app manifest.
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
+### Windows and worktrees
+
+- **MAX_PATH** can break `pnpm install`/build in a fresh worktree on Windows — pnpm's
+  virtual store nests deeply. If install or build fails on path-length errors, relocate
+  the pnpm virtual store (or move the worktree closer to a drive root) rather than
+  fighting individual failures.
+- A new worktree has **no `node_modules`** — run `pnpm install` before any build or
+  before the pre-push hook runs.
+- Verify a branch's ticket ID against Plane **before** branching — an ID typo forces the
+  PR to be closed and reopened under a new number once the mismatch is caught.
+
 ## Secrets — Doppler is the source of truth
 
 **Both apps get their secrets from Doppler.** There is no root `.env`, and
@@ -288,6 +308,9 @@ what the receiving end implements, documented here so it stays discoverable:
   `Closes TEMPLE-N` (or `Fixes`/`Resolves`, any tense) in the PR body for each
   one. `/ship` (`.claude/commands/ship.md`) does this automatically when it
   can infer that a PR resolves a ticket beyond its own branch's.
+  **One `Closes TEMPLE-N` per ticket, each on its own line — never comma-joined**
+  (`Closes TEMPLE-1, TEMPLE-2`). A comma-joined list has silently closed only the
+  first ticket and left the rest open on a real PR.
 
 #### Auto-advancing Plane tickets to In Progress on PR open
 
@@ -321,6 +344,12 @@ Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`
 | `apps/bot/**` only | prefix with `bot/` | `fix(bot/handler): resolve thread parsing` |
 | `packages/**` | package name | `feat(contracts): add proxy request schema` |
 | Both, or root config | `repo` | `chore(repo): bump turbo` |
+
+### PR titles
+
+Name the concrete change and its surface, e.g. `signups: fix class/spec mapping for
+hybrid specs`. Never use a vague label like "cleanup" or "consistency pass" — a title
+that doesn't say what changed forces the user to write it themselves.
 
 ### Shipping
 
@@ -359,6 +388,5 @@ so review comments on either are noise.
 
 - `docs/monorepo-migration-plan.md` — the migration this repo is the product of. Phases 3–7 are still open; the risk register (**R1**–**R10**) explains why several things here look the way they do.
 - `docs/followups/legacy-access-booleans-cleanup.md` — what still has to happen before `isRaidManager` can leave the `/api/discord/check-permissions` response
-- `docs/followups/pr-review-quality-log.md` — running record of what Greptile and Archon have actually gotten right or wrong across real PRs; check before taking a `/fix-pr` finding on faith
 - `apps/web/AGENTS.md` — web architecture, tRPC/Drizzle patterns, API surface, database schema
 - `apps/bot/AGENTS.md` — bot handlers, Discord.js patterns, gateway behaviour

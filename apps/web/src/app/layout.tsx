@@ -17,6 +17,7 @@ import { GlobalQuickLauncher } from "~/components/ui/global-quick-launcher";
 import { GlobalQuickLauncherProvider } from "~/contexts/global-quick-launcher-context";
 import { siteConfig } from "~/lib/site-metadata";
 import { AgentationToolbar } from "~/components/dev/agentation-toolbar";
+import { RevealFab } from "~/components/achievements/reveal-fab";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -60,7 +61,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       className={`${GeistSans.className} ${displayFont.variable} dark`}
       suppressHydrationWarning={true}
     >
-      <body className="min-h-svh bg-background text-foreground antialiased">
+      <body
+        className="min-h-svh bg-background text-foreground antialiased"
+        suppressHydrationWarning
+      >
         <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
           <TRPCReactProvider>
             <SessionProvider basePath="/login">
@@ -85,6 +89,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                         </div>
                         <Toaster duration={5000} />
                         <GlobalQuickLauncher />
+                        <RevealFab />
                         {process.env.NODE_ENV === "development" && <AgentationToolbar />}
                       </div>
                     </GlobalQuickLauncherProvider>
