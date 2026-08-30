@@ -25,6 +25,7 @@
 // nothing to demote — it gets the Thorium/Gold tiers inserted directly instead.
 
 import { eq, and, inArray } from "drizzle-orm";
+import { pathToFileURL } from "node:url";
 import { db } from "~/server/db";
 import {
   achievements,
@@ -376,7 +377,11 @@ export async function evaluateRecipeSetThresholdAwards(): Promise<number> {
 
 // Only auto-run when this file is the actual entrypoint (tsx invoking it directly) — not when
 // bootstrap-achievements.ts imports convertOrCreateTradeskillAchievements/evaluateRecipeSetThresholdAwards.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not a manual `file://${...}` template: process.argv[1] is a plain OS path
+// (backslashes on Windows), while import.meta.url is always a properly-encoded file:// URL
+// (forward slashes, three after the scheme) — the naive template never matched on Windows,
+// so this guard was silently false there and the script exited immediately doing nothing.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   convertOrCreateTradeskillAchievements()
     .then(() => evaluateRecipeSetThresholdAwards())
     .then(() => process.exit(0))
