@@ -10,6 +10,7 @@ import { recipes, characterRecipeMap, primaryRaidAttendanceL6LockoutWk } from "~
 import { characters } from "~/server/db/models/raid-schema";
 import { and, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { evaluateRecipeAchievementsForFamily } from "~/server/services/achievement-rules";
 import type {
   Recipe,
   NewRecipe,
@@ -255,6 +256,14 @@ export const recipe = createTRPCRouter({
           updatedById: session.user.id,
         })
         .returning();
+
+      // Recipe-shaped tier awards stay current automatically — synchronous since recipe edits
+      // are low-volume, single-character, admin-only actions (unlike raid-log ingestion, which
+      // is why that trigger is async via QStash). removeRecipeFromCharacter deliberately does NOT
+      // get this call: the award engine only ever inserts, never revokes, so a recipe removal can
+      // never newly cross a threshold.
+      const familyPrimaryId = characterExists.primaryCharacterId ?? characterExists.characterId;
+      await evaluateRecipeAchievementsForFamily(ctx.db, familyPrimaryId, new Date());
 
       return {
         success: true,

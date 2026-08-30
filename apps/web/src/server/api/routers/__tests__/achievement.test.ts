@@ -20,21 +20,21 @@ vi.mock("~/server/auth", () => ({ auth: vi.fn() }));
 vi.mock("~/server/services/achievement-service", () => ({
   createAchievement: vi.fn(),
   grantAchievement: vi.fn(),
+  revokeAward: vi.fn(),
   markAchievementAwardsSeen: vi.fn(),
   resolveSessionPrimaryCharacterId: vi.fn(),
   listAchievements: vi.fn(),
   listAwardsForFamily: vi.fn(),
-  createSeason: vi.fn(),
   listSeasons: vi.fn(),
 }));
 
 // achievement-queries.ts is NOT mocked — its db-injected functions (getUnseenAwards,
 // getDisplayCatalog, getAwardById) run for real against a fake db passed via callerWithDb below,
-// per the spec's own Pattern to follow (achievement-rules.ts's DI convention). Only the rule-tier
-// lookups it composes (achievement-rules.ts) are mocked, so these tests exercise achievement-
-// queries' own hidden-exclusion/ordering logic without needing a full rule-engine fixture.
+// per the spec's own Pattern to follow (achievement-rules.ts's DI convention). getDisplayCatalog
+// no longer calls into achievement-rules.ts at all (it derives highest-tier-per-achievement
+// itself, now that it also needs each award's id) — getNextTierProgress stays mocked here only
+// because a couple of assertions below confirm it's still never called from the display path.
 vi.mock("~/server/services/achievement-rules", () => ({
-  getHighestTierPerAchievement: vi.fn(),
   getNextTierProgress: vi.fn(),
 }));
 
@@ -70,14 +70,11 @@ import { createCaller } from "~/server/api/root";
 import {
   createAchievement as mockCreateAchievement,
   grantAchievement as mockGrantAchievement,
+  revokeAward as mockRevokeAward,
   markAchievementAwardsSeen as mockMarkAchievementAwardsSeen,
   resolveSessionPrimaryCharacterId as mockResolveSessionPrimaryCharacterId,
-  createSeason as mockCreateSeason,
 } from "~/server/services/achievement-service";
-import {
-  getHighestTierPerAchievement as mockGetHighestTierPerAchievement,
-  getNextTierProgress as mockGetNextTierProgress,
-} from "~/server/services/achievement-rules";
+import { getNextTierProgress as mockGetNextTierProgress } from "~/server/services/achievement-rules";
 
 const TIER_ID_1 = "00000000-0000-4000-8000-000000000001";
 const AWARD_ID_1 = "00000000-0000-4000-8000-0000000000a1";
@@ -123,9 +120,8 @@ describe("achievement router: manual-grant scope gating", () => {
       caller.achievement.createAchievement({
         name: "Test",
         icon: "trophy",
-        tier: "bronze",
+        tier: "copper",
         scope: "all_time",
-        hidden: false,
       }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" } satisfies Partial<TRPCError>);
     expect(mockCreateAchievement).not.toHaveBeenCalled();
@@ -148,9 +144,8 @@ describe("achievement router: manual-grant scope gating", () => {
     const result = await caller.achievement.createAchievement({
       name: "Test",
       icon: "trophy",
-      tier: "bronze",
+      tier: "copper",
       scope: "all_time",
-      hidden: false,
     });
     expect(result).toEqual({ achievementId: "ach-1", achievementTierId: "tier-1" });
     expect(mockCreateAchievement).toHaveBeenCalledWith(
@@ -178,34 +173,167 @@ describe("achievement router: manual-grant scope gating", () => {
     expect(mockGrantAchievement).toHaveBeenCalledTimes(2);
   });
 
-  it("manual-grant: createSeason rejects a session without achievement:manage", async () => {
+  it("manual-grant: revokeAward rejects a session without achievement:manage", async () => {
     const caller = callerWithScopes([]);
     await expect(
-      caller.achievement.createSeason({ name: "Season 2", startDate: new Date() }),
+      caller.achievement.revokeAward({ achievementAwardId: AWARD_ID_1 }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    expect(mockCreateSeason).not.toHaveBeenCalled();
+    expect(mockRevokeAward).not.toHaveBeenCalled();
   });
 
-  it("manual-grant: createSeason succeeds for a session with achievement:manage", async () => {
-    vi.mocked(mockCreateSeason).mockResolvedValue({
-      id: "season-1",
-      name: "Season 2",
-      startDate: new Date("2026-09-01"),
-      endDate: null,
-      createdById: "user-1",
-      createdAt: new Date(),
-      updatedAt: null,
-    });
+  it("manual-grant: revokeAward succeeds for a session with achievement:manage", async () => {
+    vi.mocked(mockRevokeAward).mockResolvedValue({ revokedAwardIds: [AWARD_ID_1] });
     const caller = callerWithScopes([SCOPE.ACHIEVEMENT_MANAGE]);
-    const result = await caller.achievement.createSeason({
-      name: "Season 2",
-      startDate: new Date("2026-09-01"),
+
+    const result = await caller.achievement.revokeAward({ achievementAwardId: AWARD_ID_1 });
+
+    expect(result).toEqual({ revokedAwardIds: [AWARD_ID_1] });
+    expect(mockRevokeAward).toHaveBeenCalledWith(AWARD_ID_1);
+  });
+});
+
+describe("achievement router: getAdminCatalog", () => {
+  it("rejects a session without achievement:manage", async () => {
+    const caller = callerWithScopes([]);
+    await expect(caller.achievement.getAdminCatalog()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
     });
-    expect(result.id).toBe("season-1");
-    expect(mockCreateSeason).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Season 2" }),
-      "user-1",
+  });
+
+  it("shapes one achievement's tiers and holders from the nested query result", async () => {
+    const fakeDb = {
+      query: {
+        achievements: {
+          findMany: vi.fn().mockResolvedValueOnce([
+            {
+              id: "ach-1",
+              name: "Steadfast",
+              description: "Attended{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+              icon: "inv_shield_26",
+              scope: "season",
+              season: { name: "Season 2" },
+              hidden: false,
+              ruleShape: "consistency_match",
+              tiers: [
+                {
+                  id: "tier-1",
+                  tier: "copper",
+                  ruleConfig: { shape: "consistency_match", minCount: 1 },
+                  awards: [
+                    {
+                      id: AWARD_ID_1,
+                      primaryCharacterId: 1,
+                      source: "rule",
+                      awardedAt: new Date("2026-09-10"),
+                      primaryCharacter: { characterId: 1, name: "Zazanoo", class: "Warrior" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+        },
+      },
+    };
+    const caller = callerWithDb([SCOPE.ACHIEVEMENT_MANAGE], fakeDb);
+
+    const result = await caller.achievement.getAdminCatalog();
+
+    expect(result).toEqual([
+      {
+        achievementId: "ach-1",
+        name: "Steadfast",
+        description: "Attended{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+        icon: "inv_shield_26",
+        scope: "season",
+        seasonName: "Season 2",
+        hidden: false,
+        ruleShape: "consistency_match",
+        tiers: [
+          {
+            achievementTierId: "tier-1",
+            tier: "copper",
+            isManual: false,
+            description: "Attended.",
+            holders: [
+              {
+                achievementAwardId: AWARD_ID_1,
+                primaryCharacterId: 1,
+                characterName: "Zazanoo",
+                characterClass: "Warrior",
+                source: "rule",
+                awardedAt: new Date("2026-09-10"),
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("shows a holder only under the highest tier they've earned, not every tier crossed along the way", async () => {
+    const fakeDb = {
+      query: {
+        achievements: {
+          findMany: vi.fn().mockResolvedValueOnce([
+            {
+              id: "ach-1",
+              name: "Shapeshifter",
+              description: null,
+              icon: "ability_mage_improvedpolymorph",
+              scope: "season",
+              season: { name: "Season 2" },
+              hidden: true,
+              ruleShape: "class_breadth_window",
+              tiers: [
+                {
+                  id: "tier-copper",
+                  tier: "copper",
+                  ruleConfig: { shape: "class_breadth_window", minDistinctClasses: 1 },
+                  awards: [],
+                },
+                {
+                  id: "tier-silver",
+                  tier: "silver",
+                  ruleConfig: { shape: "class_breadth_window", minDistinctClasses: 2 },
+                  awards: [
+                    {
+                      id: AWARD_ID_1,
+                      primaryCharacterId: 1,
+                      source: "rule",
+                      awardedAt: new Date("2026-09-10"),
+                      primaryCharacter: { characterId: 1, name: "Zazanoo", class: "Warrior" },
+                    },
+                  ],
+                },
+                {
+                  id: "tier-gold",
+                  tier: "gold",
+                  ruleConfig: { shape: "class_breadth_window", minDistinctClasses: 4 },
+                  awards: [
+                    {
+                      id: AWARD_ID_2,
+                      primaryCharacterId: 1,
+                      source: "rule",
+                      awardedAt: new Date("2026-09-12"),
+                      primaryCharacter: { characterId: 1, name: "Zazanoo", class: "Warrior" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+        },
+      },
+    };
+    const caller = callerWithDb([SCOPE.ACHIEVEMENT_MANAGE], fakeDb);
+
+    const result = await caller.achievement.getAdminCatalog();
+
+    const holdersByTier = Object.fromEntries(
+      result[0]!.tiers.map((t) => [t.tier, t.holders.map((h) => h.characterName)]),
     );
+    expect(holdersByTier).toEqual({ copper: [], silver: [], gold: ["Zazanoo"] });
   });
 });
 
@@ -248,9 +376,66 @@ describe("achievement router: getUnseenAwards", () => {
 });
 
 describe("achievement-queries", () => {
+  it("display-catalog: works for a signed-out caller — the character page shows a viewed character's real achievements without requiring a session", async () => {
+    const fakeDb = {
+      query: {
+        achievementAwards: { findMany: vi.fn().mockResolvedValueOnce([]) },
+        achievements: { findMany: vi.fn().mockResolvedValueOnce([]) },
+      },
+    };
+    const caller = createCaller({
+      db: fakeDb as never,
+      headers: new Headers(),
+      session: null,
+      getSession: async () => null,
+    });
+
+    const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
+
+    expect(result.hiddenEarned).toEqual([]);
+  });
+
+  it("award-by-id: works for a signed-out caller — the character page's replay click must not require a session", async () => {
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findFirst: vi.fn().mockResolvedValueOnce({
+            id: AWARD_ID_1,
+            awardedAt: new Date("2026-09-10"),
+            achievementTier: {
+              achievementId: "ach-1",
+              tier: "copper",
+              ruleConfig: null,
+              achievement: {
+                name: "Steadfast",
+                icon: "inv_shield_26",
+                description: null,
+                scope: "season",
+              },
+            },
+          }),
+        },
+      },
+    };
+    const caller = createCaller({
+      db: fakeDb as never,
+      headers: new Headers(),
+      session: null,
+      getSession: async () => null,
+    });
+
+    const result = await caller.achievement.getAwardById({ achievementAwardId: AWARD_ID_1 });
+
+    expect(result?.name).toBe("Steadfast");
+  });
+
   it("display-catalog: a hidden achievement with zero awards for the family never appears in either bucket", async () => {
-    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(new Map());
-    const fakeDb = { query: { achievements: { findMany: vi.fn().mockResolvedValueOnce([]) } } };
+    const fakeDb = {
+      query: {
+        achievementAwards: { findMany: vi.fn().mockResolvedValueOnce([]) },
+        achievements: { findMany: vi.fn().mockResolvedValueOnce([]) },
+      },
+    };
     const caller = callerWithDb([], fakeDb);
 
     const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
@@ -260,14 +445,25 @@ describe("achievement-queries", () => {
   });
 
   it("display-catalog: the same achievement, after being earned, appears in hiddenEarned with progress null", async () => {
-    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(
-      new Map([["ach-hidden", "bronze"]]),
-    );
     const findMany = vi
       .fn()
       .mockResolvedValueOnce([]) // visible
-      .mockResolvedValueOnce([{ id: "ach-hidden", name: "Secret", icon: "trophy", hidden: true }]); // hidden, earned
-    const fakeDb = { query: { achievements: { findMany } } };
+      .mockResolvedValueOnce([
+        { id: "ach-hidden", name: "Secret", icon: "trophy", hidden: true, tiers: [] },
+      ]); // hidden, earned
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findMany: vi.fn().mockResolvedValueOnce([
+            {
+              id: "award-hidden-1",
+              achievementTier: { achievementId: "ach-hidden", tier: "copper" },
+            },
+          ]),
+        },
+        achievements: { findMany },
+      },
+    };
     const caller = callerWithDb([], fakeDb);
 
     const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
@@ -277,23 +473,38 @@ describe("achievement-queries", () => {
         achievementId: "ach-hidden",
         name: "Secret",
         icon: "trophy",
-        highestTierEarned: "bronze",
+        description: "",
+        wowClass: null,
+        highestTierEarned: "copper",
+        achievementAwardId: "award-hidden-1",
+        nextTier: null,
+        nextTierDescription: null,
         progress: null,
       },
     ]);
     expect(mockGetNextTierProgress).not.toHaveBeenCalled();
   });
 
-  it("display-catalog: a visible achievement at platinum has progress null, not an error", async () => {
-    vi.mocked(mockGetHighestTierPerAchievement).mockResolvedValue(new Map([["ach-1", "platinum"]]));
+  it("display-catalog: a visible achievement at thorium has progress null, not an error", async () => {
     vi.mocked(mockGetNextTierProgress).mockResolvedValue(null); // maxed out
     const findMany = vi
       .fn()
       .mockResolvedValueOnce([
-        { id: "ach-1", name: "Attendance", icon: "calendar-check", hidden: false },
+        { id: "ach-1", name: "Attendance", icon: "calendar-check", hidden: false, tiers: [] },
       ])
       .mockResolvedValueOnce([]);
-    const fakeDb = { query: { achievements: { findMany } } };
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findMany: vi
+            .fn()
+            .mockResolvedValueOnce([
+              { id: "award-1", achievementTier: { achievementId: "ach-1", tier: "thorium" } },
+            ]),
+        },
+        achievements: { findMany },
+      },
+    };
     const caller = callerWithDb([], fakeDb);
 
     const result = await caller.achievement.getDisplayCatalog({ primaryCharacterId: 1 });
@@ -303,13 +514,18 @@ describe("achievement-queries", () => {
         achievementId: "ach-1",
         name: "Attendance",
         icon: "calendar-check",
-        highestTierEarned: "platinum",
+        description: "",
+        wowClass: null,
+        highestTierEarned: "thorium",
+        achievementAwardId: "award-1",
+        nextTier: null,
+        nextTierDescription: null,
         progress: null,
       },
     ]);
   });
 
-  it("getUnseenAwards orders platinum before gold before silver before bronze, most-recent first within a tier", async () => {
+  it("getUnseenAwards orders thorium before gold before silver before copper, most-recent first within a tier", async () => {
     const row = (id: string, tier: string, awardedAt: string) => ({
       id,
       awardedAt: new Date(awardedAt),
@@ -327,7 +543,7 @@ describe("achievement-queries", () => {
             .mockResolvedValue([
               row("silver-old", "silver", "2026-08-01"),
               row("gold-1", "gold", "2026-08-10"),
-              row("platinum-1", "platinum", "2026-08-05"),
+              row("thorium-1", "thorium", "2026-08-05"),
               row("silver-new", "silver", "2026-08-15"),
             ]),
         },
@@ -339,7 +555,7 @@ describe("achievement-queries", () => {
     const result = await caller.achievement.getUnseenAwards();
 
     expect(result.map((a) => a.achievementAwardId)).toEqual([
-      "platinum-1",
+      "thorium-1",
       "gold-1",
       "silver-new",
       "silver-old",

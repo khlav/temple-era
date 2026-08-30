@@ -1,8 +1,9 @@
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { type db as database } from "~/server/db";
 import {
   achievementAwards,
   achievementTiers,
+  characterRecipeMap,
   characters,
   raidBenchMap,
   raidLogAttendeeMap,
@@ -21,8 +22,8 @@ import {
 } from "~/server/api/helpers/match-signups";
 
 type DB = typeof database;
-type AchievementTierLevel = "bronze" | "silver" | "gold" | "platinum" | "diamond";
-const TIER_ORDER: AchievementTierLevel[] = ["bronze", "silver", "gold", "platinum", "diamond"];
+type AchievementTierLevel = "copper" | "silver" | "gold" | "thorium" | "arcanite";
+const TIER_ORDER: AchievementTierLevel[] = ["copper", "silver", "gold", "thorium", "arcanite"];
 const WEIGHTED_ATTENDANCE_WEEKLY_CAP = 3;
 
 export interface EvaluationResult {
@@ -402,25 +403,26 @@ export async function buildRuleEvaluationContext(
 
 /** Real per-raid `attendanceWeight` credit, matching the dashboard's own
  *  `views.primary_raid_attendance_l6lockoutwk` formula (apps/web/drizzle/0001_init_6w_reporting_views.sql):
- *  per lockout week, per zone, take the best-weighted raid attended that week in that zone
- *  (dedupes a same-zone re-log within one week rather than double-counting it), sum across zones,
- *  cap the week's total at `WEIGHTED_ATTENDANCE_WEEKLY_CAP` (3 — Naxx/AQ40/BWL = 1 each, Molten
- *  Core = 0.5, so 3 zones plus MC in one week already exceeds the cap), then sum across weeks.
- *  The percent's denominator is `config.lockoutWeeks * 3` — a FIXED point cap, not
- *  actual-elapsed-weeks-since-season-start, so a season that's only run 3 of a tier's 6
- *  lockoutWeeks doesn't inflate the percentage by shrinking the denominator to match (confirmed
- *  design: eval against the full target lookback's point cap even when season start truncates
- *  it). Deliberately does NOT include raid-log bench entries the way the SQL view's
- *  `primary_raid_attendee_and_bench_map` source does — `context.attendedRaids` is attendee-only,
- *  matching every other shape's definition of "attended", so this can stay a pure function over
- *  the shared context rather than needing its own separate bench-aware DB query. */
+ *  per lockout week, per zone, take the best-weighted raid attended OR bench-credited that week in
+ *  that zone (dedupes a same-zone re-log within one week rather than double-counting it, and a
+ *  raid the family was both logged AND benched for isn't double-counted either — same underlying
+ *  `attendanceWeight`, so the per-zone max collapses it to one), sum across zones, cap the week's
+ *  total at `WEIGHTED_ATTENDANCE_WEEKLY_CAP` (3 — Naxx/AQ40/BWL = 1 each, Molten Core = 0.5, so 3
+ *  zones plus MC in one week already exceeds the cap), then sum across weeks. The percent's
+ *  denominator is `config.lockoutWeeks * 3` — a FIXED point cap, not actual-elapsed-weeks-since-
+ *  season-start, so a season that's only run 3 of a tier's 6 lockoutWeeks doesn't inflate the
+ *  percentage by shrinking the denominator to match (confirmed design: eval against the full
+ *  target lookback's point cap even when season start truncates it). Matches the dashboard's own
+ *  `primary_raid_attendee_and_bench_map` source in every respect except the window itself — see
+ *  `lockoutFloorFor`'s doc comment for why this treats the current, still-open lockout week as
+ *  live instead of waiting for it to fully close like the dashboard view does. */
 function scoreWeightedAttendanceThreshold(
   context: RuleEvaluationContext,
   config: Extract<AchievementRuleConfig, { shape: "weighted_attendance_threshold" }>,
   window: EvaluationWindow,
 ): EvaluationResult {
   const bestWeightByWeek = new Map<number, Map<string, number>>();
-  for (const r of context.attendedRaids) {
+  for (const r of [...context.attendedRaids, ...context.benchedRaids]) {
     if (!withinWindow(r.startTime, window)) continue;
     const weekKey = r.lockoutWeekStart.getTime();
     const byZone = bestWeightByWeek.get(weekKey) ?? new Map<string, number>();
@@ -653,14 +655,54 @@ function scoreByShapeSync(
       return scoreClassBreadthWindow(context, config, window);
     case "family_double_up_cooccurrence":
       return scoreFamilyDoubleUpCooccurrence(context, config, window);
+    case "recipe_set_threshold":
+      throw new Error("recipe_set_threshold is handled by scoreByShape, not scoreByShapeSync");
   }
+}
+
+/** Family (primary + secondaries) recipe knowledge — a direct DB query, not the shared
+ *  RuleEvaluationContext (which is entirely raid/attendance-shaped and has nothing to do with
+ *  recipes). `selectDistinct` guards against double-counting: the same recipeSpellId can
+ *  legitimately appear once per family member who knows it. */
+async function scoreRecipeSetThreshold(
+  db: DB,
+  primaryCharacterId: number,
+  config: Extract<AchievementRuleConfig, { shape: "recipe_set_threshold" }>,
+): Promise<EvaluationResult> {
+  const familyCharacters = await db
+    .select({ characterId: characters.characterId })
+    .from(characters)
+    .where(
+      or(
+        eq(characters.characterId, primaryCharacterId),
+        eq(characters.primaryCharacterId, primaryCharacterId),
+      ),
+    );
+  const familyCharacterIds = familyCharacters.map((c) => c.characterId);
+  if (familyCharacterIds.length === 0) {
+    return { crossed: false, progress: { current: 0, target: config.minCount } };
+  }
+
+  const known = await db
+    .selectDistinct({ recipeSpellId: characterRecipeMap.recipeSpellId })
+    .from(characterRecipeMap)
+    .where(
+      and(
+        inArray(characterRecipeMap.characterId, familyCharacterIds),
+        inArray(characterRecipeMap.recipeSpellId, config.recipeSpellIds),
+      ),
+    );
+
+  const current = known.length;
+  return { crossed: current >= config.minCount, progress: { current, target: config.minCount } };
 }
 
 /** Single dispatch point every caller (orchestrator, progress lookups, tests) goes through — a
  *  new achievement reusing an existing shape needs zero changes here, only a new
  *  achievement-definitions.ts entry (see extensibility criterion). Declared async (though every
- *  shape is now pure) so a future shape needing real I/O doesn't force a signature change on
- *  every existing call site. */
+ *  other shape is pure) so a shape needing real I/O doesn't force a signature change on every
+ *  existing call site — recipe_set_threshold is that shape: it queries character_spells directly
+ *  and bypasses scoreByShapeSync/RuleEvaluationContext entirely. */
 export async function scoreByShape(
   db: DB,
   primaryCharacterId: number,
@@ -668,8 +710,9 @@ export async function scoreByShape(
   config: AchievementRuleConfig,
   window: EvaluationWindow,
 ): Promise<EvaluationResult> {
-  void db;
-  void primaryCharacterId;
+  if (config.shape === "recipe_set_threshold") {
+    return scoreRecipeSetThreshold(db, primaryCharacterId, config);
+  }
   return scoreByShapeSync(context, config, window);
 }
 
@@ -705,10 +748,19 @@ export async function evaluateAchievementsForFamilies(
   const results = new Map<number, FamilyEvaluationResult>();
   if (primaryCharacterIds.length === 0) return results;
 
-  const tiers = await db.query.achievementTiers.findMany({
-    where: (tier, { isNotNull }) => isNotNull(tier.ruleConfig),
-    with: { achievement: { with: { season: true } } },
-  });
+  // recipe_set_threshold is deliberately excluded here — it's the one shape that bypasses
+  // RuleEvaluationContext and does its own real DB query per family (see scoreRecipeSetThreshold's
+  // doc comment), so including it means every raid-import hook call (and, at guild-backfill scale,
+  // every family in the guild) re-scores recipe knowledge that a raid log can't possibly change.
+  // evaluateRecipeAchievementsForFamilies (below) is the dedicated path for recipe-shaped tiers,
+  // triggered by addRecipeToCharacter instead. Measured cost of not excluding this: ~20 minutes
+  // for a ~1100-family guild backfill, almost entirely this redundant per-family recipe query.
+  const tiers = (
+    await db.query.achievementTiers.findMany({
+      where: (tier, { isNotNull }) => isNotNull(tier.ruleConfig),
+      with: { achievement: { with: { season: true } } },
+    })
+  ).filter((t) => t.achievement.ruleShape !== "recipe_set_threshold");
 
   const lockoutWeeksValues = tiers
     .map((t) => (t.ruleConfig as AchievementRuleConfig).lockoutWeeks)
@@ -799,6 +851,92 @@ export async function evaluateAchievementsForFamilies(
   }
 
   return results;
+}
+
+/** Shape-scoped sibling of `evaluateAchievementsForFamilies`, batched the same way: fetches every
+ *  family-independent fact (recipe-shaped tiers, the whole batch's existing awards) exactly once
+ *  regardless of batch size, then loops only the genuinely per-family work (the recipe-knowledge
+ *  count itself). Skips `buildRuleEvaluationContextsForFamilies` (the raid-attendance/signup-
+ *  history context build) entirely — a recipe toggle can only ever move a recipe-shaped tier, so
+ *  there is nothing for that context to contribute. Used by both the addRecipeToCharacter hook
+ *  (one-element batch) and the tradeskill-tiers backfill script (every family at once) — the
+ *  backfill originally looped the single-family form per family, which re-fetched tiers and
+ *  existing awards on every iteration; this batched form is what fixes that. */
+export async function evaluateRecipeAchievementsForFamilies(
+  db: DB,
+  primaryCharacterIds: number[],
+  asOf: Date,
+): Promise<Map<number, FamilyEvaluationResult>> {
+  const results = new Map<number, FamilyEvaluationResult>();
+  if (primaryCharacterIds.length === 0) return results;
+
+  const tiers = await db.query.achievementTiers.findMany({
+    where: (tier, { isNotNull }) => isNotNull(tier.ruleConfig),
+    with: { achievement: true },
+  });
+  const recipeTiers = tiers.filter((t) => t.achievement.ruleShape === "recipe_set_threshold");
+  if (recipeTiers.length === 0) {
+    for (const id of primaryCharacterIds) results.set(id, { newAwards: [] });
+    return results;
+  }
+
+  const existingAwardRows = await db.query.achievementAwards.findMany({
+    where: inArray(achievementAwards.primaryCharacterId, primaryCharacterIds),
+    columns: { achievementTierId: true, primaryCharacterId: true },
+  });
+  const alreadyAwardedKeys = new Set(
+    existingAwardRows.map((a) => `${a.achievementTierId}:${a.primaryCharacterId}`),
+  );
+
+  for (const primaryCharacterId of primaryCharacterIds) {
+    try {
+      const newAwards: NewAward[] = [];
+      for (const tier of recipeTiers) {
+        if (alreadyAwardedKeys.has(`${tier.id}:${primaryCharacterId}`)) continue;
+        const config = tier.ruleConfig as Extract<
+          AchievementRuleConfig,
+          { shape: "recipe_set_threshold" }
+        >;
+        const result = await scoreRecipeSetThreshold(db, primaryCharacterId, config);
+        if (!result.crossed) continue;
+
+        const inserted = await db
+          .insert(achievementAwards)
+          .values({
+            achievementTierId: tier.id,
+            primaryCharacterId,
+            source: "rule",
+            awardedAt: asOf,
+          })
+          .onConflictDoNothing({
+            target: [achievementAwards.achievementTierId, achievementAwards.primaryCharacterId],
+          })
+          .returning({ id: achievementAwards.id });
+
+        if (inserted.length > 0) {
+          newAwards.push({ achievementTierId: tier.id, primaryCharacterId });
+        }
+      }
+      results.set(primaryCharacterId, { newAwards });
+    } catch (error) {
+      results.set(primaryCharacterId, { error });
+    }
+  }
+
+  return results;
+}
+
+/** Single-family convenience wrapper over `evaluateRecipeAchievementsForFamilies` — preserves a
+ *  throw-on-error contract for the addRecipeToCharacter hook's one-family call site. Prefer the
+ *  batched form directly when more than one family needs evaluating together (e.g. the backfill
+ *  script). */
+export async function evaluateRecipeAchievementsForFamily(
+  db: DB,
+  primaryCharacterId: number,
+  asOf: Date,
+): Promise<FamilyEvaluationResult> {
+  const results = await evaluateRecipeAchievementsForFamilies(db, [primaryCharacterId], asOf);
+  return results.get(primaryCharacterId) ?? { newAwards: [] };
 }
 
 /** Single-family convenience wrapper over `evaluateAchievementsForFamilies` — preserves the

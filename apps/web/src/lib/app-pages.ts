@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Flame,
   Trophy,
+  Award,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,7 +43,7 @@ export const APP_PAGES: AppPage[] = [
   { name: "Rare recipes & crafters", path: "/rare-recipes", icon: BookOpen },
   { name: "World Buffs", path: "/world-buffs", icon: Flame },
   { name: "Attendance reports", path: "/reports/attendance", icon: BarChart3 },
-  { name: "Trophies", path: "/trophies", icon: Trophy },
+  { name: "Achievements", path: "/achievements", icon: Trophy },
   {
     name: "Create new raid",
     path: "/raids/new",
@@ -84,6 +85,13 @@ export const APP_PAGES: AppPage[] = [
     icon: ShieldCheck,
     area: "Admin",
     requiredScope: SCOPE.USERPERMISSIONS_MANAGE,
+  },
+  {
+    name: "Manage achievements",
+    path: "/achievements/manage",
+    icon: Award,
+    area: "Admin",
+    requiredScope: SCOPE.ACHIEVEMENT_MANAGE,
   },
 ];
 

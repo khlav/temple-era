@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CharacterBadges — Season 2 medal rack mockup</title>
+<style>
+  :root {
+    --bg: #14100e;
+    --panel: #1d1815;
+    --panel-edge: #2b241f;
+    --text: #e8ded2;
+    --muted: #9a8c7c;
+
+    --bronze: #a5673f;
+    --bronze-hi: #c98a58;
+    --silver: #aab4bd;
+    --silver-hi: #dde5ec;
+    --gold: #d9a441;
+    --gold-hi: #f2cd6e;
+    --platinum: #7fd6c9;
+    --platinum-hi: #c4f4ea;
+
+    --track: #2b241f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -100px, #241d17 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 48px 24px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  header h1 { font-size: 22px; letter-spacing: 0.5px; }
+  header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  header kbd {
+    background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--gold);
+  }
+
+  /* ===== medal rack panel ===== */
+  .rack {
+    margin-top: 28px;
+    background: linear-gradient(180deg, var(--panel) 0%, #171310 100%);
+    border: 1px solid var(--panel-edge);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .rack-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--panel-edge); padding-bottom: 14px; margin-bottom: 20px;
+  }
+  .rack-head h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+  .season-tag {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--gold); border: 1px solid #4d3d1e; background: #241c10;
+    padding: 3px 10px; border-radius: 999px;
+  }
+
+  .medals { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+
+  .medal {
+    position: relative;
+    background: #201a15;
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 18px 16px 16px;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+    overflow: hidden;
+  }
+  .medal:hover { transform: translateY(-3px); }
+
+  /* tier-colored left edge */
+  .medal::before {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: 4px;
+    background: var(--tier, var(--bronze));
+  }
+  .medal:hover { border-color: color-mix(in srgb, var(--tier) 45%, var(--panel-edge)); }
+
+  .medal-top { display: flex; gap: 12px; align-items: center; }
+
+  .coin {
+    width: 52px; height: 52px; flex: none;
+    display: grid; place-items: center;
+    font-size: 26px;
+    background:
+      radial-gradient(circle at 32% 28%, var(--hi, var(--bronze-hi)) 0%, var(--tier) 55%, #00000055 130%);
+    border-radius: 50%;
+    box-shadow:
+      inset 0 -3px 6px rgba(0,0,0,.45),
+      inset 0 2px 3px rgba(255,255,255,.25),
+      0 4px 10px rgba(0,0,0,.5);
+    filter: saturate(var(--sat, 1));
+  }
+  .medal.platinum .coin { animation: sheen 4s ease-in-out infinite; }
+  @keyframes sheen {
+    0%, 100% { box-shadow: inset 0 -3px 6px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.25), 0 4px 10px rgba(0,0,0,.5); }
+    50%      { box-shadow: inset 0 -3px 6px rgba(0,0,0,.35), inset 0 2px 6px rgba(255,255,255,.55), 0 4px 14px rgba(127,214,201,.35); }
+  }
+
+  .names h3 { font-size: 14px; line-height: 1.2; }
+  .tier-label {
+    display: inline-block; margin-top: 4px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--tier); 
+  }
+  .tier-dots { margin-left: 6px; letter-spacing: 2px; color: var(--track); }
+  .tier-dots b { color: var(--tier); }
+
+  /* progress toward next tier */
+  .progress { margin-top: 14px; }
+  .progress .bar {
+    height: 6px; background: var(--track); border-radius: 999px; overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--tier) 60%, black), var(--tier));
+  }
+  .progress small { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+
+  /* decay warning */
+  .decay .progress small { color: #d08770; }
+  .decay .bar { background: #33221d; }
+  .decay::after {
+    content: "⏳ window slipping";
+    position: absolute; top: 10px; right: 10px;
+    font-size: 9.5px; letter-spacing: .5px; text-transform: uppercase;
+    color: #d08770; border: 1px solid #4a2f27; background: #241713;
+    padding: 2px 7px; border-radius: 999px;
+  }
+
+  /* hidden badge teaser */
+  .hidden-row {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--muted); font-size: 12.5px;
+    border: 1px dashed #33291f; border-radius: 10px;
+    padding: 12px 16px; background: #191411;
+  }
+  .hidden-row .q {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--track); color: var(--muted); font-weight: 700;
+  }
+
+  /* ===== flip card (click) ===== */
+  .flip-back {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #241d17, #191411);
+    border-radius: 10px;
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .medal.flipped .flip-back { display: flex; }
+  .flip-back h4 { font-size: 13px; color: var(--tier); letter-spacing: .5px; }
+  .flip-back ul { list-style: none; font-size: 11.5px; color: var(--muted); display: grid; gap: 4px; }
+  .flip-back li { display: flex; justify-content: space-between; gap: 8px; }
+  .flip-back li span:last-child { color: var(--text); }
+  .flip-back li.done span:last-child { color: var(--tier); }
+  .flip-back .earned-at { margin-top: auto; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--panel-edge); padding-top: 8px; }
+  .flip-close { position: absolute; top: 8px; right: 10px; color: var(--muted); font-size: 13px; }
+
+  footer { margin-top: 22px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Kirkhstone <span style="color:var(--muted);font-weight:400">· Human Paladin</span></h1>
+    <p>Season achievements — evaluated against your last 6 weeks. Click any medal for tier details.</p>
+  </header>
+
+  <section class="rack">
+    <div class="rack-head">
+      <h2>Season 2 · Medal Rack</h2>
+      <span class="season-tag">Season 2</span>
+    </div>
+
+    <div class="medals">
+
+      <!-- GOLD -->
+      <div class="medal" style="--tier: var(--gold); --hi: var(--gold-hi)">
+        <div class="medal-top">
+          <div class="coin">🛡️</div>
+          <div class="names">
+            <h3>Iron Resolve</h3>
+            <span class="tier-label">Gold</span>
+            <span class="tier-dots"><b>●</b><b>●</b><b>●</b>○</span>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" style="width: 78%"></div></div>
+          <small>2 more full-raid weeks to Platinum</small>
+        </div>
+        <div class="flip-back">
+          <span class="flip-close">✕</span>
+          <h4>Iron Resolve — attendance &amp; consistency</h4>
+          <ul>
+            <li><span>Bronze</span><span class="done">✓ 80% weighted attendance</span></li>
+            <li><span>Silver</span><span class="done">✓ 90% · no 2-week gaps</span></li>
+            <li><span>Gold</span><span class="done">✓ 95% · 10-week streak</span></li>
+            <li><span>Platinum</span><span>100% of season raids</span></li>
+          </ul>
+          <div class="earned-at">Reached Gold on Aug 12 · trophy awarded ✓</div>
+        </div>
+      </div>
+
+      <!-- SILVER -->
+      <div class="medal" style="--tier: var(--silver); --hi: var(--silver-hi)">
+        <div class="medal-top">
+          <div class="coin">🎭</div>
+          <div class="names">
+            <h3>Shapeshifter</h3>
+            <span class="tier-label">Silver</span>
+            <span class="tier-dots"><b>●</b><b>●</b>○○</span>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" style="width: 52%"></div></div>
+          <small>Raided off-role 4 of 8 needed nights to Gold</small>
+        </div>
+        <div class="flip-back">
+          <span class="flip-close">✕</span>
+          <h4>Shapeshifter — roster flexibility &amp; alts</h4>
+          <ul>
+            <li><span>Bronze</span><span class="done">✓ Fill from an alt once</span></li>
+            <li><span>Silver</span><span class="done">✓ Off-role fill 3 times</span></li>
+            <li><span>Gold</span><span>Off-role fill 8 times</span></li>
+            <li><span>Platinum</span><span>Filled every role at least once</span></li>
+          </ul>
+          <div class="earned-at">Reached Silver on Jul 30</div>
+        </div>
+      </div>
+
+      <!-- BRONZE + DECAYING -->
+      <div class="medal decay" style="--tier: var(--bronze); --hi: var(--bronze-hi); --sat:.85">
+        <div class="medal-top">
+          <div class="coin">🧭</div>
+          <div class="names">
+            <h3>Trailblazer</h3>
+            <span class="tier-label">Bronze</span>
+            <span class="tier-dots"><b>●</b>○○○</span>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" style="width: 34%"></div></div>
+          <small>Held Bronze — 2 weeks left before it slips out of window</small>
+        </div>
+      </div>
+
+      <!-- PLATINUM -->
+      <div class="medal platinum" style="--tier: var(--platinum); --hi: var(--platinum-hi)">
+        <div class="medal-top">
+          <div class="coin">🐉</div>
+          <div class="names">
+            <h3>Firstblood</h3>
+            <span class="tier-label">Platinum</span>
+            <span class="tier-dots"><b>●</b><b>●</b><b>●</b><b>●</b></span>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="bar"><div class="fill" style="width: 100%"></div></div>
+          <small>Maxed — permanent trophy in your cabinet 🏆</small>
+        </div>
+        <div class="flip-back">
+          <span class="flip-close">✕</span>
+          <h4>Firstblood — raid variety &amp; exploration</h4>
+          <ul>
+            <li><span>Bronze</span><span class="done">✓ Cleared all current bosses</span></li>
+            <li><span>Silver</span><span class="done">✓ Present for 3 first-kills</span></li>
+            <li><span>Gold</span><span class="done">✓ Present for 8 first-kills</span></li>
+            <li><span>Platinum</span><span class="done">✓ Present for the KT kill</span></li>
+          </ul>
+          <div class="earned-at">Platinum · Jun 21 — trophy “Firstblood (S2)” auto-awarded</div>
+        </div>
+      </div>
+
+      <!-- HIDDEN -->
+      <div class="hidden-row">
+        <div class="q">?</div>
+        A hidden achievement exists in this category. It will appear here only once earned.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Mockup only — not wired to data. Ideas shown: tier-colored medal rows with progress-to-next-tier,
+    decaying-window warning, click-to-flip threshold card with trophy-award status, and a hidden-achievement
+    placeholder row that vanishes entirely once you know what it is.
+  </footer>
+</div>
+
+<script>
+  document.querySelectorAll(".medal").forEach(m => {
+    m.addEventListener("click", () => m.classList.toggle("flipped"));
+  });
+</script>
+</body>
+</html>

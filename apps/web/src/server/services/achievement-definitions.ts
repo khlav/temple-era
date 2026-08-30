@@ -4,192 +4,330 @@ import type { AchievementRuleConfig } from "~/server/db/schema";
 
 type DB = typeof database;
 
+/** Season 2's dates are fixed, not something officers ever need to create or edit — there's
+ *  exactly one season and it doesn't move, so there's no admin "create season" flow anymore (it
+ *  used to be a form on the Manage Achievements page). This constant is the single source of
+ *  truth for what that one `season` row should contain; the row itself still exists in the DB
+ *  (achievements.seasonId is a real FK, and resolveEvaluationWindow reads season.startDate from
+ *  it) but is seeded/corrected to match this constant rather than user-entered.
+ *
+ *  Tue Sept 1, 2026 (a lockout reset) through Mon Jan 4, 2027 — the day before the next Tuesday
+ *  reset, so the window ends cleanly at a lockout boundary rather than mid-week. */
+export const SEASON_2 = {
+  name: "Season 2",
+  startDate: new Date("2026-09-01T00:00:00-04:00"),
+  endDate: new Date("2027-01-04T23:59:59-05:00"),
+};
+
 export interface AchievementDefinition {
   name: string;
   description: string;
+  /** Imperative/present-tense sibling of `description`, used only for the "For {tier}:" next-tier
+   *  preview — see achievement-schema.ts's goalDescription column comment. Optional: an achievement
+   *  with no goal phrasing just falls back to `description` there (acceptable, not ideal, for a
+   *  hidden achievement that can never show a next-tier preview anyway). */
+  goalDescription?: string;
   icon: string;
   scope: "season" | "all_time";
   hidden: boolean;
-  tiers: Partial<Record<"bronze" | "silver" | "gold" | "platinum", AchievementRuleConfig>>;
+  tiers: Partial<
+    Record<"copper" | "silver" | "gold" | "thorium" | "arcanite", AchievementRuleConfig>
+  >;
 }
 
-// Illustrative thresholds — a first-pass proposal, not final. Confirm/adjust once real
-// lockout-week data exists to calibrate against (see spec-phase-2.md's own note on this).
-// The 40-man zone list below (Molten Core, Blackwing Lair, Temple of Ahn'Qiraj, Naxxramas)
-// assumes the guild's current progression and that `raids.zone`'s stored strings match these
-// exactly — that match is unverified (raids.zone is free text, no enum) and should be confirmed
-// against real data before this seeds for real.
-const ATTENDANCE: AchievementDefinition = {
-  name: "Raid Attendance",
-  description: "Attend a high percentage of raids over a lockout-week window.",
-  icon: "calendar-check",
+// The finalized Season 2 catalog — every name, description template, icon, and threshold below
+// was worked out collaboratively in the Achievement Ledger (an interactive planning artifact,
+// not checked into this repo) and is transcribed here verbatim, not a fresh illustrative pass.
+//
+// `description` strings intentionally keep the Ledger's raw template syntax unresolved
+// ({minCount}, {window}, {?minCount}...{/minCount} conditionals, {key:suffix} pluralization) —
+// nothing in the UI currently renders `achievements.description` at all (grepped: no component
+// reads this field), so there is no resolver to feed a pre-resolved string into, and the schema
+// only has one description slot per achievement (not per-tier), which a template can express but
+// a baked-in resolved string can't. Wiring up a real template renderer is a follow-up, not done
+// here — this keeps the stored data faithful to the source of truth in the meantime.
+const FOR_THE_HORDE: AchievementDefinition = {
+  name: "For the Horde",
+  description: "Earned {minPercent}% attendance credit over 6 consecutive season weeks.",
+  goalDescription: "Earn {minPercent}% attendance credit over 6 consecutive season weeks.",
+  icon: "inv_hordewareffort",
   scope: "season",
   hidden: false,
   tiers: {
-    bronze: { shape: "attendance_threshold", minPercent: 60, lockoutWeeks: 4 },
-    silver: { shape: "attendance_threshold", minPercent: 75, lockoutWeeks: 6 },
-    gold: { shape: "attendance_threshold", minPercent: 90, lockoutWeeks: 8 },
-    platinum: { shape: "attendance_threshold", minPercent: 100, lockoutWeeks: 10 },
+    copper: { shape: "weighted_attendance_threshold", minPercent: 50, lockoutWeeks: 6 },
+    silver: { shape: "weighted_attendance_threshold", minPercent: 75, lockoutWeeks: 6 },
+    gold: { shape: "weighted_attendance_threshold", minPercent: 90, lockoutWeeks: 6 },
+    thorium: { shape: "weighted_attendance_threshold", minPercent: 100, lockoutWeeks: 6 },
   },
 };
 
-const CONSISTENCY: AchievementDefinition = {
-  name: "Consistency",
-  description: "Sign up early and attend on the same character, without changing status.",
-  icon: "check-circle",
+const STEADFAST: AchievementDefinition = {
+  name: "Steadfast",
+  description:
+    "Signed up early and attended with that same class{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  goalDescription:
+    "Sign up early and attend with that same class{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  icon: "inv_shield_26",
   scope: "season",
   hidden: false,
   tiers: {
-    bronze: { shape: "consistency_match", minCount: 3, lockoutWeeks: 6 },
-    silver: { shape: "consistency_match", minCount: 6, lockoutWeeks: 8 },
-    gold: { shape: "consistency_match", minCount: 10, lockoutWeeks: 10 },
-    platinum: { shape: "consistency_match", minCount: 15, lockoutWeeks: 12 },
+    copper: { shape: "consistency_match", minCount: 1 },
+    silver: { shape: "consistency_match", minCount: 5 },
+    gold: { shape: "consistency_match", minCount: 10 },
+    thorium: { shape: "consistency_match", minCount: 20 },
   },
 };
 
-const FLEXIBILITY: AchievementDefinition = {
-  name: "Flexibility",
-  description: "Sign up on one character but attend on another in the same family.",
-  icon: "shuffle",
+const FLEXIBLE: AchievementDefinition = {
+  name: "Flexible",
+  description:
+    "Swapped classes to balance raid comp (Signup vs. Attendance){?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  goalDescription:
+    "Swap classes to balance raid comp (Signup vs. Attendance){?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  icon: "achievement_general_stayclassy",
   scope: "season",
   hidden: false,
   tiers: {
-    bronze: { shape: "flexibility_match", minCount: 2, lockoutWeeks: 6 },
-    silver: { shape: "flexibility_match", minCount: 4, lockoutWeeks: 8 },
-    gold: { shape: "flexibility_match", minCount: 7, lockoutWeeks: 10 },
-    platinum: { shape: "flexibility_match", minCount: 10, lockoutWeeks: 12 },
+    copper: { shape: "flexibility_match", minCount: 1 },
+    silver: { shape: "flexibility_match", minCount: 5 },
+    gold: { shape: "flexibility_match", minCount: 10 },
+    thorium: { shape: "flexibility_match", minCount: 20 },
   },
 };
 
-const BENCH_CREDIT: AchievementDefinition = {
-  name: "Bench Credit",
-  description: "Sign up and get benched — showing up counts even when you don't raid.",
-  icon: "armchair",
+const PUT_ME_IN_COACH: AchievementDefinition = {
+  name: "On Deck",
+  description: "Earned bench credit{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  goalDescription: "Earn bench credit{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  icon: "ui_mission_itemupgrade",
   scope: "season",
   hidden: false,
   tiers: {
-    bronze: { shape: "bench_credit_count", minCount: 3, lockoutWeeks: 6 },
-    silver: { shape: "bench_credit_count", minCount: 6, lockoutWeeks: 8 },
-    gold: { shape: "bench_credit_count", minCount: 10, lockoutWeeks: 10 },
-    platinum: { shape: "bench_credit_count", minCount: 15, lockoutWeeks: 12 },
+    copper: { shape: "bench_credit_count", minCount: 1 },
+    silver: { shape: "bench_credit_count", minCount: 5 },
+    gold: { shape: "bench_credit_count", minCount: 10 },
+    thorium: { shape: "bench_credit_count", minCount: 20 },
   },
 };
 
-const ZONE_ATTENDANCE_ZONES = [
-  "Molten Core",
-  "Blackwing Lair",
-  "Temple of Ahn'Qiraj",
-  "Naxxramas",
-] as const;
+const ZONE_ACHIEVEMENTS: Array<{
+  name: string;
+  zone: string;
+  icon: string;
+}> = [
+  { name: "Flameeater", zone: "Molten Core", icon: "achievement_boss_ragnaros" },
+  { name: "Dragonslayer", zone: "Blackwing Lair", icon: "achievement_boss_nefarion" },
+  { name: "Exterminator", zone: "Temple of Ahn'Qiraj", icon: "achievement_boss_cthun" },
+  { name: "Plaguebreaker", zone: "Naxxramas", icon: "achievement_boss_kelthuzad_01" },
+];
 
-function zoneAttendanceDefinition(zone: string): AchievementDefinition {
+function zoneAttendanceDefinition(
+  entry: (typeof ZONE_ACHIEVEMENTS)[number],
+): AchievementDefinition {
   return {
-    name: `Zone Attendance — ${zone}`,
-    description: `Attend ${zone} many times within a season window.`,
-    icon: "map-pin",
+    name: entry.name,
+    description: "Raided {zone}{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Raid {zone}{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: entry.icon,
     scope: "season",
     hidden: false,
     tiers: {
-      bronze: { shape: "zone_attendance_threshold", zone, minCount: 3, lockoutWeeks: 4 },
-      silver: { shape: "zone_attendance_threshold", zone, minCount: 6, lockoutWeeks: 6 },
-      gold: { shape: "zone_attendance_threshold", zone, minCount: 10, lockoutWeeks: 8 },
-      platinum: { shape: "zone_attendance_threshold", zone, minCount: 15, lockoutWeeks: 10 },
+      copper: { shape: "zone_attendance_threshold", zone: entry.zone, minCount: 1 },
+      silver: { shape: "zone_attendance_threshold", zone: entry.zone, minCount: 5 },
+      gold: { shape: "zone_attendance_threshold", zone: entry.zone, minCount: 10 },
+      thorium: { shape: "zone_attendance_threshold", zone: entry.zone, minCount: 20 },
     },
   };
 }
 
-const RAID_MARATHON: AchievementDefinition = {
-  name: "Raid Marathon",
-  description: "Attend several distinct raids within a single lockout week.",
-  icon: "zap",
+const GRASS_TO_TOUCH: AchievementDefinition = {
+  name: "There's grass to touch in Azeroth",
+  description: "Raided {minRaidsInOneWeek} time{minRaidsInOneWeek:s} in a single lockout week.",
+  icon: "inv_misc_herb_05",
   scope: "season",
-  hidden: false,
+  hidden: true,
   tiers: {
-    bronze: { shape: "raid_marathon_density", minRaidsInOneWeek: 2, lockoutWeeks: 1 },
     silver: { shape: "raid_marathon_density", minRaidsInOneWeek: 3, lockoutWeeks: 1 },
-    gold: { shape: "raid_marathon_density", minRaidsInOneWeek: 4, lockoutWeeks: 1 },
-    platinum: { shape: "raid_marathon_density", minRaidsInOneWeek: 5, lockoutWeeks: 1 },
+    gold: { shape: "raid_marathon_density", minRaidsInOneWeek: 5, lockoutWeeks: 1 },
+    thorium: { shape: "raid_marathon_density", minRaidsInOneWeek: 10, lockoutWeeks: 1 },
   },
 };
 
-const ZONE_BREADTH: AchievementDefinition = {
-  name: "Zone Breadth",
-  description: "Raid in several distinct zones within a season window.",
-  icon: "compass",
+const SHOW_YOU_THE_WORLD: AchievementDefinition = {
+  name: "I can show you the world",
+  description:
+    "Raided {minDistinctZones} unique zone{minDistinctZones:s} in a single lockout week.",
+  icon: "inv_misc_map02",
   scope: "season",
-  hidden: false,
+  hidden: true,
   tiers: {
-    bronze: { shape: "zone_breadth_window", minDistinctZones: 2, lockoutWeeks: 6 },
-    silver: { shape: "zone_breadth_window", minDistinctZones: 3, lockoutWeeks: 8 },
-    gold: { shape: "zone_breadth_window", minDistinctZones: 4, lockoutWeeks: 10 },
-    platinum: { shape: "zone_breadth_window", minDistinctZones: 4, lockoutWeeks: 6 },
+    copper: { shape: "zone_breadth_window", minDistinctZones: 3, lockoutWeeks: 1 },
+    silver: { shape: "zone_breadth_window", minDistinctZones: 4, lockoutWeeks: 1 },
+    gold: { shape: "zone_breadth_window", minDistinctZones: 5, lockoutWeeks: 1 },
+    thorium: { shape: "zone_breadth_window", minDistinctZones: 7, lockoutWeeks: 1 },
   },
 };
 
-const CLASS_BREADTH: AchievementDefinition = {
-  name: "Class Breadth",
-  description: "Raid as several distinct classes within a season window.",
-  icon: "users",
+const SHAPESHIFTER: AchievementDefinition = {
+  name: "Shapeshifter",
+  description: "Raided with {minDistinctClasses} different class{minDistinctClasses:es} {window}.",
+  icon: "ability_mage_improvedpolymorph",
   scope: "season",
-  hidden: false,
+  hidden: true,
   tiers: {
-    bronze: { shape: "class_breadth_window", minDistinctClasses: 2, lockoutWeeks: 6 },
-    silver: { shape: "class_breadth_window", minDistinctClasses: 3, lockoutWeeks: 8 },
-    gold: { shape: "class_breadth_window", minDistinctClasses: 4, lockoutWeeks: 10 },
-    platinum: { shape: "class_breadth_window", minDistinctClasses: 5, lockoutWeeks: 12 },
+    silver: { shape: "class_breadth_window", minDistinctClasses: 2 },
+    gold: { shape: "class_breadth_window", minDistinctClasses: 4 },
+    thorium: { shape: "class_breadth_window", minDistinctClasses: 6 },
+    arcanite: { shape: "class_breadth_window", minDistinctClasses: 8 },
   },
 };
 
-const FAMILY_DOUBLE_UP: AchievementDefinition = {
-  name: "Family Double-Up",
-  description: "Two characters from the same family both attend the same raid.",
-  icon: "users-2",
+const MAKE_EM_SEE_DOUBLE: AchievementDefinition = {
+  name: "Make 'em see double",
+  description:
+    "Brought 2 different characters to a raid{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+  icon: "spell_nature_mirrorimage",
   scope: "season",
-  hidden: false,
+  hidden: true,
   tiers: {
-    bronze: { shape: "family_double_up_cooccurrence", minCount: 1, lockoutWeeks: 6 },
-    silver: { shape: "family_double_up_cooccurrence", minCount: 3, lockoutWeeks: 8 },
-    gold: { shape: "family_double_up_cooccurrence", minCount: 6, lockoutWeeks: 10 },
-    platinum: { shape: "family_double_up_cooccurrence", minCount: 10, lockoutWeeks: 12 },
+    silver: { shape: "family_double_up_cooccurrence", minCount: 3 },
+    gold: { shape: "family_double_up_cooccurrence", minCount: 6 },
+    thorium: { shape: "family_double_up_cooccurrence", minCount: 10 },
+    arcanite: { shape: "family_double_up_cooccurrence", minCount: 20 },
   },
 };
 
-// All-time example: reuses Class Breadth's shape, unbounded window (no lockoutWeeks) — proves
-// the season/all-time scope dimension is a config toggle, not new engineering. "All available
-// Horde classes" is 9 (Warrior, Paladin isn't Horde in Classic — actual roster is Warrior,
-// Hunter, Rogue, Priest, Shaman, Mage, Warlock, Druid = 8; kept as a single platinum-only
-// capstone tier per the illustrative nature of this pass).
-const CLASS_BREADTH_ALL_TIME: AchievementDefinition = {
-  name: "Every Horde Class, Ever",
-  description: "Raid as every available Horde class across all of history.",
-  icon: "crown",
+// The 8 Horde-playable classes (no Paladin in Classic). Thresholds and description templates
+// come straight from the Ledger, including the class-specific flavor text.
+const CLASS_ACHIEVEMENTS: Array<{
+  name: string;
+  class: string;
+  description: string;
+  goalDescription: string;
+  icon: string;
+}> = [
+  {
+    name: "Bam Bam",
+    class: "Warrior",
+    description: "Your {class} zugged{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Zug{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_warrior",
+  },
+  {
+    name: "Lock and Load",
+    class: "Hunter",
+    description:
+      "Your {class} shot things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Shoot things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_hunter",
+  },
+  {
+    name: "From Shadows",
+    class: "Rogue",
+    description:
+      "Your {class} stabbed things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Stab things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_rogue",
+  },
+  {
+    name: "Flash! Ah-Ahh!",
+    class: "Priest",
+    description:
+      "Your {class} healed things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Heal things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_priest",
+  },
+  {
+    name: "Woodchuck",
+    class: "Shaman",
+    description:
+      "Your {class} slung totems{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Sling totems{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_shaman",
+  },
+  {
+    name: "Icy Hot",
+    class: "Mage",
+    description:
+      "Your {class} froze and/or burned things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription:
+      "Freeze and/or burn things{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_mage",
+  },
+  {
+    name: "Hex Appeal",
+    class: "Warlock",
+    description:
+      "Your {class} baked cookies{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription: "Bake cookies{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_warlock",
+  },
+  {
+    name: "Knight of Ni",
+    class: "Druid",
+    description:
+      "Your {class} demanded a shrubbery{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    goalDescription:
+      "Demand a shrubbery{?minCount} {minCount} time{minCount:s} {window}{/minCount}.",
+    icon: "classicon_druid",
+  },
+];
+
+function classAttendanceDefinition(
+  entry: (typeof CLASS_ACHIEVEMENTS)[number],
+): AchievementDefinition {
+  return {
+    name: entry.name,
+    description: entry.description,
+    goalDescription: entry.goalDescription,
+    icon: entry.icon,
+    scope: "season",
+    hidden: false,
+    tiers: {
+      copper: { shape: "class_attendance_threshold", class: entry.class, minCount: 1 },
+      silver: { shape: "class_attendance_threshold", class: entry.class, minCount: 5 },
+      gold: { shape: "class_attendance_threshold", class: entry.class, minCount: 10 },
+      thorium: { shape: "class_attendance_threshold", class: entry.class, minCount: 25 },
+      arcanite: { shape: "class_attendance_threshold", class: entry.class, minCount: 50 },
+    },
+  };
+}
+
+// All-time capstone: a single Arcanite-only tier, unbounded window — proves the season/all-time
+// scope dimension and the tier-disable pattern (copper/silver/gold/thorium simply absent) are
+// config toggles, not new engineering. 8 Horde-playable classes across all of history.
+const EVERY_CLASS_ALL_TIME: AchievementDefinition = {
+  name: "Sixty-nine, dudes!",
+  description: "Raided with all 8 horde classes. Excellent! 🎸 🤘",
+  icon: "inv_misc_head_dragon_01",
   scope: "all_time",
-  hidden: false,
+  hidden: true,
   tiers: {
-    platinum: { shape: "class_breadth_window", minDistinctClasses: 8 },
+    arcanite: { shape: "class_breadth_window", minDistinctClasses: 8 },
   },
 };
 
 export function getAchievementDefinitions(): AchievementDefinition[] {
   return [
-    ATTENDANCE,
-    CONSISTENCY,
-    FLEXIBILITY,
-    BENCH_CREDIT,
-    ...ZONE_ATTENDANCE_ZONES.map(zoneAttendanceDefinition),
-    RAID_MARATHON,
-    ZONE_BREADTH,
-    CLASS_BREADTH,
-    FAMILY_DOUBLE_UP,
-    CLASS_BREADTH_ALL_TIME,
+    FOR_THE_HORDE,
+    STEADFAST,
+    FLEXIBLE,
+    PUT_ME_IN_COACH,
+    ...ZONE_ACHIEVEMENTS.map(zoneAttendanceDefinition),
+    GRASS_TO_TOUCH,
+    SHOW_YOU_THE_WORLD,
+    SHAPESHIFTER,
+    MAKE_EM_SEE_DOUBLE,
+    ...CLASS_ACHIEVEMENTS.map(classAttendanceDefinition),
+    EVERY_CLASS_ALL_TIME,
   ];
 }
 
-/** Seeds every rule-based achievement definition, each tier's config included. Distinct from
- *  Phase 1's `createAchievement` (manual-grant, no rule attached) — this is the code-level
- *  seeding path decisions[8] calls for. Idempotent per-run only via the caller checking first;
- *  this function itself always inserts fresh rows (intended as a one-time or re-seeded-from-
- *  scratch operation, not something called on every evaluation). */
+/** Seeds every rule-based achievement definition, each tier's config included. Distinct from the
+ *  admin panel's manual-grant `createAchievement` (no rule attached) — this is the code-level
+ *  seeding path for the real, finalized catalog. Idempotent per-run only via the caller checking
+ *  first; this function itself always inserts fresh rows (intended as a one-time or
+ *  reseeded-from-scratch operation, not something called on every evaluation). */
 export async function seedAchievementDefinitions(
   db: DB,
   seasonId: string,
@@ -205,6 +343,7 @@ export async function seedAchievementDefinitions(
       .values({
         name: definition.name,
         description: definition.description,
+        goalDescription: definition.goalDescription ?? null,
         icon: definition.icon,
         scope: definition.scope,
         seasonId: definition.scope === "season" ? seasonId : null,
@@ -220,7 +359,7 @@ export async function seedAchievementDefinitions(
     >) {
       await db.insert(achievementTiers).values({
         achievementId: achievement!.id,
-        tier: tier as "bronze" | "silver" | "gold" | "platinum",
+        tier: tier as "copper" | "silver" | "gold" | "thorium" | "arcanite",
         ruleConfig: config,
       });
     }

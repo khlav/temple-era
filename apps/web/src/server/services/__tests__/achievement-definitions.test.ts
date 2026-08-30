@@ -17,7 +17,7 @@ afterEach(() => {
 describe("seedAchievementDefinitions", () => {
   it("sets achievement.ruleShape from the definition's own tier shape, not left null", async () => {
     const definitions = getAchievementDefinitions();
-    const attendance = definitions.find((d) => d.name === "Raid Attendance")!;
+    const attendance = definitions.find((d) => d.name === "For the Horde")!;
     const expectedShape = Object.values(attendance.tiers)[0]!.shape;
 
     // Each seeded achievement does one insert(achievements) then one insert(achievementTiers)

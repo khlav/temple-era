@@ -61,7 +61,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       className={`${GeistSans.className} ${displayFont.variable} dark`}
       suppressHydrationWarning={true}
     >
-      <body className="min-h-svh bg-background text-foreground antialiased">
+      <body
+        className="min-h-svh bg-background text-foreground antialiased"
+        suppressHydrationWarning
+      >
         <ThemeProvider attribute="class" forcedTheme="dark" disableTransitionOnChange>
           <TRPCReactProvider>
             <SessionProvider basePath="/login">

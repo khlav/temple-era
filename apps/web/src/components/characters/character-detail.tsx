@@ -12,7 +12,10 @@ import { AttendanceProgressBar } from "~/components/common/attendance-progress-b
 import { AttendanceHeatmapGrid } from "~/components/common/attendance-heatmap-grid";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { api } from "~/trpc/react";
-import { AchievementDisplay } from "~/components/achievements/achievement-display";
+import {
+  AchievementDisplay,
+  formatSeasonPeriod,
+} from "~/components/achievements/achievement-display";
 
 function AttendanceCardContent({
   characterId,
@@ -58,6 +61,7 @@ export function CharacterDetail({
   const alts = (characterData.secondaryCharacters ?? [])
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  const { data: season } = api.achievement.getCurrentSeason.useQuery();
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -165,9 +169,20 @@ export function CharacterDetail({
             </Card>
 
             <Card>
-              <CardContent className="pt-4 sm:pt-4">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 pb-2 pt-3">
+                <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+                  {season ? `${season.name} Achievements` : "Achievements"}
+                </CardTitle>
+                {formatSeasonPeriod(season) && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatSeasonPeriod(season)}
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent className="px-3 sm:px-3">
                 <AchievementDisplay
                   primaryCharacterId={characterData.primaryCharacterId ?? characterId}
+                  showHeader={false}
                 />
               </CardContent>
             </Card>

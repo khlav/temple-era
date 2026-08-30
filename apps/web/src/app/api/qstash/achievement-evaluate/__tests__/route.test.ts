@@ -5,9 +5,10 @@ vi.mock("~/server/services/qstash-verify", () => ({
   verifyQstashRequest: (...args: unknown[]) => mockVerifyQstashRequest(...args),
 }));
 
-const mockEvaluateAchievementsForFamily = vi.fn();
+const mockEvaluateAchievementsForFamilies = vi.fn();
 vi.mock("~/server/services/achievement-rules", () => ({
-  evaluateAchievementsForFamily: (...args: unknown[]) => mockEvaluateAchievementsForFamily(...args),
+  evaluateAchievementsForFamilies: (...args: unknown[]) =>
+    mockEvaluateAchievementsForFamilies(...args),
 }));
 
 // Chainable stand-in for db.selectDistinct().from().innerJoin().innerJoin().where() —
@@ -51,7 +52,7 @@ describe("POST /api/qstash/achievement-evaluate", () => {
 
     expect(response.status).toBe(401);
     expect(mockSelectDistinct).not.toHaveBeenCalled();
-    expect(mockEvaluateAchievementsForFamily).not.toHaveBeenCalled();
+    expect(mockEvaluateAchievementsForFamilies).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed body (missing raidId) — no evaluation attempted", async () => {
@@ -64,23 +65,33 @@ describe("POST /api/qstash/achievement-evaluate", () => {
     const response = await POST(makeRequest({ trigger: "raid_log_import" }));
 
     expect(response.status).toBe(400);
-    expect(mockEvaluateAchievementsForFamily).not.toHaveBeenCalled();
+    expect(mockEvaluateAchievementsForFamilies).not.toHaveBeenCalled();
   });
 
-  it("evaluates exactly the triggering raid's distinct families, not a broader roster", async () => {
+  it("evaluates exactly the triggering raid's distinct families, not a broader roster, in one batch call", async () => {
     mockVerifyQstashRequest.mockResolvedValue({
       valid: true,
       body: JSON.stringify({ raidId: 42, trigger: "raid_log_import" }),
     });
     selectDistinctRows = [{ primaryCharacterId: 1 }, { primaryCharacterId: 2 }];
-    mockEvaluateAchievementsForFamily.mockResolvedValue({ newAwards: [] });
+    mockEvaluateAchievementsForFamilies.mockResolvedValue(
+      new Map([
+        [1, { newAwards: [] }],
+        [2, { newAwards: [] }],
+      ]),
+    );
 
     const { POST } = await import("~/app/api/qstash/achievement-evaluate/route");
     const response = await POST(makeRequest({ raidId: 42, trigger: "raid_log_import" }));
     const responseBody = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockEvaluateAchievementsForFamily).toHaveBeenCalledTimes(2);
+    expect(mockEvaluateAchievementsForFamilies).toHaveBeenCalledTimes(1);
+    expect(mockEvaluateAchievementsForFamilies).toHaveBeenCalledWith(
+      expect.anything(),
+      [1, 2],
+      expect.any(Date),
+    );
     expect(responseBody).toMatchObject({ raidId: 42, familiesEvaluated: 2, newAwards: 0 });
   });
 
@@ -90,16 +101,19 @@ describe("POST /api/qstash/achievement-evaluate", () => {
       body: JSON.stringify({ raidId: 42, trigger: "signup_link_resolved" }),
     });
     selectDistinctRows = [{ primaryCharacterId: 1 }, { primaryCharacterId: 2 }];
-    mockEvaluateAchievementsForFamily
-      .mockRejectedValueOnce(new Error("malformed signup snapshot"))
-      .mockResolvedValueOnce({ newAwards: [{ achievementTierId: "t1", primaryCharacterId: 2 }] });
+    mockEvaluateAchievementsForFamilies.mockResolvedValue(
+      new Map([
+        [1, { error: new Error("malformed signup snapshot") }],
+        [2, { newAwards: [{ achievementTierId: "t1", primaryCharacterId: 2 }] }],
+      ]),
+    );
 
     const { POST } = await import("~/app/api/qstash/achievement-evaluate/route");
     const response = await POST(makeRequest({ raidId: 42, trigger: "signup_link_resolved" }));
     const responseBody = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockEvaluateAchievementsForFamily).toHaveBeenCalledTimes(2);
+    expect(mockEvaluateAchievementsForFamilies).toHaveBeenCalledTimes(1);
     expect(responseBody).toMatchObject({ familiesEvaluated: 2, newAwards: 1, failures: 1 });
   });
 });

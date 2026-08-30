@@ -167,7 +167,6 @@ export const {
 } = AchievementSchema;
 export type {
   AchievementRuleConfig,
-  AchievementRuleConfigAttendanceThreshold,
   AchievementRuleConfigConsistencyMatch,
   AchievementRuleConfigFlexibilityMatch,
   AchievementRuleConfigBenchCreditCount,
@@ -176,6 +175,8 @@ export type {
   AchievementRuleConfigZoneBreadthWindow,
   AchievementRuleConfigClassBreadthWindow,
   AchievementRuleConfigFamilyDoubleUpCooccurrence,
+  AchievementRuleConfigWeightedAttendanceThreshold,
+  AchievementRuleConfigClassAttendanceThreshold,
 } from "~/server/db/models/achievement-schema";
 
 export const {

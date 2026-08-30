@@ -26,7 +26,7 @@ export default async function ManageAchievementsPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6">
+    <main className="mx-auto w-full max-w-5xl px-4 py-6">
       <h1 className="mb-4 text-xl font-semibold">Manage Achievements</h1>
       <AchievementAdminPanel />
     </main>

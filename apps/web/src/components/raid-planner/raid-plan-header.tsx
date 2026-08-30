@@ -541,7 +541,7 @@ export function RaidPlanHeader({
                 )}
                 <div className="flex">
                   <Button
-                    variant="outline"
+                    variant="default"
                     onClick={() => {
                       setCategoryName(name);
                       setExportDialogOpen(true);
@@ -559,7 +559,7 @@ export function RaidPlanHeader({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant="outline"
+                        variant="default"
                         disabled={isExportingAA}
                         className="rounded-l-none border-l-0 px-2"
                       >

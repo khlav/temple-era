@@ -6,7 +6,7 @@ import { api } from "~/trpc/react";
 import { PrettyPrintDate } from "~/lib/helpers";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
 import { ZoneBadge } from "~/components/ui/zone-badge";
-import { PrimaryCharacterRaidsTableRowSkeleton } from "~/components/characters/skeletons";
+import { PrimaryCharacterRaidsRowSkeleton } from "~/components/characters/skeletons";
 import { TableSearchInput } from "~/components/ui/table-search-input";
 import { TableSearchTips } from "~/components/ui/table-search-tips";
 import { SearchSyntaxTips } from "~/components/ui/search-syntax-tips";
@@ -37,7 +37,11 @@ export function PrimaryCharacterRaidsTable({
     searchInputRef.current?.focus();
   }, []);
 
-  // Update URL when search changes
+  // Update URL when search changes. `router.replace` returns a *new* `searchParams` object
+  // reference even when the resulting query string is unchanged, and that reference is a dep
+  // here — so without the no-op guard below, every replace re-triggers this effect, which
+  // replaces again, forever (visible as a constant stream of `?_rsc=` requests, independent of
+  // ever touching the search box, starting right on mount).
   useEffect(() => {
     const params = new URLSearchParams(searchParams?.toString());
 
@@ -47,7 +51,10 @@ export function PrimaryCharacterRaidsTable({
       params.delete("s");
     }
 
-    router.replace(`?${params.toString()}`, { scroll: false });
+    const nextQuery = params.toString();
+    if (nextQuery === (searchParams?.toString() ?? "")) return;
+
+    router.replace(`?${nextQuery}`, { scroll: false });
   }, [searchTerms, router, searchParams]);
 
   // Only fetch raids if this is a primary character
@@ -159,7 +166,7 @@ export function PrimaryCharacterRaidsTable({
               </div>
             )
           ) : (
-            <PrimaryCharacterRaidsTableRowSkeleton />
+            <PrimaryCharacterRaidsRowSkeleton gridColsClassName={GRID_COLS} />
           )}
         </div>
         <div className="border-t border-border/55 px-4 py-2.5 text-xs text-muted-foreground">

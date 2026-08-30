@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Platinum/Diamond options — edges · wrap · effect</title>
+<style>
+  :root { --bg:#14100e; --panel:#1d1815; --edge:#2b241f; --text:#e8ded2; --muted:#9a8c7c;
+    --plat:#cfe3f5; --plat-rim:#8fa3b8; --diam:#b9f2ff; --diam-rim:#9fdcf0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:"Segoe UI",system-ui,sans-serif; padding:40px 24px; }
+  .wrap { max-width:1150px; margin:0 auto; }
+  h1 { font-size:20px; } h2 { margin-top:44px; font-size:15px; color:var(--muted); letter-spacing:1px; }
+  .sub { color:var(--muted); font-size:13px; margin-top:6px; margin-bottom:8px; }
+  .row { display:flex; gap:26px; flex-wrap:wrap; margin-top:18px; }
+  .tile { width:150px; text-align:center; }
+  .desc { font-size:10.5px; color:var(--muted); margin-top:6px; line-height:1.45; }
+  .label { margin-top:8px; font-size:11px; letter-spacing:2px; text-transform:uppercase; font-weight:700; }
+
+  /* shared square construction */
+  .frame { width:112px; height:112px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    border-radius:4px; border:3px solid var(--rim); box-shadow:0 8px 22px #000a; }
+  .plat { --rim:var(--plat-rim); } .diam { --rim:var(--diam-rim); }
+
+  /* ---------- 1. EDGE SOFTENING OPTIONS (icon treatment) ---------- */
+  .edge-none img  { filter:brightness(1.05); }
+  .edge-round img { border-radius:14px; }
+  .edge-mask img {
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 46%, transparent 74%);
+            mask-image: radial-gradient(ellipse at center, #000 46%, transparent 74%);
+  }
+  .edge-halo { position:relative; }
+  .edge-halo::before {
+    content:""; position:absolute; inset:12%;
+    background:var(--halo, radial-gradient(circle, rgba(255,255,255,.5), transparent 70%));
+    filter:blur(10px);
+  }
+  .edge-halo img { position:relative; z-index:1;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 52%, transparent 78%);
+            mask-image: radial-gradient(ellipse at center, #000 52%, transparent 78%); }
+
+  /* ---------- 2. WRAP / BACKDROP TREATMENTS ---------- */
+  .wrap-itemframe { background:
+    radial-gradient(circle at 50% 42%, rgba(207,227,245,.35) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(20,26,34,.9), rgba(28,36,46,.75)); }
+  .wrap-beveled::after { content:""; position:absolute; inset:5px; z-index:2;
+    border:1px solid rgba(255,255,255,.4);
+    background:linear-gradient(135deg, rgba(255,255,255,.14), transparent 30%, transparent 70%, rgba(0,0,0,.2)); }
+  .wrap-brackets::after { content:""; position:absolute; inset:7px; z-index:2; pointer-events:none;
+    background:
+      linear-gradient(var(--rim),var(--rim)) top left/16px 2px,
+      linear-gradient(var(--rim),var(--rim)) top left/2px 16px,
+      linear-gradient(var(--rim),var(--rim)) top right/16px 2px,
+      linear-gradient(var(--rim),var(--rim)) top right/2px 16px,
+      linear-gradient(var(--rim),var(--rim)) bottom left/16px 2px,
+      linear-gradient(var(--rim),var(--rim)) bottom left/2px 16px,
+      linear-gradient(var(--rim),var(--rim)) bottom right/16px 2px,
+      linear-gradient(var(--rim),var(--rim)) bottom right/2px 16px;
+    background-repeat:no-repeat; opacity:.9; }
+  .wrap-sigil { border-color:transparent; box-shadow:none;
+    background:
+      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rim) 32%, transparent) 0%, transparent 62%),
+      radial-gradient(circle at 50% 88%, rgba(255,255,255,.08), transparent 40%); }
+  .wrap-arcane { border-color:#7f6ab0;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(160,130,220,.35) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(34,26,52,.92), rgba(40,30,62,.75)); }
+
+  .wrap-itemframe img, .wrap-beveled img, .wrap-brackets img, .wrap-arcane img {
+    width:76%; height:76%; object-fit:contain; z-index:1;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 55%, transparent 80%);
+            mask-image: radial-gradient(ellipse at center, #000 55%, transparent 80%);
+  }
+  .wrap-sigil img { width:72%; height:72%; object-fit:contain; z-index:1;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 48%, transparent 76%);
+            mask-image: radial-gradient(ellipse at center, #000 48%, transparent 76%); }
+
+  /* ---------- 3A. PLATINUM EFFECTS ---------- */
+  .fx-sweep::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+    background:linear-gradient(105deg, transparent 25%, rgba(255,255,255,.38) 50%, transparent 75%);
+    animation:sweep 3s ease-in-out infinite; }
+  @keyframes sweep { 0%,100%{transform:translateX(-70%);} 50%{transform:translateX(70%);} }
+
+  .fx-flash::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+    background:linear-gradient(70deg, transparent 40%, rgba(230,240,255,.55) 50%, transparent 60%);
+    animation:flash 4.2s steps(1) infinite; }
+  @keyframes flash { 0%,88%{opacity:0; transform:translateX(-80%);} 90%{opacity:1; transform:translateX(-10%);}
+    94%{opacity:1; transform:translateX(30%);} 96%,100%{opacity:0; transform:translateX(90%);} }
+
+  .fx-ray::after { content:""; position:absolute; inset:-40%; z-index:3; pointer-events:none;
+    background:conic-gradient(from 0deg, transparent 0deg, rgba(230,240,255,.16) 10deg, transparent 22deg,
+      transparent 90deg, rgba(230,240,255,.13) 100deg, transparent 112deg,
+      transparent 200deg, rgba(230,240,255,.16) 210deg, transparent 222deg,
+      transparent 300deg, rgba(230,240,255,.13) 310deg, transparent 322deg);
+    animation:spin 9s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+
+  /* ---------- 3B. DIAMOND EFFECTS ---------- */
+  .fx-chroma::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+    background:linear-gradient(115deg, transparent 15%, rgba(255,120,120,.4) 38%, rgba(120,255,200,.4) 55%, rgba(150,150,255,.4) 72%, transparent 85%);
+    mix-blend-mode:screen; animation:sweep 2.8s ease-in-out infinite, chromaCycle 4.5s linear infinite; }
+  @keyframes chromaCycle { to { filter:hue-rotate(360deg); } }
+
+  .tw { position:absolute; inset:0; z-index:3; pointer-events:none; }
+  .tw i { position:absolute; color:#fff; font-style:normal; font-size:13px; opacity:0;
+    animation:twinkle 2.4s ease-in-out infinite; text-shadow:0 0 6px rgba(185,242,255,.9); }
+  .tw i:nth-child(1){top:14%;left:20%;animation-delay:.1s;}
+  .tw i:nth-child(2){top:64%;left:12%;animation-delay:.7s;font-size:9px;}
+  .tw i:nth-child(3){top:30%;left:74%;animation-delay:1.3s;font-size:15px;}
+  .tw i:nth-child(4){top:72%;left:66%;animation-delay:.4s;}
+  .tw i:nth-child(5){top:48%;left:42%;animation-delay:1.8s;font-size:8px;}
+  @keyframes twinkle { 0%,100%{opacity:0; transform:scale(.4);} 50%{opacity:1; transform:scale(1);} }
+
+  .fx-both .chroma-layer::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+    background:linear-gradient(115deg, transparent 15%, rgba(255,120,120,.35) 38%, rgba(120,255,200,.35) 55%, rgba(150,150,255,.35) 72%, transparent 85%);
+    mix-blend-mode:screen; animation:sweep 3.2s ease-in-out infinite, chromaCycle 5s linear infinite; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Platinum &amp; Diamond — option matrix</h1>
+  <p class="sub">Three independent decisions. Mix and match; winners get folded into TierMedal.</p>
+
+  <h2>① Icon edge softening</h2>
+  <p class="sub">Sample shown on platinum item-frame wrap.</p>
+  <div class="row">
+    <div class="tile"><div class="frame plat"><img class="edge-none" src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">A · none</div><div class="desc">control</div></div>
+    <div class="tile"><div class="frame plat"><img class="edge-round" src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">B · rounded</div><div class="desc">rounded corners only; rim stays defined</div></div>
+    <div class="tile"><div class="frame plat"><img class="edge-mask" src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">C · mask feather</div><div class="desc">artwork dissolves at edges into backdrop</div></div>
+    <div class="tile"><div class="frame plat edge-halo" style="--halo:radial-gradient(circle,rgba(207,227,245,.55),transparent 70%)"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">D · halo bloom</div><div class="desc">feather + colored light bleeding from behind</div></div>
+  </div>
+
+  <h2>② Wrap / backdrop treatments</h2>
+  <p class="sub">All shown with mask-feathered icon (option C). Same treatment works for both tiers; hue follows the tier.</p>
+  <div class="row">
+    <div class="tile diam"><div class="frame wrap-itemframe"><img src="https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg"></div><div class="label">A · item frame</div><div class="desc">tier border + dark energy field</div></div>
+    <div class="tile diam"><div class="frame wrap-beveled"><img src="https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg"></div><div class="label">B · beveled gem</div><div class="desc">double frame + facet glass line</div></div>
+    <div class="tile diam"><div class="frame wrap-brackets"><img src="https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg"></div><div class="label">C · brackets</div><div class="desc">ornate corner marks, open center</div></div>
+    <div class="tile plat"><div class="frame wrap-sigil"><img src="https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg"></div><div class="label" style="color:var(--plat)">D · floating sigil</div><div class="desc">borderless pure glow</div></div>
+    <div class="tile"><div class="frame wrap-arcane" style="--rim:#7f6ab0"><img src="https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg"></div><div class="label" style="color:#b9a8e0">E · arcane</div><div class="desc">violet variant — could suit diamond instead of icy</div></div>
+  </div>
+
+  <h2>③ Platinum effects (sheen)</h2>
+  <div class="row">
+    <div class="tile plat"><div class="frame wrap-itemframe fx-sweep"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">A · sweep</div><div class="desc">current style — smooth pass every 3s</div></div>
+    <div class="tile plat"><div class="frame wrap-itemframe fx-flash"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">B · flash strike</div><div class="desc">rare sharp glint-strike every ~4s</div></div>
+    <div class="tile plat"><div class="frame wrap-itemframe fx-ray"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">C · rotating rays</div><div class="desc">slow lighthouse glints orbiting the tile</div></div>
+  </div>
+
+  <h2>④ Diamond effects (sparkle/chroma)</h2>
+  <div class="row">
+    <div class="tile diam"><div class="frame wrap-itemframe fx-chroma"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"></div><div class="label">A · prismatic sweep</div><div class="desc">rainbow band cycling hue as it passes</div></div>
+    <div class="tile diam"><div class="frame wrap-itemframe"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"><span class="tw"><i>✦</i><i>✦</i><i>✦</i><i>✦</i><i>✦</i></span></div><div class="label">B · twinkles</div><div class="desc">star glints popping at random spots</div></div>
+    <div class="tile diam"><div class="frame wrap-itemframe fx-both"><img src="https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg"><span class="chroma-layer"></span><span class="tw"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></span></div><div class="label">C · both</div><div class="desc">prismatic sweep + twinkles layered</div></div>
+  </div>
+</div>
+</body>
+</html>
