@@ -74,6 +74,7 @@ import {
   markAchievementAwardsSeen as mockMarkAchievementAwardsSeen,
   resolveSessionPrimaryCharacterId as mockResolveSessionPrimaryCharacterId,
   listAwardsForFamily as mockListAwardsForFamily,
+  listAchievements as mockListAchievements,
 } from "~/server/services/achievement-service";
 import { getNextTierProgress as mockGetNextTierProgress } from "~/server/services/achievement-rules";
 
@@ -134,6 +135,22 @@ describe("achievement router: manual-grant scope gating", () => {
       caller.achievement.grantAchievement({ achievementTierId: TIER_ID_1, primaryCharacterId: 1 }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(mockGrantAchievement).not.toHaveBeenCalled();
+  });
+
+  it("listAchievements rejects a session without achievement:manage — hidden achievements' names/descriptions/rule configs must not leak to an arbitrary signed-in user", async () => {
+    const caller = callerWithScopes([]);
+    await expect(caller.achievement.listAchievements()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    expect(mockListAchievements).not.toHaveBeenCalled();
+  });
+
+  it("listAchievements succeeds for a session with achievement:manage", async () => {
+    vi.mocked(mockListAchievements).mockResolvedValue([]);
+    const caller = callerWithScopes([SCOPE.ACHIEVEMENT_MANAGE]);
+    const result = await caller.achievement.listAchievements();
+    expect(result).toEqual([]);
+    expect(mockListAchievements).toHaveBeenCalled();
   });
 
   it("manual-grant: createAchievement succeeds for a session with achievement:manage", async () => {

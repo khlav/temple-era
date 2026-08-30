@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { mockDb } = vi.hoisted(() => ({
-  mockDb: {
+const { mockDb } = vi.hoisted(() => {
+  const mockDb = {
     insert: vi.fn(),
+    transaction: vi.fn(),
     query: { achievements: { findMany: vi.fn().mockResolvedValue([]) } },
-  },
-}));
+  };
+  mockDb.transaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+  return { mockDb };
+});
 vi.mock("~/server/db", () => ({ db: mockDb }));
 
 import {

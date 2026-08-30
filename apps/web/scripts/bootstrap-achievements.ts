@@ -84,26 +84,32 @@ async function ensureGuildArmorist(): Promise<void> {
     recipeSpellIds: GUILD_ARMORIST_RECIPE_IDS,
     minCount: GUILD_ARMORIST_RECIPE_IDS.length,
   };
-  await db.insert(achievements).values({
-    id: GUILD_ARMORIST_ID,
-    name: "Guild Armorist",
-    description:
-      "Has every Nature and Frost Resistance armor recipe in the guild's catalog: the full Glacial, Sylvan, Icy Scale, and Polar sets, plus Gaea's Embrace.",
-    // Inert today (hidden achievements never show a "For {tier}" next-tier preview, and this is a
-    // single-tier achievement with nothing above it anyway) — set for consistency with the other 8
-    // Crafting achievements, and in case a lower tier is ever added below Arcanite.
-    goalDescription:
-      "Get every Nature and Frost Resistance armor recipe in the guild's catalog: the full Glacial, Sylvan, Icy Scale, and Polar sets, plus Gaea's Embrace.",
-    icon: "inv_shield_06",
-    scope: "all_time",
-    seasonId: null,
-    ruleShape: "recipe_set_threshold",
-    hidden: true,
-  });
-  await db.insert(achievementTiers).values({
-    achievementId: GUILD_ARMORIST_ID,
-    tier: "arcanite",
-    ruleConfig,
+  // Transactional: without this, a crash between the two inserts would leave a tier-less
+  // achievement row at GUILD_ARMORIST_ID, and the existence check above would skip it on every
+  // future retry (same bug class fixed in seedAchievementDefinitions and
+  // convertOrCreateTradeskillAchievements this round).
+  await db.transaction(async (tx) => {
+    await tx.insert(achievements).values({
+      id: GUILD_ARMORIST_ID,
+      name: "Guild Armorist",
+      description:
+        "Has every Nature and Frost Resistance armor recipe in the guild's catalog: the full Glacial, Sylvan, Icy Scale, and Polar sets, plus Gaea's Embrace.",
+      // Inert today (hidden achievements never show a "For {tier}" next-tier preview, and this is
+      // a single-tier achievement with nothing above it anyway) — set for consistency with the
+      // other 8 Crafting achievements, and in case a lower tier is ever added below Arcanite.
+      goalDescription:
+        "Get every Nature and Frost Resistance armor recipe in the guild's catalog: the full Glacial, Sylvan, Icy Scale, and Polar sets, plus Gaea's Embrace.",
+      icon: "inv_shield_06",
+      scope: "all_time",
+      seasonId: null,
+      ruleShape: "recipe_set_threshold",
+      hidden: true,
+    });
+    await tx.insert(achievementTiers).values({
+      achievementId: GUILD_ARMORIST_ID,
+      tier: "arcanite",
+      ruleConfig,
+    });
   });
   console.log("[guild-armorist] created (Arcanite, rule-based)");
 }

@@ -168,7 +168,13 @@ export const achievementRouter = createTRPCRouter({
     return seasons[0] ?? null;
   }),
 
-  listAchievements: protectedProcedure.query(() => listAchievements()),
+  // Scoped, not merely protected: this returns EVERY achievement including hidden ("Legendary
+  // Feats") ones — name, description, icon, and per-tier ruleConfig — unfiltered. Every earned-
+  // achievement-aware display path (getDisplayCatalog, getPublicCatalog) deliberately excludes
+  // unearned hidden achievements at the query level so their existence never reaches a client
+  // that hasn't earned them; a plain protectedProcedure here would let any signed-in guild member
+  // read the full secret catalog before earning anything, bypassing that design entirely.
+  listAchievements: scopedProcedure(SCOPE.ACHIEVEMENT_MANAGE).query(() => listAchievements()),
 
   // Always the caller's own family, same privacy boundary as getUnseenAwards/getAllAwards —
   // seenAt, awardedByUserId, and source are private per-account state, so this must not take an

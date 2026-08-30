@@ -352,31 +352,39 @@ export async function seedAchievementDefinitions(
     const tierConfigs = Object.values(definition.tiers) as AchievementRuleConfig[];
     const ruleShape = tierConfigs[0]?.shape ?? null;
 
-    const [achievement] = await db
-      .insert(achievements)
-      .values({
-        name: definition.name,
-        description: definition.description,
-        goalDescription: definition.goalDescription ?? null,
-        icon: definition.icon,
-        scope: definition.scope,
-        seasonId: definition.scope === "season" ? seasonId : null,
-        ruleShape,
-        hidden: definition.hidden,
-        createdById: actingUserId ?? null,
-      })
-      .returning();
-    achievementIds.push(achievement!.id);
+    // Transactional: without this, a crash between the achievement insert and its tier-insert
+    // loop leaves a tier-less achievement whose name now exists — the existingNames check above
+    // would then skip it forever on every future retry, contradicting this function's own
+    // convergence guarantee.
+    const achievementId = await db.transaction(async (tx) => {
+      const [achievement] = await tx
+        .insert(achievements)
+        .values({
+          name: definition.name,
+          description: definition.description,
+          goalDescription: definition.goalDescription ?? null,
+          icon: definition.icon,
+          scope: definition.scope,
+          seasonId: definition.scope === "season" ? seasonId : null,
+          ruleShape,
+          hidden: definition.hidden,
+          createdById: actingUserId ?? null,
+        })
+        .returning();
 
-    for (const [tier, config] of Object.entries(definition.tiers) as Array<
-      [keyof AchievementDefinition["tiers"], AchievementRuleConfig]
-    >) {
-      await db.insert(achievementTiers).values({
-        achievementId: achievement!.id,
-        tier: tier as "copper" | "silver" | "gold" | "thorium" | "arcanite",
-        ruleConfig: config,
-      });
-    }
+      for (const [tier, config] of Object.entries(definition.tiers) as Array<
+        [keyof AchievementDefinition["tiers"], AchievementRuleConfig]
+      >) {
+        await tx.insert(achievementTiers).values({
+          achievementId: achievement!.id,
+          tier: tier as "copper" | "silver" | "gold" | "thorium" | "arcanite",
+          ruleConfig: config,
+        });
+      }
+
+      return achievement!.id;
+    });
+    achievementIds.push(achievementId);
   }
   return { achievementIds };
 }
