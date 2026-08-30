@@ -25,6 +25,7 @@
 // nothing to demote — it gets the Thorium/Gold tiers inserted directly instead.
 
 import { eq, and, inArray } from "drizzle-orm";
+import { pathToFileURL } from "node:url";
 import { db } from "~/server/db";
 import {
   achievements,
@@ -81,7 +82,7 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
   },
   "0164a7f1-321c-4fbd-86be-03de62e6128c": {
     name: "Sew Cold",
-    icon: "inv_misc_cape_16",
+    icon: "inv_chest_cloth_08",
     recipeSpellIds: [28208, 28205, 28207, 28209],
     goldMinCount: 2,
     description:
@@ -91,7 +92,7 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
   },
   "cdb3bc09-e47c-4d0f-b2ab-e1b8b21edfd1": {
     name: "Sew Natural",
-    icon: "inv_crown_01",
+    icon: "inv_chest_plate07",
     recipeSpellIds: [28481, 28482, 28480, 28210],
     goldMinCount: 2,
     description:
@@ -101,7 +102,7 @@ export const ACHIEVEMENTS: Record<string, AchievementConfig> = {
   },
   "365d3c49-2808-4303-aa0b-45ebe8f632b0": {
     name: "Stitch Cold",
-    icon: "inv_bracer_07",
+    icon: "inv_chest_plate09", // Icy Scale Breastplate (item 22664) — verified via Wowhead's tooltip API
     recipeSpellIds: [28224, 28222, 28223, 28221, 28220, 28219],
     goldMinCount: 3,
     description:
@@ -218,6 +219,7 @@ export async function convertOrCreateTradeskillAchievements(): Promise<void> {
           hidden: false,
           description: cfg.description,
           goalDescription: cfg.goalDescription,
+          icon: cfg.icon,
         },
       });
 
@@ -375,7 +377,11 @@ export async function evaluateRecipeSetThresholdAwards(): Promise<number> {
 
 // Only auto-run when this file is the actual entrypoint (tsx invoking it directly) — not when
 // bootstrap-achievements.ts imports convertOrCreateTradeskillAchievements/evaluateRecipeSetThresholdAwards.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not a manual `file://${...}` template: process.argv[1] is a plain OS path
+// (backslashes on Windows), while import.meta.url is always a properly-encoded file:// URL
+// (forward slashes, three after the scheme) — the naive template never matched on Windows,
+// so this guard was silently false there and the script exited immediately doing nothing.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   convertOrCreateTradeskillAchievements()
     .then(() => evaluateRecipeSetThresholdAwards())
     .then(() => process.exit(0))
