@@ -516,9 +516,12 @@ function scoreFlexibilityMatch(
       .filter((s) => withinWindow(s.raidStartTime, window) && s.bucket === "confirmed")
       .filter((s) => {
         // Cross-character: someone from the family attended this raid, but not the specific
-        // character that signed up for it.
+        // character that signed up for it. Requiring the signed-up character's OWN absence (not
+        // just "some other id is present") matters: the signed-up character can attend alongside
+        // a second family member in the same raid, and that's not a swap — a `.some(id !== x)`
+        // check is true in that case too, which credited "Flexible" for a raid nobody swapped on.
         const attendees = attendedCharacterIdsByRaid.get(s.raidId);
-        return !!attendees && [...attendees].some((id) => id !== s.signedUpCharacterId);
+        return !!attendees && !attendees.has(s.signedUpCharacterId);
       })
       .map((s) => s.raidId),
   );

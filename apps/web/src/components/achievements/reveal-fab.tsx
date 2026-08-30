@@ -51,13 +51,19 @@ export function RevealFab(): React.JSX.Element | null {
   const debugMode = process.env.NODE_ENV === "development" && debugParamPresent;
   const revealed = isAchievementsLive() || debugParamPresent;
 
+  const utils = api.useUtils();
   const { data: unseen } = api.achievement.getUnseenAwards.useQuery(undefined, {
     enabled: status === "authenticated" && !debugMode,
   });
   const { data: allAwards } = api.achievement.getAllAwards.useQuery(undefined, {
     enabled: status === "authenticated" && debugMode,
   });
-  const markSeen = api.achievement.markSeen.useMutation();
+  // Without invalidating here, the badge count would stay stale for the rest of the session:
+  // RevealFab lives in the root layout and never unmounts across client-side navigation, so the
+  // unseen-awards query it already fetched just keeps sitting in cache after markSeen fires.
+  const markSeen = api.achievement.markSeen.useMutation({
+    onSuccess: () => void utils.achievement.getUnseenAwards.invalidate(),
+  });
   const [open, setOpen] = React.useState(false);
 
   const source = debugMode ? allAwards : unseen;

@@ -345,8 +345,9 @@ function EditAchievementDialog({
         <DialogHeader>
           <DialogTitle>Edit custom achievement</DialogTitle>
           <DialogDescription>
-            Existing awards keep whatever tier they were granted at — this only changes the
-            definition going forward.
+            Existing awards keep pointing at this achievement — nobody loses it. Any change here,
+            including the tier, is retroactive: everyone who already holds it will display at
+            whatever you save.
           </DialogDescription>
         </DialogHeader>
 

@@ -430,6 +430,46 @@ describe("shape: flexibility", () => {
     const context = ctx({ attendedRaids: [], matchedSignups: [] });
     expect((await scoreByShape(NOOP_DB, 1, context, config, WINDOW)).crossed).toBe(false);
   });
+
+  it("flexibility: does NOT award when the signed-up character attends alongside a second family character — that's not a swap", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "flexibility_match",
+      minCount: 1,
+      lockoutWeeks: 6,
+    };
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1, // the signed-up character DID attend...
+          zone: "Molten Core",
+          class: "Warrior",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
+        },
+        {
+          raidId: 1,
+          characterId: 2, // ...alongside a second family member — no swap happened
+          zone: "Molten Core",
+          class: "Mage",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
+        },
+      ],
+      matchedSignups: [
+        {
+          raidId: 1,
+          signedUpCharacterId: 1,
+          bucket: "confirmed",
+          checkpointHoursBeforeStart: 24,
+          raidStartTime: new Date("2026-09-10"),
+        },
+      ],
+    });
+    expect((await scoreByShape(NOOP_DB, 1, context, config, WINDOW)).crossed).toBe(false);
+  });
 });
 
 describe("shape: bench-credit", () => {
