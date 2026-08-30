@@ -990,7 +990,7 @@ function CatalogSection({
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="core">Core</TabsTrigger>
               <TabsTrigger value="classes">Classes</TabsTrigger>
-              <TabsTrigger value="tradeskill">Tradeskill</TabsTrigger>
+              <TabsTrigger value="tradeskill">Crafting</TabsTrigger>
               <TabsTrigger value="secret">Legendary Feats</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1025,7 +1025,7 @@ function CatalogSection({
           )}
           {showTradeskill && tradeskill.length > 0 && (
             <CatalogGroup
-              title="Tradeskill"
+              title="Crafting"
               showTitle={activeTab === "all"}
               achievements={tradeskill}
               searchTerms={searchTerms}
