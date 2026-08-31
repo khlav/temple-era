@@ -113,8 +113,13 @@ function formatEarnedRarityLine(
       holderLabels[0] === "you" ? ["You", ...holderLabels.slice(1)] : holderLabels;
     rarity = `${joinNames(capitalized)} have this achievement`;
   } else {
+    // holderCount === 1 only reaches this branch via the same data-inconsistency edge case
+    // achievement-queries.ts's withRarity guards against (holderLabels null despite a count of 1)
+    // — singularized so it reads "1 player has", not "1 players have".
     const count = SPELLED_NUMBERS[holderCount] ?? String(holderCount);
-    rarity = `${count} players have this achievement`;
+    const noun = holderCount === 1 ? "player" : "players";
+    const verb = holderCount === 1 ? "has" : "have";
+    rarity = `${count} ${noun} ${verb} this achievement`;
   }
   return `Earned ${date} • ${rarity}`;
 }
