@@ -625,7 +625,6 @@ function CustomAchievementsSection({ catalog }: { catalog: AdminAchievement[] | 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">{achievement.name}</span>
-                      <Badge variant="secondary">{TIER_LABEL[tier.tier]}</Badge>
                       <span className="text-xs text-muted-foreground">
                         {achievement.scope === "season" ? "In-Season" : "All-time"}
                       </span>

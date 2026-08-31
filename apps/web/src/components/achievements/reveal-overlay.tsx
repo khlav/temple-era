@@ -5,6 +5,8 @@ import Link from "next/link";
 import "./reveal-overlay.css";
 import type { UnseenAward } from "~/server/services/achievement-queries";
 import { getSpellIconUrl } from "~/hooks/use-spell-icon";
+import { PrettyPrintDate } from "~/lib/helpers";
+import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 
 /*
@@ -64,6 +66,63 @@ export const TIER_LABEL: Record<AchievementTierLevel, string> = {
   thorium: TIER_CONFIG.thorium.label,
   arcanite: TIER_CONFIG.arcanite.label,
 };
+
+// holderLabels only ever names up to MAX_NAMED_HOLDERS (achievement-queries.ts) — past that it's
+// null and this bare count takes over. Spelled out for the common past-3 counts (a digit reads
+// oddly at this size, "4 players"); past 10 the digit is the more scannable form and stays numeric.
+const SPELLED_NUMBERS: Record<number, string> = {
+  4: "Four",
+  5: "Five",
+  6: "Six",
+  7: "Seven",
+  8: "Eight",
+  9: "Nine",
+  10: "Ten",
+};
+
+/** "A, B, and C" — Oxford comma, 2 names getting the plain "A and B" form since a comma before a
+ *  2-item "and" reads as a typo, not a list. */
+function joinNames(labels: string[]): string {
+  if (labels.length === 1) return labels[0]!;
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+/** "Earned {date} • {rarity}" subline under the description.
+ *  - 1 holder: "Only you have this achievement" ("you" always takes "have", never "has", same
+ *    as "you are" vs "he is") or "Only {name} has this achievement".
+ *  - 2-3 holders (holderLabels non-null, "you" sorted first when present — see
+ *    achievement-queries.ts's withRarity): "{names} have this achievement", no "Only" — plural
+ *    subjects don't carry the same "just them" implication a lone name does. Sentence-initial
+ *    "you" is capitalized since there's no "Only" ahead of it here.
+ *  - past that (holderLabels null): "{count} players have this achievement". */
+function formatEarnedRarityLine(
+  awardedAt: Date,
+  holderCount: number,
+  holderLabels: string[] | null,
+): string {
+  const date = PrettyPrintDate(awardedAt, false, EASTERN_TIMEZONE);
+  let rarity: string;
+  if (holderLabels && holderLabels.length === 1) {
+    const label = holderLabels[0]!;
+    rarity = `Only ${label} ${label === "you" ? "have" : "has"} this achievement`;
+  } else if (holderLabels) {
+    // Capitalize a sentence-initial "you" by swapping the label itself, not the joined string —
+    // "you" only ever appears as a whole list entry, so this can't accidentally touch a name.
+    const capitalized =
+      holderLabels[0] === "you" ? ["You", ...holderLabels.slice(1)] : holderLabels;
+    rarity = `${joinNames(capitalized)} have this achievement`;
+  } else {
+    // holderCount === 1 only reaches this branch via the same data-inconsistency edge case
+    // achievement-queries.ts's withRarity guards against (holderLabels null despite a count of 1)
+    // — singularized so it reads "1 player has", not "1 players have".
+    const count = SPELLED_NUMBERS[holderCount] ?? String(holderCount);
+    const noun = holderCount === 1 ? "player" : "players";
+    const verb = holderCount === 1 ? "has" : "have";
+    rarity = `${count} ${noun} ${verb} this achievement`;
+  }
+  return `Earned ${date} • ${rarity}`;
+}
 
 export function MedalIcon({ tier, icon }: { tier: AchievementTierLevel; icon: string }) {
   const src = getSpellIconUrl(icon, "large");
@@ -759,6 +818,9 @@ export function RevealOverlay({
               <h1>{hero.name}</h1>
               <div className="ro-tier-sub">{t.label} achievement</div>
               {hero.description && <div className="ro-description">{hero.description}</div>}
+              <div className="ro-earned-line">
+                {formatEarnedRarityLine(hero.awardedAt, hero.holderCount, hero.holderLabels)}
+              </div>
               {rest.length > 0 && (
                 <div className={`ro-strip ${stripOpen ? "ro-open" : ""}`}>
                   <div className="ro-strip-inner">
