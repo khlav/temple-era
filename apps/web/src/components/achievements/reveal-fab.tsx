@@ -10,13 +10,20 @@ import {
   collapseToHighestTierPerAchievement,
   pickHero,
 } from "~/components/achievements/reveal-overlay";
-import {
-  REVEAL_DEBUG_PARAM,
-  isAchievementsLive,
-  useUrlParamPresent,
-} from "~/lib/achievements-launch";
 
-const DEBUG_PARAM = REVEAL_DEBUG_PARAM;
+const DEBUG_PARAM = "revealDebug";
+
+/**
+ * Whether `name` is present in the current URL's query string. False on the server and on the
+ * very first client render; flips true right after mount if the param is present.
+ */
+function useUrlParamPresent(name: string): boolean {
+  const [present, setPresent] = React.useState(false);
+  React.useEffect(() => {
+    setPresent(new URLSearchParams(window.location.search).has(name));
+  }, [name]);
+  return present;
+}
 
 /**
  * Global floating button, badged with the caller's own unseen-award count. Reveal only ever
@@ -32,24 +39,19 @@ const DEBUG_PARAM = REVEAL_DEBUG_PARAM;
  * TIER_CONFIG swatch — not a generic Lucide glyph in a fixed color, so the FAB previews exactly
  * what it's about to show instead of looking disconnected from the rest of the achievement UI.
  *
- * `?revealDebug=1` does two things, one per environment. Everywhere (including production), its
- * mere presence is the early-access override for `isAchievementsLive()` — see
- * `~/lib/achievements-launch` — letting the FAB (and the nav link) be previewed with real unseen
- * awards before the public launch instant. In development only, it additionally flips on
- * `debugMode`, which swaps the source from "unseen awards" to "every award this family has ever
- * earned, seenAt ignored" and skips the markSeen call on dismiss — lets the full hero+"Also
- * earned" strip ceremony be replayed on demand while iterating on the animation. The Achievements
- * page's own Replay button only replays one award at a time and can't reproduce the multi-award
- * strip. Debug mode uses the exact same pill (same medal art, same hero-tier coloring) with a
- * "[DEBUG]" prefix on the label rather than a visually distinct treatment — nothing about it
- * needs to look different, it's just fed a different award list (everything ever earned vs. only
- * what's unseen).
+ * `?revealDebug=1`, in development only, flips on `debugMode`, which swaps the source from
+ * "unseen awards" to "every award this family has ever earned, seenAt ignored" and skips the
+ * markSeen call on dismiss — lets the full hero+"Also earned" strip ceremony be replayed on
+ * demand while iterating on the animation. The Achievements page's own Replay button only
+ * replays one award at a time and can't reproduce the multi-award strip. Debug mode uses the
+ * exact same pill (same medal art, same hero-tier coloring) with a "[DEBUG]" prefix on the label
+ * rather than a visually distinct treatment — nothing about it needs to look different, it's
+ * just fed a different award list (everything ever earned vs. only what's unseen).
  */
 export function RevealFab(): React.JSX.Element | null {
   const { status } = useSession();
   const debugParamPresent = useUrlParamPresent(DEBUG_PARAM);
   const debugMode = process.env.NODE_ENV === "development" && debugParamPresent;
-  const revealed = isAchievementsLive() || debugParamPresent;
 
   const utils = api.useUtils();
   const { data: unseen } = api.achievement.getUnseenAwards.useQuery(undefined, {
@@ -76,7 +78,7 @@ export function RevealFab(): React.JSX.Element | null {
     [source],
   );
 
-  if (!revealed || !source || source.length === 0) return null;
+  if (!source || source.length === 0) return null;
 
   const countLabel = `New Achievement${displayAwards.length === 1 ? "" : "s"}`;
   const label = debugMode

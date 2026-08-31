@@ -45,11 +45,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { cn } from "~/lib/utils";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { SCOPE } from "~/lib/scopes";
-import {
-  REVEAL_DEBUG_PARAM,
-  isAchievementsLive,
-  useUrlParamPresent,
-} from "~/lib/achievements-launch";
 
 const primaryNav = [
   { label: "Dashboard", href: "/" },
@@ -123,12 +118,7 @@ export const AppHeader = () => {
   const { data: session } = useSession();
   const { setOpen } = useGlobalQuickLauncher();
 
-  const revealDebugPresent = useUrlParamPresent(REVEAL_DEBUG_PARAM);
-  const achievementsRevealed = isAchievementsLive() || revealDebugPresent;
-  const visiblePrimaryNav = useMemo(
-    () => primaryNav.filter((item) => item.href !== "/achievements" || achievementsRevealed),
-    [achievementsRevealed],
-  );
+  const visiblePrimaryNav = primaryNav;
 
   const scopes = session?.user?.scopes;
   const visibleManagerNav = useMemo(

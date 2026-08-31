@@ -16,11 +16,6 @@ import {
   AchievementDisplay,
   formatSeasonPeriod,
 } from "~/components/achievements/achievement-display";
-import {
-  REVEAL_DEBUG_PARAM,
-  isAchievementsLive,
-  useUrlParamPresent,
-} from "~/lib/achievements-launch";
 
 function AttendanceCardContent({
   characterId,
@@ -66,10 +61,7 @@ export function CharacterDetail({
   const alts = (characterData.secondaryCharacters ?? [])
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-  const achievementsRevealed = isAchievementsLive() || useUrlParamPresent(REVEAL_DEBUG_PARAM);
-  const { data: season } = api.achievement.getCurrentSeason.useQuery(undefined, {
-    enabled: achievementsRevealed,
-  });
+  const { data: season } = api.achievement.getCurrentSeason.useQuery();
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -176,26 +168,24 @@ export function CharacterDetail({
               </CardContent>
             </Card>
 
-            {achievementsRevealed && (
-              <Card>
-                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 pb-2 pt-3">
-                  <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
-                    {season ? `${season.name} Achievements` : "Achievements"}
-                  </CardTitle>
-                  {formatSeasonPeriod(season) && (
-                    <span className="text-xs text-muted-foreground">
-                      {formatSeasonPeriod(season)}
-                    </span>
-                  )}
-                </CardHeader>
-                <CardContent className="px-3 sm:px-3">
-                  <AchievementDisplay
-                    primaryCharacterId={characterData.primaryCharacterId ?? characterId}
-                    showHeader={false}
-                  />
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 pb-2 pt-3">
+                <CardTitle className="text-sm font-semibold tracking-tight sm:text-[15px]">
+                  {season ? `${season.name} Achievements` : "Achievements"}
+                </CardTitle>
+                {formatSeasonPeriod(season) && (
+                  <span className="text-xs text-muted-foreground">
+                    {formatSeasonPeriod(season)}
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent className="px-3 sm:px-3">
+                <AchievementDisplay
+                  primaryCharacterId={characterData.primaryCharacterId ?? characterId}
+                  showHeader={false}
+                />
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader className="pb-2 pt-3">
