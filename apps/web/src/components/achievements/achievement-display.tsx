@@ -130,7 +130,7 @@ function AchievementChip({
     <button
       type="button"
       onClick={() => onReplay(achievementAwardId)}
-      className="rounded-md transition-colors hover:bg-accent/40"
+      className="cursor-pointer rounded-md transition-colors hover:bg-accent/40"
     >
       {chip}
     </button>
