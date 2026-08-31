@@ -14,6 +14,7 @@ import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { getSpellIconUrl } from "~/hooks/use-spell-icon";
 import { PrettyPrintDate } from "~/lib/helpers";
+import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
 import { cn } from "~/lib/utils";
 import type { DisplayAchievement } from "~/server/services/achievement-queries";
 
@@ -26,9 +27,9 @@ export function formatSeasonPeriod(
   season: { name: string; startDate: Date; endDate: Date | null } | null | undefined,
 ): string | null {
   if (!season) return null;
-  const start = PrettyPrintDate(season.startDate);
+  const start = PrettyPrintDate(season.startDate, false, EASTERN_TIMEZONE);
   return season.endDate
-    ? `${season.name} runs from ${start} to ${PrettyPrintDate(season.endDate)}`
+    ? `${season.name} runs from ${start} to ${PrettyPrintDate(season.endDate, false, EASTERN_TIMEZONE)}`
     : `${season.name} runs from ${start}`;
 }
 
