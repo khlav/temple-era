@@ -99,6 +99,29 @@ function callerWithScopes(scopes: string[]) {
   });
 }
 
+/** getUnseenAwards/getAllAwards/getAwardById each follow their `.query.achievementAwards` lookup
+ *  with achievement-queries.ts's withRarity: a batched `db.select(...).where(...).groupBy(...)`
+ *  holder count (getHolderCounts, filtered/grouped directly on achievementTierId — no join) and a
+ *  batched `db.selectDistinct(...).where(...)` holder-id lookup (getHolderIds) — every fakeDb
+ *  exercising one of those three needs both chains stubbed too, resolving empty so holderCount
+ *  defaults to 1 and holderLabels to null. */
+function fakeRarityChain() {
+  return {
+    select: vi.fn().mockReturnValue({
+      from: () => ({
+        where: () => ({
+          groupBy: () => Promise.resolve([]),
+        }),
+      }),
+    }),
+    selectDistinct: vi.fn().mockReturnValue({
+      from: () => ({
+        where: () => Promise.resolve([]),
+      }),
+    }),
+  };
+}
+
 /** Same as callerWithScopes, but with a real (fake) db object instead of `{}` — for the three
  *  query procedures that call achievement-queries.ts's real, db-injected functions. */
 function callerWithDb(scopes: string[], fakeDb: unknown) {
@@ -444,6 +467,7 @@ describe("achievement-queries", () => {
             id: AWARD_ID_1,
             awardedAt: new Date("2026-09-10"),
             achievementTier: {
+              id: TIER_ID_1,
               achievementId: "ach-1",
               tier: "copper",
               ruleConfig: null,
@@ -457,6 +481,7 @@ describe("achievement-queries", () => {
           }),
         },
       },
+      ...fakeRarityChain(),
     };
     const caller = createCaller({
       db: fakeDb as never,
@@ -571,6 +596,7 @@ describe("achievement-queries", () => {
       id,
       awardedAt: new Date(awardedAt),
       achievementTier: {
+        id: `tier-${id}`,
         tier,
         achievementId: `ach-${id}`,
         achievement: { name: id, icon: "trophy" },
@@ -589,6 +615,7 @@ describe("achievement-queries", () => {
             ]),
         },
       },
+      ...fakeRarityChain(),
     };
     vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(1);
     const caller = callerWithDb([], fakeDb);

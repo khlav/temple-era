@@ -226,8 +226,17 @@ export const achievementRouter = createTRPCRouter({
   // of seenAt, unlike getUnseenAwards. Public, not protected, for the same reason as
   // getDisplayCatalog above: a signed-out visitor on a character page now legitimately sees real
   // earned chips (via getDisplayCatalog), and clicking one to replay must not throw just because
-  // there's no session — this never reads ctx.session, only an opaque award id.
+  // there's no session — an opaque award id is enough on its own. It does read ctx.session now
+  // (optional, via getSession()), but only to tell the reveal overlay's rarity line "you" from
+  // the actual holder's name when the award being replayed belongs to someone else's family (a
+  // character page's chip click, not just the caller's own) — no other behavior branches on it.
   getAwardById: publicProcedure
     .input(z.object({ achievementAwardId: z.string().uuid() }))
-    .query(({ ctx, input }) => getAwardById(ctx.db, input.achievementAwardId)),
+    .query(async ({ ctx, input }) => {
+      const session = await ctx.getSession();
+      const viewerPrimaryCharacterId = session?.user
+        ? await resolveSessionPrimaryCharacterId(session.user.id)
+        : null;
+      return getAwardById(ctx.db, input.achievementAwardId, viewerPrimaryCharacterId);
+    }),
 });

@@ -1,6 +1,11 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type db as database } from "~/server/db";
-import { achievements, achievementAwards, type AchievementRuleConfig } from "~/server/db/schema";
+import {
+  achievements,
+  achievementAwards,
+  characters,
+  type AchievementRuleConfig,
+} from "~/server/db/schema";
 import { resolveAchievementDescription } from "~/server/services/achievement-description";
 
 type DB = typeof database;
@@ -23,7 +28,31 @@ export interface UnseenAward {
   /** Resolved against this specific tier's ruleConfig — see resolveAchievementDescription. "" when
    *  the achievement has no description template. */
   description: string;
+  /** Distinct families holding an award for THIS tier of this achievement — not "any tier", so a
+   *  Gold reveal counts Gold-or-better holders, not everyone who merely has Copper. This falls out
+   *  for free from the tier-crossing model: crossing Arcanite also crosses (and inserts a row for)
+   *  every lower tier in the same pass — see achievement-rules.ts's evaluateAchievementsForFamilies
+   *  — so "holds an award at exactly this tier" already means "at this tier or higher", with no
+   *  rank comparison needed. Always >= 1, since the family this award is being displayed to is
+   *  itself a holder. */
+  holderCount: number;
+  /** Populated only when holderCount <= 3: one label per holder, "you" for the viewer themselves
+   *  (when known — see viewerPrimaryCharacterId), a character name for everyone else, "you" sorted
+   *  first when present. Lets the reveal overlay name names ("Only you", "Only Desil holds this
+   *  achievement", "Only you and Desil hold this achievement") instead of a bare count once it
+   *  gets too crowded to name everyone (holderCount > 3, when this is null). */
+  holderLabels: string[] | null;
 }
+
+/** toUnseenAward's own return shape, before rarity is merged in by withRarity/getAwardById below —
+ *  kept private so every exported award-returning function is forced through one of those, never
+ *  accidentally handing out a UnseenAward with a stale/default holderCount. achievementTierId is
+ *  likewise private to this file: the grouping key withRarity needs for the "this tier, not any
+ *  tier" count (see holderCount's own doc comment), stripped back off before returning. */
+type RawAward = Omit<UnseenAward, "holderCount" | "holderLabels"> & { achievementTierId: string };
+
+/** Reveal overlay shows real names up to this many holders before falling back to a bare count. */
+const MAX_NAMED_HOLDERS = 3;
 
 // Shared by every query below that walks achievementAwards -> achievementTier -> achievement —
 // a plain duck-typed shape (rather than deriving from a specific `with`-clause query's inferred
@@ -33,6 +62,7 @@ interface AwardRow {
   id: string;
   awardedAt: Date;
   achievementTier: {
+    id: string;
     achievementId: string;
     tier: string;
     ruleConfig: AchievementRuleConfig | null;
@@ -45,10 +75,11 @@ interface AwardRow {
   };
 }
 
-function toUnseenAward(row: AwardRow): UnseenAward {
+function toUnseenAward(row: AwardRow): RawAward {
   return {
     achievementAwardId: row.id,
     achievementId: row.achievementTier.achievementId,
+    achievementTierId: row.achievementTier.id,
     name: row.achievementTier.achievement.name,
     icon: row.achievementTier.achievement.icon,
     tier: row.achievementTier.tier as AchievementTierLevel,
@@ -61,10 +92,102 @@ function toUnseenAward(row: AwardRow): UnseenAward {
   };
 }
 
-function byRarestThenNewest(a: UnseenAward, b: UnseenAward): number {
+function byRarestThenNewest(
+  a: { tier: AchievementTierLevel; awardedAt: Date },
+  b: { tier: AchievementTierLevel; awardedAt: Date },
+): number {
   const r = TIER_RANK[b.tier] - TIER_RANK[a.tier];
   if (r !== 0) return r;
   return b.awardedAt.getTime() - a.awardedAt.getTime();
+}
+
+/** Distinct primaryCharacterId count per achievementTierId — one grouped query for however many
+ *  tiers a batch of awards touches, rather than one count query per award. No join needed:
+ *  achievementTierId is a column on achievementAwards itself, and (per holderCount's own doc
+ *  comment) filtering to exactly this tier already means "this tier or higher". */
+async function getHolderCounts(db: DB, achievementTierIds: string[]): Promise<Map<string, number>> {
+  if (achievementTierIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      achievementTierId: achievementAwards.achievementTierId,
+      count: sql<number>`count(distinct ${achievementAwards.primaryCharacterId})::int`,
+    })
+    .from(achievementAwards)
+    .where(inArray(achievementAwards.achievementTierId, achievementTierIds))
+    .groupBy(achievementAwards.achievementTierId);
+  return new Map(rows.map((r) => [r.achievementTierId, r.count]));
+}
+
+/** The actual holder ids for tiers with <= MAX_NAMED_HOLDERS holders — a second, narrower query
+ *  rather than folding into getHolderCounts, so a common tier with dozens of holders never pulls
+ *  its full holder list just to get thrown away. */
+async function getHolderIds(db: DB, achievementTierIds: string[]): Promise<Map<string, number[]>> {
+  if (achievementTierIds.length === 0) return new Map();
+  const rows = await db
+    .selectDistinct({
+      achievementTierId: achievementAwards.achievementTierId,
+      primaryCharacterId: achievementAwards.primaryCharacterId,
+    })
+    .from(achievementAwards)
+    .where(inArray(achievementAwards.achievementTierId, achievementTierIds));
+  const byTier = new Map<string, number[]>();
+  for (const r of rows) {
+    const ids = byTier.get(r.achievementTierId) ?? [];
+    ids.push(r.primaryCharacterId);
+    byTier.set(r.achievementTierId, ids);
+  }
+  return byTier;
+}
+
+/** Merges each award's rarity in via one batched getHolderCounts call, a narrower batched
+ *  getHolderIds call for anything at or under MAX_NAMED_HOLDERS, and a batched character-name
+ *  lookup for whichever of those ids aren't the viewer — every exported award-returning function
+ *  below routes through this rather than computing holderCount/holderLabels itself.
+ *  `viewerPrimaryCharacterId` is the family currently looking at these awards — null when there's
+ *  no way to know (a signed-out getAwardById caller), in which case a label can only ever resolve
+ *  to a name, never "you". */
+async function withRarity(
+  db: DB,
+  awards: RawAward[],
+  viewerPrimaryCharacterId: number | null,
+): Promise<UnseenAward[]> {
+  const achievementTierIds = [...new Set(awards.map((a) => a.achievementTierId))];
+  const counts = await getHolderCounts(db, achievementTierIds);
+
+  const namedTierIds = achievementTierIds.filter(
+    (id) => (counts.get(id) ?? 1) <= MAX_NAMED_HOLDERS,
+  );
+  const holderIds = await getHolderIds(db, namedTierIds);
+
+  const idsNeedingNames = new Set<number>();
+  for (const ids of holderIds.values()) {
+    for (const id of ids) if (id !== viewerPrimaryCharacterId) idsNeedingNames.add(id);
+  }
+  const names =
+    idsNeedingNames.size === 0
+      ? new Map<number, string>()
+      : new Map(
+          (
+            await db
+              .select({ characterId: characters.characterId, name: characters.name })
+              .from(characters)
+              .where(inArray(characters.characterId, [...idsNeedingNames]))
+          ).map((r) => [r.characterId, r.name]),
+        );
+
+  return awards.map((a) => {
+    const { achievementTierId, ...rest } = a;
+    const holderCount = counts.get(achievementTierId) ?? 1;
+    const ids = holderIds.get(achievementTierId) ?? (holderCount <= MAX_NAMED_HOLDERS ? [] : null);
+    const holderLabels =
+      ids === null
+        ? null
+        : ids
+            // "you" first when present, then alphabetically by real name for a stable order.
+            .map((id) => (id === viewerPrimaryCharacterId ? "you" : (names.get(id) ?? "someone")))
+            .sort((x, y) => (x === "you" ? -1 : y === "you" ? 1 : x.localeCompare(y)));
+    return { ...rest, holderCount, holderLabels };
+  });
 }
 
 /** Backs the FAB badge count and the reveal overlay's hero+strip batch — ordered rarest-tier-
@@ -80,7 +203,7 @@ export async function getUnseenAwards(db: DB, primaryCharacterId: number): Promi
     ),
     with: { achievementTier: { with: { achievement: true } } },
   });
-  return rows.map(toUnseenAward).sort(byRarestThenNewest);
+  return withRarity(db, rows.map(toUnseenAward).sort(byRarestThenNewest), primaryCharacterId);
 }
 
 /** Every award ever crossed by this family, `seenAt` ignored entirely — backs the dev-only reveal
@@ -92,20 +215,25 @@ export async function getAllAwards(db: DB, primaryCharacterId: number): Promise<
     where: eq(achievementAwards.primaryCharacterId, primaryCharacterId),
     with: { achievementTier: { with: { achievement: true } } },
   });
-  return rows.map(toUnseenAward).sort(byRarestThenNewest);
+  return withRarity(db, rows.map(toUnseenAward).sort(byRarestThenNewest), primaryCharacterId);
 }
 
-/** Backs the Achievements page's replay — works regardless of `seenAt`, unlike getUnseenAwards. */
+/** Backs the Achievements page's replay — works regardless of `seenAt`, unlike getUnseenAwards.
+ *  `viewerPrimaryCharacterId` is the signed-in viewer's own family, when known (this can be called
+ *  signed-out, or for someone else's award via a character page's chip click — see
+ *  soleHolderLabel's own doc comment on UnseenAward). */
 export async function getAwardById(
   db: DB,
   achievementAwardId: string,
+  viewerPrimaryCharacterId: number | null,
 ): Promise<UnseenAward | null> {
   const row = await db.query.achievementAwards.findFirst({
     where: eq(achievementAwards.id, achievementAwardId),
     with: { achievementTier: { with: { achievement: true } } },
   });
   if (!row) return null;
-  return toUnseenAward(row);
+  const [award] = await withRarity(db, [toUnseenAward(row)], viewerPrimaryCharacterId);
+  return award!;
 }
 
 export interface DisplayAchievement {
