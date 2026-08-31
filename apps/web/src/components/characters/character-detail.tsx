@@ -214,7 +214,7 @@ export function CharacterDetail({
         ) : (
           <Card>
             <CardContent className="pt-4 text-sm text-muted-foreground sm:pt-4">
-              Raid reports are only available for primary characters.
+              Raid reports and achievements are only available for primary characters.
             </CardContent>
           </Card>
         )}
