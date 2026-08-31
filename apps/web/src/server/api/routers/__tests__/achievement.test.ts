@@ -629,4 +629,103 @@ describe("achievement-queries", () => {
       "silver-old",
     ]);
   });
+
+  it("getAwardById: names multiple holders with the viewer sorted first", async () => {
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(1);
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findFirst: vi.fn().mockResolvedValueOnce({
+            id: AWARD_ID_1,
+            awardedAt: new Date("2026-09-10"),
+            achievementTier: {
+              id: "tier-1",
+              achievementId: "ach-1",
+              tier: "gold",
+              ruleConfig: null,
+              achievement: {
+                name: "Flaskmaster",
+                icon: "inv_potion_1",
+                description: null,
+                scope: "all_time",
+              },
+            },
+          }),
+        },
+      },
+      select: vi
+        .fn()
+        .mockReturnValueOnce({
+          from: () => ({
+            where: () => ({
+              groupBy: () => Promise.resolve([{ achievementTierId: "tier-1", count: 2 }]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: () => ({
+            where: () => Promise.resolve([{ characterId: 99, name: "Yukain" }]),
+          }),
+        }),
+      selectDistinct: vi.fn().mockReturnValue({
+        from: () => ({
+          where: () =>
+            Promise.resolve([
+              { achievementTierId: "tier-1", primaryCharacterId: 1 },
+              { achievementTierId: "tier-1", primaryCharacterId: 99 },
+            ]),
+        }),
+      }),
+    };
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getAwardById({ achievementAwardId: AWARD_ID_1 });
+
+    expect(result?.holderCount).toBe(2);
+    expect(result?.holderLabels).toEqual(["you", "Yukain"]);
+  });
+
+  it("getAwardById: an empty resolved holder list falls back to null, not an empty array — a bare [] reads as truthy downstream and rendered a malformed rarity line", async () => {
+    vi.mocked(mockResolveSessionPrimaryCharacterId).mockResolvedValue(1);
+    const fakeDb = {
+      query: {
+        achievementAwards: {
+          findFirst: vi.fn().mockResolvedValueOnce({
+            id: AWARD_ID_1,
+            awardedAt: new Date("2026-09-10"),
+            achievementTier: {
+              id: "tier-1",
+              achievementId: "ach-1",
+              tier: "copper",
+              ruleConfig: null,
+              achievement: {
+                name: "Sew Cold",
+                icon: "inv_chest_cloth_08",
+                description: null,
+                scope: "all_time",
+              },
+            },
+          }),
+        },
+      },
+      select: vi.fn().mockReturnValueOnce({
+        from: () => ({
+          where: () => ({
+            groupBy: () => Promise.resolve([{ achievementTierId: "tier-1", count: 1 }]),
+          }),
+        }),
+      }),
+      // Simulates a data inconsistency the code defensively guards against: getHolderCounts says
+      // 1, but getHolderIds resolves no rows for that tier.
+      selectDistinct: vi.fn().mockReturnValue({
+        from: () => ({ where: () => Promise.resolve([]) }),
+      }),
+    };
+    const caller = callerWithDb([], fakeDb);
+
+    const result = await caller.achievement.getAwardById({ achievementAwardId: AWARD_ID_1 });
+
+    expect(result?.holderCount).toBe(1);
+    expect(result?.holderLabels).toBeNull();
+  });
 });

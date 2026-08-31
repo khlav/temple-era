@@ -178,9 +178,13 @@ async function withRarity(
   return awards.map((a) => {
     const { achievementTierId, ...rest } = a;
     const holderCount = counts.get(achievementTierId) ?? 1;
-    const ids = holderIds.get(achievementTierId) ?? (holderCount <= MAX_NAMED_HOLDERS ? [] : null);
+    const ids = holderIds.get(achievementTierId);
+    // An empty resolved list must fall through to the count path exactly like a genuinely absent
+    // one — `holderLabels: []` reads as truthy downstream (formatEarnedRarityLine's "1 holder" and
+    // "2-3 holders" branches both guard on it being present, not non-empty) and renders as a
+    // malformed "..., and undefined" rather than the bare-count line.
     const holderLabels =
-      ids === null
+      !ids || ids.length === 0
         ? null
         : ids
             // "you" first when present, then alphabetically by real name for a stable order.
