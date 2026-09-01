@@ -167,17 +167,26 @@ export const CharacterRecipes = ({
   const latestToggleSeqRef = useRef<Map<number, number>>(new Map());
 
   // Rapidly toggling several DIFFERENT recipes used to invalidate getAllRecipesWithCharacters
-  // once per toggle. React Query dedupes concurrent fetches for the same query, so a toggle that
-  // fires while an earlier one's refetch is still in flight just piggybacks on that ALREADY-
-  // in-flight request — one that was dispatched before this toggle's own write committed, so the
-  // response it shares doesn't yet reflect this recipe's change. That toggle's own optimistic
-  // override still got cleared the moment its mutation settled, so the checkbox would flash back
-  // to its pre-toggle state until a later refetch finally caught up — the "fighting" flicker.
-  // Fix: batch every toggle in a burst onto one shared invalidate, and have EVERY toggle in that
-  // burst — not just whichever one triggers it — await that same settled refetch before clearing
-  // its own optimistic override, so the override never disappears ahead of the data backing it.
+  // once per toggle, each toggle's own optimistic override clearing as soon as its own mutation
+  // settled. Fix (part 1): batch every toggle in a burst onto one shared invalidate, and have
+  // EVERY toggle in that burst — not just whichever one triggers it — await that same settled
+  // refetch before clearing its own optimistic override, so the override never disappears ahead
+  // of the data backing it.
+  //
+  // That alone still raced at BURST BOUNDARIES: React Query's invalidateQueries() defaults
+  // cancelRefetch to true, so a second burst's invalidate() call — starting once its own toggles
+  // settle, independent of whether an earlier burst's invalidate is still in flight — CANCELS
+  // that earlier fetch outright rather than deduping onto it. The earlier burst's own `await` on
+  // its invalidate call then resolves via that cancellation (swallowed silently, not a real
+  // response), letting it clear its optimistic overrides before any fresh data — its own or the
+  // new burst's — actually reached the cache. Fix (part 2): invalidateChainRef below serializes
+  // every burst's invalidate call onto a single chain so no two are ever in flight
+  // simultaneously — each burst's `await` then only ever resolves once real (uncancelled) fresh
+  // data has landed, and a later burst's own toggle is already committed server-side by the time
+  // its invalidate finally gets its turn, so that fetch is guaranteed to reflect it.
   const activeToggleCountRef = useRef(0);
   const burstDeferredRef = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+  const invalidateChainRef = useRef<Promise<void>>(Promise.resolve());
 
   function currentBurstDeferred() {
     burstDeferredRef.current ??= (() => {
@@ -242,15 +251,21 @@ export const CharacterRecipes = ({
     void mutationSettled.finally(async () => {
       activeToggleCountRef.current -= 1;
       if (activeToggleCountRef.current === 0) {
-        // Last toggle in this burst — clear the slot for the next burst before awaiting,
-        // so a toggle that starts while this refetch is in flight begins its own burst
-        // instead of piggybacking on this (about to be stale) one.
+        // Last toggle in this burst — clear the slot for the next burst before awaiting, so a
+        // toggle that starts while this refetch is in flight begins its own burst rather than
+        // piggybacking on this one's promise.
         burstDeferredRef.current = null;
-        try {
-          await Promise.all([
+        // Chained (not fired directly) so this burst's invalidate never overlaps a still-
+        // in-flight one from the previous burst — see the invalidateChainRef comment above.
+        const runInvalidate = () =>
+          Promise.all([
             utils.recipe.getAllRecipesWithCharacters.invalidate(),
             utils.recipe.getRecipesForCharacter.invalidate(characterId),
-          ]);
+          ]).then(() => undefined);
+        const chained = invalidateChainRef.current.then(runInvalidate, runInvalidate);
+        invalidateChainRef.current = chained;
+        try {
+          await chained;
         } finally {
           burst.resolve();
         }
