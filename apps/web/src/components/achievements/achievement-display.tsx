@@ -281,10 +281,10 @@ export function AchievementDisplay({
   // Four sections: Core (the core achievements, fixed curated order), Classes (the 8
   // class-attendance achievements — identified by ruleShape, since it's unique to exactly this
   // group — alphabetical), Professions (the 8 tradeskill-mastery achievements — identified by
-  // ruleShape the same way — always visible with progress, not earned-gated like Legendary
-  // Feats, since these are a normal grind rather than a surprise), and Legendary Feats (whatever's
-  // actually still hidden and earned, season- or all-time-scoped alike, combined into one section
-  // since there's no separate "all time" progression to track).
+  // ruleShape the same way — always visible with progress, not earned-gated like Legendary,
+  // since these are a normal grind rather than a surprise), and Legendary (whatever's actually
+  // still hidden and earned, season- or all-time-scoped alike, combined into one section since
+  // there's no separate "all time" progression to track).
   const seasonCore = data.visible
     .filter(
       (a) => a.ruleShape !== "class_attendance_threshold" && a.ruleShape !== "recipe_set_threshold",
@@ -328,7 +328,7 @@ export function AchievementDisplay({
           <ChipPanel achievements={professions} onReplay={setReplayAwardId} />
         </AchievementSection>
         {hiddenEarned.length > 0 && (
-          <AchievementSection label="Legendary Feats">
+          <AchievementSection label="Legendary">
             <ChipPanel
               achievements={hiddenEarned}
               onReplay={setReplayAwardId}

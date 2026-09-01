@@ -880,7 +880,7 @@ function CatalogRow({
 //
 // Hidden is checked FIRST, before ruleShape — a rule-based achievement can still be a secret. A
 // hidden recipe_set_threshold achievement (e.g. "Guild Armorist," an all-time collect-everything
-// feat) belongs in Legendary Feats, not Crafting, exactly like the public page: there, hidden
+// feat) belongs in Legendary, not Crafting, exactly like the public page: there, hidden
 // achievements are excluded from `data.visible` (and so from the `professions` filter) regardless
 // of ruleShape, and only resurface via `data.hiddenEarned` once earned. Checking ruleShape first
 // here would silently route every hidden recipe-based achievement into Crafting instead.
@@ -997,7 +997,7 @@ function CatalogSection({
               <TabsTrigger value="core">Core</TabsTrigger>
               <TabsTrigger value="classes">Classes</TabsTrigger>
               <TabsTrigger value="tradeskill">Crafting</TabsTrigger>
-              <TabsTrigger value="secret">Legendary Feats</TabsTrigger>
+              <TabsTrigger value="secret">Legendary</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -1040,7 +1040,7 @@ function CatalogSection({
           )}
           {showSecret && secret.length > 0 && (
             <CatalogGroup
-              title="Legendary Feats"
+              title="Legendary"
               showTitle={activeTab === "all"}
               achievements={secret}
               searchTerms={searchTerms}
