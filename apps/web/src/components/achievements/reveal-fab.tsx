@@ -90,7 +90,7 @@ export function RevealFab(): React.JSX.Element | null {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 hidden md:block">
+      <div className="fixed bottom-6 right-6 z-40">
         <div className="relative">
           {/* Glow, then button — siblings painted in that order, not a child of the button. A
               negative-z-index child still paints over its own parent's background per CSS paint

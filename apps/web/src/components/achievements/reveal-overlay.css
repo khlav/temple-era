@@ -1149,6 +1149,16 @@
 .ro-icon-sm .ro-frame-border {
   border-width: 3px;
 }
+/* .ro-frame::before (the base highlight overlay), the thorium sheen sweep, and the arcanite
+   embers' spawn area all hardcode `inset: 7px` sized for the full reveal-overlay frame — border-
+   width scales via .ro-frame-border above, but these three don't inherit that, so left at 7px
+   they sit inset further than the icon's own 4px padding and read as a smaller, ungrounded patch
+   rather than filling the visible square. Match the padding here. */
+.ro-icon-sm .ro-frame::before,
+.ro-icon-sm .ro-frame.ro-thorium.ro-fxsweep::after,
+.ro-icon-sm .ro-frame.ro-arcanite .ro-embers {
+  inset: 4px;
+}
 
 /* Smaller still (~2/3 of .ro-icon-sm's 44px) — the reveal strip's "+N more" tooltip, where the
    medal sits inline alongside text rather than being the row's primary visual. */
@@ -1165,4 +1175,10 @@
 }
 .ro-icon-xs .ro-frame-border {
   border-width: 2px;
+}
+/* Same rescale as .ro-icon-sm above, at this size's own 3px padding. */
+.ro-icon-xs .ro-frame::before,
+.ro-icon-xs .ro-frame.ro-thorium.ro-fxsweep::after,
+.ro-icon-xs .ro-frame.ro-arcanite .ro-embers {
+  inset: 3px;
 }

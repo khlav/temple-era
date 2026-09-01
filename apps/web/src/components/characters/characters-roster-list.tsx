@@ -20,42 +20,46 @@ interface RosterGroup {
   alts: RaidParticipant[];
 }
 
-const GRID_COLS = "grid-cols-[minmax(0,1fr)_116px_320px_60px] min-w-[640px]";
+// Below `sm`, only Character/Attendance%/Edit fit without horizontal scroll — Server and the
+// full attendance bar are hidden entirely (not just visually) so they don't consume a grid slot;
+// at `sm` and up the full 4-column layout (with Server and the bar) takes over.
+const GRID_COLS =
+  "grid-cols-[minmax(0,1fr)_44px_28px] sm:grid-cols-[minmax(0,1fr)_116px_320px_60px] sm:min-w-[640px]";
 
 function AttendanceCell({ attendance }: { attendance?: RosterAttendance }) {
   const pct = Math.round((attendance?.weightedAttendancePct ?? 0) * 100);
   const credits = attendance?.weightedAttendance ?? 0;
   const total = attendance?.weightedRaidTotal ?? 0;
   const isAboveThreshold = pct >= 50;
+  const pctClassName = cn(
+    "font-display text-sm font-bold",
+    isAboveThreshold ? "text-foreground" : "text-muted-foreground",
+  );
 
   return (
-    <div className="flex items-center gap-2.5">
-      <span
-        className={cn(
-          "font-display w-9 shrink-0 text-right text-sm font-bold",
-          isAboveThreshold ? "text-foreground" : "text-muted-foreground",
-        )}
-      >
-        {pct}%
-      </span>
-      <div className="relative min-w-0 flex-1">
-        <Progress
-          value={pct}
-          className="h-3.5 bg-muted"
-          indicatorClassName={isAboveThreshold ? "bg-primary" : "bg-muted-foreground/45"}
-        />
-        <div
-          className={cn(
-            "pointer-events-none absolute inset-y-0 border-l-2 border-dotted",
-            isAboveThreshold ? "border-background" : "border-muted-foreground",
-          )}
-          style={{ left: "50%" }}
-        />
+    <>
+      <span className={cn(pctClassName, "text-right sm:hidden")}>{pct}%</span>
+      <div className="hidden items-center gap-2.5 sm:flex">
+        <span className={cn(pctClassName, "w-9 shrink-0 text-right")}>{pct}%</span>
+        <div className="relative min-w-0 flex-1">
+          <Progress
+            value={pct}
+            className="h-3.5 bg-muted"
+            indicatorClassName={isAboveThreshold ? "bg-primary" : "bg-muted-foreground/45"}
+          />
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-y-0 border-l-2 border-dotted",
+              isAboveThreshold ? "border-background" : "border-muted-foreground",
+            )}
+            style={{ left: "50%" }}
+          />
+        </div>
+        <span className="w-14 shrink-0 text-right text-xs text-muted-foreground">
+          {credits} / {total}
+        </span>
       </div>
-      <span className="w-14 shrink-0 text-right text-xs text-muted-foreground">
-        {credits} / {total}
-      </span>
-    </div>
+    </>
   );
 }
 
@@ -83,7 +87,7 @@ function MainRow({
           {main.name}
         </span>
       </Link>
-      <div className="truncate text-sm text-muted-foreground">{main.server}</div>
+      <div className="hidden truncate text-sm text-muted-foreground sm:block">{main.server}</div>
       <AttendanceCell attendance={attendance} />
       {isManager ? (
         <Link
@@ -123,7 +127,7 @@ function AltRow({ alts }: { alts: RaidParticipant[] }) {
           </Link>
         ))}
       </div>
-      <div />
+      <div className="hidden sm:block" />
       <div />
       <div />
     </div>
@@ -143,7 +147,7 @@ export function CharactersRosterList({
 
   return (
     <div className="panel-subtle overflow-hidden rounded-2xl border border-border/70">
-      <div className="border-b border-border/80 bg-muted/20 px-4 py-2 text-xs text-muted-foreground md:hidden">
+      <div className="hidden border-b border-border/80 bg-muted/20 px-4 py-2 text-xs text-muted-foreground sm:block md:hidden">
         Swipe horizontally to see attendance.
       </div>
       <div className="overflow-x-auto">
@@ -154,8 +158,11 @@ export function CharactersRosterList({
           )}
         >
           <div>Character</div>
-          <div>Server</div>
-          <div>Attendance</div>
+          <div className="hidden sm:block">Server</div>
+          <div className="text-right sm:text-left">
+            <span className="sm:hidden">Attn</span>
+            <span className="hidden sm:inline">Attendance</span>
+          </div>
           <div />
         </div>
         {groups.length === 0 ? (

@@ -138,10 +138,6 @@ export const CharacterRecipes = ({
   };
 
   const addRecipeToCharacter = api.recipe.addRecipeToCharacter.useMutation({
-    onSuccess: async () => {
-      await utils.recipe.getAllRecipesWithCharacters.invalidate();
-      await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-    },
     onError: (error) => {
       toast({
         title: "Failed to add recipe",
@@ -152,10 +148,6 @@ export const CharacterRecipes = ({
   });
 
   const removeRecipeFromCharacter = api.recipe.removeRecipeFromCharacter.useMutation({
-    onSuccess: async () => {
-      await utils.recipe.getAllRecipesWithCharacters.invalidate();
-      await utils.recipe.getRecipesForCharacter.invalidate(characterId);
-    },
     onError: (error) => {
       toast({
         title: "Failed to remove recipe",
@@ -173,6 +165,39 @@ export const CharacterRecipes = ({
   // optimistic override (an earlier, now-superseded settlement must not stomp on it).
   const pendingToggleRef = useRef<Map<number, Promise<unknown>>>(new Map());
   const latestToggleSeqRef = useRef<Map<number, number>>(new Map());
+
+  // Rapidly toggling several DIFFERENT recipes used to invalidate getAllRecipesWithCharacters
+  // once per toggle, each toggle's own optimistic override clearing as soon as its own mutation
+  // settled. Fix (part 1): batch every toggle in a burst onto one shared invalidate, and have
+  // EVERY toggle in that burst — not just whichever one triggers it — await that same settled
+  // refetch before clearing its own optimistic override, so the override never disappears ahead
+  // of the data backing it.
+  //
+  // That alone still raced at BURST BOUNDARIES: React Query's invalidateQueries() defaults
+  // cancelRefetch to true, so a second burst's invalidate() call — starting once its own toggles
+  // settle, independent of whether an earlier burst's invalidate is still in flight — CANCELS
+  // that earlier fetch outright rather than deduping onto it. The earlier burst's own `await` on
+  // its invalidate call then resolves via that cancellation (swallowed silently, not a real
+  // response), letting it clear its optimistic overrides before any fresh data — its own or the
+  // new burst's — actually reached the cache. Fix (part 2): invalidateChainRef below serializes
+  // every burst's invalidate call onto a single chain so no two are ever in flight
+  // simultaneously — each burst's `await` then only ever resolves once real (uncancelled) fresh
+  // data has landed, and a later burst's own toggle is already committed server-side by the time
+  // its invalidate finally gets its turn, so that fetch is guaranteed to reflect it.
+  const activeToggleCountRef = useRef(0);
+  const burstDeferredRef = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+  const invalidateChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  function currentBurstDeferred() {
+    burstDeferredRef.current ??= (() => {
+      let resolve!: () => void;
+      const promise = new Promise<void>((res) => {
+        resolve = res;
+      });
+      return { promise, resolve };
+    })();
+    return burstDeferredRef.current;
+  }
 
   // Check if a character knows a recipe
   const characterKnowsRecipe = (recipeSpellId: number) => {
@@ -199,8 +224,20 @@ export const CharacterRecipes = ({
     const seq = (latestToggleSeqRef.current.get(recipeSpellId) ?? 0) + 1;
     latestToggleSeqRef.current.set(recipeSpellId, seq);
 
-    const previous = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
-    const next = previous
+    activeToggleCountRef.current += 1;
+    const burst = currentBurstDeferred();
+
+    // Mutation queue holds ONLY the server call, not the burst wait below — keeping them
+    // separate is load-bearing. Toggling the same recipe twice within one burst (e.g. on,
+    // then off, before the first settles) used to chain the second toggle's mutation onto
+    // the first toggle's ENTIRE promise, burst wait included. The first toggle's burst wait
+    // can only resolve once every toggle in the burst — including this queued second one —
+    // has decremented activeToggleCountRef, but the second toggle's mutation (and thus its
+    // decrement) was itself blocked behind that same wait: a deadlock. Chaining only the
+    // mutation call here lets the second toggle's request fire as soon as the first's
+    // request (not its burst wait) settles.
+    const previousMutation = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
+    const mutationSettled = previousMutation
       .then(() =>
         isChecked
           ? addRecipeToCharacter.mutateAsync({ recipeSpellId, characterId })
@@ -208,14 +245,37 @@ export const CharacterRecipes = ({
       )
       .catch(() => {
         // Already surfaced via the mutation's onError toast — just keep the queue moving.
-      })
-      .finally(() => {
-        if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
-          clearOptimisticState(recipeSpellId);
-        }
       });
+    pendingToggleRef.current.set(recipeSpellId, mutationSettled);
 
-    pendingToggleRef.current.set(recipeSpellId, next);
+    void mutationSettled.finally(async () => {
+      activeToggleCountRef.current -= 1;
+      if (activeToggleCountRef.current === 0) {
+        // Last toggle in this burst — clear the slot for the next burst before awaiting, so a
+        // toggle that starts while this refetch is in flight begins its own burst rather than
+        // piggybacking on this one's promise.
+        burstDeferredRef.current = null;
+        // Chained (not fired directly) so this burst's invalidate never overlaps a still-
+        // in-flight one from the previous burst — see the invalidateChainRef comment above.
+        const runInvalidate = () =>
+          Promise.all([
+            utils.recipe.getAllRecipesWithCharacters.invalidate(),
+            utils.recipe.getRecipesForCharacter.invalidate(characterId),
+          ]).then(() => undefined);
+        const chained = invalidateChainRef.current.then(runInvalidate, runInvalidate);
+        invalidateChainRef.current = chained;
+        try {
+          await chained;
+        } finally {
+          burst.resolve();
+        }
+      } else {
+        await burst.promise;
+      }
+      if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
+        clearOptimisticState(recipeSpellId);
+      }
+    });
   };
 
   // Handle clicking on recipe name in edit mode

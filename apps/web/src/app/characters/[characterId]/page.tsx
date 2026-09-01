@@ -11,6 +11,7 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 // Cache the character data fetch to avoid duplicate calls between generateMetadata and page component
 const getCachedCharacterData = cache(async (characterId: number) => {
@@ -58,8 +59,12 @@ async function CharacterPageContent({
   const caller = createCaller(ctx);
   const characterData = await caller.character.getCharacterById(characterId);
 
-  if (!characterData) {
-    return <div>Character not found</div>;
+  // getCharacterById always returns an object (spreading a possibly-undefined query result), so
+  // a plain truthiness check never catches "not found" — check the PK it would have carried
+  // instead. Redirect rather than showing an inline message: a stale link or hand-edited URL
+  // should land the user back on a real page, not a dead end.
+  if (!characterData.characterId) {
+    redirect("/characters");
   }
 
   // Get character name for breadcrumb from the fetched data
@@ -80,6 +85,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ charact
   const p = await params;
   const session = await auth();
   const characterId = parseInt(String(p.characterId));
+
+  if (!Number.isFinite(characterId)) {
+    redirect("/characters");
+  }
 
   return (
     <Suspense fallback={<CharacterDetailSkeleton />}>
