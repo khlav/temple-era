@@ -218,8 +218,17 @@ export const CharacterRecipes = ({
     activeToggleCountRef.current += 1;
     const burst = currentBurstDeferred();
 
-    const previous = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
-    const next = previous
+    // Mutation queue holds ONLY the server call, not the burst wait below — keeping them
+    // separate is load-bearing. Toggling the same recipe twice within one burst (e.g. on,
+    // then off, before the first settles) used to chain the second toggle's mutation onto
+    // the first toggle's ENTIRE promise, burst wait included. The first toggle's burst wait
+    // can only resolve once every toggle in the burst — including this queued second one —
+    // has decremented activeToggleCountRef, but the second toggle's mutation (and thus its
+    // decrement) was itself blocked behind that same wait: a deadlock. Chaining only the
+    // mutation call here lets the second toggle's request fire as soon as the first's
+    // request (not its burst wait) settles.
+    const previousMutation = pendingToggleRef.current.get(recipeSpellId) ?? Promise.resolve();
+    const mutationSettled = previousMutation
       .then(() =>
         isChecked
           ? addRecipeToCharacter.mutateAsync({ recipeSpellId, characterId })
@@ -227,31 +236,31 @@ export const CharacterRecipes = ({
       )
       .catch(() => {
         // Already surfaced via the mutation's onError toast — just keep the queue moving.
-      })
-      .finally(async () => {
-        activeToggleCountRef.current -= 1;
-        if (activeToggleCountRef.current === 0) {
-          // Last toggle in this burst — clear the slot for the next burst before awaiting,
-          // so a toggle that starts while this refetch is in flight begins its own burst
-          // instead of piggybacking on this (about to be stale) one.
-          burstDeferredRef.current = null;
-          try {
-            await Promise.all([
-              utils.recipe.getAllRecipesWithCharacters.invalidate(),
-              utils.recipe.getRecipesForCharacter.invalidate(characterId),
-            ]);
-          } finally {
-            burst.resolve();
-          }
-        } else {
-          await burst.promise;
-        }
-        if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
-          clearOptimisticState(recipeSpellId);
-        }
       });
+    pendingToggleRef.current.set(recipeSpellId, mutationSettled);
 
-    pendingToggleRef.current.set(recipeSpellId, next);
+    void mutationSettled.finally(async () => {
+      activeToggleCountRef.current -= 1;
+      if (activeToggleCountRef.current === 0) {
+        // Last toggle in this burst — clear the slot for the next burst before awaiting,
+        // so a toggle that starts while this refetch is in flight begins its own burst
+        // instead of piggybacking on this (about to be stale) one.
+        burstDeferredRef.current = null;
+        try {
+          await Promise.all([
+            utils.recipe.getAllRecipesWithCharacters.invalidate(),
+            utils.recipe.getRecipesForCharacter.invalidate(characterId),
+          ]);
+        } finally {
+          burst.resolve();
+        }
+      } else {
+        await burst.promise;
+      }
+      if (latestToggleSeqRef.current.get(recipeSpellId) === seq) {
+        clearOptimisticState(recipeSpellId);
+      }
+    });
   };
 
   // Handle clicking on recipe name in edit mode
