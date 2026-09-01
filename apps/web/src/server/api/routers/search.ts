@@ -2,8 +2,17 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db";
 import { raids, characters, raidLogs, raidLogAttendeeMap } from "~/server/db/schema";
-import { ilike, or, sql, eq, and, not } from "drizzle-orm";
+import { ilike, or, sql, eq, and, not, type SQL } from "drizzle-orm";
 import { parseSearchQuery } from "~/lib/table-search";
+
+// ilike() is case-insensitive but not accent-folding — "daisy" would never match a character
+// named "Daisý" via plain ILIKE. `public.f_unaccent` is the same immutable unaccent() wrapper
+// the diacritic-insensitive /api/v1/characters/by-name lookup already relies on; applying it to
+// both the haystack and the term (rather than JS-normalizing the term separately) guarantees
+// identical folding on both sides instead of two folding implementations potentially disagreeing.
+function unaccentIlike(haystack: SQL, term: string) {
+  return sql`public.f_unaccent(lower(${haystack})) LIKE public.f_unaccent(lower(${`%${term}%`}))`;
+}
 
 // Helper function to build raid search conditions
 function buildRaidSearchConditions(
@@ -92,17 +101,17 @@ function buildCharacterSearchConditions(
 
   // Add positive term conditions (ANDed together)
   for (const term of positiveTerms) {
-    conditions.push(ilike(searchableText, `%${term}%`));
+    conditions.push(unaccentIlike(searchableText, term));
   }
 
   // Add OR-group conditions (each group ANDed in, alternatives within a group ORed)
   for (const group of orGroups) {
-    conditions.push(or(...group.map((term) => ilike(searchableText, `%${term}%`))));
+    conditions.push(or(...group.map((term) => unaccentIlike(searchableText, term))));
   }
 
   // Add negative term conditions (NOT logic)
   for (const term of negativeTerms) {
-    conditions.push(not(ilike(searchableText, `%${term}%`)));
+    conditions.push(not(unaccentIlike(searchableText, term)));
   }
 
   return conditions.length > 0 ? and(...conditions) : undefined;
