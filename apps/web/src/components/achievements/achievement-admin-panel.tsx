@@ -877,14 +877,21 @@ function CatalogRow({
 // forces hidden:true, but the grouping checks ruleShape directly too rather than trusting that
 // invariant to hold forever), Core is everything else. Kept in sync deliberately: an admin
 // scanning this table should recognize the same grouping they'd see on the player-facing page.
+//
+// Hidden is checked FIRST, before ruleShape — a rule-based achievement can still be a secret. A
+// hidden recipe_set_threshold achievement (e.g. "Guild Armorist," an all-time collect-everything
+// feat) belongs in Legendary Feats, not Crafting, exactly like the public page: there, hidden
+// achievements are excluded from `data.visible` (and so from the `professions` filter) regardless
+// of ruleShape, and only resurface via `data.hiddenEarned` once earned. Checking ruleShape first
+// here would silently route every hidden recipe-based achievement into Crafting instead.
 function groupCatalog(achievements: AdminAchievement[]) {
   const core: AdminAchievement[] = [];
   const classes: AdminAchievement[] = [];
   const tradeskill: AdminAchievement[] = [];
   const secret: AdminAchievement[] = [];
   for (const achievement of achievements) {
-    if (achievement.ruleShape === "recipe_set_threshold") tradeskill.push(achievement);
-    else if (achievement.hidden || achievement.ruleShape === null) secret.push(achievement);
+    if (achievement.hidden || achievement.ruleShape === null) secret.push(achievement);
+    else if (achievement.ruleShape === "recipe_set_threshold") tradeskill.push(achievement);
     else if (achievement.ruleShape === "class_attendance_threshold") classes.push(achievement);
     else core.push(achievement);
   }
