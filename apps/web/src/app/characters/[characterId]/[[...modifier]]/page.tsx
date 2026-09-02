@@ -12,6 +12,18 @@ import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  canonicalCharacterSlug,
+  findCharactersByName,
+  getCharacterRouteInfo,
+  isPrimaryAlias,
+} from "~/server/services/character-name-lookup";
+
+const NUMERIC_ID_PATTERN = /^\d+$/;
+
+function canonicalCharacterPath(characterId: number, name: string): string {
+  return `/characters/${characterId}/${encodeURIComponent(canonicalCharacterSlug(name))}`;
+}
 
 // Cache the character data fetch to avoid duplicate calls between generateMetadata and page component
 const getCachedCharacterData = cache(async (characterId: number) => {
@@ -81,13 +93,69 @@ async function CharacterPageContent({
   );
 }
 
-export default async function PlayerPage({ params }: { params: Promise<{ characterId: number }> }) {
+export default async function PlayerPage({
+  params,
+}: {
+  params: Promise<{ characterId: number; modifier?: string[] }>;
+}) {
   const p = await params;
   const session = await auth();
-  const characterId = parseInt(String(p.characterId));
+  const raw = String(p.characterId);
+  const wantsPrimary = isPrimaryAlias(p.modifier?.[0]);
 
-  if (!Number.isFinite(characterId)) {
+  if (!NUMERIC_ID_PATTERN.test(raw)) {
+    // Not a numeric ID — treat the segment as a character name, same as the /c/<name>
+    // shortlink: diacritic/case-insensitive exact match, single hit goes straight to
+    // the character (or its main, for the same /1, /main, /primary trailing segment),
+    // anything else (zero or multiple) falls back to a prepopulated search.
+    let decoded = raw;
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      // Malformed percent-encoding — fall back to the raw segment rather than 500ing.
+    }
+    const name = decoded.trim();
+
+    if (!name) {
+      redirect("/characters");
+    }
+
+    const matches = await findCharactersByName(name);
+    const onlyMatch = matches.length === 1 ? matches[0] : undefined;
+    if (onlyMatch) {
+      if (wantsPrimary && onlyMatch.primaryCharacterId) {
+        const primaryInfo = await getCharacterRouteInfo(onlyMatch.primaryCharacterId);
+        if (primaryInfo) {
+          redirect(canonicalCharacterPath(onlyMatch.primaryCharacterId, primaryInfo.name));
+        }
+      }
+      redirect(canonicalCharacterPath(onlyMatch.characterId, onlyMatch.name));
+    }
+
+    redirect(`/characters?q=${encodeURIComponent(name)}`);
+  }
+
+  const characterId = parseInt(raw);
+  const info = await getCharacterRouteInfo(characterId);
+
+  // Not found — short-circuit rather than rendering a page for an ID that doesn't exist.
+  if (!info) {
     redirect("/characters");
+  }
+
+  if (wantsPrimary && info.primaryCharacterId && info.primaryCharacterId !== characterId) {
+    const primaryInfo = await getCharacterRouteInfo(info.primaryCharacterId);
+    if (primaryInfo) {
+      redirect(canonicalCharacterPath(info.primaryCharacterId, primaryInfo.name));
+    }
+  }
+
+  // Canonical URL is always /characters/<id>/<name-without-diacritics> — a missing,
+  // stale (renamed character), or hand-typed trailing segment gets corrected here rather
+  // than just accepted, so every link to a given ID converges on the same URL.
+  const canonicalSlug = canonicalCharacterSlug(info.name);
+  if (p.modifier?.[0] !== canonicalSlug) {
+    redirect(canonicalCharacterPath(characterId, info.name));
   }
 
   return (

@@ -21,7 +21,13 @@ export const metadata: Metadata = {
   }),
 };
 
-async function CharactersListContent({ session }: { session: Session | null }) {
+async function CharactersListContent({
+  session,
+  initialSearchTerm,
+}: {
+  session: Session | null;
+  initialSearchTerm?: string;
+}) {
   // Fetch characters + rolling attendance using tRPC
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
@@ -51,19 +57,25 @@ async function CharactersListContent({ session }: { session: Session | null }) {
         characters={characters}
         attendance={attendance}
         session={session ?? undefined}
+        initialSearchTerm={initialSearchTerm}
       />
     </>
   );
 }
 
-export default async function PlayersIndex() {
+export default async function PlayersIndex({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const session = await auth();
+  const { q } = await searchParams;
   return (
     <HydrateClient>
       <main className="w-full">
         <div className="w-full">
           <Suspense fallback={<AllCharactersTableSkeleton rows={14} />}>
-            <CharactersListContent session={session} />
+            <CharactersListContent session={session} initialSearchTerm={q} />
           </Suspense>
         </div>
       </main>
