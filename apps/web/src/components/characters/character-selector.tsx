@@ -23,7 +23,7 @@ export function CharacterSelector({
   onSelectAction,
   buttonContent = (
     <div className="flex items-center space-x-2">
-      <SearchIcon className="shrink-0" />
+      <SearchIcon aria-hidden="true" className="shrink-0" />
       <div className="grow-0">Type to search...</div>
     </div>
   ),
