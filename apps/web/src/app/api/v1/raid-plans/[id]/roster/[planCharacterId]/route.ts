@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanCharacters, characters } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -50,14 +51,8 @@ export async function PATCH(
 
     const { characterId } = parsed.data;
 
-    // Verify plan exists
-    const plan = await db
-      .select({ id: raidPlans.id })
-      .from(raidPlans)
-      .where(eq(raidPlans.id, id))
-      .limit(1);
-
-    if (plan.length === 0) {
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
@@ -65,7 +60,9 @@ export async function PATCH(
     const slot = await db
       .select({ id: raidPlanCharacters.id })
       .from(raidPlanCharacters)
-      .where(and(eq(raidPlanCharacters.id, planCharacterId), eq(raidPlanCharacters.raidPlanId, id)))
+      .where(
+        and(eq(raidPlanCharacters.id, planCharacterId), eq(raidPlanCharacters.raidPlanId, planId)),
+      )
       .limit(1);
 
     if (slot.length === 0) {
@@ -91,7 +88,7 @@ export async function PATCH(
       })
       .where(eq(raidPlanCharacters.id, planCharacterId));
 
-    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, planId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

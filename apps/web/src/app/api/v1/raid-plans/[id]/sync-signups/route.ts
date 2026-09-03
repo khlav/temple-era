@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { matchSignupsToCharacters, resolveClassName } from "~/server/api/helpers/match-signups";
 import { env } from "~/env";
 import { db } from "~/server/db";
@@ -37,6 +38,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
     let body: unknown = {};
     try {
       const text = await request.text();
@@ -62,7 +68,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         raidHelperEventId: raidPlans.raidHelperEventId,
       })
       .from(raidPlans)
-      .where(eq(raidPlans.id, id))
+      .where(eq(raidPlans.id, planId))
       .limit(1);
 
     if (plan.length === 0) {
@@ -146,7 +152,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         characterName: raidPlanCharacters.characterName,
       })
       .from(raidPlanCharacters)
-      .where(eq(raidPlanCharacters.raidPlanId, id));
+      .where(eq(raidPlanCharacters.raidPlanId, planId));
 
     const matchedExistingIds = new Set<string>();
     const matchedNewIndices = new Set<number>();
@@ -210,7 +216,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (toInsert.length > 0) {
         await tx.insert(raidPlanCharacters).values(
           toInsert.map((char) => ({
-            raidPlanId: id,
+            raidPlanId: planId,
             characterId: char.characterId,
             characterName: char.characterName,
             defaultGroup: isMergeOnly ? null : char.defaultGroup,
@@ -230,7 +236,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           .from(raidPlanEncounters)
           .where(
             and(
-              eq(raidPlanEncounters.raidPlanId, id),
+              eq(raidPlanEncounters.raidPlanId, planId),
               eq(raidPlanEncounters.useDefaultGroups, false),
             ),
           );
@@ -249,7 +255,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
 
     // Touch updatedById
-    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, planId));
 
     return NextResponse.json({
       added: toInsert.length,

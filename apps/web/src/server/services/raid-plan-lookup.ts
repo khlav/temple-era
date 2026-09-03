@@ -26,3 +26,17 @@ export async function resolveRaidPlan(
 
   return result[0] ?? null;
 }
+
+/**
+ * Resolves a raid plan ID or legacy UUID to just its canonical id — used by the v1 REST
+ * routes, which validate the request-path ID against RAID_PLAN_ID_PATTERN (accepting
+ * either format) but otherwise query directly on `raidPlans.id` rather than going through
+ * the tRPC router's resolution. Short-circuits (no DB round trip) when `id` isn't
+ * UUID-shaped, since that's the common case once a caller has adopted the canonical id.
+ * Returns null when the id/UUID doesn't match any plan, same as a plain lookup miss.
+ */
+export async function resolveRaidPlanCanonicalId(id: string): Promise<string | null> {
+  if (!isLegacyRaidPlanUuid(id)) return id;
+  const resolved = await resolveRaidPlan(id);
+  return resolved?.id ?? null;
+}

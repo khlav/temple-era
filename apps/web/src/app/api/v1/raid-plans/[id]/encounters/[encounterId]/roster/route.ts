@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanEncounters, raidPlanEncounterAssignments } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -55,11 +56,16 @@ export async function PUT(
       );
     }
 
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
     // Verify encounter belongs to this plan
     const encounter = await db
       .select({ id: raidPlanEncounters.id })
       .from(raidPlanEncounters)
-      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, id)))
+      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, planId)))
       .limit(1);
 
     if (encounter.length === 0) {
@@ -98,7 +104,7 @@ export async function PUT(
       }
     });
 
-    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, planId));
 
     return NextResponse.json({ updated });
   } catch (error) {

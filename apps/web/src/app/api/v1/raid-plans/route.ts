@@ -5,6 +5,7 @@ import { validateApiToken } from "~/server/api/v1-auth";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
 import { withRaidPlanIdRetry } from "~/server/services/raid-plan-id-retry";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { db } from "~/server/db";
 import {
   raidPlans,
@@ -113,6 +114,10 @@ export async function POST(request: Request) {
 
     const startAt = input.startAt ? new Date(input.startAt) : undefined;
 
+    const cloneFromPlanId = input.cloneFromPlanId
+      ? await resolveRaidPlanCanonicalId(input.cloneFromPlanId)
+      : null;
+
     const result = await withRaidPlanIdRetry(() =>
       db.transaction(async (tx) => {
         const newPlan = await tx
@@ -135,14 +140,14 @@ export async function POST(request: Request) {
 
         const planId = newPlan[0]!.id;
 
-        if (input.cloneFromPlanId) {
+        if (cloneFromPlanId) {
           const sourcePlan = await tx
             .select({
               defaultAATemplate: raidPlans.defaultAATemplate,
               useDefaultAA: raidPlans.useDefaultAA,
             })
             .from(raidPlans)
-            .where(eq(raidPlans.id, input.cloneFromPlanId))
+            .where(eq(raidPlans.id, cloneFromPlanId))
             .limit(1);
 
           if (sourcePlan.length > 0) {
@@ -161,7 +166,7 @@ export async function POST(request: Request) {
                 sortOrder: raidPlanEncounterGroups.sortOrder,
               })
               .from(raidPlanEncounterGroups)
-              .where(eq(raidPlanEncounterGroups.raidPlanId, input.cloneFromPlanId))
+              .where(eq(raidPlanEncounterGroups.raidPlanId, cloneFromPlanId))
               .orderBy(raidPlanEncounterGroups.sortOrder);
 
             const cloneGroupIdMap = new Map<string, string>();
@@ -196,7 +201,7 @@ export async function POST(request: Request) {
                 useCustomAA: raidPlanEncounters.useCustomAA,
               })
               .from(raidPlanEncounters)
-              .where(eq(raidPlanEncounters.raidPlanId, input.cloneFromPlanId))
+              .where(eq(raidPlanEncounters.raidPlanId, cloneFromPlanId))
               .orderBy(raidPlanEncounters.sortOrder);
 
             if (sourceEncounters.length > 0) {

@@ -11,15 +11,19 @@ export const RAID_PLAN_ID_LENGTH = 8;
 export const RAID_PLAN_ID_ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+// Unanchored source, so it can be embedded inside a larger pattern (e.g. matching a plan
+// ID out of a full pathname) as well as used standalone via RAID_PLAN_ID_PATTERN below.
+const RAID_PLAN_ID_SEGMENT_SOURCE = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Za-z0-9]{${RAID_PLAN_ID_LENGTH}}`;
+
 /**
  * Raid plan IDs are nanoids going forward, but plans created before the UUID->nanoid
  * migration keep resolving via their original UUID (preserved in `raid_plan.legacy_uuid`),
  * so any path/param carrying a plan ID may still legitimately be in either format.
  */
-export const RAID_PLAN_ID_PATTERN = new RegExp(
-  `^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Za-z0-9]{${RAID_PLAN_ID_LENGTH}})$`,
-  "i",
-);
+export const RAID_PLAN_ID_PATTERN = new RegExp(`^(${RAID_PLAN_ID_SEGMENT_SOURCE})$`, "i");
+
+/** Matches a raid plan ID (either format) as a substring — e.g. out of a full pathname. */
+export const RAID_PLAN_ID_SEGMENT_PATTERN = new RegExp(`(${RAID_PLAN_ID_SEGMENT_SOURCE})`, "i");
 
 const UUID_ONLY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

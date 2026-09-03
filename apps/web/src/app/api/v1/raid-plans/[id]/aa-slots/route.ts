@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanEncounterAASlots } from "~/server/db/schema";
 import { and, eq, max } from "drizzle-orm";
@@ -35,6 +36,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
     let body: unknown;
     try {
       body = await request.json();
@@ -48,16 +54,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         { error: "Validation error", issues: parsed.error.issues },
         { status: 400 },
       );
-    }
-
-    const plan = await db
-      .select({ id: raidPlans.id })
-      .from(raidPlans)
-      .where(eq(raidPlans.id, id))
-      .limit(1);
-
-    if (plan.length === 0) {
-      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
     const items = parsed.data;
@@ -75,7 +71,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             eq(raidPlanEncounterAASlots.slotName, item.slotName),
           )
         : and(
-            eq(raidPlanEncounterAASlots.raidPlanId, id),
+            eq(raidPlanEncounterAASlots.raidPlanId, planId),
             eq(raidPlanEncounterAASlots.planCharacterId, item.planCharacterId),
             eq(raidPlanEncounterAASlots.slotName, item.slotName),
           );
@@ -97,7 +93,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             eq(raidPlanEncounterAASlots.slotName, item.slotName),
           )
         : and(
-            eq(raidPlanEncounterAASlots.raidPlanId, id),
+            eq(raidPlanEncounterAASlots.raidPlanId, planId),
             eq(raidPlanEncounterAASlots.slotName, item.slotName),
           );
 
@@ -110,7 +106,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       await db.insert(raidPlanEncounterAASlots).values({
         encounterId: item.encounterId ?? null,
-        raidPlanId: item.encounterId ? null : id,
+        raidPlanId: item.encounterId ? null : planId,
         planCharacterId: item.planCharacterId,
         slotName: item.slotName,
         sortOrder: nextSortOrder,
@@ -119,7 +115,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       assigned++;
     }
 
-    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, planId));
 
     return NextResponse.json({ assigned, skipped });
   } catch (error) {

@@ -4,6 +4,7 @@ import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
 import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import { db } from "~/server/db";
 import {
@@ -65,6 +66,11 @@ export async function PUT(
       return NextResponse.json({ error: "No fields provided" }, { status: 400 });
     }
 
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
     // Verify encounter belongs to this plan
     const encounter = await db
       .select({
@@ -72,7 +78,7 @@ export async function PUT(
         raidPlanId: raidPlanEncounters.raidPlanId,
       })
       .from(raidPlanEncounters)
-      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, id)))
+      .where(and(eq(raidPlanEncounters.id, encounterId), eq(raidPlanEncounters.raidPlanId, planId)))
       .limit(1);
 
     if (encounter.length === 0) {
@@ -123,7 +129,7 @@ export async function PUT(
             defaultPosition: raidPlanCharacters.defaultPosition,
           })
           .from(raidPlanCharacters)
-          .where(eq(raidPlanCharacters.raidPlanId, id));
+          .where(eq(raidPlanCharacters.raidPlanId, planId));
 
         if (planChars.length > 0) {
           await db.insert(raidPlanEncounterAssignments).values(
@@ -138,7 +144,7 @@ export async function PUT(
       }
     }
 
-    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, id));
+    await db.update(raidPlans).set({ updatedById: user.id }).where(eq(raidPlans.id, planId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
