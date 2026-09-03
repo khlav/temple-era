@@ -43,12 +43,19 @@ export async function generateMetadata({
 
   const metadata = generateRaidMetadata(raidData, raidId);
 
+  // The page itself now redirects the slug-less URL to /raids/<id>/<kebab-name> (see
+  // RaidPage below) — advertising the slug-less form as canonical here would contradict
+  // that redirect, so the canonical URL must include the same slug once one exists.
+  const canonicalPath = raidData?.name
+    ? `/raids/${raidId}/${encodeURIComponent(kebabCaseSlug(raidData.name))}`
+    : `/raids/${raidId}`;
+
   return {
     title: metadata.title,
     description: metadata.description,
     openGraph: metadata.openGraph,
     alternates: {
-      canonical: `/raids/${raidId}`,
+      canonical: canonicalPath,
     },
     other: {
       "application/ld+json": JSON.stringify(metadata.structuredData),
