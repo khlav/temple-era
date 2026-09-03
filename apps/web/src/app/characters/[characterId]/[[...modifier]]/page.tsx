@@ -101,7 +101,18 @@ export default async function PlayerPage({
   const p = await params;
   const session = await auth();
   const raw = String(p.characterId);
-  const wantsPrimary = isPrimaryAlias(p.modifier?.[0]);
+  // Next does not decode dynamic segments — a canonical slug redirect target is built
+  // from a plain (unencoded) name, so the incoming segment must be decoded before any
+  // comparison against it, or a name requiring encoding would never match its own
+  // canonical form and loop.
+  let decodedModifier = p.modifier?.[0];
+  try {
+    decodedModifier =
+      decodedModifier === undefined ? undefined : decodeURIComponent(decodedModifier);
+  } catch {
+    // Malformed percent-encoding — fall back to the raw segment rather than 500ing.
+  }
+  const wantsPrimary = isPrimaryAlias(decodedModifier);
 
   if (!NUMERIC_ID_PATTERN.test(raw)) {
     // Not a numeric ID — treat the segment as a character name, same as the /c/<name>
@@ -154,7 +165,7 @@ export default async function PlayerPage({
   // stale (renamed character), or hand-typed trailing segment gets corrected here rather
   // than just accepted, so every link to a given ID converges on the same URL.
   const canonicalSlug = canonicalCharacterSlug(info.name);
-  if (p.modifier?.[0] !== canonicalSlug) {
+  if (decodedModifier !== canonicalSlug) {
     redirect(canonicalCharacterPath(characterId, info.name));
   }
 
