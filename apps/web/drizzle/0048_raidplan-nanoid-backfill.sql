@@ -2,20 +2,26 @@
 -- Step 2 of 3: backfill legacy_uuid + generate a nanoid-alphabet value for every existing
 -- row, then propagate it to every child table's shadow FK column.
 --
--- temple_nanoid_gen replicates nanoid's generator (8 chars, alphabet `A-Za-z0-9_-`,
--- 64 symbols) using pgcrypto's gen_random_bytes: masking each random byte
--- to its low 6 bits (`& 63`) indexes uniformly into the 64-char alphabet with zero bias,
--- since 64 is a power of two — the same trick nanoid's own generator uses.
+-- temple_nanoid_gen replicates nanoid's generator (8 chars, alphabet `A-Za-z0-9` — no
+-- `-`/`_`, so an id never reads as a word-break — 62 symbols) using pgcrypto's
+-- gen_random_bytes. 62 isn't a power of two, so a plain modulo would bias the last two
+-- symbols; instead each byte >= 248 (62*4) is rejected and redrawn, and `% 62` on the
+-- rest gives every symbol equal odds — matches this app's RAID_PLAN_ID_ALPHABET
+-- (raid-plan-id.ts) and customAlphabet call (raid-plan-schema.ts).
 
 CREATE OR REPLACE FUNCTION temple_nanoid_gen(size int DEFAULT 8) RETURNS varchar AS $$
 DECLARE
-  alphabet varchar := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
-  bytes bytea := gen_random_bytes(size);
+  alphabet varchar := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   result varchar := '';
+  b int;
   i int;
 BEGIN
-  FOR i IN 0..size - 1 LOOP
-    result := result || substr(alphabet, (get_byte(bytes, i) & 63) + 1, 1);
+  FOR i IN 1..size LOOP
+    LOOP
+      b := get_byte(gen_random_bytes(1), 0);
+      EXIT WHEN b < 248;
+    END LOOP;
+    result := result || substr(alphabet, (b % 62) + 1, 1);
   END LOOP;
   RETURN result;
 END;

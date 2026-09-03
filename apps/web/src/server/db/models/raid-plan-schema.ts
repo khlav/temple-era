@@ -10,15 +10,16 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import { IdPkAsUUID, DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
 import { raids, characters } from "~/server/db/models/raid-schema";
 import { users } from "~/server/db/models/auth-schema";
-import { RAID_PLAN_ID_LENGTH } from "~/lib/raid-plan-id";
+import { RAID_PLAN_ID_LENGTH, RAID_PLAN_ID_ALPHABET } from "~/lib/raid-plan-id";
 
 // Raid plans (only) use a nanoid PK instead of a UUID — shorter, URL-friendly IDs for the
 // shareable /raid-plans/:id link. `legacyUuid` preserves each plan's original UUID so old
 // bookmarked links keep resolving via a redirect (see raid-plan-id.ts / the raid-plans routes).
+const generateRaidPlanId = customAlphabet(RAID_PLAN_ID_ALPHABET, RAID_PLAN_ID_LENGTH);
 
 const tableCreator = pgTableCreator((name) => name);
 
@@ -141,7 +142,7 @@ export const raidPlans = tableCreator(
   {
     id: varchar("id", { length: RAID_PLAN_ID_LENGTH })
       .primaryKey()
-      .$defaultFn(() => nanoid(RAID_PLAN_ID_LENGTH)),
+      .$defaultFn(() => generateRaidPlanId()),
     legacyUuid: uuid("legacy_uuid"),
     raidHelperEventId: varchar("raid_helper_event_id", {
       length: 64,
