@@ -8,8 +8,15 @@ import type { Session } from "next-auth";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { SCOPE } from "~/lib/scopes";
+import { kebabCaseSlug } from "~/lib/slug";
+import { db } from "~/server/db";
+import { raids } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 // import { MetadataDebug } from "~/components/debug/metadata-debug"; // Uncomment to enable debug
+
+const NUMERIC_ID_PATTERN = /^\d+$/;
 
 // Cache the raid data fetch to avoid duplicate calls between generateMetadata and page component
 const getCachedRaidData = cache(async (raidId: number) => {
@@ -22,7 +29,16 @@ export async function generateMetadata({
   params: Promise<{ raidId: number }>;
 }): Promise<Metadata> {
   const p = await params;
-  const raidId = parseInt(String(p.raidId));
+  const raw = String(p.raidId);
+
+  if (!NUMERIC_ID_PATTERN.test(raw)) {
+    // Non-numeric raidId is malformed input (raids have no name-based entry point,
+    // unlike characters) — skip the DB lookup rather than querying with NaN, which
+    // would log a spurious Postgres error on every such request.
+    return {};
+  }
+
+  const raidId = parseInt(raw);
   const raidData = await getCachedRaidData(raidId);
 
   const metadata = generateRaidMetadata(raidData, raidId);
@@ -48,8 +64,12 @@ async function RaidPageContent({ raidId, session }: { raidId: number; session: S
   const caller = createCaller(ctx);
   const raidData = await caller.raid.getRaidById(raidId);
 
-  if (!raidData) {
-    return <div>Raid not found</div>;
+  // getRaidById always returns an object (spreading a possibly-undefined query result via
+  // EmptyRaid()), so a plain truthiness check never catches "not found" — check the PK it
+  // would have carried instead. Redirect rather than showing an inline message: a stale
+  // link or hand-edited URL should land the user back on a real page, not a dead end.
+  if (!raidData.raidId) {
+    redirect("/raids");
   }
 
   // Get raid name for breadcrumb from the fetched data
@@ -70,10 +90,47 @@ async function RaidPageContent({ raidId, session }: { raidId: number; session: S
   );
 }
 
-export default async function RaidPage({ params }: { params: Promise<{ raidId: number }> }) {
+export default async function RaidPage({
+  params,
+}: {
+  params: Promise<{ raidId: number; modifier?: string[] }>;
+}) {
   const p = await params;
-  const raidId = parseInt(String(p.raidId));
+  const raw = String(p.raidId);
   const session = await auth();
+
+  if (!NUMERIC_ID_PATTERN.test(raw)) {
+    // Raids have no name-based entry point (unlike characters) — a non-numeric segment
+    // is just bad input. Redirect rather than letting it reach RaidPageContent, which
+    // would call getRaidById with NaN and crash on the procedure's z.number() input.
+    redirect("/raids");
+  }
+
+  const raidId = parseInt(raw);
+  const result = await db
+    .select({ name: raids.name })
+    .from(raids)
+    .where(eq(raids.raidId, raidId))
+    .limit(1);
+  const raidName = result[0]?.name;
+
+  if (raidName) {
+    // Canonical URL is /raids/<id>/<kebab-case-name> — innocuous but descriptive. A
+    // missing, stale (renamed raid), or hand-typed trailing segment gets corrected
+    // here rather than just accepted, so every link to a given ID converges on the
+    // same URL. Next doesn't decode dynamic segments, so decode before comparing.
+    const canonicalSlug = kebabCaseSlug(raidName);
+    let decodedModifier = p.modifier?.[0];
+    try {
+      decodedModifier =
+        decodedModifier === undefined ? undefined : decodeURIComponent(decodedModifier);
+    } catch {
+      // Malformed percent-encoding — fall back to the raw segment rather than 500ing.
+    }
+    if (canonicalSlug && decodedModifier !== canonicalSlug) {
+      redirect(`/raids/${raidId}/${encodeURIComponent(canonicalSlug)}`);
+    }
+  }
 
   return (
     <Suspense fallback={<RaidDetailSkeleton />}>
