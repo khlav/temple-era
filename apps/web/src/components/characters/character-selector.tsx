@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, PlusIcon } from "lucide-react";
+import { Loader2, SearchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +23,8 @@ export function CharacterSelector({
   onSelectAction,
   buttonContent = (
     <div className="flex items-center space-x-2">
-      <PlusIcon className="shrink-0" />
-      <div className="grow-0">Add character</div>
+      <SearchIcon aria-hidden="true" className="shrink-0" />
+      <div className="grow-0">Type to search...</div>
     </div>
   ),
   characterSet = "all",
