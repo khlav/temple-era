@@ -37,10 +37,12 @@ export function AllCharacters({
   session,
   characters: initialCharacters,
   attendance: initialAttendance,
+  initialSearchTerm,
 }: {
   session?: Session;
   characters?: RaidParticipantCollection | null;
   attendance?: RosterAttendance[] | null;
+  initialSearchTerm?: string;
 }) {
   const { data: fetchedCharacters } = api.character.getCharacters.useQuery(undefined, {
     enabled: !initialCharacters,
@@ -51,7 +53,7 @@ export function AllCharacters({
   );
   const players = initialCharacters ?? fetchedCharacters;
   const attendance = initialAttendance ?? fetchedAttendance;
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(initialSearchTerm ?? "");
   const [sortBy, setSortBy] = useState<"attendance" | "alphabetical">("attendance");
 
   const attendanceByCharacterId = useMemo(() => {
@@ -115,6 +117,7 @@ export function AllCharacters({
               <TableSearchInput
                 className="h-11"
                 placeholder="Search characters, server, class, or main..."
+                defaultValue={initialSearchTerm}
                 onDebouncedChange={(v) => setSearchTerm(v)}
               />
             </div>
