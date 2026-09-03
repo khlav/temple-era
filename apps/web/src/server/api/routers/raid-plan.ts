@@ -16,7 +16,11 @@ import {
 } from "drizzle-orm";
 import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
-import { RAID_PLAN_ID_PATTERN, isLegacyRaidPlanUuid } from "~/lib/raid-plan-id";
+import {
+  RAID_PLAN_ID_PATTERN,
+  RAID_PLAN_NANOID_PATTERN,
+  isLegacyRaidPlanUuid,
+} from "~/lib/raid-plan-id";
 import { withRaidPlanIdRetry } from "~/server/services/raid-plan-id-retry";
 import {
   raidPlans,
@@ -43,12 +47,18 @@ import { SCOPE } from "~/lib/scopes";
 const PRESENCE_ACTIVE_WINDOW_MS = 60_000;
 const PRESENCE_RETENTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-// Accepts both a current nanoid plan ID and a legacy (pre-migration) UUID.
-const raidPlanIdSchema = z.string().regex(RAID_PLAN_ID_PATTERN, "Invalid raid plan ID");
+// Every mutation/lookup below except getById/getPublicById always receives a canonical
+// id — sourced from a fresh query result (a list, a prior getById), never a raw URL param
+// — so this stays nanoid-only. Accepting a legacy UUID here would pass validation but
+// then silently fail to match any row (see raidPlanIdOrLegacyUuidSchema below).
+const raidPlanIdSchema = z.string().regex(RAID_PLAN_NANOID_PATTERN, "Invalid raid plan ID");
 
-// getById/getPublicById are the only lookups a caller might still reach with a legacy
-// UUID (e.g. an old bookmarked link resolved before the page-level redirect middleware
-// runs) — match on legacy_uuid too, but only when the input is actually UUID-shaped, since
+// getById/getPublicById are the only procedures a caller might still reach with a legacy
+// UUID (an old bookmarked link, resolved via raidPlanIdCondition below before the
+// page-level redirect middleware runs) — this is the one schema that accepts both formats.
+const raidPlanIdOrLegacyUuidSchema = z.string().regex(RAID_PLAN_ID_PATTERN, "Invalid raid plan ID");
+
+// Match on legacy_uuid too, but only when the input is actually UUID-shaped, since
 // comparing an arbitrary nanoid string against the uuid-typed legacy_uuid column throws.
 function raidPlanIdCondition(planId: string) {
   return isLegacyRaidPlanUuid(planId)
@@ -213,7 +223,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Fetch a raid plan by ID with all characters and encounters
    */
   getById: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ planId: raidPlanIdSchema }))
+    .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
       // Fetch the plan
       const plan = await ctx.db
@@ -587,7 +597,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Fetch a public raid plan by ID (requires authentication but not raid manager role)
    */
   getPublicById: publicProcedure
-    .input(z.object({ planId: raidPlanIdSchema }))
+    .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
       const plan = await ctx.db
         .select({

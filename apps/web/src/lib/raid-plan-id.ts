@@ -18,9 +18,17 @@ const RAID_PLAN_ID_SEGMENT_SOURCE = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 /**
  * Raid plan IDs are nanoids going forward, but plans created before the UUID->nanoid
  * migration keep resolving via their original UUID (preserved in `raid_plan.legacy_uuid`),
- * so any path/param carrying a plan ID may still legitimately be in either format.
+ * so any path/param carrying a plan ID may still legitimately be in either format. Use this
+ * ONLY where the id is actually resolved against legacy_uuid before use (the raid-plans/
+ * raid-manager page routes, the v1 REST handlers, and getById/getPublicById) — everywhere
+ * else, a canonical id is guaranteed by construction (always sourced from a fresh query
+ * result, never a raw URL param), so RAID_PLAN_NANOID_PATTERN is the correct, narrower
+ * check: accepting a legacy UUID there would pass validation but never match any row.
  */
 export const RAID_PLAN_ID_PATTERN = new RegExp(`^(${RAID_PLAN_ID_SEGMENT_SOURCE})$`, "i");
+
+/** Canonical nanoid only — no legacy-UUID alternative. See RAID_PLAN_ID_PATTERN above. */
+export const RAID_PLAN_NANOID_PATTERN = new RegExp(`^[A-Za-z0-9]{${RAID_PLAN_ID_LENGTH}}$`, "i");
 
 /** Matches a raid plan ID (either format) as a substring — e.g. out of a full pathname. */
 export const RAID_PLAN_ID_SEGMENT_PATTERN = new RegExp(`(${RAID_PLAN_ID_SEGMENT_SOURCE})`, "i");
