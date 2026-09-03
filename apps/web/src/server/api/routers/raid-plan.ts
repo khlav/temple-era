@@ -17,6 +17,12 @@ import {
 import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { CUSTOM_ZONE_ID } from "~/lib/raid-zones";
 import {
+  RAID_PLAN_ID_PATTERN,
+  RAID_PLAN_NANOID_PATTERN,
+  isLegacyRaidPlanUuid,
+} from "~/lib/raid-plan-id";
+import { withRaidPlanIdRetry } from "~/server/services/raid-plan-id-retry";
+import {
   raidPlans,
   raidPlanCharacters,
   raidPlanEncounterGroups,
@@ -40,6 +46,25 @@ import { SCOPE } from "~/lib/scopes";
 
 const PRESENCE_ACTIVE_WINDOW_MS = 60_000;
 const PRESENCE_RETENTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Every mutation/lookup below except getById/getPublicById always receives a canonical
+// id — sourced from a fresh query result (a list, a prior getById), never a raw URL param
+// — so this stays nanoid-only. Accepting a legacy UUID here would pass validation but
+// then silently fail to match any row (see raidPlanIdOrLegacyUuidSchema below).
+const raidPlanIdSchema = z.string().regex(RAID_PLAN_NANOID_PATTERN, "Invalid raid plan ID");
+
+// getById/getPublicById are the only procedures a caller might still reach with a legacy
+// UUID (an old bookmarked link, resolved via raidPlanIdCondition below before the
+// page-level redirect middleware runs) — this is the one schema that accepts both formats.
+const raidPlanIdOrLegacyUuidSchema = z.string().regex(RAID_PLAN_ID_PATTERN, "Invalid raid plan ID");
+
+// Match on legacy_uuid too, but only when the input is actually UUID-shaped, since
+// comparing an arbitrary nanoid string against the uuid-typed legacy_uuid column throws.
+function raidPlanIdCondition(planId: string) {
+  return isLegacyRaidPlanUuid(planId)
+    ? or(eq(raidPlans.id, planId), eq(raidPlans.legacyUuid, planId))
+    : eq(raidPlans.id, planId);
+}
 
 const creatorUsers = aliasedTable(users, "raid_plan_creator");
 const lastEditorUsers = aliasedTable(users, "raid_plan_last_editor");
@@ -198,7 +223,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Fetch a raid plan by ID with all characters and encounters
    */
   getById: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ planId: z.string().uuid() }))
+    .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
       // Fetch the plan
       const plan = await ctx.db
@@ -228,7 +253,7 @@ export const raidPlanRouter = createTRPCRouter({
         .from(raidPlans)
         .leftJoin(creatorUsers, eq(creatorUsers.id, raidPlans.createdById))
         .leftJoin(lastEditorUsers, eq(lastEditorUsers.id, raidPlans.updatedById))
-        .where(eq(raidPlans.id, input.planId))
+        .where(raidPlanIdCondition(input.planId))
         .limit(1);
 
       if (plan.length === 0) {
@@ -237,6 +262,10 @@ export const raidPlanRouter = createTRPCRouter({
           message: "Raid plan not found",
         });
       }
+
+      // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
+      // canonical nanoid) — use the resolved id for every query below.
+      const resolvedPlanId = plan[0]!.id;
 
       // Fetch characters, encounters, encounter groups, and encounter notes in parallel
       const primaryCharacters = aliasedTable(characters, "primary_characters");
@@ -268,7 +297,7 @@ export const raidPlanRouter = createTRPCRouter({
               sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
             ),
           )
-          .where(eq(raidPlanCharacters.raidPlanId, input.planId))
+          .where(eq(raidPlanCharacters.raidPlanId, resolvedPlanId))
           .orderBy(
             raidPlanCharacters.defaultGroup,
             raidPlanCharacters.defaultPosition,
@@ -287,7 +316,7 @@ export const raidPlanRouter = createTRPCRouter({
             useCustomAA: raidPlanEncounters.useCustomAA,
           })
           .from(raidPlanEncounters)
-          .where(eq(raidPlanEncounters.raidPlanId, input.planId))
+          .where(eq(raidPlanEncounters.raidPlanId, resolvedPlanId))
           .orderBy(raidPlanEncounters.sortOrder),
         ctx.db
           .select({
@@ -296,7 +325,7 @@ export const raidPlanRouter = createTRPCRouter({
             sortOrder: raidPlanEncounterGroups.sortOrder,
           })
           .from(raidPlanEncounterGroups)
-          .where(eq(raidPlanEncounterGroups.raidPlanId, input.planId))
+          .where(eq(raidPlanEncounterGroups.raidPlanId, resolvedPlanId))
           .orderBy(raidPlanEncounterGroups.sortOrder),
       ]);
 
@@ -384,7 +413,7 @@ export const raidPlanRouter = createTRPCRouter({
 
       // Fetch all AA slot assignments in a single query (encounter-specific + default/trash)
       const encounterIds = encounters.map((e) => e.id);
-      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, input.planId)];
+      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, resolvedPlanId)];
       if (encounterIds.length > 0) {
         aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
       }
@@ -416,7 +445,7 @@ export const raidPlanRouter = createTRPCRouter({
     }),
 
   getPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ planId: z.string().uuid() }))
+    .input(z.object({ planId: raidPlanIdSchema }))
     .query(async ({ ctx, input }) => {
       await cleanupStalePresence(ctx.db);
 
@@ -485,7 +514,7 @@ export const raidPlanRouter = createTRPCRouter({
   upsertPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         clientSessionId: z.string().min(1).max(128),
         mode: z.enum(["viewing", "editing"]),
       }),
@@ -519,7 +548,7 @@ export const raidPlanRouter = createTRPCRouter({
   clearPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         clientSessionId: z.string().min(1).max(128),
       }),
     )
@@ -543,7 +572,7 @@ export const raidPlanRouter = createTRPCRouter({
   togglePublic: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         isPublic: z.boolean(),
       }),
     )
@@ -568,7 +597,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Fetch a public raid plan by ID (requires authentication but not raid manager role)
    */
   getPublicById: publicProcedure
-    .input(z.object({ planId: z.string().uuid() }))
+    .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
       const plan = await ctx.db
         .select({
@@ -584,7 +613,7 @@ export const raidPlanRouter = createTRPCRouter({
           isPublic: raidPlans.isPublic,
         })
         .from(raidPlans)
-        .where(and(eq(raidPlans.id, input.planId), eq(raidPlans.isPublic, true)))
+        .where(and(raidPlanIdCondition(input.planId), eq(raidPlans.isPublic, true)))
         .limit(1);
 
       if (plan.length === 0) {
@@ -593,6 +622,10 @@ export const raidPlanRouter = createTRPCRouter({
           message: "Raid plan not found",
         });
       }
+
+      // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
+      // canonical nanoid) — use the resolved id for every query below.
+      const resolvedPlanId = plan[0]!.id;
 
       const primaryCharacters2 = aliasedTable(characters, "primary_characters2");
       const [planCharacters, encounters, encounterGroups] = await Promise.all([
@@ -621,7 +654,7 @@ export const raidPlanRouter = createTRPCRouter({
               sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
             ),
           )
-          .where(eq(raidPlanCharacters.raidPlanId, input.planId)),
+          .where(eq(raidPlanCharacters.raidPlanId, resolvedPlanId)),
         ctx.db
           .select({
             id: raidPlanEncounters.id,
@@ -634,7 +667,7 @@ export const raidPlanRouter = createTRPCRouter({
             useCustomAA: raidPlanEncounters.useCustomAA,
           })
           .from(raidPlanEncounters)
-          .where(eq(raidPlanEncounters.raidPlanId, input.planId))
+          .where(eq(raidPlanEncounters.raidPlanId, resolvedPlanId))
           .orderBy(raidPlanEncounters.sortOrder),
         ctx.db
           .select({
@@ -643,7 +676,7 @@ export const raidPlanRouter = createTRPCRouter({
             sortOrder: raidPlanEncounterGroups.sortOrder,
           })
           .from(raidPlanEncounterGroups)
-          .where(eq(raidPlanEncounterGroups.raidPlanId, input.planId))
+          .where(eq(raidPlanEncounterGroups.raidPlanId, resolvedPlanId))
           .orderBy(raidPlanEncounterGroups.sortOrder),
       ]);
 
@@ -722,7 +755,7 @@ export const raidPlanRouter = createTRPCRouter({
       }
 
       const encounterIds = encounters.map((e) => e.id);
-      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, input.planId)];
+      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, resolvedPlanId)];
       if (encounterIds.length > 0) {
         aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
       }
@@ -782,7 +815,7 @@ export const raidPlanRouter = createTRPCRouter({
    * Delete a raid plan (cascades to characters, encounters, assignments)
    */
   delete: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ planId: z.string().uuid() }))
+    .input(z.object({ planId: raidPlanIdSchema }))
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db
         .delete(raidPlans)
@@ -805,7 +838,7 @@ export const raidPlanRouter = createTRPCRouter({
   createEncounter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         encounterName: z.string().min(1).max(256),
         groupId: z.string().uuid().nullable().optional(),
       }),
@@ -1087,7 +1120,7 @@ export const raidPlanRouter = createTRPCRouter({
   update: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         name: z.string().min(1).max(256).optional(),
         defaultAATemplate: z.string().max(10000).nullable().optional(),
         useDefaultAA: z.boolean().optional(),
@@ -1160,7 +1193,7 @@ export const raidPlanRouter = createTRPCRouter({
         name: z.string().min(1).max(256),
         zoneId: z.string().min(1).max(64),
         startAt: z.date().optional(),
-        cloneFromPlanId: z.string().uuid().optional(),
+        cloneFromPlanId: raidPlanIdSchema.optional(),
         characters: z.array(
           z.object({
             characterId: z.number().nullable(),
@@ -1187,261 +1220,263 @@ export const raidPlanRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.transaction(async (tx) => {
-        // Create the plan
-        const newPlan = await tx
-          .insert(raidPlans)
-          .values({
-            raidHelperEventId: input.raidHelperEventId,
-            name: input.name,
-            zoneId: input.zoneId,
-            startAt: input.startAt,
-            createdById: ctx.session.user.id,
-            updatedById: ctx.session.user.id,
-          })
-          .returning({ id: raidPlans.id });
-
-        const planId = newPlan[0]!.id;
-
-        // Insert characters if any
-        if (input.characters.length > 0) {
-          await tx.insert(raidPlanCharacters).values(
-            input.characters.map((char) => ({
-              raidPlanId: planId,
-              characterId: char.characterId,
-              characterName: char.characterName,
-              writeInClass: char.characterId ? null : (char.writeInClass ?? null),
-              defaultGroup: char.defaultGroup,
-              defaultPosition: char.defaultPosition,
-            })),
-          );
-        }
-
-        // If cloning from an existing plan, copy its setup
-        if (input.cloneFromPlanId) {
-          const sourcePlan = await tx
-            .select({
-              defaultAATemplate: raidPlans.defaultAATemplate,
-              useDefaultAA: raidPlans.useDefaultAA,
+      return withRaidPlanIdRetry(() =>
+        ctx.db.transaction(async (tx) => {
+          // Create the plan
+          const newPlan = await tx
+            .insert(raidPlans)
+            .values({
+              raidHelperEventId: input.raidHelperEventId,
+              name: input.name,
+              zoneId: input.zoneId,
+              startAt: input.startAt,
+              createdById: ctx.session.user.id,
+              updatedById: ctx.session.user.id,
             })
-            .from(raidPlans)
-            .where(eq(raidPlans.id, input.cloneFromPlanId))
-            .limit(1);
+            .returning({ id: raidPlans.id });
 
-          if (sourcePlan.length > 0) {
-            // Update new plan with source's AA settings
-            await tx
-              .update(raidPlans)
-              .set({
-                defaultAATemplate: sourcePlan[0]!.defaultAATemplate,
-                useDefaultAA: sourcePlan[0]!.useDefaultAA,
-              })
-              .where(eq(raidPlans.id, planId));
+          const planId = newPlan[0]!.id;
 
-            // Copy encounter groups first, build id remap
-            const sourceGroups = await tx
+          // Insert characters if any
+          if (input.characters.length > 0) {
+            await tx.insert(raidPlanCharacters).values(
+              input.characters.map((char) => ({
+                raidPlanId: planId,
+                characterId: char.characterId,
+                characterName: char.characterName,
+                writeInClass: char.characterId ? null : (char.writeInClass ?? null),
+                defaultGroup: char.defaultGroup,
+                defaultPosition: char.defaultPosition,
+              })),
+            );
+          }
+
+          // If cloning from an existing plan, copy its setup
+          if (input.cloneFromPlanId) {
+            const sourcePlan = await tx
               .select({
-                id: raidPlanEncounterGroups.id,
-                groupName: raidPlanEncounterGroups.groupName,
-                sortOrder: raidPlanEncounterGroups.sortOrder,
+                defaultAATemplate: raidPlans.defaultAATemplate,
+                useDefaultAA: raidPlans.useDefaultAA,
               })
-              .from(raidPlanEncounterGroups)
-              .where(eq(raidPlanEncounterGroups.raidPlanId, input.cloneFromPlanId))
-              .orderBy(raidPlanEncounterGroups.sortOrder);
+              .from(raidPlans)
+              .where(eq(raidPlans.id, input.cloneFromPlanId))
+              .limit(1);
 
-            const cloneGroupIdMap = new Map<string, string>();
+            if (sourcePlan.length > 0) {
+              // Update new plan with source's AA settings
+              await tx
+                .update(raidPlans)
+                .set({
+                  defaultAATemplate: sourcePlan[0]!.defaultAATemplate,
+                  useDefaultAA: sourcePlan[0]!.useDefaultAA,
+                })
+                .where(eq(raidPlans.id, planId));
 
-            if (sourceGroups.length > 0) {
-              const newGroups = sourceGroups.map((g) => ({
-                newId: crypto.randomUUID(),
-                groupName: g.groupName,
-                sortOrder: g.sortOrder,
-                oldId: g.id,
-              }));
-              await tx.insert(raidPlanEncounterGroups).values(
-                newGroups.map((g) => ({
-                  id: g.newId,
-                  raidPlanId: planId,
+              // Copy encounter groups first, build id remap
+              const sourceGroups = await tx
+                .select({
+                  id: raidPlanEncounterGroups.id,
+                  groupName: raidPlanEncounterGroups.groupName,
+                  sortOrder: raidPlanEncounterGroups.sortOrder,
+                })
+                .from(raidPlanEncounterGroups)
+                .where(eq(raidPlanEncounterGroups.raidPlanId, input.cloneFromPlanId))
+                .orderBy(raidPlanEncounterGroups.sortOrder);
+
+              const cloneGroupIdMap = new Map<string, string>();
+
+              if (sourceGroups.length > 0) {
+                const newGroups = sourceGroups.map((g) => ({
+                  newId: crypto.randomUUID(),
                   groupName: g.groupName,
                   sortOrder: g.sortOrder,
-                })),
-              );
-              for (const g of newGroups) {
-                cloneGroupIdMap.set(g.oldId, g.newId);
+                  oldId: g.id,
+                }));
+                await tx.insert(raidPlanEncounterGroups).values(
+                  newGroups.map((g) => ({
+                    id: g.newId,
+                    raidPlanId: planId,
+                    groupName: g.groupName,
+                    sortOrder: g.sortOrder,
+                  })),
+                );
+                for (const g of newGroups) {
+                  cloneGroupIdMap.set(g.oldId, g.newId);
+                }
               }
-            }
 
-            // Copy encounters, build id remap for notes cloning
-            const sourceEncounters = await tx
-              .select({
-                id: raidPlanEncounters.id,
-                encounterKey: raidPlanEncounters.encounterKey,
-                encounterName: raidPlanEncounters.encounterName,
-                sortOrder: raidPlanEncounters.sortOrder,
-                groupId: raidPlanEncounters.groupId,
-                aaTemplate: raidPlanEncounters.aaTemplate,
-                useCustomAA: raidPlanEncounters.useCustomAA,
-              })
-              .from(raidPlanEncounters)
-              .where(eq(raidPlanEncounters.raidPlanId, input.cloneFromPlanId))
-              .orderBy(raidPlanEncounters.sortOrder);
+              // Copy encounters, build id remap for notes cloning
+              const sourceEncounters = await tx
+                .select({
+                  id: raidPlanEncounters.id,
+                  encounterKey: raidPlanEncounters.encounterKey,
+                  encounterName: raidPlanEncounters.encounterName,
+                  sortOrder: raidPlanEncounters.sortOrder,
+                  groupId: raidPlanEncounters.groupId,
+                  aaTemplate: raidPlanEncounters.aaTemplate,
+                  useCustomAA: raidPlanEncounters.useCustomAA,
+                })
+                .from(raidPlanEncounters)
+                .where(eq(raidPlanEncounters.raidPlanId, input.cloneFromPlanId))
+                .orderBy(raidPlanEncounters.sortOrder);
 
-            const cloneEncounterIdMap = new Map<string, string>();
+              const cloneEncounterIdMap = new Map<string, string>();
 
-            if (sourceEncounters.length > 0) {
-              const newEncounters = sourceEncounters.map((enc) => ({
-                newId: crypto.randomUUID(),
-                oldId: enc.id,
-                raidPlanId: planId,
-                encounterKey: enc.encounterKey,
-                encounterName: enc.encounterName,
-                sortOrder: enc.sortOrder,
-                useDefaultGroups: true as const, // Always reset to default groups on clone
-                groupId: enc.groupId ? (cloneGroupIdMap.get(enc.groupId) ?? null) : null,
-                aaTemplate: enc.aaTemplate,
-                useCustomAA: enc.useCustomAA,
-              }));
-              await tx.insert(raidPlanEncounters).values(
-                newEncounters.map((enc) => ({
-                  id: enc.newId,
-                  raidPlanId: enc.raidPlanId,
+              if (sourceEncounters.length > 0) {
+                const newEncounters = sourceEncounters.map((enc) => ({
+                  newId: crypto.randomUUID(),
+                  oldId: enc.id,
+                  raidPlanId: planId,
                   encounterKey: enc.encounterKey,
                   encounterName: enc.encounterName,
                   sortOrder: enc.sortOrder,
-                  useDefaultGroups: enc.useDefaultGroups,
-                  groupId: enc.groupId,
+                  useDefaultGroups: true as const, // Always reset to default groups on clone
+                  groupId: enc.groupId ? (cloneGroupIdMap.get(enc.groupId) ?? null) : null,
                   aaTemplate: enc.aaTemplate,
                   useCustomAA: enc.useCustomAA,
-                })),
-              );
-              for (const enc of newEncounters) {
-                cloneEncounterIdMap.set(enc.oldId, enc.newId);
+                }));
+                await tx.insert(raidPlanEncounters).values(
+                  newEncounters.map((enc) => ({
+                    id: enc.newId,
+                    raidPlanId: enc.raidPlanId,
+                    encounterKey: enc.encounterKey,
+                    encounterName: enc.encounterName,
+                    sortOrder: enc.sortOrder,
+                    useDefaultGroups: enc.useDefaultGroups,
+                    groupId: enc.groupId,
+                    aaTemplate: enc.aaTemplate,
+                    useCustomAA: enc.useCustomAA,
+                  })),
+                );
+                for (const enc of newEncounters) {
+                  cloneEncounterIdMap.set(enc.oldId, enc.newId);
+                }
+              }
+
+              // Copy encounter notes, remapping encounterId to new IDs
+              if (cloneEncounterIdMap.size > 0) {
+                const sourceEncounterIds = [...cloneEncounterIdMap.keys()];
+                const sourceNotes = await tx
+                  .select({
+                    encounterId: raidPlanEncounterNotes.encounterId,
+                    iconRef: raidPlanEncounterNotes.iconRef,
+                    text: raidPlanEncounterNotes.text,
+                    sortOrder: raidPlanEncounterNotes.sortOrder,
+                  })
+                  .from(raidPlanEncounterNotes)
+                  .where(inArray(raidPlanEncounterNotes.encounterId, sourceEncounterIds));
+
+                if (sourceNotes.length > 0) {
+                  await tx.insert(raidPlanEncounterNotes).values(
+                    sourceNotes.map((note) => ({
+                      encounterId: cloneEncounterIdMap.get(note.encounterId)!,
+                      iconRef: note.iconRef,
+                      text: note.text,
+                      sortOrder: note.sortOrder,
+                    })),
+                  );
+                }
               }
             }
+          } else {
+            // Fall back to template encounters if an active template exists for this zone (skip for custom zones)
+            const template =
+              input.zoneId === CUSTOM_ZONE_ID
+                ? []
+                : await tx
+                    .select({
+                      id: raidPlanTemplates.id,
+                      defaultAATemplate: raidPlanTemplates.defaultAATemplate,
+                    })
+                    .from(raidPlanTemplates)
+                    .where(
+                      and(
+                        eq(raidPlanTemplates.zoneId, input.zoneId),
+                        eq(raidPlanTemplates.isActive, true),
+                      ),
+                    )
+                    .limit(1);
 
-            // Copy encounter notes, remapping encounterId to new IDs
-            if (cloneEncounterIdMap.size > 0) {
-              const sourceEncounterIds = [...cloneEncounterIdMap.keys()];
-              const sourceNotes = await tx
-                .select({
-                  encounterId: raidPlanEncounterNotes.encounterId,
-                  iconRef: raidPlanEncounterNotes.iconRef,
-                  text: raidPlanEncounterNotes.text,
-                  sortOrder: raidPlanEncounterNotes.sortOrder,
-                })
-                .from(raidPlanEncounterNotes)
-                .where(inArray(raidPlanEncounterNotes.encounterId, sourceEncounterIds));
+            if (template.length > 0) {
+              // Update the plan with default AA template from zone template
+              // If template exists, automatically enable it
+              if (template[0]!.defaultAATemplate) {
+                await tx
+                  .update(raidPlans)
+                  .set({
+                    defaultAATemplate: template[0]!.defaultAATemplate,
+                    useDefaultAA: true,
+                  })
+                  .where(eq(raidPlans.id, planId));
+              }
 
-              if (sourceNotes.length > 0) {
-                await tx.insert(raidPlanEncounterNotes).values(
-                  sourceNotes.map((note) => ({
-                    encounterId: cloneEncounterIdMap.get(note.encounterId)!,
-                    iconRef: note.iconRef,
-                    text: note.text,
-                    sortOrder: note.sortOrder,
+              // Fetch template groups and encounters in parallel
+              const [templateGroups, templateEncounters] = await Promise.all([
+                tx
+                  .select({
+                    id: raidPlanTemplateEncounterGroups.id,
+                    groupName: raidPlanTemplateEncounterGroups.groupName,
+                    sortOrder: raidPlanTemplateEncounterGroups.sortOrder,
+                  })
+                  .from(raidPlanTemplateEncounterGroups)
+                  .where(eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id))
+                  .orderBy(raidPlanTemplateEncounterGroups.sortOrder),
+                tx
+                  .select({
+                    encounterKey: raidPlanTemplateEncounters.encounterKey,
+                    encounterName: raidPlanTemplateEncounters.encounterName,
+                    sortOrder: raidPlanTemplateEncounters.sortOrder,
+                    groupId: raidPlanTemplateEncounters.groupId,
+                    aaTemplate: raidPlanTemplateEncounters.aaTemplate,
+                  })
+                  .from(raidPlanTemplateEncounters)
+                  .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
+                  .orderBy(raidPlanTemplateEncounters.sortOrder),
+              ]);
+
+              // Insert template groups with new UUIDs, build id remap
+              const templateGroupIdMap = new Map<string, string>();
+
+              if (templateGroups.length > 0) {
+                const newGroups = templateGroups.map((g) => ({
+                  newId: crypto.randomUUID(),
+                  groupName: g.groupName,
+                  sortOrder: g.sortOrder,
+                  oldId: g.id,
+                }));
+                await tx.insert(raidPlanEncounterGroups).values(
+                  newGroups.map((g) => ({
+                    id: g.newId,
+                    raidPlanId: planId,
+                    groupName: g.groupName,
+                    sortOrder: g.sortOrder,
+                  })),
+                );
+                for (const g of newGroups) {
+                  templateGroupIdMap.set(g.oldId, g.newId);
+                }
+              }
+
+              if (templateEncounters.length > 0) {
+                await tx.insert(raidPlanEncounters).values(
+                  templateEncounters.map((enc) => ({
+                    raidPlanId: planId,
+                    encounterKey: enc.encounterKey,
+                    encounterName: enc.encounterName,
+                    sortOrder: enc.sortOrder,
+                    useDefaultGroups: true,
+                    groupId: enc.groupId ? (templateGroupIdMap.get(enc.groupId) ?? null) : null,
+                    aaTemplate: enc.aaTemplate,
+                    useCustomAA: !!enc.aaTemplate, // Enable AA if template exists
                   })),
                 );
               }
             }
           }
-        } else {
-          // Fall back to template encounters if an active template exists for this zone (skip for custom zones)
-          const template =
-            input.zoneId === CUSTOM_ZONE_ID
-              ? []
-              : await tx
-                  .select({
-                    id: raidPlanTemplates.id,
-                    defaultAATemplate: raidPlanTemplates.defaultAATemplate,
-                  })
-                  .from(raidPlanTemplates)
-                  .where(
-                    and(
-                      eq(raidPlanTemplates.zoneId, input.zoneId),
-                      eq(raidPlanTemplates.isActive, true),
-                    ),
-                  )
-                  .limit(1);
 
-          if (template.length > 0) {
-            // Update the plan with default AA template from zone template
-            // If template exists, automatically enable it
-            if (template[0]!.defaultAATemplate) {
-              await tx
-                .update(raidPlans)
-                .set({
-                  defaultAATemplate: template[0]!.defaultAATemplate,
-                  useDefaultAA: true,
-                })
-                .where(eq(raidPlans.id, planId));
-            }
-
-            // Fetch template groups and encounters in parallel
-            const [templateGroups, templateEncounters] = await Promise.all([
-              tx
-                .select({
-                  id: raidPlanTemplateEncounterGroups.id,
-                  groupName: raidPlanTemplateEncounterGroups.groupName,
-                  sortOrder: raidPlanTemplateEncounterGroups.sortOrder,
-                })
-                .from(raidPlanTemplateEncounterGroups)
-                .where(eq(raidPlanTemplateEncounterGroups.templateId, template[0]!.id))
-                .orderBy(raidPlanTemplateEncounterGroups.sortOrder),
-              tx
-                .select({
-                  encounterKey: raidPlanTemplateEncounters.encounterKey,
-                  encounterName: raidPlanTemplateEncounters.encounterName,
-                  sortOrder: raidPlanTemplateEncounters.sortOrder,
-                  groupId: raidPlanTemplateEncounters.groupId,
-                  aaTemplate: raidPlanTemplateEncounters.aaTemplate,
-                })
-                .from(raidPlanTemplateEncounters)
-                .where(eq(raidPlanTemplateEncounters.templateId, template[0]!.id))
-                .orderBy(raidPlanTemplateEncounters.sortOrder),
-            ]);
-
-            // Insert template groups with new UUIDs, build id remap
-            const templateGroupIdMap = new Map<string, string>();
-
-            if (templateGroups.length > 0) {
-              const newGroups = templateGroups.map((g) => ({
-                newId: crypto.randomUUID(),
-                groupName: g.groupName,
-                sortOrder: g.sortOrder,
-                oldId: g.id,
-              }));
-              await tx.insert(raidPlanEncounterGroups).values(
-                newGroups.map((g) => ({
-                  id: g.newId,
-                  raidPlanId: planId,
-                  groupName: g.groupName,
-                  sortOrder: g.sortOrder,
-                })),
-              );
-              for (const g of newGroups) {
-                templateGroupIdMap.set(g.oldId, g.newId);
-              }
-            }
-
-            if (templateEncounters.length > 0) {
-              await tx.insert(raidPlanEncounters).values(
-                templateEncounters.map((enc) => ({
-                  raidPlanId: planId,
-                  encounterKey: enc.encounterKey,
-                  encounterName: enc.encounterName,
-                  sortOrder: enc.sortOrder,
-                  useDefaultGroups: true,
-                  groupId: enc.groupId ? (templateGroupIdMap.get(enc.groupId) ?? null) : null,
-                  aaTemplate: enc.aaTemplate,
-                  useCustomAA: !!enc.aaTemplate, // Enable AA if template exists
-                })),
-              );
-            }
-          }
-        }
-
-        return { id: planId };
-      });
+          return { id: planId };
+        }),
+      );
     }),
 
   /**
@@ -1563,7 +1598,7 @@ export const raidPlanRouter = createTRPCRouter({
   addCharacter: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         characterId: z.number().nullable(),
         characterName: z.string().min(1).max(128),
         targetGroup: z.number().min(-1).max(7),
@@ -1918,7 +1953,7 @@ export const raidPlanRouter = createTRPCRouter({
       z
         .object({
           encounterId: z.string().uuid().optional(),
-          raidPlanId: z.string().uuid().optional(),
+          raidPlanId: raidPlanIdSchema.optional(),
           planCharacterId: z.string().uuid(),
           slotName: z.string().min(1).max(128),
         })
@@ -2004,7 +2039,7 @@ export const raidPlanRouter = createTRPCRouter({
       z
         .object({
           encounterId: z.string().uuid().optional(),
-          raidPlanId: z.string().uuid().optional(),
+          raidPlanId: raidPlanIdSchema.optional(),
           planCharacterId: z.string().uuid(),
           slotName: z.string().min(1).max(128).optional(),
         })
@@ -2048,7 +2083,7 @@ export const raidPlanRouter = createTRPCRouter({
       z
         .object({
           encounterId: z.string().uuid().optional(),
-          raidPlanId: z.string().uuid().optional(),
+          raidPlanId: raidPlanIdSchema.optional(),
           slotName: z.string().min(1).max(128),
           planCharacterIds: z.array(z.string().uuid()),
         })
@@ -2213,7 +2248,7 @@ export const raidPlanRouter = createTRPCRouter({
   pushDefaultAAAssignments: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        raidPlanId: z.string().uuid(),
+        raidPlanId: raidPlanIdSchema,
         preview: z.boolean().default(false),
       }),
     )
@@ -2445,8 +2480,8 @@ export const raidPlanRouter = createTRPCRouter({
   previewAACarryForward: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        sourcePlanId: z.string().uuid(),
-        targetPlanId: z.string().uuid(),
+        sourcePlanId: raidPlanIdSchema,
+        targetPlanId: raidPlanIdSchema,
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -2530,8 +2565,8 @@ export const raidPlanRouter = createTRPCRouter({
   applyAACarryForward: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        sourcePlanId: z.string().uuid(),
-        targetPlanId: z.string().uuid(),
+        sourcePlanId: raidPlanIdSchema,
+        targetPlanId: raidPlanIdSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -2671,7 +2706,7 @@ export const raidPlanRouter = createTRPCRouter({
   refreshCharacters: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         mode: z.enum(["fullReimport", "addNewSignupsToBench"]).default("fullReimport"),
         characters: z.array(
           z.object({
@@ -2881,7 +2916,7 @@ export const raidPlanRouter = createTRPCRouter({
   createEncounterGroup: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         groupName: z.string().min(1).max(256),
       }),
     )
@@ -3038,7 +3073,7 @@ export const raidPlanRouter = createTRPCRouter({
   saveEncounterStructure: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(
       z.object({
-        planId: z.string().uuid(),
+        planId: raidPlanIdSchema,
         groups: z.array(
           z.object({
             id: z.string().uuid(),

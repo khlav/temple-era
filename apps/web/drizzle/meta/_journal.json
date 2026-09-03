@@ -330,6 +330,27 @@
       "when": 1788064657560,
       "tag": "0046_parched_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788399996889,
+      "tag": "0047_raidplan-nanoid-add-columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788400001752,
+      "tag": "0048_raidplan-nanoid-backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788400003353,
+      "tag": "0049_raidplan-nanoid-finalize",
+      "breakpoints": true
     }
   ]
 }

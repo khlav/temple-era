@@ -7,6 +7,8 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { isLegacyRaidPlanUuid } from "~/lib/raid-plan-id";
+import { resolveRaidPlan } from "~/server/services/raid-plan-lookup";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -82,6 +84,16 @@ function RaidPlanSkeleton() {
 
 export default async function RaidPlanDetailPage({ params }: PageProps) {
   const { planId } = await params;
+
+  // Bookmarked links from before the UUID->nanoid migration still carry the old UUID —
+  // resolve to the canonical nanoid so those links keep working. No slug here (unlike the
+  // public /raid-plans view): this is an internal raid-manager tool, not a shared link.
+  if (isLegacyRaidPlanUuid(planId)) {
+    const plan = await resolveRaidPlan(planId);
+    if (plan) {
+      redirect(`/raid-manager/raid-planner/${plan.id}`);
+    }
+  }
 
   return (
     <main className="w-full px-4">

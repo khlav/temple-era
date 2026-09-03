@@ -4,6 +4,8 @@ import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
 import { getBaseUrl } from "~/lib/get-base-url";
+import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
+import { resolveRaidPlanCanonicalId } from "~/server/services/raid-plan-lookup";
 import { db } from "~/server/db";
 import {
   raidPlans,
@@ -22,8 +24,6 @@ const PatchPlanSchema = z.object({
   useDefaultAA: z.boolean().optional(),
 });
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await validateApiToken(request);
@@ -36,8 +36,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
 
-    if (!UUID_RE.test(id)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id)) {
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
+    }
+
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
     const OPTIONAL_SECTIONS = [
@@ -77,7 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
       })
       .from(raidPlans)
-      .where(eq(raidPlans.id, id))
+      .where(eq(raidPlans.id, planId))
       .limit(1);
 
     if (plan.length === 0) {
@@ -100,7 +105,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       })
       .from(raidPlanCharacters)
       .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
-      .where(eq(raidPlanCharacters.raidPlanId, id))
+      .where(eq(raidPlanCharacters.raidPlanId, planId))
       .orderBy(
         raidPlanCharacters.defaultGroup,
         raidPlanCharacters.defaultPosition,
@@ -120,7 +125,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         useCustomAA: raidPlanEncounters.useCustomAA,
       })
       .from(raidPlanEncounters)
-      .where(eq(raidPlanEncounters.raidPlanId, id))
+      .where(eq(raidPlanEncounters.raidPlanId, planId))
       .orderBy(raidPlanEncounters.sortOrder);
 
     const encounterGroupsQuery = db
@@ -130,7 +135,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         sortOrder: raidPlanEncounterGroups.sortOrder,
       })
       .from(raidPlanEncounterGroups)
-      .where(eq(raidPlanEncounterGroups.raidPlanId, id))
+      .where(eq(raidPlanEncounterGroups.raidPlanId, planId))
       .orderBy(raidPlanEncounterGroups.sortOrder);
 
     const [planCharacters, encounters, encounterGroups] = await Promise.all([
@@ -187,7 +192,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .from(raidPlanEncounterAASlots)
         .where(
           or(
-            eq(raidPlanEncounterAASlots.raidPlanId, id),
+            eq(raidPlanEncounterAASlots.raidPlanId, planId),
             encounterIds.length > 0
               ? inArray(raidPlanEncounterAASlots.encounterId, encounterIds)
               : undefined,
@@ -237,8 +242,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const { id } = await params;
 
-    if (!UUID_RE.test(id)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id)) {
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
+    }
+
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
     let body: unknown;
@@ -272,7 +282,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const result = await db
       .update(raidPlans)
       .set({ ...updates, updatedById: user.id })
-      .where(eq(raidPlans.id, id))
+      .where(eq(raidPlans.id, planId))
       .returning({
         id: raidPlans.id,
         defaultAATemplate: raidPlans.defaultAATemplate,
@@ -308,13 +318,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     const { id } = await params;
 
-    if (!UUID_RE.test(id)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id)) {
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
+    }
+
+    const planId = await resolveRaidPlanCanonicalId(id);
+    if (!planId) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
     const result = await db
       .delete(raidPlans)
-      .where(eq(raidPlans.id, id))
+      .where(eq(raidPlans.id, planId))
       .returning({ id: raidPlans.id });
 
     if (result.length === 0) {

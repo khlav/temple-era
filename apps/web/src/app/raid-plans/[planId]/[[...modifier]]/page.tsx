@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth } from "~/server/auth";
 import { RaidPlanPublicView } from "~/components/raid-planner/raid-plan-public-view";
@@ -7,11 +8,18 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { siteConfig } from "~/lib/site-metadata";
+import { kebabCaseSlug } from "~/lib/slug";
+import { resolveRaidPlan } from "~/server/services/raid-plan-lookup";
+
 interface PageProps {
-  params: Promise<{ planId: string }>;
+  params: Promise<{ planId: string; modifier?: string[] }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ planId: string }>;
+}): Promise<Metadata> {
   const { planId } = await params;
 
   try {
@@ -38,16 +46,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       const title = `${plan.name} Raid Plan`;
       const description = `Sign in with Discord to highlight your characters' groups and assignments. (${encounterCount} encounters)`;
 
+      // The page itself redirects the slug-less/legacy-uuid URL to
+      // /raid-plans/<id>/<kebab-name> (see RaidPlanPublicPage below) — advertising
+      // anything else as canonical here would contradict that redirect.
+      const canonicalPath = `/raid-plans/${plan.id}/${encodeURIComponent(kebabCaseSlug(plan.name))}`;
+
       return {
         title,
         description,
         alternates: {
-          canonical: `/raid-plans/${planId}`,
+          canonical: canonicalPath,
         },
         openGraph: {
           title: `${siteConfig.name} | ${title}`,
           description,
-          url: `${siteConfig.url}/raid-plans/${planId}`,
+          url: `${siteConfig.url}${canonicalPath}`,
           siteName: siteConfig.name,
           type: "website",
           images: [ogImage],
@@ -126,12 +139,36 @@ function RaidPlanSkeleton() {
 }
 
 export default async function RaidPlanPublicPage({ params }: PageProps) {
-  const { planId } = await params;
+  const p = await params;
+  const raw = p.planId;
+
+  // Only public plans get the canonical-slug treatment — a private/nonexistent plan
+  // falls through to RaidPlanContent's existing not-found/access fallback UI unchanged.
+  const plan = await resolveRaidPlan(raw, { publicOnly: true });
+
+  if (plan) {
+    const canonicalSlug = kebabCaseSlug(plan.name);
+    let decodedModifier = p.modifier?.[0];
+    try {
+      decodedModifier =
+        decodedModifier === undefined ? undefined : decodeURIComponent(decodedModifier);
+    } catch {
+      // Malformed percent-encoding — fall back to the raw segment rather than 500ing.
+    }
+
+    const needsRedirect =
+      canonicalSlug &&
+      (raw !== plan.id || (p.modifier?.length ?? 0) > 1 || decodedModifier !== canonicalSlug);
+
+    if (needsRedirect) {
+      redirect(`/raid-plans/${plan.id}/${encodeURIComponent(canonicalSlug)}`);
+    }
+  }
 
   return (
     <main className="w-full px-4">
       <Suspense fallback={<RaidPlanSkeleton />}>
-        <RaidPlanContent planId={planId} />
+        <RaidPlanContent planId={plan?.id ?? raw} />
       </Suspense>
     </main>
   );

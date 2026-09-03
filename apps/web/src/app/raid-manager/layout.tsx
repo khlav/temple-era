@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 import { createCaller } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { SCOPE } from "~/lib/scopes";
+import { RAID_PLAN_ID_SEGMENT_PATTERN } from "~/lib/raid-plan-id";
 
 export const metadata: Metadata = {
   robots: {
@@ -27,9 +28,12 @@ export default async function RaidManagerLayout({
     const heads = await headers();
     const pathname = heads.get("x-pathname") ?? "";
 
-    // Match /raid-manager/raid-planner/[uuid]
-    // [AGENT_NOTE]: If the ID format changes from UUID, this regex will need updating.
-    const planMatch = pathname.match(/\/raid-manager\/raid-planner\/([0-9a-f-]{36})/i);
+    // Match /raid-manager/raid-planner/[id] — id is a nanoid going forward, or a legacy
+    // UUID for plans not yet visited under their new id (see raid-plan-id.ts).
+    const planMatch = new RegExp(
+      `\\/raid-manager\\/raid-planner\\/${RAID_PLAN_ID_SEGMENT_PATTERN.source}`,
+      "i",
+    ).exec(pathname);
 
     if (planMatch?.[1]) {
       const planId = planMatch[1];
