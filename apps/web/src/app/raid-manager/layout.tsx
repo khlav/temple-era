@@ -27,9 +27,11 @@ export default async function RaidManagerLayout({
     const heads = await headers();
     const pathname = heads.get("x-pathname") ?? "";
 
-    // Match /raid-manager/raid-planner/[uuid]
-    // [AGENT_NOTE]: If the ID format changes from UUID, this regex will need updating.
-    const planMatch = pathname.match(/\/raid-manager\/raid-planner\/([0-9a-f-]{36})/i);
+    // Match /raid-manager/raid-planner/[id] — id is a nanoid (21 chars) going forward,
+    // or a legacy UUID (36 chars) for plans not yet visited under their new id.
+    const planMatch = pathname.match(
+      /\/raid-manager\/raid-planner\/([0-9a-f-]{36}|[A-Za-z0-9_-]{21})/i,
+    );
 
     if (planMatch?.[1]) {
       const planId = planMatch[1];

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
+import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
 import { db } from "~/server/db";
 import { raidPlans, raidPlanEncounters, raidPlanEncounterAssignments } from "~/server/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -35,7 +36,7 @@ export async function PUT(
 
     const { id, encounterId } = await params;
 
-    if (!UUID_RE.test(id) || !UUID_RE.test(encounterId)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id) || !UUID_RE.test(encounterId)) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 

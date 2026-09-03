@@ -10,9 +10,15 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { IdPkAsUUID, DefaultTimestamps, CreatedBy, UpdatedBy } from "~/server/db/helpers";
 import { raids, characters } from "~/server/db/models/raid-schema";
 import { users } from "~/server/db/models/auth-schema";
+import { RAID_PLAN_ID_LENGTH } from "~/lib/raid-plan-id";
+
+// Raid plans (only) use a nanoid PK instead of a UUID — shorter, URL-friendly IDs for the
+// shareable /raid-plans/:id link. `legacyUuid` preserves each plan's original UUID so old
+// bookmarked links keep resolving via a redirect (see raid-plan-id.ts / the raid-plans routes).
 
 const tableCreator = pgTableCreator((name) => name);
 
@@ -133,7 +139,10 @@ export const raidPlanTemplateEncountersRelations = relations(
 export const raidPlans = tableCreator(
   "raid_plan",
   {
-    ...IdPkAsUUID,
+    id: varchar("id", { length: RAID_PLAN_ID_LENGTH })
+      .primaryKey()
+      .$defaultFn(() => nanoid(RAID_PLAN_ID_LENGTH)),
+    legacyUuid: uuid("legacy_uuid"),
     raidHelperEventId: varchar("raid_helper_event_id", {
       length: 64,
     }).notNull(),
@@ -151,6 +160,7 @@ export const raidPlans = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
+    legacyUuidIdx: uniqueIndex("raid_plan__legacy_uuid_idx").on(table.legacyUuid),
     raidHelperEventIdIdx: uniqueIndex("raid_plan__raid_helper_event_id_idx").on(
       table.raidHelperEventId,
     ),
@@ -180,7 +190,7 @@ export const raidPlanCharacters = tableCreator(
   "raid_plan_character",
   {
     ...IdPkAsUUID,
-    raidPlanId: uuid("raid_plan_id")
+    raidPlanId: varchar("raid_plan_id", { length: RAID_PLAN_ID_LENGTH })
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
     characterId: integer("character_id").references(() => characters.characterId, {
@@ -220,7 +230,7 @@ export const raidPlanEncounterGroups = tableCreator(
   "raid_plan_encounter_group",
   {
     ...IdPkAsUUID,
-    raidPlanId: uuid("raid_plan_id")
+    raidPlanId: varchar("raid_plan_id", { length: RAID_PLAN_ID_LENGTH })
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
     groupName: varchar("group_name", { length: 256 }).notNull(),
@@ -252,7 +262,7 @@ export const raidPlanEncounters = tableCreator(
   "raid_plan_encounter",
   {
     ...IdPkAsUUID,
-    raidPlanId: uuid("raid_plan_id")
+    raidPlanId: varchar("raid_plan_id", { length: RAID_PLAN_ID_LENGTH })
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
     groupId: uuid("group_id").references(() => raidPlanEncounterGroups.id, {
@@ -374,9 +384,12 @@ export const raidPlanEncounterAASlots = tableCreator(
     encounterId: uuid("encounter_id").references(() => raidPlanEncounters.id, {
       onDelete: "cascade",
     }),
-    raidPlanId: uuid("raid_plan_id").references(() => raidPlans.id, {
-      onDelete: "cascade",
-    }),
+    raidPlanId: varchar("raid_plan_id", { length: RAID_PLAN_ID_LENGTH }).references(
+      () => raidPlans.id,
+      {
+        onDelete: "cascade",
+      },
+    ),
     planCharacterId: uuid("plan_character_id")
       .notNull()
       .references(() => raidPlanCharacters.id, { onDelete: "cascade" }),
@@ -414,7 +427,7 @@ export const raidPlanPresence = tableCreator(
   "raid_plan_presence",
   {
     ...IdPkAsUUID,
-    raidPlanId: uuid("raid_plan_id")
+    raidPlanId: varchar("raid_plan_id", { length: RAID_PLAN_ID_LENGTH })
       .notNull()
       .references(() => raidPlans.id, { onDelete: "cascade" }),
     userId: uuid("user_id")

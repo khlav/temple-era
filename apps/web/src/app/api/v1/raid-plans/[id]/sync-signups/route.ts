@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
+import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
 import { matchSignupsToCharacters, resolveClassName } from "~/server/api/helpers/match-signups";
 import { env } from "~/env";
 import { db } from "~/server/db";
@@ -15,8 +16,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import { SCOPE } from "~/lib/scopes";
 
 const RAID_HELPER_API_BASE = "https://raid-helper.xyz/api";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const SyncSignupsSchema = z.object({
   mode: z.enum(["addNewSignupsToBench", "fullReimport"]).default("addNewSignupsToBench"),
@@ -34,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const { id } = await params;
 
-    if (!UUID_RE.test(id)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id)) {
       return NextResponse.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 

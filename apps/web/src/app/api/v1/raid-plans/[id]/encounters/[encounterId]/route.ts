@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logger } from "~/lib/logger";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { getSlotNames } from "~/lib/aa-template";
+import { RAID_PLAN_ID_PATTERN } from "~/lib/raid-plan-id";
 import { slugifyEncounterName } from "~/server/api/helpers/raid-plan-helpers";
 import { db } from "~/server/db";
 import {
@@ -39,7 +40,7 @@ export async function PUT(
 
     const { id, encounterId } = await params;
 
-    if (!UUID_RE.test(id) || !UUID_RE.test(encounterId)) {
+    if (!RAID_PLAN_ID_PATTERN.test(id) || !UUID_RE.test(encounterId)) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
