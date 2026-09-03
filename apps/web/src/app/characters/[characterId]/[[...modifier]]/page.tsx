@@ -36,7 +36,16 @@ export async function generateMetadata({
   params: Promise<{ characterId: number }>;
 }): Promise<Metadata> {
   const p = await params;
-  const characterId = parseInt(String(p.characterId));
+  const raw = String(p.characterId);
+
+  if (!NUMERIC_ID_PATTERN.test(raw)) {
+    // A non-numeric segment is a name-based shortlink that PlayerPage redirects
+    // immediately (see below) — skip the DB lookup rather than querying with NaN,
+    // which would log a spurious error on every legitimate /characters/<name> visit.
+    return { robots: { index: false, follow: false, noarchive: true, nosnippet: true } };
+  }
+
+  const characterId = parseInt(raw);
   const characterData = await getCachedCharacterData(characterId);
 
   const metadata = generateCharacterMetadata(characterData, characterId);
