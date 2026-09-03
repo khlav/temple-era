@@ -127,7 +127,10 @@ export default async function RaidPage({
     } catch {
       // Malformed percent-encoding — fall back to the raw segment rather than 500ing.
     }
-    if (canonicalSlug && decodedModifier !== canonicalSlug) {
+    // The route is an optional catch-all, so a URL with an extra trailing segment
+    // (e.g. /raids/<id>/<slug>/extra) would otherwise bypass canonicalization since
+    // only the first segment gets compared — reject anything beyond a single segment too.
+    if (canonicalSlug && ((p.modifier?.length ?? 0) > 1 || decodedModifier !== canonicalSlug)) {
       redirect(`/raids/${raidId}/${encodeURIComponent(canonicalSlug)}`);
     }
   }
