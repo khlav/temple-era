@@ -3,6 +3,60 @@
 -- objects along with them — no need to know exact constraint names), rename the
 -- nanoid-populated shadow columns into place, and recreate the PK/FK/index objects that
 -- CASCADE dropped, matching the names drizzle-kit would generate for the final schema.
+--
+-- Safety net first: 0048's backfill only covered rows that existed at the moment it ran.
+-- The previous app deployment can still be live and inserting raid_plan rows while
+-- `db:deploy` works through these three migration files, so re-run the same backfill here
+-- for anything that slipped in during that window — otherwise the SET NOT NULL below would
+-- abort this whole (transactional) migration on the first such straggler row.
+
+CREATE OR REPLACE FUNCTION temple_nanoid_gen(size int DEFAULT 8) RETURNS varchar AS $$
+DECLARE
+  alphabet varchar := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  result varchar := '';
+  b int;
+  i int;
+BEGIN
+  FOR i IN 1..size LOOP
+    LOOP
+      b := get_byte(gen_random_bytes(1), 0);
+      EXIT WHEN b < 248;
+    END LOOP;
+    result := result || substr(alphabet, (b % 62) + 1, 1);
+  END LOOP;
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+--> statement-breakpoint
+
+UPDATE "raid_plan"
+SET "legacy_uuid" = COALESCE("legacy_uuid", "id"),
+    "new_id" = temple_nanoid_gen(8)
+WHERE "new_id" IS NULL;
+--> statement-breakpoint
+
+UPDATE "raid_plan_character" c SET "new_raid_plan_id" = p."new_id"
+FROM "raid_plan" p WHERE c."raid_plan_id" = p."id" AND c."new_raid_plan_id" IS NULL;
+--> statement-breakpoint
+
+UPDATE "raid_plan_encounter_group" g SET "new_raid_plan_id" = p."new_id"
+FROM "raid_plan" p WHERE g."raid_plan_id" = p."id" AND g."new_raid_plan_id" IS NULL;
+--> statement-breakpoint
+
+UPDATE "raid_plan_encounter" e SET "new_raid_plan_id" = p."new_id"
+FROM "raid_plan" p WHERE e."raid_plan_id" = p."id" AND e."new_raid_plan_id" IS NULL;
+--> statement-breakpoint
+
+UPDATE "raid_plan_encounter_aa_slot" a SET "new_raid_plan_id" = p."new_id"
+FROM "raid_plan" p WHERE a."raid_plan_id" = p."id" AND a."new_raid_plan_id" IS NULL;
+--> statement-breakpoint
+
+UPDATE "raid_plan_presence" pr SET "new_raid_plan_id" = p."new_id"
+FROM "raid_plan" p WHERE pr."raid_plan_id" = p."id" AND pr."new_raid_plan_id" IS NULL;
+--> statement-breakpoint
+
+DROP FUNCTION temple_nanoid_gen(int);
+--> statement-breakpoint
 
 ALTER TABLE "raid_plan" DROP COLUMN "id" CASCADE;
 --> statement-breakpoint
