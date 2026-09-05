@@ -45,7 +45,7 @@ function AchievementCell({
     <button
       type="button"
       onClick={() => onReplay(entry.replayAwardId)}
-      className="group flex items-center gap-2 rounded-md p-1 text-left transition-colors hover:bg-accent/40"
+      className="group flex cursor-pointer items-center gap-2 rounded-md p-1 text-left transition-colors hover:bg-accent/40"
     >
       <div
         className="ro-icon-sm relative shrink-0"
