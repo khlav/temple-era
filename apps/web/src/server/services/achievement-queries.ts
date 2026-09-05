@@ -1,7 +1,8 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type db as database } from "~/server/db";
 import {
   achievements,
+  achievementTiers,
   achievementAwards,
   characters,
   type AchievementRuleConfig,
@@ -444,6 +445,145 @@ export interface AdminAchievementTier {
    *  that medal's tooltip. */
   description: string;
   holders: AdminAwardHolder[];
+}
+
+export interface AchievementLogEntry {
+  /** Eastern calendar day the group falls on ("YYYY-MM-DD") — matches getEasternDate()'s own
+   *  bucketing (raid-formatting.ts) so this lines up with how the rest of the app reads "the same
+   *  day" for a timestamp. */
+  day: string;
+  /** Most recent awardedAt within the group — what the row's Date cell actually renders. */
+  latestAwardedAt: Date;
+  achievementTierId: string;
+  tier: AchievementTierLevel;
+  name: string;
+  icon: string;
+  /** Resolved against this tier's ruleConfig — see resolveAchievementDescription. "" when the
+   *  achievement has no description template. */
+  description: string;
+  /** Unlike getDisplayCatalog/getPublicCatalog, this log intentionally does NOT mask hidden
+   *  achievements — every row renders fully regardless of `hidden`, per explicit product
+   *  direction that the log is a fine way to discover one exists. Carried through anyway in case
+   *  a caller wants to style hidden rows differently later. */
+  hidden: boolean;
+  /** One award id from the group (earliest awardedAt) — enough to drive getAwardById's replay,
+   *  which resolves rarity/holders across every award for that tier on its own. */
+  replayAwardId: string;
+  earners: { characterId: number; name: string; class: string }[];
+}
+
+export interface AchievementLogPage {
+  entries: AchievementLogEntry[];
+  hasMore: boolean;
+}
+
+/** Backs the Achievements Earned Log (`/achievements/log`) — one row per (Eastern day,
+ *  achievementTierId), aggregating every family that crossed that tier that day. Offset-based
+ *  pagination, same "small tables at this guild's scale" reasoning getAdminCatalog already
+ *  relies on — no cursor/keyset machinery needed. Fetches `limit + 1` rows to derive `hasMore`
+ *  without a separate count query.
+ *
+ *  Ordered date desc, achievement name asc, tier desc — all three have to be resolved and sorted
+ *  *before* LIMIT/OFFSET slices the page, which is why achievement_tier/achievement are joined
+ *  directly into this grouped query rather than looked up in a second batched query afterward
+ *  (the latter only sees whichever tier ids happened to land on the current page, too late to
+ *  affect which rows those are). Ordering by `achievementTiers.tier` directly relies on the
+ *  Postgres enum's declared value order (achievement-schema.ts:
+ *  copper/silver/gold/thorium/arcanite) matching TIER_RANK's 0..4 — enum comparison in Postgres
+ *  follows declaration order, so `desc` on the raw column is already highest-tier-first. */
+export async function getAchievementLogPage(
+  db: DB,
+  { limit, offset }: { limit: number; offset: number },
+): Promise<AchievementLogPage> {
+  // Reused (not recomputed) everywhere it's referenced below, so the generated SQL text is
+  // guaranteed identical in the SELECT list and the GROUP BY/ORDER BY clauses rather than relying
+  // on Postgres resolving an output alias back to its defining expression.
+  const dayExpr = sql<string>`to_char(${achievementAwards.awardedAt} at time zone 'America/New_York', 'YYYY-MM-DD')`;
+  // Typed `string`, not `Date` — postgres.js doesn't run its timestamptz->Date parser over a raw
+  // aggregate expression's result column the way it does a plain typed column reference, so this
+  // comes back as Postgres's own text format ("2026-09-01 15:40:58.605-04", not ISO). Coerced with
+  // `new Date(...)` below, once, at the query boundary.
+  const latestAwardedAtExpr = sql<string>`max(${achievementAwards.awardedAt})`;
+
+  const rows = await db
+    .select({
+      day: dayExpr,
+      achievementTierId: achievementAwards.achievementTierId,
+      latestAwardedAt: latestAwardedAtExpr,
+      tier: achievementTiers.tier,
+      ruleConfig: achievementTiers.ruleConfig,
+      name: achievements.name,
+      icon: achievements.icon,
+      hidden: achievements.hidden,
+      description: achievements.description,
+      scope: achievements.scope,
+      characterIds: sql<
+        number[]
+      >`array_agg(${achievementAwards.primaryCharacterId} order by ${achievementAwards.primaryCharacterId})`,
+      // Earliest-awarded row in the group is the replay representative — arbitrary but stable.
+      awardIds: sql<
+        string[]
+      >`array_agg(${achievementAwards.id} order by ${achievementAwards.awardedAt} asc)`,
+    })
+    .from(achievementAwards)
+    .innerJoin(achievementTiers, eq(achievementAwards.achievementTierId, achievementTiers.id))
+    .innerJoin(achievements, eq(achievementTiers.achievementId, achievements.id))
+    .groupBy(
+      dayExpr,
+      achievementAwards.achievementTierId,
+      achievementTiers.tier,
+      achievementTiers.ruleConfig,
+      achievements.name,
+      achievements.icon,
+      achievements.hidden,
+      achievements.description,
+      achievements.scope,
+    )
+    .orderBy(desc(dayExpr), asc(achievements.name), desc(achievementTiers.tier))
+    .limit(limit + 1)
+    .offset(offset);
+
+  const hasMore = rows.length > limit;
+  const page = rows.slice(0, limit);
+  if (page.length === 0) return { entries: [], hasMore: false };
+
+  const allCharacterIds = [...new Set(page.flatMap((r) => r.characterIds))];
+  const characterRows =
+    allCharacterIds.length === 0
+      ? []
+      : await db
+          .select({
+            characterId: characters.characterId,
+            name: characters.name,
+            class: characters.class,
+          })
+          .from(characters)
+          .where(inArray(characters.characterId, allCharacterIds));
+  const characterById = new Map(characterRows.map((c) => [c.characterId, c]));
+
+  const entries: AchievementLogEntry[] = page.map((row) => {
+    return {
+      day: row.day,
+      latestAwardedAt: new Date(row.latestAwardedAt),
+      achievementTierId: row.achievementTierId,
+      tier: row.tier as AchievementTierLevel,
+      name: row.name,
+      icon: row.icon,
+      description: resolveAchievementDescription(row.description, row.ruleConfig, row.scope),
+      hidden: row.hidden,
+      replayAwardId: row.awardIds[0]!,
+      earners: row.characterIds.map((characterId) => {
+        const character = characterById.get(characterId);
+        return {
+          characterId,
+          name: character?.name ?? "Unknown",
+          class: character?.class ?? "",
+        };
+      }),
+    };
+  });
+
+  return { entries, hasMore };
 }
 
 export interface AdminAchievement {

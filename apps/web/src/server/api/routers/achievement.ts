@@ -27,6 +27,7 @@ import {
   getPublicCatalog,
   getAwardById,
   getAdminCatalog,
+  getAchievementLogPage,
 } from "~/server/services/achievement-queries";
 import { getRandomIconNames, searchIconNames } from "~/server/services/wow-icon-catalog";
 
@@ -238,5 +239,27 @@ export const achievementRouter = createTRPCRouter({
         ? await resolveSessionPrimaryCharacterId(session.user.id)
         : null;
       return getAwardById(ctx.db, input.achievementAwardId, viewerPrimaryCharacterId);
+    }),
+
+  // Backs the Achievements Earned Log (/achievements/log) — a guild-wide feed, public like the
+  // rest of the Achievements page's browsing surface. Unlike getDisplayCatalog/getPublicCatalog,
+  // this deliberately does NOT mask hidden achievements — the log is allowed to be how someone
+  // discovers one exists. `cursor` is a row offset under the hood (see getAchievementLogPage's own
+  // doc comment on why offset is fine at this table's size) but kept opaque to the client so it
+  // composes with tRPC's useInfiniteQuery convention.
+  getAchievementLog: publicProcedure
+    .input(
+      z.object({
+        cursor: z.number().int().min(0).optional(),
+        limit: z.number().int().min(1).max(100).default(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const offset = input.cursor ?? 0;
+      const { entries, hasMore } = await getAchievementLogPage(ctx.db, {
+        limit: input.limit,
+        offset,
+      });
+      return { entries, nextCursor: hasMore ? offset + entries.length : undefined };
     }),
 });
