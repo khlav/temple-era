@@ -107,13 +107,20 @@ export function AchievementLog(): React.JSX.Element {
   const sentinelRef = React.useRef<HTMLDivElement>(null);
   const fetchNextPageRef = React.useRef(fetchNextPage);
   fetchNextPageRef.current = fetchNextPage;
+  // Read via a ref (not an effect dependency) so an in-flight fetch doesn't tear down and
+  // recreate the observer — appended rows can shift the sentinel back into view mid-fetch, which
+  // would otherwise fire fetchNextPage again before the previous page finished.
+  const isFetchingNextPageRef = React.useRef(isFetchingNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
 
   React.useEffect(() => {
     const el = sentinelRef.current;
     if (!el || !hasNextPage) return;
     const observer = new IntersectionObserver(
       (observerEntries) => {
-        if (observerEntries[0]?.isIntersecting) fetchNextPageRef.current();
+        if (observerEntries[0]?.isIntersecting && !isFetchingNextPageRef.current) {
+          fetchNextPageRef.current();
+        }
       },
       { rootMargin: "200px" },
     );

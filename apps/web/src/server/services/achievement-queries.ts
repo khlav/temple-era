@@ -500,10 +500,11 @@ export async function getAchievementLogPage(
   // on Postgres resolving an output alias back to its defining expression.
   const dayExpr = sql<string>`to_char(${achievementAwards.awardedAt} at time zone 'America/New_York', 'YYYY-MM-DD')`;
   // Typed `string`, not `Date` — postgres.js doesn't run its timestamptz->Date parser over a raw
-  // aggregate expression's result column the way it does a plain typed column reference, so this
-  // comes back as Postgres's own text format ("2026-09-01 15:40:58.605-04", not ISO). Coerced with
-  // `new Date(...)` below, once, at the query boundary.
-  const latestAwardedAtExpr = sql<string>`max(${achievementAwards.awardedAt})`;
+  // aggregate expression's result column the way it does a plain typed column reference. Formatted
+  // as an explicit UTC ISO-8601 string (rather than left as Postgres's own session-DateStyle-
+  // dependent text output) so `new Date(...)` below parses it unambiguously regardless of the
+  // connection's TimeZone setting.
+  const latestAwardedAtExpr = sql<string>`to_char(max(${achievementAwards.awardedAt}) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
 
   const rows = await db
     .select({
