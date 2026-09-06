@@ -71,6 +71,29 @@ strip_archon_appendix() {
     '
 }
 
+# Archon (PR-Agent under the hood) also prepends a "<!-- pr-agent-generated -->"
+# marker comment as the literal first line of the body, ahead of even the
+# "User description" heading below. GitHub's renderer hides HTML comments, so
+# it's invisible on the PR page, but Discord's markdown does not strip them —
+# it rendered as a stray visible line above "User description" in PR #117's
+# notification. Peel it off (and a lone blank line it uses to separate itself
+# from what follows) so the heading strip below still finds the heading on
+# line 1 as it expects. Matched narrowly to this specific marker (rather than
+# any leading HTML comment) so a human-authored description that happens to
+# open with its own HTML comment isn't silently dropped.
+strip_leading_html_comment() {
+    awk '
+        NR == 1 && $0 ~ /^<!--[[:space:]]*pr-agent-generated[[:space:]]*-->[[:space:]]*$/ {
+            comment_stripped = 1
+            next
+        }
+        NR == 2 && comment_stripped == 1 && $0 ~ /^[[:space:]]*$/ {
+            next
+        }
+        { print }
+    '
+}
+
 # Archon also prepends a "### **User description**" heading directly above the
 # original description before its own appended sections (stripped above). It's
 # only ever the first line Archon has touched the PR at all, so this only fires
@@ -126,9 +149,9 @@ truncate_text() {
 if [ -z "$PR_DESCRIPTION" ] || [ "$(echo "$PR_DESCRIPTION" | tr -d '[:space:]')" = "" ]; then
     DESCRIPTION="No description provided"
 else
-    # Drop Archon's "User description" heading and its appended PR-Agent sections
-    # (raw HTML included) before anything else
-    DESCRIPTION=$(echo "$PR_DESCRIPTION" | strip_user_description_heading | strip_archon_appendix)
+    # Drop Archon's leading marker comment, its "User description" heading, and
+    # its appended PR-Agent sections (raw HTML included) before anything else
+    DESCRIPTION=$(echo "$PR_DESCRIPTION" | strip_leading_html_comment | strip_user_description_heading | strip_archon_appendix)
     # Convert GitHub markdown to Discord format
     DESCRIPTION=$(convert_to_discord "$DESCRIPTION")
     # Truncate if necessary
