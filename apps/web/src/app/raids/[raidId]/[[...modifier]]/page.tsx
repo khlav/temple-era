@@ -82,13 +82,18 @@ async function RaidPageContent({ raidId, session }: { raidId: number; session: S
   // Get raid name for breadcrumb from the fetched data
   const raidName = raidData.name;
   const canViewSignupLink = !!session?.user?.scopes?.includes(SCOPE.RAIDPLAN_MANAGE);
+  // isRaidManager is true for ANY of several legacy-grouped scopes (raidplan:manage,
+  // character:manage, etc — see access-service.ts), but /raids/[raidId]/edit itself only
+  // accepts raidlog:manage. Gating the button on the broader flag showed it to users who'd
+  // then get redirected straight back out. Check the exact scope the edit page checks.
+  const canEditRaid = !!session?.user?.scopes?.includes(SCOPE.RAIDLOG_MANAGE);
 
   return (
     <>
       <RaidPageWrapper
         raidId={raidId}
         raidData={raidData}
-        showEditButton={session?.user?.isRaidManager}
+        showEditButton={canEditRaid}
         canViewSignupLink={canViewSignupLink}
         initialBreadcrumbData={raidName ? { [raidId.toString()]: raidName } : {}}
       />

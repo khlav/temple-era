@@ -13,11 +13,15 @@ import { Card, CardContent } from "~/components/ui/card";
 import { useIsMobile } from "~/hooks/use-mobile";
 import { VirtualizedList } from "~/components/ui/virtualized-list";
 import { cn } from "~/lib/utils";
+import { SCOPE } from "~/lib/scopes";
 
 export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; session?: Session }) {
   const isMobile = useIsMobile();
   const mobileRaids = raids ?? [];
-  const isManager = !!session?.user?.isRaidManager;
+  // isRaidManager covers several legacy-grouped scopes, but /raids/[raidId]/edit only
+  // accepts raidlog:manage — check that scope directly so this pencil only appears for
+  // people the edit page will actually let in (see the raid detail page's own comment).
+  const isManager = !!session?.user?.scopes?.includes(SCOPE.RAIDLOG_MANAGE);
   const desktopGridClass = isManager
     ? "grid-cols-[40px_minmax(0,1fr)_96px_168px_92px]"
     : "grid-cols-[minmax(0,1fr)_96px_168px_92px]";
