@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, scopedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { SCOPE } from "~/lib/scopes";
 import { raids, raidSignupSnapshotLinks } from "~/server/db/schema";
 import {
@@ -11,11 +11,15 @@ import {
 } from "~/server/services/raid-helper-snapshot-queries";
 import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
 import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
+import { getSignupAttendanceComparisonForRaid } from "~/server/services/signup-attendance-comparison";
 
 /**
  * Signup-history surface for TEMPLE-84/86 raid<->signup-event linkage. Gated on
- * RAIDPLAN_MANAGE throughout — signup data is only for people involved in raid
- * planning, not the general RAIDLOG_MANAGE audience.
+ * RAIDPLAN_MANAGE by default — signup data is only for people involved in raid
+ * planning, not the general RAIDLOG_MANAGE audience. Two exceptions: `timelineForRaid`
+ * and `comparisonForRaid` are `publicProcedure` — the Signup Timeline and Signups <->
+ * Attendees tabs on the raid detail page were opened up to everyone (no longer
+ * manager-only), matching the page's own Overview tab, which was already public.
  *
  * There is no review/confirm/reject workflow (TEMPLE-86 dropped it) — matching either
  * auto-links a raid or leaves it unlinked (see raid-signup-link-matching.ts). `list` is
@@ -138,9 +142,10 @@ export const raidSignupLinkRouter = createTRPCRouter({
 
   /**
    * Full checkpoint history for the Signup Timeline tab (TEMPLE-97). Never throws for a
-   * missing link or empty history — the UI renders its own empty states for both.
+   * missing link or empty history — the UI renders its own empty states for both. Public —
+   * see the router doc comment.
    */
-  timelineForRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+  timelineForRaid: publicProcedure
     .input(z.object({ raidId: z.number().int() }))
     .query(async ({ ctx, input }) => {
       const [link] = await ctx.db
@@ -177,6 +182,17 @@ export const raidSignupLinkRouter = createTRPCRouter({
       );
 
       return { snapshots };
+    }),
+
+  /**
+   * TEMPLE-98 Signups <-> Attendees tab. Never throws for a missing link/checkpoint — the
+   * UI renders its own empty states for both, same posture as timelineForRaid. Public —
+   * see the router doc comment.
+   */
+  comparisonForRaid: publicProcedure
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      return getSignupAttendanceComparisonForRaid(ctx.db, input.raidId);
     }),
 
   /**
