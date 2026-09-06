@@ -78,10 +78,12 @@ strip_archon_appendix() {
 # it rendered as a stray visible line above "User description" in PR #117's
 # notification. Peel it off (and a lone blank line it uses to separate itself
 # from what follows) so the heading strip below still finds the heading on
-# line 1 as it expects.
+# line 1 as it expects. Matched narrowly to this specific marker (rather than
+# any leading HTML comment) so a human-authored description that happens to
+# open with its own HTML comment isn't silently dropped.
 strip_leading_html_comment() {
     awk '
-        NR == 1 && $0 ~ /^<!--.*-->[[:space:]]*$/ {
+        NR == 1 && $0 ~ /^<!--[[:space:]]*pr-agent-generated[[:space:]]*-->[[:space:]]*$/ {
             comment_stripped = 1
             next
         }
