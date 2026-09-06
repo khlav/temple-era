@@ -16,7 +16,6 @@ import React, { useMemo, useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { CharacterLink } from "~/components/ui/character-link";
 import { summarizeSignupCounts } from "~/lib/raid-signup-status";
-import { RaidManagerOnlyIcon } from "~/components/ui/raid-manager-only-icon";
 import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
@@ -256,28 +255,24 @@ export function RaidDetailBase({
       </div>
 
       <Tabs
-        value={canViewSignupLink ? activeTab : "overview"}
+        value={activeTab}
         onValueChange={(v) => {
           if ((RAID_DETAIL_TABS as readonly string[]).includes(v)) {
             setActiveTab(v as RaidDetailTab);
           }
         }}
       >
-        {canViewSignupLink && (
-          <TabsList className={PILL_TAB_LIST_CLASSNAME}>
-            <TabsTrigger value="overview" className={PILL_TAB_TRIGGER_CLASSNAME}>
-              Attendance
-            </TabsTrigger>
-            <TabsTrigger value="signups" className={cn(PILL_TAB_TRIGGER_CLASSNAME, "gap-1.5")}>
-              <RaidManagerOnlyIcon />
-              Signup Timeline
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className={cn(PILL_TAB_TRIGGER_CLASSNAME, "gap-1.5")}>
-              <RaidManagerOnlyIcon />
-              Signups ↔ Attendees
-            </TabsTrigger>
-          </TabsList>
-        )}
+        <TabsList className={PILL_TAB_LIST_CLASSNAME}>
+          <TabsTrigger value="overview" className={PILL_TAB_TRIGGER_CLASSNAME}>
+            Attendance
+          </TabsTrigger>
+          <TabsTrigger value="signups" className={PILL_TAB_TRIGGER_CLASSNAME}>
+            Signup Timeline
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className={PILL_TAB_TRIGGER_CLASSNAME}>
+            Signups ↔ Attendees
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview" className="mt-3">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -490,22 +485,15 @@ export function RaidDetailBase({
           </div>
         </TabsContent>
 
-        {canViewSignupLink && (
-          <>
-            <TabsContent value="signups" className="mt-3">
-              <SignupTimelineTab
-                raidId={raidData.raidId ?? -1}
-                enabled={canViewSignupLink && !!raidData.raidId}
-              />
-            </TabsContent>
-            <TabsContent value="attendance" className="mt-3">
-              <SignupAttendanceComparisonTab
-                raidId={raidData.raidId ?? -1}
-                enabled={canViewSignupLink && !!raidData.raidId}
-              />
-            </TabsContent>
-          </>
-        )}
+        <TabsContent value="signups" className="mt-3">
+          <SignupTimelineTab raidId={raidData.raidId ?? -1} enabled={!!raidData.raidId} />
+        </TabsContent>
+        <TabsContent value="attendance" className="mt-3">
+          <SignupAttendanceComparisonTab
+            raidId={raidData.raidId ?? -1}
+            enabled={!!raidData.raidId}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
