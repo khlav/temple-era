@@ -71,8 +71,20 @@ export function buildSignupAttendanceComparison(
   attendeeRows: FamilyKeyed[],
   benchRows: FamilyKeyed[],
 ): ComparisonTotals {
+  // Rows arrive with no defined order, so when two characters from the same family both
+  // attended/benched (main + alt), which one becomes the family's representative in a
+  // not-signed-up exception row would otherwise depend on arbitrary row order. Sort the
+  // primary character (primaryCharacterId === null) first so the choice is deterministic
+  // and shows the main rather than a random alt.
+  const primaryFirst = (rows: FamilyKeyed[]): FamilyKeyed[] =>
+    [...rows].sort(
+      (a, b) =>
+        Number(a.primaryCharacterId !== null) - Number(b.primaryCharacterId !== null) ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
+
   const attendedByFamily = new Map<number, ComparisonMember>();
-  for (const c of attendeeRows) {
+  for (const c of primaryFirst(attendeeRows)) {
     const familyId = effectiveFamilyId(c);
     if (!attendedByFamily.has(familyId)) {
       attendedByFamily.set(familyId, {
@@ -84,7 +96,7 @@ export function buildSignupAttendanceComparison(
   }
 
   const benchedByFamily = new Map<number, ComparisonMember>();
-  for (const c of benchRows) {
+  for (const c of primaryFirst(benchRows)) {
     const familyId = effectiveFamilyId(c);
     if (!benchedByFamily.has(familyId)) {
       benchedByFamily.set(familyId, {

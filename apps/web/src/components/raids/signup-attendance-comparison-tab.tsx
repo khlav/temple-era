@@ -357,7 +357,7 @@ export function SignupAttendanceComparisonTab({
   raidId,
   enabled,
 }: SignupAttendanceComparisonTabProps) {
-  const { data, isLoading } = api.raidSignupLink.comparisonForRaid.useQuery(
+  const { data, isLoading, isError } = api.raidSignupLink.comparisonForRaid.useQuery(
     { raidId },
     { enabled },
   );
@@ -368,7 +368,23 @@ export function SignupAttendanceComparisonTab({
     return <LoadingSkeleton />;
   }
 
-  if (!data || !data.available) {
+  // A genuine fetch failure (network/tRPC error) leaves `data` undefined too, but that's
+  // not the same "expected, no backfill" case as a missing link/checkpoint — don't tell a
+  // manager the raid isn't linked when the real problem is the request itself failing.
+  if (isError || !data) {
+    return (
+      <div className="panel-surface rounded-2xl border border-border/70 p-5">
+        <div className="py-6 text-center">
+          <div className="text-base text-foreground">Couldn&apos;t load the signup comparison.</div>
+          <div className="mt-1.5 text-[13px] text-muted-foreground">
+            Something went wrong fetching this data — try refreshing the page.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data.available) {
     return (
       <div className="panel-surface rounded-2xl border border-border/70 p-5">
         <div className="py-6 text-center">
@@ -376,7 +392,7 @@ export function SignupAttendanceComparisonTab({
             No signup history available for this raid.
           </div>
           <div className="mt-1.5 text-[13px] text-muted-foreground">
-            {!data || data.reason === "no-link"
+            {data.reason === "no-link"
               ? "This raid isn't linked to a Raid Helper event."
               : "Linked to a Raid Helper event, but no 0h checkpoint was ever captured — this raid predates snapshot capture."}
           </div>

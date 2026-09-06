@@ -242,6 +242,22 @@ describe("buildSignupAttendanceComparison", () => {
     expect(result.signedUp.total).toBe(0);
   });
 
+  it("prefers the primary character as the family's representative when both a main and an alt attended", () => {
+    // Alt row listed first — the primary should still win regardless of row order.
+    const attendeeRows = [
+      character(41, "Gracepriest", "Priest", 40),
+      character(40, "Graceshaman", "Shaman", null),
+    ];
+
+    const result = buildSignupAttendanceComparison([], attendeeRows, []);
+
+    expect(result.notSignedUp.attended.count).toBe(1);
+    expect(result.notSignedUp.attended.members[0]).toMatchObject({
+      characterId: 40,
+      name: "Graceshaman",
+    });
+  });
+
   it("counts attended/benched from the raw attendance rows, not the family-collapsed matrix", () => {
     // Two characters from the same family both show up in the raid log — the top-line
     // stat mirrors the Attendance tab's own per-character count.
