@@ -45,6 +45,30 @@ function unmatched(discordName: string): SignupMatchResult {
   };
 }
 
+/** A signup whose family WAS identified but couldn't be pinned to a specific alt — e.g.
+ *  the signed-up class doesn't match anyone in the family ("unmatched" status), or two
+ *  alts share that class ("ambiguous"). matchedCharacter is absent either way, but
+ *  matchedPrimaryCharacterId/Name are set. */
+function familyKnownButUnresolved(opts: {
+  discordName: string;
+  status: "unmatched" | "ambiguous";
+  primaryCharacterId: number;
+  primaryCharacterName: string;
+}): SignupMatchResult {
+  return {
+    userId: `u-${opts.discordName}`,
+    discordName: opts.discordName,
+    className: "Paladin",
+    specName: "Retribution",
+    partyId: null,
+    slotId: null,
+    status: opts.status,
+    matchSource: "token_exact",
+    matchedPrimaryCharacterId: opts.primaryCharacterId,
+    matchedPrimaryCharacterName: opts.primaryCharacterName,
+  };
+}
+
 function character(id: number, name: string, cls: string, primaryId: number | null): FamilyKeyed {
   return { characterId: id, name, class: cls, primaryCharacterId: primaryId };
 }
@@ -163,6 +187,59 @@ describe("buildSignupAttendanceComparison", () => {
 
     expect(result.signedUp.total).toBe(1);
     expect(result.signedUp.noShow.members[0]?.name).toBe("Frankpaladin");
+  });
+
+  it("credits a family-known-but-unresolved signup as signed-up instead of double-counting them as both unmatched and an unsigned attendee", () => {
+    // Reproduces the real TEMPLE-98 bug: "Eurymedon" signed up as Paladin, but the only
+    // Eurymedon character in the roster is a Warrior — matchSignupsToCharacters can't pin
+    // a specific alt (status "unmatched"), but it DOES know the family (matchedPrimaryCharacterId).
+    const matches = [
+      familyKnownButUnresolved({
+        discordName: "Eurymedon",
+        status: "unmatched",
+        primaryCharacterId: 100,
+        primaryCharacterName: "Eurymedon",
+      }),
+    ];
+    const attendeeRows = [character(100, "Eurymedon", "Warrior", null)];
+
+    const result = buildSignupAttendanceComparison(matches, attendeeRows, []);
+
+    expect(result.unmatched).toHaveLength(0);
+    expect(result.signedUp.attended.count).toBe(1);
+    expect(result.signedUp.attended.members[0]).toMatchObject({
+      characterId: 100,
+      name: "Eurymedon",
+    });
+    expect(result.notSignedUp.attended.count).toBe(0);
+  });
+
+  it("credits an ambiguous-class signup (two same-class alts in the family) as signed-up the same way", () => {
+    const matches = [
+      familyKnownButUnresolved({
+        discordName: "Akai/Shtank",
+        status: "ambiguous",
+        primaryCharacterId: 200,
+        primaryCharacterName: "Shtank",
+      }),
+    ];
+    // The family's Shaman alt (not the primary) is the one who actually attended.
+    const attendeeRows = [character(201, "Amai", "Shaman", 200)];
+
+    const result = buildSignupAttendanceComparison(matches, attendeeRows, []);
+
+    expect(result.unmatched).toHaveLength(0);
+    expect(result.signedUp.attended.count).toBe(1);
+    expect(result.notSignedUp.attended.count).toBe(0);
+  });
+
+  it("still routes a signup with no family identified at all to the unmatched list", () => {
+    const matches = [unmatched("Totallyunknown")];
+
+    const result = buildSignupAttendanceComparison(matches, [], []);
+
+    expect(result.unmatched).toHaveLength(1);
+    expect(result.signedUp.total).toBe(0);
   });
 
   it("counts attended/benched from the raw attendance rows, not the family-collapsed matrix", () => {

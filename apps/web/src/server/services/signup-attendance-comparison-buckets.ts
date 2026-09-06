@@ -102,7 +102,23 @@ export function buildSignupAttendanceComparison(
   const signedUpFamilyIds = new Set<number>();
 
   for (const m of matches) {
-    if (!m.matchedCharacter) {
+    // matchSignupsToCharacters can identify a *family* (via name/Discord-link matching)
+    // without being able to pin down which specific alt signed up — e.g. status
+    // "unmatched" when the signup's class doesn't match anyone in the family, or
+    // "ambiguous" when two alts share that class. Either way `matchedPrimaryCharacterId`
+    // is still set. Treating that as fully unresolved would both wrongly list the person
+    // under "Unmatched signups" AND (since their family never gets marked as signed up)
+    // list their actual attended/benched character again under "not signed up" — the same
+    // person counted twice under two different names. Only a signup with no family
+    // identified at all belongs in the unmatched strip.
+    const familyId = m.matchedCharacter
+      ? effectiveFamilyId({
+          characterId: m.matchedCharacter.characterId,
+          primaryCharacterId: m.matchedCharacter.primaryCharacterId,
+        })
+      : (m.matchedPrimaryCharacterId ?? null);
+
+    if (familyId === null) {
       unmatched.push({
         characterId: null,
         name: m.discordName,
@@ -111,21 +127,25 @@ export function buildSignupAttendanceComparison(
       continue;
     }
 
-    const familyId = effectiveFamilyId({
-      characterId: m.matchedCharacter.characterId,
-      primaryCharacterId: m.matchedCharacter.primaryCharacterId,
-    });
     // A family signed up twice (e.g. an ambiguous class match resolved to the same
     // family under two different signups) keeps only the first — the matrix bucket
     // is a per-family membership check, not a per-signup one.
     if (signedUpFamilyIds.has(familyId)) continue;
     signedUpFamilyIds.add(familyId);
 
-    const member: ComparisonMember = {
-      characterId: m.matchedCharacter.characterId,
-      name: m.matchedCharacter.characterName,
-      characterClass: m.matchedCharacter.characterClass,
-    };
+    const member: ComparisonMember = m.matchedCharacter
+      ? {
+          characterId: m.matchedCharacter.characterId,
+          name: m.matchedCharacter.characterName,
+          characterClass: m.matchedCharacter.characterClass,
+        }
+      : {
+          // Family known, specific alt ambiguous/unresolved — display the family's
+          // primary character rather than guessing which alt they meant.
+          characterId: familyId,
+          name: m.matchedPrimaryCharacterName ?? m.discordName,
+          characterClass: null,
+        };
     if (attendedByFamily.has(familyId)) signedUpAttended.push(member);
     else if (benchedByFamily.has(familyId)) signedUpBenched.push(member);
     else signedUpNoShow.push(member);
