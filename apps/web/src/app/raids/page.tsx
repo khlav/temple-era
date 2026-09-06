@@ -13,6 +13,7 @@ import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { PageHeader } from "~/components/ui/page-header";
 import { createPageMetadata } from "~/lib/site-metadata";
+import { SCOPE } from "~/lib/scopes";
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -44,7 +45,9 @@ export default async function RaidIndex() {
           title="Raids"
           className="mb-4"
           actions={
-            session?.user?.isRaidManager ? (
+            // /raids/new itself only accepts raidlog:manage (see that page's own gate) —
+            // isRaidManager covers several broader legacy scopes, so check the exact one.
+            session?.user?.scopes?.includes(SCOPE.RAIDLOG_MANAGE) ? (
               <Button asChild className="w-full sm:w-auto">
                 <Link href="/raids/new">+ New from Warcraft Logs link</Link>
               </Button>
