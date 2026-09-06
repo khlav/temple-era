@@ -21,6 +21,7 @@ import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
 import { SignupTimelineTab } from "~/components/raids/signup-timeline-tab";
+import { SignupAttendanceComparisonTab } from "~/components/raids/signup-attendance-comparison-tab";
 
 const RAID_DETAIL_TABS = ["overview", "signups", "attendance"] as const;
 type RaidDetailTab = (typeof RAID_DETAIL_TABS)[number];
@@ -498,9 +499,10 @@ export function RaidDetailBase({
               />
             </TabsContent>
             <TabsContent value="attendance" className="mt-3">
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Signups ↔ Attendees comparison coming soon.
-              </p>
+              <SignupAttendanceComparisonTab
+                raidId={raidData.raidId ?? -1}
+                enabled={canViewSignupLink && !!raidData.raidId}
+              />
             </TabsContent>
           </>
         )}

@@ -11,6 +11,7 @@ import {
 } from "~/server/services/raid-helper-snapshot-queries";
 import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
 import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
+import { getSignupAttendanceComparisonForRaid } from "~/server/services/signup-attendance-comparison";
 
 /**
  * Signup-history surface for TEMPLE-84/86 raid<->signup-event linkage. Gated on
@@ -177,6 +178,16 @@ export const raidSignupLinkRouter = createTRPCRouter({
       );
 
       return { snapshots };
+    }),
+
+  /**
+   * TEMPLE-98 Signups <-> Attendees tab. Never throws for a missing link/checkpoint — the
+   * UI renders its own empty states for both, same posture as timelineForRaid.
+   */
+  comparisonForRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      return getSignupAttendanceComparisonForRaid(ctx.db, input.raidId);
     }),
 
   /**
