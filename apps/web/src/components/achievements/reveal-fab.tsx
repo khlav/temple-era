@@ -90,7 +90,7 @@ export function RevealFab(): React.JSX.Element | null {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed top-20 left-1/2 z-30 -translate-x-1/2">
         <div className="relative">
           {/* Glow, then button — siblings painted in that order, not a child of the button. A
               negative-z-index child still paints over its own parent's background per CSS paint
@@ -104,7 +104,7 @@ export function RevealFab(): React.JSX.Element | null {
             type="button"
             onClick={() => setOpen(true)}
             aria-label={label}
-            className="group relative flex animate-in items-center gap-3 rounded-full border border-border/70 bg-card/95 py-2 pl-4 pr-4 shadow-lg backdrop-blur-sm zoom-in-50 duration-500 fade-in transition-colors hover:border-primary/40"
+            className="group relative flex animate-in items-center gap-3 rounded-full border border-border/70 bg-card/95 py-2 pl-4 pr-4 shadow-lg backdrop-blur-sm zoom-in-50 animation-duration-500 fade-in transition-all duration-250 hover:scale-110 hover:border-primary/40 cursor-pointer"
           >
             <span className="text-sm font-semibold" style={{ color: heroColors.labelColor }}>
               {debugMode ? "[DEBUG] " : ""}
