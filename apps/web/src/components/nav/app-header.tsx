@@ -24,6 +24,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { ClassIcon } from "~/components/ui/class-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { cn } from "~/lib/utils";
 import { useGlobalQuickLauncher } from "~/contexts/global-quick-launcher-context";
 import { SCOPE } from "~/lib/scopes";
+import { api } from "~/trpc/react";
 
 const primaryNav = [
   { label: "Dashboard", href: "/" },
@@ -117,6 +119,15 @@ export const AppHeader = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const { setOpen } = useGlobalQuickLauncher();
+
+  const { data: userProfile } = api.profile.getMyProfile.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const primaryCharacterId = userProfile?.characterId ?? session?.user?.characterId;
+  const { data: primaryCharacterData } = api.character.getCharacterById.useQuery(
+    primaryCharacterId ?? -1,
+    { enabled: !!primaryCharacterId },
+  );
 
   const visiblePrimaryNav = primaryNav;
 
@@ -396,6 +407,26 @@ export const AppHeader = () => {
                 <DropdownMenuLabel className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Account
                 </DropdownMenuLabel>
+                {primaryCharacterId && primaryCharacterData?.name ? (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/characters/${primaryCharacterId}`}>
+                        {primaryCharacterData.class && (
+                          <ClassIcon
+                            characterClass={primaryCharacterData.class}
+                            px={18}
+                            className="shrink-0"
+                          />
+                        )}
+                        <span className="truncate font-medium">{primaryCharacterData.name}</span>
+                        <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          Primary
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <Link href="/profile">
                     <User className="h-4 w-4" />

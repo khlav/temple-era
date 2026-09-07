@@ -101,13 +101,13 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
 
   return (
     <div className="max-w-full overflow-x-auto rounded-md border">
-      <Table className="w-max whitespace-nowrap">
+      <Table className="w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="min-w-[160px]">Character</TableHead>
-            <TableHead className="min-w-[160px]">Class</TableHead>
-            <TableHead className="min-w-[160px]">Soft Reserves</TableHead>
-            <TableHead className="min-w-[160px]">Flags</TableHead>
+            <TableHead className="w-[1%] whitespace-nowrap">Character</TableHead>
+            <TableHead className="w-[1%] whitespace-nowrap">Class</TableHead>
+            <TableHead className="w-[1%] whitespace-nowrap">Soft Reserves</TableHead>
+            <TableHead>Flags</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -118,7 +118,7 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
               <TableRow
                 key={isUnmatched ? `unmatched-${result.characterName}` : result.characterId}
               >
-                <TableCell className="font-medium">
+                <TableCell className="whitespace-nowrap font-medium">
                   {isUnmatched ? (
                     <div className="flex flex-row items-center gap-2">
                       <div className="flex flex-row items-center">
@@ -165,7 +165,7 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                     </div>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   {(() => {
                     // Split "Class - Spec" format
                     const parts = result.classDetail.split(" - ");
@@ -180,7 +180,7 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                     return result.classDetail;
                   })()}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <div className="flex flex-col gap-1">
                     {result.srItems.map((item, idx) => (
                       <Link
@@ -212,10 +212,15 @@ export function SoftResScanTable({ results }: { results: SoftResScanResult[] }) 
                             <TooltipTrigger asChild>
                               <Badge
                                 variant="outline"
-                                className={`cursor-help px-1.5 py-0.5 text-[10px] ${levelColors[rule.level]}`}
+                                className={`h-6 cursor-help px-1.5 text-[10px] ${levelColors[rule.level]}`}
                               >
-                                <IconComponent className="mr-1 h-2.5 w-2.5" />
+                                <IconComponent className="mr-1 h-3 w-3" />
                                 {rule.name}
+                                {rule.itemIds.map((itemId) => (
+                                  <span key={itemId} className="ml-1 inline-flex">
+                                    <SoftResItemIcon itemId={itemId} />
+                                  </span>
+                                ))}
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent

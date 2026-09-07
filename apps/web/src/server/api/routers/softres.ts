@@ -39,6 +39,7 @@ export interface SoftResScanResult {
     description: string;
     level: "info" | "highlight" | "warning" | "inactive" | "error";
     icon: string;
+    itemIds: number[];
   }>;
   stats: {
     totalRaidsAttendedBenched: number;
@@ -281,6 +282,7 @@ export const softres = createTRPCRouter({
                 : rule.description,
             level: rule.level,
             icon: rule.icon,
+            itemIds: [...new Set(rule.matchedItemIds?.(evalContext) ?? [])],
           })),
           stats: {
             totalRaidsAttendedBenched: data.stats.totalRaidsAttendedBenched,
@@ -345,6 +347,7 @@ export const softres = createTRPCRouter({
                 : rule.description,
             level: rule.level,
             icon: rule.icon,
+            itemIds: [...new Set(rule.matchedItemIds?.(evalContext) ?? [])],
           })),
           stats: null,
         });

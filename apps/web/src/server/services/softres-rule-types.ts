@@ -31,4 +31,6 @@ export interface SoftResRule {
   level: RuleLevel;
   evaluate: (ctx: RuleEvaluationContext) => boolean;
   icon: string; // lucide-react icon name
+  // SR'd item ID(s) this rule is about, when it applies to specific items
+  matchedItemIds?: (ctx: RuleEvaluationContext) => number[];
 }
