@@ -829,7 +829,10 @@
 }
 .ro-title-block h1 {
   display: inline-block;
+  max-width: min(80vw, 780px);
+  overflow-wrap: break-word;
   font-size: clamp(30px, 5vw, 52px);
+  line-height: 1;
   letter-spacing: 3px;
   text-transform: uppercase;
   font-weight: 900;
@@ -891,6 +894,10 @@
 }
 .ro-tier-sub {
   margin-top: 3px;
+  max-width: min(80vw, 780px);
+  margin-left: auto;
+  margin-right: auto;
+  overflow-wrap: break-word;
   font-size: clamp(13px, 1.6vw, 18px);
   font-weight: 700;
   letter-spacing: 8px;
@@ -907,12 +914,17 @@
 .ro-description {
   color: #9a8c7c;
   margin: 6px auto 0;
-  max-width: 640px;
+  max-width: min(80vw, 640px);
+  overflow-wrap: break-word;
   font-size: 14px;
   line-height: 1.4;
 }
 .ro-earned-line {
   margin-top: 8px;
+  max-width: min(80vw, 780px);
+  margin-left: auto;
+  margin-right: auto;
+  overflow-wrap: break-word;
   font-size: 13px;
   color: #7c7264;
   letter-spacing: 0.3px;
@@ -1011,10 +1023,14 @@
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s;
   /* Hugs however many chips are actually shown (1 to 5 + the "+N more" chip) instead of
-     always claiming the full 640px cap — a 1-2 chip strip used to render as a mostly-empty
-     panel. Still caps/wraps at the same max width once the max real chip count is hit. */
+     always claiming the full cap — a 1-2 chip strip used to render as a mostly-empty panel.
+     Still caps/wraps at the same max width once the max real chip count is hit. The cap itself
+     (680px) is the full 6-chip row's own content width (6 × 92px chips + 5 × 10px gaps = 602px)
+     PLUS .ro-strip-panel's padding+border (36px + 2px = 38px) — a bare 640px (the row's width
+     alone) sat exactly on that boundary, so any sub-pixel rounding tipped the last "+N more"
+     chip onto a second line. */
   width: fit-content;
-  max-width: min(640px, 90vw);
+  max-width: min(680px, 90vw);
   margin: 0 auto;
   transform: skewX(6deg);
 }

@@ -849,7 +849,7 @@ export function RevealOverlay({
                                   style={{ animationDelay: `${i * 0.12 + 0.18}s` }}
                                 >
                                   <b>{a.name}</b>
-                                  <small>{at.label}</small>
+                                  <small style={{ color: at.labelColor }}>{at.label}</small>
                                 </div>
                               </div>
                             );

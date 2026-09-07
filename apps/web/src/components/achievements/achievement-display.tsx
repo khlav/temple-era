@@ -80,7 +80,7 @@ function AchievementChip({
   const chip = (
     <div
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-md p-2 text-center",
+        "flex w-full flex-col items-center gap-1.5 rounded-md p-2 text-center",
         !earned && "opacity-45",
       )}
     >
@@ -107,19 +107,23 @@ function AchievementChip({
           </span>
         )}
       </div>
-      <div className="flex flex-col">
-        <span className="text-xs font-semibold leading-tight">{name}</span>
-        <span
-          className={cn("text-[10px] uppercase tracking-wide", !earned && "text-muted-foreground")}
-          // labelColor is its own field, independent of hi (which drives the reveal ceremony's
-          // border/gradient/embers/shimmer) — for most tiers it's the same swatch, but arcanite's
-          // diverges so the border art isn't dragged along when only the label needs to change.
-          // Falls back to the muted default when unearned, since there's no tier color to key
-          // off yet.
-          style={earned ? { color: tierColors.labelColor } : undefined}
-        >
-          {highestTierEarned ? TIER_LABEL[highestTierEarned] : "Not yet earned"}
-        </span>
+      <div className="flex w-full min-w-0 flex-col">
+        <span className="truncate text-xs font-semibold leading-tight">{name}</span>
+        {/* Unearned chips skip this line entirely rather than showing "Not yet earned" — the
+            opacity-45 dimming on the whole chip already reads as unearned, so the label was
+            redundant. */}
+        {earned && (
+          <span
+            className="truncate text-[10px] uppercase tracking-wide"
+            // labelColor is its own field, independent of hi (which drives the reveal ceremony's
+            // border/gradient/embers/shimmer) — for most tiers it's the same swatch, but
+            // arcanite's diverges so the border art isn't dragged along when only the label needs
+            // to change.
+            style={{ color: tierColors.labelColor }}
+          >
+            {TIER_LABEL[highestTierEarned!]}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -148,6 +152,7 @@ function AchievementChip({
         side="top"
         className="max-w-64 bg-secondary text-center text-muted-foreground"
       >
+        <div className="font-semibold text-foreground">{name}</div>
         <div>{description}</div>
         {nextTier && nextTierDescription && (
           <>
