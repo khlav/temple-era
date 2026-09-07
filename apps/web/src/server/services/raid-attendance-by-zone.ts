@@ -80,6 +80,12 @@ export function invalidateAttendanceByZoneCache(opts: {
   attendee?: boolean;
   bench?: boolean;
 }): void {
-  if (opts.attendee) revalidateTag(ATTENDEE_TAG, "max");
-  if (opts.bench) revalidateTag(BENCH_TAG, "max");
+  try {
+    if (opts.attendee) revalidateTag(ATTENDEE_TAG, "max");
+    if (opts.bench) revalidateTag(BENCH_TAG, "max");
+  } catch {
+    // Best-effort: the write this follows has already committed, so a cache-bust
+    // failure must not turn a successful request (esp. the Templar-facing v1
+    // routes) into a 500 — the stale cache heals itself via REVALIDATE_SECONDS.
+  }
 }
