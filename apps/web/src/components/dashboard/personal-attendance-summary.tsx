@@ -182,16 +182,35 @@ export function PersonalAttendanceSummary({
     };
   }, []);
 
-  const cardHeader = (right?: React.ReactNode, titleContent?: React.ReactNode) => (
-    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
-      {titleContent ?? (
-        <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-          Your attendance
-        </div>
-      )}
-      {right}
-    </div>
-  );
+  const cardHeader = (right?: React.ReactNode, titleContent?: React.ReactNode, href?: string) => {
+    const content = (
+      <>
+        {titleContent ?? (
+          <div className="font-display text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+            Your attendance
+          </div>
+        )}
+        {right}
+      </>
+    );
+
+    if (href) {
+      return (
+        <Link
+          href={href}
+          className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 transition-colors hover:bg-accent/55"
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+        {content}
+      </div>
+    );
+  };
 
   // Show select character prompt if logged in but no primary character selected
   if (currentUserSession?.user && !activeCharacterId) {
@@ -261,21 +280,25 @@ export function PersonalAttendanceSummary({
         </span>,
         titleData.characterName && activeCharacterId ? (
           <div className="flex min-w-0 items-center gap-1.5">
-            <Link
-              href={`/characters/${activeCharacterId}`}
-              className="flex min-w-0 shrink-0 items-center gap-1.5 transition-colors hover:text-primary"
-            >
+            <div className="flex min-w-0 shrink-0 items-center gap-1.5">
               {titleClass && <ClassIcon characterClass={titleClass} px={16} />}
               <span className="font-display truncate text-[0.68rem] font-bold uppercase tracking-[0.16em] text-foreground">
                 {titleData.characterName}
               </span>
-            </Link>
+            </div>
             <span className="font-display truncate text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
               — Weighted Attendance, Last 6 Lockouts
             </span>
             <Tooltip>
               <TooltipTrigger asChild>
-                <HelpCircle size={13} className="shrink-0 text-muted-foreground" />
+                <HelpCircle
+                  size={13}
+                  className="shrink-0 text-muted-foreground"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                />
               </TooltipTrigger>
               <TooltipContent
                 side="right"
@@ -294,6 +317,9 @@ export function PersonalAttendanceSummary({
             </Tooltip>
           </div>
         ) : undefined,
+        titleData.characterName && activeCharacterId
+          ? `/characters/${activeCharacterId}`
+          : undefined,
       )}
       <CardContent className="space-y-4 pt-4 sm:pt-4">
         {/* Progress Bar */}

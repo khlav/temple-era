@@ -87,6 +87,15 @@ function getEndgameItemNames(ctx: RuleEvaluationContext, itemSet: Set<number>): 
 }
 
 /**
+ * Get the end-game item set for the current zone, if any
+ */
+function getEndgameItemSetForZone(ctx: RuleEvaluationContext): Set<number> | null {
+  if (ctx.zone === "Blackwing Lair") return ENDGAME_BWL_ITEMS;
+  if (ctx.zone === "Temple of Ahn'Qiraj") return ENDGAME_AQ40_ITEMS;
+  return null;
+}
+
+/**
  * Rule 1: Info - First raid in this zone
  * Character has no recorded previous raids in the zone
  * Ignored when zone is null (unknown instance)
@@ -143,6 +152,7 @@ const restrictedItemOkRule: SoftResRule = {
     ctx.zoneRaidsAttended !== null &&
     ctx.zoneRaidsAttended >= 4,
   icon: "Info",
+  matchedItemIds: (ctx) => ctx.srItems.filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId)),
 };
 
 /**
@@ -169,6 +179,7 @@ const restrictedItemAttendanceIneligibleRule: SoftResRule = {
     hasRestrictedNaxxItem(ctx) &&
     (ctx.primaryAttendancePct === null || ctx.primaryAttendancePct < 0.5),
   icon: "XCircle",
+  matchedItemIds: (ctx) => ctx.srItems.filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId)),
 };
 
 /**
@@ -194,6 +205,7 @@ const restrictedItemRaidCountIneligibleRule: SoftResRule = {
     ctx.primaryAttendancePct >= 0.5 &&
     (ctx.zoneRaidsAttended === null || ctx.zoneRaidsAttended < 4),
   icon: "AlertTriangle",
+  matchedItemIds: (ctx) => ctx.srItems.filter((itemId) => RESTRICTED_NAXX_ITEMS.has(itemId)),
 };
 
 /**
@@ -226,6 +238,10 @@ const endgameItemOkRule: SoftResRule = {
     return false;
   },
   icon: "Info",
+  matchedItemIds: (ctx) => {
+    const itemSet = getEndgameItemSetForZone(ctx);
+    return itemSet ? ctx.srItems.filter((itemId) => itemSet.has(itemId)) : [];
+  },
 };
 
 /**
@@ -268,6 +284,10 @@ const newerCharacterEndgameItemRule: SoftResRule = {
     return false;
   },
   icon: "AlertTriangle",
+  matchedItemIds: (ctx) => {
+    const itemSet = getEndgameItemSetForZone(ctx);
+    return itemSet ? ctx.srItems.filter((itemId) => itemSet.has(itemId)) : [];
+  },
 };
 
 /**
