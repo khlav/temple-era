@@ -63,6 +63,11 @@ export function RaidSignupLinkControl({
     void utils.raidSignupLink.forRaid.invalidate({ raidId });
     void utils.raidSignupLink.candidatesForRaid.invalidate({ raidId });
     void utils.raidSignupLink.signupVsRaidLog.invalidate({ raidId });
+    // The Signup Timeline and Signups <-> Attendees tabs read from these two — without
+    // invalidating them, correcting the link here appears to do nothing until the tab
+    // remounts or the page is refreshed.
+    void utils.raidSignupLink.timelineForRaid.invalidate({ raidId });
+    void utils.raidSignupLink.comparisonForRaid.invalidate({ raidId });
   };
 
   const onError = (action: string) => (error: { message: string }) =>
