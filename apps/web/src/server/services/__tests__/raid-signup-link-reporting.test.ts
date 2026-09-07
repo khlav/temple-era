@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // ~/server/db -> ~/env.js's real env validation, which CI's Test step runs without
 // SKIP_ENV_VALIDATION. Mock the DB and the snapshot-query module this file reads
 // through, rather than touching CI config for tests that don't need a real database.
+// This file also imports ~/env directly (for DISCORD_SERVER_ID, in discordEventUrl), so
+// that needs its own mock too — a fake value, just enough to build a real-looking URL.
 function chainable<T>(rows: T[]): Promise<T[]> & { limit: (n: number) => Promise<T[]> } {
   const result = Promise.resolve(rows) as Promise<T[]> & { limit: (n: number) => Promise<T[]> };
   result.limit = (n: number) => Promise.resolve(rows.slice(0, n));
@@ -18,6 +20,8 @@ vi.mock("~/server/db", () => ({
   db: { select: mockSelect },
 }));
 
+vi.mock("~/env", () => ({ env: { DISCORD_SERVER_ID: "srv-123" } }));
+
 const mockGetLatestSignupSnapshotForOccurrence = vi.fn();
 const mockGetLatestSignupSnapshotsByOccurrence = vi.fn();
 vi.mock("~/server/services/raid-helper-snapshot-queries", () => ({
@@ -25,7 +29,7 @@ vi.mock("~/server/services/raid-helper-snapshot-queries", () => ({
   getLatestSignupSnapshotsByOccurrence: mockGetLatestSignupSnapshotsByOccurrence,
 }));
 
-const { getSignupSnapshotForRaid, getSignupOccurrenceMetrics } =
+const { getSignupSnapshotForRaid, getSignupOccurrenceMetrics, getSignupVsRaidLogSummary } =
   await import("~/server/services/raid-signup-link-reporting");
 
 afterEach(() => {
@@ -133,5 +137,88 @@ describe("getSignupOccurrenceMetrics", () => {
     const result = await getSignupOccurrenceMetrics();
 
     expect(result.occurrences[0]?.signUpCount).toBe(0);
+  });
+});
+
+describe("getSignupVsRaidLogSummary", () => {
+  it("pairs the raid's earliest log with its linked signup", async () => {
+    const logStart = new Date("2026-01-20T22:57:58Z");
+    const logEnd = new Date("2026-01-21T02:20:05Z");
+    const signupStart = new Date("2026-01-20T23:00:00Z");
+
+    mockWhere
+      // db.select(...).from(raidLogs).where(...) — no .limit() on this call.
+      .mockReturnValueOnce(
+        Promise.resolve([
+          { raidLogId: "log-1", name: "Naxxramas", startTimeUTC: logStart, endTimeUTC: logEnd },
+        ]),
+      )
+      // db.select(...).from(raidSignupSnapshotLinks).where(...).limit(1) inside
+      // getSignupSnapshotForRaid.
+      .mockReturnValueOnce(
+        chainable([
+          {
+            linkId: "link-1",
+            source: "manual",
+            confidence: 1,
+            matchReason: {
+              timingDeltaMinutes: 0,
+              timingScore: 1,
+              zoneScore: 1,
+              zoneMatchQuality: "exact_softres",
+            },
+            raidHelperEventId: "evt-1",
+            startTime: signupStart,
+          },
+        ]),
+      );
+    mockGetLatestSignupSnapshotForOccurrence.mockResolvedValue({
+      title: "Naxx Cleanup",
+      channelId: "chan-1",
+    });
+
+    const result = await getSignupVsRaidLogSummary(885);
+
+    expect(result.raidLog).toEqual({
+      raidLogId: "log-1",
+      name: "Naxxramas",
+      startTimeUTC: logStart,
+      endTimeUTC: logEnd,
+      wclUrl: "https://vanilla.warcraftlogs.com/reports/log-1",
+    });
+    expect(result.signup).toEqual({
+      title: "Naxx Cleanup",
+      startTime: signupStart,
+      source: "manual",
+      eventUrl: "https://discord.com/channels/srv-123/chan-1/evt-1",
+    });
+  });
+
+  it("picks the earliest of multiple raid logs", async () => {
+    const earlier = new Date("2026-01-20T22:00:00Z");
+    const later = new Date("2026-01-20T23:00:00Z");
+
+    mockWhere
+      .mockReturnValueOnce(
+        Promise.resolve([
+          { raidLogId: "log-later", name: "Naxxramas", startTimeUTC: later, endTimeUTC: null },
+          { raidLogId: "log-earlier", name: "Naxxramas", startTimeUTC: earlier, endTimeUTC: null },
+        ]),
+      )
+      .mockReturnValueOnce(chainable([]));
+
+    const result = await getSignupVsRaidLogSummary(885);
+
+    expect(result.raidLog?.raidLogId).toBe("log-earlier");
+  });
+
+  it("returns a null raidLog when no log has an imported start time yet", async () => {
+    mockWhere.mockReturnValueOnce(Promise.resolve([])).mockReturnValueOnce(chainable([]));
+
+    const result = await getSignupVsRaidLogSummary(885);
+
+    expect(result.raidLog).toBeNull();
+    expect(result.signup).toBeUndefined();
+    expect(mockGetLatestSignupSnapshotForOccurrence).not.toHaveBeenCalled();
   });
 });

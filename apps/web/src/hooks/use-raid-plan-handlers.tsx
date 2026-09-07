@@ -351,6 +351,9 @@ export function useRaidPlanHandlers({ planId, mutations }: UseRaidPlanHandlersOp
         const eventDetails = await utils.raidHelper.getEventDetails.fetch({
           eventId: plan.raidHelperEventId,
         });
+        if (!eventDetails) {
+          throw new Error(`Raid Helper event not found: ${plan.raidHelperEventId}`);
+        }
 
         // 2. Build signups for matching (same transform as raid-helper-import)
         const allSignups = [...eventDetails.signups.assigned, ...eventDetails.signups.unassigned];

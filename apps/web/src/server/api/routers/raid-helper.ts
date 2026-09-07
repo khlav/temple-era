@@ -338,10 +338,16 @@ export const raidHelperRouter = createTRPCRouter({
     }),
 
   /**
-   * Fetch event details including all signups and group assignments
+   * Fetch event details including all signups and group assignments.
+   *
+   * `soft: true` returns null instead of throwing when Raid Helper doesn't have the
+   * event (a completed raid's event is routinely pruned from Raid Helper's live system
+   * well before the raid stops being viewable here) — for a best-effort "live" overlay
+   * where that is an expected, unremarkable outcome, not a real error. Defaults to false
+   * (throws) so an explicit user-triggered import still surfaces a genuine "not found".
    */
   getEventDetails: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
-    .input(z.object({ eventId: z.string() }))
+    .input(z.object({ eventId: z.string(), soft: z.boolean().optional() }))
     .query(async ({ input }) => {
       // First, fetch the event/channel to check if we need to resolve lastEventId
       const initialResponse = await fetch(`${RAID_HELPER_API_BASE}/v4/events/${input.eventId}`, {
@@ -351,6 +357,7 @@ export const raidHelperRouter = createTRPCRouter({
       });
 
       if (!initialResponse.ok) {
+        if (input.soft) return null;
         throw new TRPCError({
           code: "NOT_FOUND",
           message: `Event not found: ${input.eventId}`,
@@ -385,6 +392,7 @@ export const raidHelperRouter = createTRPCRouter({
       let eventData: RaidHelperEventResponse;
       if (actualEventId !== input.eventId) {
         if (!eventResponse.ok) {
+          if (input.soft) return null;
           throw new TRPCError({
             code: "NOT_FOUND",
             message: `Event not found: ${actualEventId}`,

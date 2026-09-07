@@ -210,6 +210,8 @@ describe("buildSignupAttendanceComparison", () => {
     expect(result.signedUp.attended.members[0]).toMatchObject({
       characterId: 100,
       name: "Eurymedon",
+      // Not a guess: it's the class the family's real attendee row already carries.
+      characterClass: "Warrior",
     });
     expect(result.notSignedUp.attended.count).toBe(0);
   });
@@ -230,6 +232,10 @@ describe("buildSignupAttendanceComparison", () => {
 
     expect(result.unmatched).toHaveLength(0);
     expect(result.signedUp.attended.count).toBe(1);
+    // The row displays the primary's name/id (unresolved alt), but the class shown is
+    // the actual attendee's — Shaman, not blank — since we know who from the family
+    // showed up even though we don't know which one signed up.
+    expect(result.signedUp.attended.members[0]).toMatchObject({ characterClass: "Shaman" });
     expect(result.notSignedUp.attended.count).toBe(0);
   });
 

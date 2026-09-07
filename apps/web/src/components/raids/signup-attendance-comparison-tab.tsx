@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink } from "lucide-react";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { CharacterLink } from "~/components/ui/character-link";
-import { formatEasternDateTime } from "~/lib/raid-formatting";
+import { SignupVsRaidLogCard } from "~/components/raids/signup-vs-raid-log-card";
 import type {
   ComparisonCell,
   ComparisonMember,
@@ -14,12 +13,6 @@ import type {
 } from "~/server/services/signup-attendance-comparison";
 
 const EYEBROW_CLASSNAME = "font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground";
-
-type Filter = "all" | "exceptions" | "unmatched";
-
-function matchesQuery(name: string, query: string): boolean {
-  return query.trim() === "" || name.toLowerCase().includes(query.trim().toLowerCase());
-}
 
 function MemberRow({ member }: { member: ComparisonMember }) {
   if (member.characterId === null) {
@@ -50,12 +43,11 @@ function MemberRow({ member }: { member: ComparisonMember }) {
 interface CellSpec {
   cell: ComparisonCell;
   label: string;
-  note: string;
   cols: 1 | 3;
 }
 
-function MatrixCell({ spec, query, dashed }: { spec: CellSpec; query: string; dashed: boolean }) {
-  const shown = spec.cell.members.filter((m) => matchesQuery(m.name, query));
+function MatrixCell({ spec, dashed }: { spec: CellSpec; dashed: boolean }) {
+  const shown = spec.cell.members;
   return (
     <div
       className={cn(
@@ -70,9 +62,6 @@ function MatrixCell({ spec, query, dashed }: { spec: CellSpec; query: string; da
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {spec.label}
         </span>
-        {spec.note ? (
-          <span className="ml-auto font-mono text-[10px] text-muted-foreground">{spec.note}</span>
-        ) : null}
       </div>
       <div
         className={cn(
@@ -88,7 +77,7 @@ function MatrixCell({ spec, query, dashed }: { spec: CellSpec; query: string; da
   );
 }
 
-function StatBlock({
+function StatTile({
   value,
   label,
   colorClassName,
@@ -98,199 +87,104 @@ function StatBlock({
   colorClassName?: string;
 }) {
   return (
-    <div className="flex items-baseline gap-1.5">
-      <span className={cn("font-display text-[22px] font-extrabold leading-none", colorClassName)}>
+    <div className="flex flex-1 flex-col items-center justify-center gap-1 px-2 py-1.5 text-center">
+      <span className={cn("font-display text-[32px] font-extrabold leading-none", colorClassName)}>
         {value}
       </span>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
     </div>
   );
 }
 
-function FilterPill({
-  active,
-  label,
-  count,
-  onClick,
+function SignupAttendanceComparisonView({
+  data,
+  raidId,
+  canEditSignupLink,
 }: {
-  active: boolean;
-  label: string;
-  count: number;
-  onClick: () => void;
+  data: SignupAttendanceComparison;
+  raidId: number;
+  canEditSignupLink?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-lg border px-2.5 py-1 font-mono text-[11px]",
-        active
-          ? "border-primary/50 bg-primary/14 text-primary"
-          : "border-border/90 bg-secondary/60 text-muted-foreground",
-      )}
-    >
-      {label} {count}
-    </button>
-  );
-}
-
-function SignupAttendanceComparisonView({ data }: { data: SignupAttendanceComparison }) {
-  const [filter, setFilter] = React.useState<Filter>("all");
-  const [query, setQuery] = React.useState("");
-
-  const showMatrix = filter !== "unmatched";
-  const showExpected = filter === "all";
-
   const attendedSpec: CellSpec = {
     cell: data.signedUp.attended,
     label: "attended",
-    note: "as signed up",
     cols: 3,
   };
   const benchedSpec: CellSpec = {
     cell: data.signedUp.benched,
     label: "benched",
-    note: "as signed up",
     cols: 1,
   };
   const noShowSpec: CellSpec = {
     cell: data.signedUp.noShow,
     label: "no-show",
-    note: "exception",
     cols: 1,
   };
   const notSignedUpAttendedSpec: CellSpec = {
     cell: data.notSignedUp.attended,
     label: "attended",
-    note: "exception",
     cols: 3,
   };
   const notSignedUpBenchedSpec: CellSpec = {
     cell: data.notSignedUp.benched,
     label: "benched",
-    note: "exception",
     cols: 1,
   };
   const emptySpec: CellSpec = {
     cell: { count: 0, members: [] },
     label: "—",
-    note: "",
     cols: 1,
   };
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Summary card */}
-      <div className="panel-surface rounded-2xl border border-border/70 px-[18px] py-3.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-2.5">
-          <div className={EYEBROW_CLASSNAME}>0h snapshot vs attendance record</div>
-          <div className="font-mono text-[11px] text-muted-foreground">
-            captured {formatEasternDateTime(data.capturedAt, "EEE h:mm a")}
-            {data.eventUrl ? (
-              <>
-                {" · "}
-                <a
-                  href={data.eventUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
-                >
-                  Raid Helper event
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </>
-            ) : null}
-          </div>
+      {/* Header: summary stats (left/main) + raid log vs. signup (right) */}
+      <div className="flex flex-wrap items-stretch gap-3">
+        <div className="panel-surface flex min-w-0 flex-1 items-stretch divide-x divide-border rounded-2xl border border-border/70 px-2">
+          <StatTile value={data.signedUpAtZeroHour} label="signed up at start (0h)" />
+          <StatTile value={data.attendedCount} label="attended" colorClassName="text-primary" />
+          <StatTile value={data.benchedCount} label="benched" />
         </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2.5">
-          <StatBlock value={data.signedUpAtZeroHour} label="signed up at 0h" />
-          <div className="h-4 w-px bg-border" />
-          <StatBlock value={data.attendedCount} label="attended" colorClassName="text-primary" />
-          <StatBlock value={data.benchedCount} label="benched" />
-          <StatBlock
-            value={data.exceptionsCount}
-            label="exceptions"
-            colorClassName="text-destructive"
-          />
-
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <FilterPill
-              active={filter === "all"}
-              label="All"
-              count={data.allCount}
-              onClick={() => setFilter("all")}
-            />
-            <FilterPill
-              active={filter === "exceptions"}
-              label="Exceptions"
-              count={data.exceptionsCount}
-              onClick={() => setFilter("exceptions")}
-            />
-            <FilterPill
-              active={filter === "unmatched"}
-              label="Unmatched"
-              count={data.unmatchedCount}
-              onClick={() => setFilter("unmatched")}
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search character…"
-              className="min-w-[150px] rounded-lg border border-border/80 bg-background/60 px-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-            />
-          </div>
+        <div className="min-w-0 flex-1">
+          <SignupVsRaidLogCard raidId={raidId} canEdit={canEditSignupLink} layout="side-by-side" />
         </div>
       </div>
 
       {/* Matrix */}
-      {showMatrix ? (
-        <div className="grid grid-cols-1 gap-2.5 min-[900px]:grid-cols-[118px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="hidden min-[900px]:block" />
-          <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
-            Attended
-          </div>
-          <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
-            Benched
-          </div>
-          <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
-            Neither
-          </div>
-
-          <div className="flex min-[900px]:flex-col min-[900px]:justify-center items-baseline gap-2 min-[900px]:gap-1">
-            <div className={EYEBROW_CLASSNAME}>Signed up</div>
-            <div className="font-display text-xl font-extrabold leading-tight">
-              {data.signedUp.total}
-            </div>
-          </div>
-          {showExpected ? (
-            <MatrixCell spec={attendedSpec} query={query} dashed={false} />
-          ) : (
-            <div className="hidden min-[900px]:block" />
-          )}
-          {showExpected ? (
-            <MatrixCell spec={benchedSpec} query={query} dashed={false} />
-          ) : (
-            <div className="hidden min-[900px]:block" />
-          )}
-          <MatrixCell spec={noShowSpec} query={query} dashed={false} />
-
-          <div className="flex min-[900px]:flex-col min-[900px]:justify-center items-baseline gap-2 min-[900px]:gap-1">
-            <div className={EYEBROW_CLASSNAME}>Not signed up</div>
-            <div className="font-display text-xl font-extrabold leading-tight">
-              {data.notSignedUp.total}
-            </div>
-          </div>
-          <MatrixCell spec={notSignedUpAttendedSpec} query={query} dashed={true} />
-          <MatrixCell spec={notSignedUpBenchedSpec} query={query} dashed={true} />
-          {showExpected ? (
-            <MatrixCell spec={emptySpec} query={query} dashed={true} />
-          ) : (
-            <div className="hidden min-[900px]:block" />
-          )}
+      <div className="grid grid-cols-1 gap-2.5 min-[900px]:grid-cols-[118px_minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="hidden min-[900px]:block" />
+        <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
+          Attended
         </div>
-      ) : null}
+        <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
+          Benched
+        </div>
+        <div className={cn(EYEBROW_CLASSNAME, "hidden pb-0.5 text-center min-[900px]:block")}>
+          Neither
+        </div>
+
+        <div className="flex min-[900px]:flex-col min-[900px]:justify-center items-baseline gap-2 min-[900px]:gap-1">
+          <div className={EYEBROW_CLASSNAME}>Signed up</div>
+          <div className="font-display text-xl font-extrabold leading-tight">
+            {data.signedUp.total}
+          </div>
+        </div>
+        <MatrixCell spec={attendedSpec} dashed={false} />
+        <MatrixCell spec={benchedSpec} dashed={false} />
+        <MatrixCell spec={noShowSpec} dashed={false} />
+
+        <div className="flex min-[900px]:flex-col min-[900px]:justify-center items-baseline gap-2 min-[900px]:gap-1">
+          <div className={EYEBROW_CLASSNAME}>Not signed up</div>
+          <div className="font-display text-xl font-extrabold leading-tight">
+            {data.notSignedUp.total}
+          </div>
+        </div>
+        <MatrixCell spec={notSignedUpAttendedSpec} dashed={true} />
+        <MatrixCell spec={notSignedUpBenchedSpec} dashed={true} />
+        <MatrixCell spec={emptySpec} dashed={true} />
+      </div>
 
       {/* Unmatched signups */}
       <div className="rounded-2xl border border-dashed border-border/70 bg-gradient-to-b from-secondary/40 to-card/80 px-4 py-3">
@@ -304,11 +198,9 @@ function SignupAttendanceComparisonView({ data }: { data: SignupAttendanceCompar
           </span>
         </div>
         <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2">
-          {data.unmatched
-            .filter((m) => matchesQuery(m.name, query))
-            .map((m) => (
-              <MemberRow key={m.name} member={m} />
-            ))}
+          {data.unmatched.map((m) => (
+            <MemberRow key={m.name} member={m} />
+          ))}
           {data.unmatched.length === 0 ? (
             <span className="text-[13px] text-muted-foreground">No unmatched signups.</span>
           ) : null}
@@ -347,6 +239,9 @@ function LoadingSkeleton() {
 interface SignupAttendanceComparisonTabProps {
   raidId: number;
   enabled: boolean;
+  /** Passed straight through to SignupVsRaidLogCard's edit affordance — same
+   * RAIDPLAN_MANAGE gate as the page header's signup-link control. */
+  canEditSignupLink?: boolean;
 }
 
 /**
@@ -356,6 +251,7 @@ interface SignupAttendanceComparisonTabProps {
 export function SignupAttendanceComparisonTab({
   raidId,
   enabled,
+  canEditSignupLink,
 }: SignupAttendanceComparisonTabProps) {
   const { data, isLoading, isError } = api.raidSignupLink.comparisonForRaid.useQuery(
     { raidId },
@@ -364,15 +260,30 @@ export function SignupAttendanceComparisonTab({
 
   if (!enabled) return null;
 
-  if (isLoading) {
-    return <LoadingSkeleton />;
+  // The success case hands off entirely to the view, which places
+  // SignupVsRaidLogCard as the right column of its own two-column header — it only
+  // makes sense paired with the summary stats that live there. Every other state (loading,
+  // error, no data) has no such header to pair with, so the card stays stacked above a
+  // full-width message instead.
+  if (!isLoading && !isError && data?.available) {
+    return (
+      <SignupAttendanceComparisonView
+        data={data}
+        raidId={raidId}
+        canEditSignupLink={canEditSignupLink}
+      />
+    );
   }
 
-  // A genuine fetch failure (network/tRPC error) leaves `data` undefined too, but that's
-  // not the same "expected, no backfill" case as a missing link/checkpoint — don't tell a
-  // manager the raid isn't linked when the real problem is the request itself failing.
-  if (isError || !data) {
-    return (
+  let message: React.ReactNode;
+  if (isLoading) {
+    message = <LoadingSkeleton />;
+  } else if (isError || !data) {
+    // A genuine fetch failure (network/tRPC error) leaves `data` undefined too, but
+    // that's not the same "expected, no backfill" case as a missing link/checkpoint —
+    // don't tell a manager the raid isn't linked when the real problem is the request
+    // itself failing.
+    message = (
       <div className="panel-surface rounded-2xl border border-border/70 p-5">
         <div className="py-6 text-center">
           <div className="text-base text-foreground">Couldn&apos;t load the signup comparison.</div>
@@ -382,10 +293,8 @@ export function SignupAttendanceComparisonTab({
         </div>
       </div>
     );
-  }
-
-  if (!data.available) {
-    return (
+  } else if (!data.available) {
+    message = (
       <div className="panel-surface rounded-2xl border border-border/70 p-5">
         <div className="py-6 text-center">
           <div className="text-base text-foreground">
@@ -401,5 +310,10 @@ export function SignupAttendanceComparisonTab({
     );
   }
 
-  return <SignupAttendanceComparisonView data={data} />;
+  return (
+    <div className="flex flex-col gap-3">
+      <SignupVsRaidLogCard raidId={raidId} canEdit={canEditSignupLink} />
+      {message}
+    </div>
+  );
 }
