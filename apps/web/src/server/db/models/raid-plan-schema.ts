@@ -168,6 +168,7 @@ export const raidPlans = tableCreator(
     eventIdIdx: uniqueIndex("raid_plan__event_id_idx").on(table.eventId),
     isPublicIdx: index("raid_plan__is_public_idx").on(table.isPublic),
     startAtIdx: index("raid_plan__start_at_idx").on(table.startAt),
+    updatedByIdx: index("raid_plan__updated_by_idx").on(table.updatedById),
   }),
 );
 

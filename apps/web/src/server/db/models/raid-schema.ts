@@ -4,7 +4,6 @@ import {
   primaryKey,
   foreignKey,
   index,
-  uniqueIndex,
   serial,
   integer,
   date,
@@ -45,7 +44,6 @@ export const raids = tableCreator(
     ...raidsColumns,
   },
   (table) => ({
-    idIdx: uniqueIndex("raid__raid_id_idx").on(table.raidId),
     dateIdx: index("raid__date_idx").on(table.date),
   }),
 );
@@ -82,7 +80,6 @@ export const raidLogs = tableCreator(
     ...DefaultTimestamps,
   },
   (table) => ({
-    idIdx: uniqueIndex("raid_log__raid_log_id_idx").on(table.raidLogId),
     discordMessageIdIdx: index("raid_log__discord_message_id_idx").on(table.discordMessageId),
     raidIdIdx: index("raid_log__raid_id_idx").on(table.raidId),
   }),
@@ -110,8 +107,11 @@ export const raidLogAttendeeMap = tableCreator(
     isIgnored: boolean("is_ignored").default(false),
   },
   (table) => ({
+    // No separate raid_log_id index: the composite PK below is (raid_log_id, character_id),
+    // and raid_log_id is its leading column — Postgres can already use that index for any
+    // raid_log_id-only lookup/join via the leftmost-prefix rule, so a standalone single-column
+    // index on it would be pure duplicate write overhead.
     pk: primaryKey({ columns: [table.raidLogId, table.characterId] }),
-    raidLogIdIdx: index("raid_log_attendee_map__raid_log_id_idx").on(table.raidLogId),
     characterIdIdx: index("raid_log_attendee_map__character_id_idx").on(table.characterId),
   }),
 );

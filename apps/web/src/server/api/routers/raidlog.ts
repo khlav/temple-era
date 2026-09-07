@@ -12,6 +12,7 @@ import { Slugify } from "~/server/api/wcl-helpers";
 import { SCOPE } from "~/lib/scopes";
 import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
 import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
+import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
 /*
   Reusable router functions
  */
@@ -165,6 +166,8 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
   if (input.raidId) {
     await publishAchievementEvaluate(input.raidId, "raid_log_import");
   }
+
+  invalidateAttendanceByZoneCache({ attendee: true });
 };
 
 const inputInsertRaidLogWithAttendees = z.object({

@@ -8,6 +8,7 @@ import { RaidReportQuery } from "~/server/api/wcl-queries";
 import { GetWCLGraphQLQuery, RaidReportDataShaper, Slugify } from "~/server/api/wcl-helpers";
 import type { RawRaidReportRequestResult } from "~/server/api/interfaces/wcl";
 import { SCOPE } from "~/lib/scopes";
+import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -116,6 +117,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
       refreshed.push(raidLogId);
     }
+
+    invalidateAttendanceByZoneCache({ attendee: true });
 
     return NextResponse.json({ refreshed });
   } catch (error) {
