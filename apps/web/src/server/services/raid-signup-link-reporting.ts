@@ -1,7 +1,9 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "~/server/db";
-import { raidSignupSnapshotLinks } from "~/server/db/schema";
+import { raidSignupSnapshotLinks, raidLogs } from "~/server/db/schema";
 import type { RaidSignupLinkMatchReason } from "~/server/db/models/raid-signup-link-schema";
+import { env } from "~/env";
+import { GenerateWCLReportUrl } from "~/lib/helpers";
 import {
   getLatestSignupSnapshotForOccurrence,
   getLatestSignupSnapshotsByOccurrence,
@@ -12,6 +14,16 @@ function occurrenceKey(raidHelperEventId: string, startTime: Date): string {
   return `${raidHelperEventId}:${startTime.getTime()}`;
 }
 
+/** The one place a Raid Helper event/channel pair becomes a clickable Discord link. */
+export function discordEventUrl(
+  channelId: string | null,
+  raidHelperEventId: string,
+): string | null {
+  return channelId
+    ? `https://discord.com/channels/${env.DISCORD_SERVER_ID}/${channelId}/${raidHelperEventId}`
+    : null;
+}
+
 export interface SignupSnapshotForRaid {
   linkId: string;
   source: "auto" | "manual";
@@ -20,6 +32,7 @@ export interface SignupSnapshotForRaid {
   raidHelperEventId: string;
   startTime: Date;
   snapshot: LatestSignupSnapshot | undefined;
+  eventUrl: string | null;
 }
 
 /**
@@ -53,7 +66,81 @@ export async function getSignupSnapshotForRaid(
     link.startTime,
   );
 
-  return { ...link, snapshot };
+  return {
+    ...link,
+    snapshot,
+    eventUrl: discordEventUrl(snapshot?.channelId ?? null, link.raidHelperEventId),
+  };
+}
+
+export interface SignupVsRaidLogSummary {
+  raidLog: {
+    raidLogId: string;
+    name: string;
+    startTimeUTC: Date;
+    endTimeUTC: Date | null;
+    wclUrl: string;
+  } | null;
+  signup:
+    | {
+        title: string | null;
+        startTime: Date;
+        source: "auto" | "manual";
+        eventUrl: string | null;
+      }
+    | undefined;
+}
+
+/**
+ * Side-by-side timing for a raid's WCL log vs. its linked Raid Helper signup — backs the
+ * comparison card on the Signup Timeline / Signups <-> Attendees tabs. Exists because the
+ * auto-matcher can confidently link the wrong occurrence (it weighs timing far more than
+ * roster overlap — see raid-signup-link-matching.ts), and the two timestamps disagreeing
+ * is the one signal a human can catch at a glance that the algorithm can't.
+ *
+ * A raid can carry multiple raid_log rows (e.g. a wipe-then-clear pair); the earliest by
+ * startTimeUTC is shown as "the" raid log — the same one getEffectiveRaidStart treats as
+ * canonical for auto-matching, so this card stays consistent with what the algorithm
+ * actually compared against.
+ */
+export async function getSignupVsRaidLogSummary(raidId: number): Promise<SignupVsRaidLogSummary> {
+  const logs = await db
+    .select({
+      raidLogId: raidLogs.raidLogId,
+      name: raidLogs.name,
+      startTimeUTC: raidLogs.startTimeUTC,
+      endTimeUTC: raidLogs.endTimeUTC,
+    })
+    .from(raidLogs)
+    .where(eq(raidLogs.raidId, raidId));
+
+  const timedLogs = logs
+    .map((l) => (l.startTimeUTC ? { ...l, startTimeUTC: l.startTimeUTC } : null))
+    .filter((l): l is NonNullable<typeof l> => l !== null)
+    .sort((a, b) => a.startTimeUTC.getTime() - b.startTimeUTC.getTime());
+  const earliest = timedLogs[0];
+
+  const link = await getSignupSnapshotForRaid(raidId);
+
+  return {
+    raidLog: earliest
+      ? {
+          raidLogId: earliest.raidLogId,
+          name: earliest.name,
+          startTimeUTC: earliest.startTimeUTC,
+          endTimeUTC: earliest.endTimeUTC,
+          wclUrl: GenerateWCLReportUrl(earliest.raidLogId),
+        }
+      : null,
+    signup: link
+      ? {
+          title: link.snapshot?.title ?? null,
+          startTime: link.startTime,
+          source: link.source,
+          eventUrl: link.eventUrl,
+        }
+      : undefined,
+  };
 }
 
 export interface SignupOccurrenceMetric {

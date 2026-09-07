@@ -153,10 +153,16 @@ export function buildSignupAttendanceComparison(
         }
       : {
           // Family known, specific alt ambiguous/unresolved — display the family's
-          // primary character rather than guessing which alt they meant.
+          // primary character rather than guessing which alt they meant. Class isn't a
+          // guess, though: when this family did attend/bench, that row's real character
+          // (from attendeeRows/benchRows, not the signup match) tells us their actual
+          // class for the night, so use it instead of leaving the icon blank.
           characterId: familyId,
           name: m.matchedPrimaryCharacterName ?? m.discordName,
-          characterClass: null,
+          characterClass:
+            attendedByFamily.get(familyId)?.characterClass ??
+            benchedByFamily.get(familyId)?.characterClass ??
+            null,
         };
     if (attendedByFamily.has(familyId)) signedUpAttended.push(member);
     else if (benchedByFamily.has(familyId)) signedUpBenched.push(member);

@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { RAIDHELPER_STATUS_ICONS } from "~/components/raid-planner/constants";
 import { ABSENT_SIGNUP_CLASS_NAMES } from "~/lib/raid-signup-status";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
+import { SignupVsRaidLogCard } from "~/components/raids/signup-vs-raid-log-card";
 import {
   buildChangeLog,
   buildTimeline,
@@ -291,6 +292,9 @@ function toLiveSignupEntries(
 interface SignupTimelineTabProps {
   raidId: number;
   enabled: boolean;
+  /** Passed straight through to SignupVsRaidLogCard's edit affordance — same
+   * RAIDPLAN_MANAGE gate as the page header's signup-link control. */
+  canEditSignupLink?: boolean;
 }
 
 /**
@@ -305,13 +309,16 @@ interface SignupTimelineTabProps {
  * getSignupSnapshotHistoryForOccurrence directly (already occurrence-keyed, not
  * raid-keyed) rather than through raidSignupLinkRouter.
  */
-export function SignupTimelineTab({ raidId, enabled }: SignupTimelineTabProps) {
+export function SignupTimelineTab({ raidId, enabled, canEditSignupLink }: SignupTimelineTabProps) {
   const timelineQuery = api.raidSignupLink.timelineForRaid.useQuery({ raidId }, { enabled });
   const link = timelineQuery.data?.link ?? null;
 
+  // getEventDetails is RAIDPLAN_MANAGE-scoped (it proxies Raid Helper's API), but this
+  // tab itself is public — gating on canEditSignupLink too stops it firing (and
+  // console-erroring on the guaranteed UNAUTHORIZED) for every non-manager viewer.
   const liveQuery = api.raidHelper.getEventDetails.useQuery(
-    { eventId: link?.raidHelperEventId ?? "" },
-    { enabled: !!link, retry: false },
+    { eventId: link?.raidHelperEventId ?? "", soft: true },
+    { enabled: !!link && !!canEditSignupLink, retry: false },
   );
   const live = toLiveSignupEntries(liveQuery.data);
 
@@ -329,6 +336,7 @@ export function SignupTimelineTab({ raidId, enabled }: SignupTimelineTabProps) {
       hasLink={!!link}
       loading={timelineQuery.isLoading || (!!link && liveQuery.isLoading)}
       noHistoryDetail="This raid isn't linked to a Raid Helper event."
+      topRightExtra={<SignupVsRaidLogCard raidId={raidId} canEdit={canEditSignupLink} />}
     />
   );
 }
@@ -355,7 +363,7 @@ export function SignupTimelineByOccurrence({
   });
 
   const liveQuery = api.raidHelper.getEventDetails.useQuery(
-    { eventId: raidHelperEventId },
+    { eventId: raidHelperEventId, soft: true },
     { retry: false },
   );
   const live = toLiveSignupEntries(liveQuery.data);
@@ -383,6 +391,10 @@ interface SignupTimelineViewProps {
   /** Shown in the empty state when hasLink is false — differs by caller (a completed
    * raid vs. e.g. a not-yet-matched upcoming event). */
   noHistoryDetail: string;
+  /** Rendered above the checkpoint panel in the right column, e.g. SignupVsRaidLogCard —
+   * optional and raidId-agnostic (a plain ReactNode) so this raid-agnostic view stays
+   * reusable by SignupTimelineByOccurrence, which has no raidId to key such a card on. */
+  topRightExtra?: React.ReactNode;
 }
 
 export function SignupTimelineView({
@@ -390,6 +402,7 @@ export function SignupTimelineView({
   hasLink,
   loading,
   noHistoryDetail,
+  topRightExtra,
 }: SignupTimelineViewProps) {
   // `manualSelected` is null until the user clicks a row — until then, `selected` tracks
   // whichever slot is currently the latest displayable one (captured or live), so a raid
@@ -524,6 +537,7 @@ export function SignupTimelineView({
   return (
     <div className="flex flex-wrap items-start gap-3">
       <div className="order-2 flex w-[352px] max-w-full flex-none flex-col gap-3">
+        {topRightExtra}
         {/* Checkpoint panel */}
         <div className="panel-surface rounded-2xl border border-border/70 px-[18px] py-4">
           <div className="flex items-baseline justify-between gap-2.5">

@@ -9,8 +9,15 @@ import {
   getLatestSignupSnapshotsByOccurrence,
   getSignupSnapshotHistoryForOccurrence,
 } from "~/server/services/raid-helper-snapshot-queries";
-import { generateSignupLinkCandidatesForRaid } from "~/server/services/raid-signup-link-matching";
-import { getSignupSnapshotForRaid } from "~/server/services/raid-signup-link-reporting";
+import {
+  generateSignupLinkCandidatesForRaid,
+  getScoredCandidatesForRaid,
+} from "~/server/services/raid-signup-link-matching";
+import {
+  discordEventUrl,
+  getSignupSnapshotForRaid,
+  getSignupVsRaidLogSummary,
+} from "~/server/services/raid-signup-link-reporting";
 import { getSignupAttendanceComparisonForRaid } from "~/server/services/signup-attendance-comparison";
 
 /**
@@ -141,6 +148,22 @@ export const raidSignupLinkRouter = createTRPCRouter({
     }),
 
   /**
+   * Every nearby Raid Helper occurrence for this raid, scored best-first — backs the
+   * raid detail page's "Change link" picker (TEMPLE-120 followup). Lets a raid manager
+   * catch and correct a high-confidence-but-wrong auto-link, which the algorithm itself
+   * has no way to detect (see getScoredCandidatesForRaid's doc comment).
+   */
+  candidatesForRaid: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ input }) => {
+      const candidates = await getScoredCandidatesForRaid(input.raidId);
+      return candidates.map((c) => ({
+        ...c,
+        eventUrl: discordEventUrl(c.occurrence.channelId, c.occurrence.raidHelperEventId),
+      }));
+    }),
+
+  /**
    * Full checkpoint history for the Signup Timeline tab (TEMPLE-97). Never throws for a
    * missing link or empty history — the UI renders its own empty states for both. Public —
    * see the router doc comment.
@@ -193,6 +216,17 @@ export const raidSignupLinkRouter = createTRPCRouter({
     .input(z.object({ raidId: z.number().int() }))
     .query(async ({ ctx, input }) => {
       return getSignupAttendanceComparisonForRaid(ctx.db, input.raidId);
+    }),
+
+  /**
+   * Raid log vs. linked signup timing, side by side — backs the comparison card shown on
+   * both the Signup Timeline and Signups <-> Attendees tabs. Public, same reasoning as
+   * timelineForRaid/comparisonForRaid.
+   */
+  signupVsRaidLog: publicProcedure
+    .input(z.object({ raidId: z.number().int() }))
+    .query(async ({ input }) => {
+      return getSignupVsRaidLogSummary(input.raidId);
     }),
 
   /**

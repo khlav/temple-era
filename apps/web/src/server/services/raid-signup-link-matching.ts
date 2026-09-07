@@ -127,6 +127,42 @@ async function getEffectiveRaidStart(raidId: number, raidDate: string): Promise<
 
 export type SignupLinkOutcome = "linked" | "no_match" | "ambiguous";
 
+export interface ScoredSignupCandidate {
+  occurrence: LatestSignupSnapshot;
+  confidence: number;
+  matchReason: RaidSignupLinkMatchReason;
+}
+
+/**
+ * Every Raid Helper occurrence within MATCH_WINDOW_MS of a raid's effective start,
+ * scored and sorted best-first — the same candidate set `generateSignupLinkCandidatesForRaid`
+ * picks its top choice from, exposed for a human to browse (the raid detail page's
+ * signup-link control, TEMPLE-120 followup). Empty array for a missing raid or no
+ * occurrence in range — not an error, just nothing to show.
+ */
+export async function getScoredCandidatesForRaid(raidId: number): Promise<ScoredSignupCandidate[]> {
+  const raidRows = await db
+    .select({ raidId: raids.raidId, zone: raids.zone, date: raids.date })
+    .from(raids)
+    .where(eq(raids.raidId, raidId));
+  const raid = raidRows[0];
+  if (!raid) return [];
+
+  const effectiveRaidStart = await getEffectiveRaidStart(raidId, raid.date);
+
+  const occurrences = await getLatestSignupSnapshotsByOccurrence({
+    startTimeFrom: new Date(effectiveRaidStart.getTime() - MATCH_WINDOW_MS),
+    startTimeTo: new Date(effectiveRaidStart.getTime() + MATCH_WINDOW_MS),
+  });
+
+  return occurrences
+    .map((occurrence) => {
+      const scored = scoreSignupLinkCandidate(raid.zone, effectiveRaidStart, occurrence);
+      return { occurrence, confidence: scored.confidence, matchReason: scored.matchReason };
+    })
+    .sort((a, b) => b.confidence - a.confidence);
+}
+
 /**
  * Auto-links a raid to its best-matching Raid Helper signup occurrence (TEMPLE-84/86).
  * There is no review/candidate state — this either writes the link directly or writes
@@ -142,27 +178,18 @@ export type SignupLinkOutcome = "linked" | "no_match" | "ambiguous";
  *   this is safe to call again (e.g. via the `rerun` mutation after a Raid Helper
  *   title/zone gets fixed) and will happily overwrite a prior manual link, same as any
  *   other explicit human-triggered rerun.
+ *
+ * Timing dominates this scoring (see TIMING_WEIGHT above) even though it has no signal
+ * for whether an occurrence's signup roster actually overlaps with who attended — a raid
+ * whose WCL-derived start happens to land closest to a *different* event's scheduled
+ * time than the one its attendees actually signed up under will auto-link to the wrong
+ * one with high confidence. `getScoredCandidatesForRaid` above exists so a human can
+ * catch and correct exactly that case via `reassign`, since the algorithm itself can't.
  */
 export async function generateSignupLinkCandidatesForRaid(
   raidId: number,
 ): Promise<{ outcome: SignupLinkOutcome; confidence?: number }> {
-  const raidRows = await db
-    .select({ raidId: raids.raidId, zone: raids.zone, date: raids.date })
-    .from(raids)
-    .where(eq(raids.raidId, raidId));
-  const raid = raidRows[0];
-  if (!raid) return { outcome: "no_match" };
-
-  const effectiveRaidStart = await getEffectiveRaidStart(raidId, raid.date);
-
-  const occurrences = await getLatestSignupSnapshotsByOccurrence({
-    startTimeFrom: new Date(effectiveRaidStart.getTime() - MATCH_WINDOW_MS),
-    startTimeTo: new Date(effectiveRaidStart.getTime() + MATCH_WINDOW_MS),
-  });
-
-  const candidates = occurrences
-    .map((occurrence) => scoreSignupLinkCandidate(raid.zone, effectiveRaidStart, occurrence))
-    .sort((a, b) => b.confidence - a.confidence);
+  const candidates = await getScoredCandidatesForRaid(raidId);
 
   const top = candidates[0];
   if (!top) return { outcome: "no_match" };
@@ -181,8 +208,8 @@ export async function generateSignupLinkCandidatesForRaid(
     .insert(raidSignupSnapshotLinks)
     .values({
       raidId,
-      raidHelperEventId: top.raidHelperEventId,
-      startTime: top.startTime,
+      raidHelperEventId: top.occurrence.raidHelperEventId,
+      startTime: top.occurrence.startTime,
       source: "auto",
       confidence: top.confidence,
       matchReason: top.matchReason,
@@ -190,8 +217,8 @@ export async function generateSignupLinkCandidatesForRaid(
     .onConflictDoUpdate({
       target: raidSignupSnapshotLinks.raidId,
       set: {
-        raidHelperEventId: top.raidHelperEventId,
-        startTime: top.startTime,
+        raidHelperEventId: top.occurrence.raidHelperEventId,
+        startTime: top.occurrence.startTime,
         source: "auto",
         confidence: top.confidence,
         matchReason: top.matchReason,

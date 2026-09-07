@@ -6,7 +6,7 @@ import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-we
 import { ZoneBadge } from "~/components/ui/zone-badge";
 import { GenerateWCLReportUrl } from "~/lib/helpers";
 import Link from "next/link";
-import { Edit, Link2, RefreshCw } from "lucide-react";
+import { Edit, RefreshCw } from "lucide-react";
 import { WCLIcon } from "~/components/ui/wcl-icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -15,12 +15,12 @@ import { Button } from "~/components/ui/button";
 import React, { useMemo, useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
 import { CharacterLink } from "~/components/ui/character-link";
-import { summarizeSignupCounts } from "~/lib/raid-signup-status";
 import { AA_CLASS_COLORS } from "~/lib/aa-formatting";
 import { ClassIcon } from "~/components/ui/class-icon";
 import { cn } from "~/lib/utils";
 import { SignupTimelineTab } from "~/components/raids/signup-timeline-tab";
 import { SignupAttendanceComparisonTab } from "~/components/raids/signup-attendance-comparison-tab";
+import { RaidSignupLinkControl } from "~/components/raids/raid-signup-link-control";
 
 const RAID_DETAIL_TABS = ["overview", "signups", "attendance"] as const;
 type RaidDetailTab = (typeof RAID_DETAIL_TABS)[number];
@@ -92,11 +92,6 @@ export function RaidDetailBase({
     api.raidLog.getUniqueParticipantsFromMultipleLogs.useQuery(raidData.raidLogIds ?? [], {
       enabled: !!raidData,
     });
-
-  const { data: signupLink } = api.raidSignupLink.forRaid.useQuery(
-    { raidId: raidData.raidId ?? -1 },
-    { enabled: canViewSignupLink && !!raidData.raidId },
-  );
 
   const refreshRaidLogMutation = api.raidLog.refreshRaidLogByRaidLogId.useMutation({
     onSuccess: async () => {
@@ -212,29 +207,7 @@ export function RaidDetailBase({
                 year: "numeric",
               })}
             </span>
-            {canViewSignupLink && signupLink?.snapshot ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="flex items-center gap-1.5">
-                      <Link2 className="h-3 w-3" />
-                      {(() => {
-                        const { confirmed, bench } = summarizeSignupCounts(
-                          signupLink.snapshot.signups,
-                        );
-                        return `${confirmed}(+${bench}) signups`;
-                      })()}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-secondary text-muted-foreground">
-                    <p>Raid Helper: {signupLink.snapshot.title ?? signupLink.raidHelperEventId}</p>
-                    <p className="text-xs">
-                      {signupLink.source === "manual" ? "Manually linked" : "Auto-linked"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : null}
+            {canViewSignupLink ? <RaidSignupLinkControl raidId={raidData.raidId ?? -1} /> : null}
             <RaidAttendenceWeightBadge
               attendanceWeight={raidData.attendanceWeight}
               variant="prose"
@@ -244,7 +217,12 @@ export function RaidDetailBase({
         <div className="flex shrink-0 items-center gap-2.5">
           <ZoneBadge zoneName={raidData.zone} />
           {showEditButton && (
-            <Link href={curPath + "/edit"}>
+            // Built from raidData.raidId, not curPath + "/edit" — curPath carries this
+            // page's own [[...modifier]] slug (e.g. /raids/885/naxxramas), and appending
+            // "/edit" to that lands on a 2-segment modifier that this page's own
+            // canonicalization redirects straight back to itself, never reaching
+            // /raids/[raidId]/edit (a separate, slug-less route).
+            <Link href={`/raids/${raidData.raidId}/edit`}>
               <Button>
                 <Edit />
                 Edit
@@ -318,7 +296,7 @@ export function RaidDetailBase({
                   <div>Credited to</div>
                   <div>Status</div>
                 </div>
-                <div className="max-h-[min(46svh,32rem)] overflow-y-auto">
+                <div>
                   {isLoadingParticipants ? (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       Loading…
@@ -486,12 +464,17 @@ export function RaidDetailBase({
         </TabsContent>
 
         <TabsContent value="signups" className="mt-3">
-          <SignupTimelineTab raidId={raidData.raidId ?? -1} enabled={!!raidData.raidId} />
+          <SignupTimelineTab
+            raidId={raidData.raidId ?? -1}
+            enabled={!!raidData.raidId}
+            canEditSignupLink={canViewSignupLink}
+          />
         </TabsContent>
         <TabsContent value="attendance" className="mt-3">
           <SignupAttendanceComparisonTab
             raidId={raidData.raidId ?? -1}
             enabled={!!raidData.raidId}
+            canEditSignupLink={canViewSignupLink}
           />
         </TabsContent>
       </Tabs>
