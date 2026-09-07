@@ -11,6 +11,15 @@ vi.mock("~/server/services/achievement-evaluate-publish", () => ({
   publishAchievementEvaluate: vi.fn(),
 }));
 
+// invalidateAttendanceByZoneCache calls next/cache's revalidateTag, which requires the
+// request-scoped async-local-storage Next's own server sets up around a real Route Handler
+// invocation — this test calls POST directly, outside that runtime, so an unmocked call
+// throws "Invariant: static generation store missing". Same reasoning as the mock above:
+// this file's contract is the Templar 201 response, not the cache-invalidation side effect.
+vi.mock("~/server/services/raid-attendance-by-zone", () => ({
+  invalidateAttendanceByZoneCache: vi.fn(),
+}));
+
 const mockValidateApiToken = vi.fn();
 vi.mock("~/server/api/v1-auth", () => ({
   validateApiToken: (...args: unknown[]) => mockValidateApiToken(...args),

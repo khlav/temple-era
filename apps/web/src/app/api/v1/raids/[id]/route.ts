@@ -13,6 +13,7 @@ import {
 } from "~/server/db/schema";
 import { aliasedTable, eq, inArray } from "drizzle-orm";
 import { SCOPE } from "~/lib/scopes";
+import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
 
 function parseRaidId(id: string) {
   const raidId = parseInt(id, 10);
@@ -229,6 +230,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Raid not found" }, { status: 404 });
     }
 
+    invalidateAttendanceByZoneCache({ attendee: true, bench: true });
+
     return NextResponse.json(result);
   } catch (error) {
     logger.error({ err: error }, "v1 API error");
@@ -260,6 +263,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (result.length === 0) {
       return NextResponse.json({ error: "Raid not found" }, { status: 404 });
     }
+
+    invalidateAttendanceByZoneCache({ attendee: true, bench: true });
 
     return NextResponse.json({ success: true });
   } catch (error) {

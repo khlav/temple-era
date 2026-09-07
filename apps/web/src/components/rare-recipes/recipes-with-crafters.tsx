@@ -84,6 +84,7 @@ export const RecipesWithCrafters = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams?.toString());
+    const before = params.toString();
 
     if (searchTerms) {
       params.set("s", searchTerms);
@@ -93,8 +94,17 @@ export const RecipesWithCrafters = () => {
       setSearchPerformed(false);
     }
 
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchTerms, router, searchParams]);
+    // router/searchParams deliberately excluded below: including searchParams here creates
+    // an infinite loop, since router.replace is what changes it — useSearchParams() returns
+    // a new object on every navigation even when the URL string is unchanged, so the effect
+    // would re-fire, replace again, get a new reference, and repeat forever. The `before ===
+    // after` bail-out is what makes that specifically safe to skip as a dep — this effect
+    // should only ever run in response to a real searchTerms change.
+    const after = params.toString();
+    if (after === before) return;
+    router.replace(after ? `?${after}` : "?", { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerms]);
 
   const professionCounts = useMemo(() => {
     const counts: Record<string, number> = {};

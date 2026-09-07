@@ -8,6 +8,7 @@ import { desc, eq, gte, lte, gt, and, inArray, type SQL } from "drizzle-orm";
 import { SCOPE } from "~/lib/scopes";
 import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
 import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
+import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
 
 export async function GET(request: Request) {
   try {
@@ -124,6 +125,8 @@ export async function POST(request: Request) {
     // swallows its own errors, so this satisfies that by construction.
     await runPostRaidCreationSignupLinking(result.raidId);
     await publishAchievementEvaluate(result.raidId, "signup_link_resolved");
+
+    invalidateAttendanceByZoneCache({ attendee: true, bench: true });
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

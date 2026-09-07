@@ -21,14 +21,15 @@ import {
   primaryRaidAttendeeAndBenchMap,
   raids,
   trackedRaidsL6LockoutWk,
-  raidLogAttendeeMap,
-  raidBenchMap,
-  raidLogs,
   primaryRaidAttendanceL6LockoutWk,
 } from "~/server/db/schema";
 import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import { getEasternNow } from "~/lib/raid-formatting";
 import { SCOPE } from "~/lib/scopes";
+import {
+  getRaidAttendanceByZone,
+  getRaidBenchByZone,
+} from "~/server/services/raid-attendance-by-zone";
 
 export const convertParticipantArrayToCollection = (participants: RaidParticipant[]) => {
   return participants.reduce((acc, rel) => {
@@ -96,28 +97,10 @@ export const character = createTRPCRouter({
           );
 
         // Get raid attendance counts by zone for each individual character (both attendee and bench)
-        const raidAttendanceByZone = await ctx.db
-          .select({
-            characterId: raidLogAttendeeMap.characterId,
-            zone: raids.zone,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(raidLogAttendeeMap)
-          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
-          .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
-          .where(eq(raidLogAttendeeMap.isIgnored, false))
-          .groupBy(raidLogAttendeeMap.characterId, raids.zone);
+        const raidAttendanceByZone = await getRaidAttendanceByZone();
 
         // Get bench counts by zone for each individual character
-        const benchAttendanceByZone = await ctx.db
-          .select({
-            characterId: raidBenchMap.characterId,
-            zone: raids.zone,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(raidBenchMap)
-          .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
-          .groupBy(raidBenchMap.characterId, raids.zone);
+        const benchAttendanceByZone = await getRaidBenchByZone();
 
         // Convert character list to collection and add raid attendance data
         const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
@@ -187,28 +170,10 @@ export const character = createTRPCRouter({
           .where(characterFilter);
 
         // Get raid attendance counts by zone for each individual character (both attendee and bench)
-        const raidAttendanceByZone = await ctx.db
-          .select({
-            characterId: raidLogAttendeeMap.characterId,
-            zone: raids.zone,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(raidLogAttendeeMap)
-          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
-          .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
-          .where(eq(raidLogAttendeeMap.isIgnored, false))
-          .groupBy(raidLogAttendeeMap.characterId, raids.zone);
+        const raidAttendanceByZone = await getRaidAttendanceByZone();
 
         // Get bench counts by zone for each individual character
-        const benchAttendanceByZone = await ctx.db
-          .select({
-            characterId: raidBenchMap.characterId,
-            zone: raids.zone,
-            uniqueRaidCount: count(raids.raidId).as("uniqueRaidCount"),
-          })
-          .from(raidBenchMap)
-          .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
-          .groupBy(raidBenchMap.characterId, raids.zone);
+        const benchAttendanceByZone = await getRaidBenchByZone();
 
         // Convert character list to collection and add raid attendance data
         const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};

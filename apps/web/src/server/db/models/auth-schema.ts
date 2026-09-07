@@ -40,7 +40,6 @@ export const users = tableCreator(
     templarEnabled: boolean("templar_enabled").notNull().default(false),
   },
   (user) => ({
-    idIdx: uniqueIndex("user__id_idx").on(user.id),
     apiTokenIdx: uniqueIndex("user__api_token_idx").on(user.apiToken),
   }),
 );

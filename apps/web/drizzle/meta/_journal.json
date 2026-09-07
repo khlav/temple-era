@@ -351,6 +351,13 @@
       "when": 1788400003353,
       "tag": "0049_raidplan-nanoid-finalize",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788785351618,
+      "tag": "0050_outgoing_colossus",
+      "breakpoints": true
     }
   ]
 }

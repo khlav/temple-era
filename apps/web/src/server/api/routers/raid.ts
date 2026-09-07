@@ -9,6 +9,7 @@ import { SCOPE } from "~/lib/scopes";
 import { runPostRaidCreationSignupLinking } from "~/server/services/raid-signup-link-matching";
 import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
 import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
+import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
 
 type DB = typeof db;
 
@@ -248,6 +249,8 @@ export const raid = createTRPCRouter({
         await publishAchievementEvaluate(insertedRaidInfo.raidId, "signup_link_resolved");
       }
 
+      invalidateAttendanceByZoneCache({ attendee: true, bench: true });
+
       return {
         raid: insertedRaidInfo,
         raidLogs: raidLogUpdateResult,
@@ -312,6 +315,8 @@ export const raid = createTRPCRouter({
 
       await publishAchievementEvaluate(input.raidId, "bench_updated");
 
+      invalidateAttendanceByZoneCache({ attendee: true, bench: true });
+
       return {
         raid: updatedRaidInfo,
         raidLogs: raidLogUpdateResult,
@@ -323,10 +328,14 @@ export const raid = createTRPCRouter({
   delete: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
     .input(z.number())
     .mutation(async ({ ctx, input }) => {
-      return await ctx.db
+      const result = await ctx.db
         .delete(raids)
         .where(eq(raids.raidId, input))
         .returning({ raidId: raids.raidId, name: raids.name });
+
+      invalidateAttendanceByZoneCache({ attendee: true, bench: true });
+
+      return result;
     }),
 
   addBenchCharacters: scopedProcedure(SCOPE.RAIDLOG_MANAGE)
@@ -361,6 +370,7 @@ export const raid = createTRPCRouter({
 
       if (newCharacterIds.length > 0) {
         await publishAchievementEvaluate(input.raidId, "bench_updated");
+        invalidateAttendanceByZoneCache({ bench: true });
       }
 
       // Return full updated bench with character details
