@@ -112,5 +112,5 @@ VALUES
     (20853, 16982, 'Leatherworking', 'Corehound Boots', FALSE, 'Fire resist boots for Feral Druids and Rogues in BWL/MC', ARRAY['feet', 'bwl/mc', 'melee', 'fireresist']),
     (23707, 19149, 'Leatherworking', 'Lava Belt', FALSE, 'Fire resist belt for Feral Druids and Rogues in BWL/MC', ARRAY['waist', 'bwl/mc', 'melee', 'fireresist']),
     (20854, 16983, 'Leatherworking', 'Molten Helm', FALSE, 'Fire resist helm for Feral Druids and Rogues in BWL/MC', ARRAY['head', 'bwl/mc', 'melee', 'fireresist']),
-    (21161, 17193, 'Blacksmithing', 'Sulfuron Hammer', FALSE, 'Combines with Eye of Sulfuras to create Sulfuras, Hand of Ragnaros', ARRAY['component'])
+    (21161, 17193, 'Blacksmithing', 'Sulfuron Hammer', FALSE, 'Combines with Eye of Sulfuras to create Sulfuras, Hand of Ragnaros', ARRAY['bwl/mc', 'weapon', 'component'])
 ON CONFLICT (recipe_spell_id) DO NOTHING;
