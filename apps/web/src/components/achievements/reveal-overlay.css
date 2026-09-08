@@ -1009,14 +1009,18 @@
 /* The "Also earned" strip (opened via .ro-strip-open) adds real height on top of the hero
    alone — enough that the base tiers above still weren't enough at a real reported 1658×867
    viewport with the strip open. Scale it down further specifically for that combination rather
-   than dropping the base tiers for every reveal, most of which never open a strip at all. */
+   than dropping the base tiers for every reveal, most of which never open a strip at all.
+   Keyed on .ro-has-strip (present from the first frame whenever a strip will exist) rather than
+   .ro-strip-open (only added once the strip's own reveal cue fires) so the group renders at its
+   final scale immediately — .ro-group's zoom has no transition, so switching scale mid-reveal
+   would otherwise show up as a visible snap right as the strip opens. */
 @media (max-height: 1000px) {
-  .ro-stage.ro-strip-open .ro-group {
+  .ro-stage.ro-has-strip .ro-group {
     --ro-gscale: 0.68;
   }
 }
 @media (max-height: 680px) {
-  .ro-stage.ro-strip-open .ro-group {
+  .ro-stage.ro-has-strip .ro-group {
     --ro-gscale: 0.56;
   }
 }
