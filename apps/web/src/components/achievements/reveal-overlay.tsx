@@ -795,6 +795,11 @@ export function RevealOverlay({
         ? "ro-arcanite-ring"
         : "",
     stripOpen ? "ro-strip-open" : "",
+    // Set from the very first render (unlike ro-strip-open, which only lands once the strip's
+    // own reveal cue fires) so the group's --ro-gscale is correct from the start — otherwise the
+    // title renders at the larger no-strip scale, then visibly snaps smaller a beat later when
+    // ro-strip-open lands, since .ro-group's zoom has no transition.
+    rest.length > 0 ? "ro-has-strip" : "",
   ]
     .filter(Boolean)
     .join(" ");
