@@ -1,8 +1,10 @@
 INSERT INTO recipes (recipe_spell_id, item_id, profession, recipe, is_common, notes, tags)
 VALUES
+    (17634, 13506, 'Alchemy', 'Flask of Petrification', FALSE, 'Turns you to stone, immune to all attacks for 60 sec, but unable to act — situational escape/cheat-death utility', ARRAY['qol']),
     (17635, 13510, 'Alchemy', 'Flask of the Titans', FALSE, 'Mandatory for main tanks, recommended for melee in Naxx', ARRAY['bwl/mc', 'aq40', 'naxx', 'tank', 'melee']),
     (17636, 13511, 'Alchemy', 'Flask of Distilled Wisdom', FALSE, 'Recommended for healers in Naxx', ARRAY['aq40', 'naxx', 'healer']),
     (17637, 13512, 'Alchemy', 'Flask of Supreme Power', FALSE, 'Recommended for casters in Naxx', ARRAY['aq40', 'naxx', 'caster']),
+    (17638, 13513, 'Alchemy', 'Flask of Chromatic Resistance', FALSE, 'On this list because it''s a flask. But no one should use this.', ARRAY[]::text[]),
     (24365, 20007, 'Alchemy', 'Mageblood Potion', FALSE, 'Recommended for healers, optional for casters', ARRAY['healer', 'caster']),
     (17574, 13457, 'Alchemy', 'Greater Fire Protection Potion', FALSE, 'Used by Healers in BWL and Melee in Naxx', ARRAY['bwl/mc', 'naxx', 'fireresist', 'healer', 'melee']),
     (17576, 13458, 'Alchemy', 'Greater Nature Protection Potion', FALSE, 'Mandatory for AQ40 (Huhuran, Viscidus)', ARRAY['aq40', 'natureresist', 'caster', 'melee', 'healer', 'ranged']),
