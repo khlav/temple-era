@@ -560,8 +560,8 @@ export interface AchievementPopularity {
   /** Distinct families with at least one award, across the whole catalog — the denominator the
    *  Popularity view's bars read "share" against. */
   roster: number;
-  /** Largest single achievement's family count — kept for a future "relative to most-earned" bar
-   *  basis; unused by the roster-share basis the view ships with today. */
+  /** Largest single achievement's family count — the denominator the Popularity view's bars read
+   *  "share" against when the viewer switches to the "% of most-earned" basis. */
   max: number;
   groups: readonly AchievementGroup[];
   items: PopularityItem[];

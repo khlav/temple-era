@@ -232,10 +232,20 @@ export function AchievementPopularity(): React.JSX.Element {
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Reached only on a rejected query — `isLoading` is false but `data` never arrived. Without
+  // this split, that state fell through to the spinner branch above and spun forever.
+  if (!data) {
+    return (
+      <div className="py-12 text-center text-sm text-muted-foreground">
+        Could not load achievement popularity. Please try again.
       </div>
     );
   }
