@@ -6,6 +6,7 @@ import { api } from "~/trpc/react";
 import { MedalIcon, TIER_CONFIG, TIER_LABEL } from "~/components/achievements/reveal-overlay";
 import type { AchievementTierLevel } from "~/components/achievements/reveal-overlay";
 import { CharacterLink } from "~/components/ui/character-link";
+import { Switch } from "~/components/ui/switch";
 import { getSpellIconUrl } from "~/hooks/use-spell-icon";
 import { cn } from "~/lib/utils";
 import type {
@@ -16,25 +17,6 @@ import type {
 
 const TIERS: AchievementTierLevel[] = ["copper", "silver", "gold", "thorium", "arcanite"];
 
-function TierLegend() {
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-      {TIERS.map((tier) => (
-        <div
-          key={tier}
-          className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"
-        >
-          <span
-            className="size-2.5 shrink-0 rounded-sm"
-            style={{ background: TIER_CONFIG[tier].tier }}
-          />
-          {TIER_LABEL[tier]}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function medalVars(tier: AchievementTierLevel) {
   const t = TIER_CONFIG[tier];
   return { ["--ro-tier" as string]: t.tier, ["--ro-hi" as string]: t.hi };
@@ -42,38 +24,41 @@ function medalVars(tier: AchievementTierLevel) {
 
 function PopularityRow({
   item,
-  roster,
+  denominator,
   open,
   onToggle,
 }: {
   item: PopularityItem;
-  roster: number;
+  denominator: number;
   open: boolean;
   onToggle: () => void;
 }) {
-  const pct = (n: number) => (roster > 0 ? (n / roster) * 100 : 0);
+  const pct = (n: number) => (denominator > 0 ? (n / denominator) * 100 : 0);
   const totalLeft = Math.min(100, pct(item.total));
 
-  // Tier chips under the name, rarest first — same order the reveal overlay's own strip uses.
-  const tierCounts = TIERS.map((tier, i) => ({ tier, count: item.counts[i] ?? 0 }))
-    .filter((g) => g.count > 0)
-    .reverse();
+  // Tier chips under the name, lowest to highest.
+  const tierCounts = TIERS.map((tier, i) => ({ tier, count: item.counts[i] ?? 0 })).filter(
+    (g) => g.count > 0,
+  );
 
   return (
     <div
-      className={cn("rounded-lg border", open ? "border-border bg-muted/40" : "border-transparent")}
+      className={cn(
+        "max-w-[1000px] rounded-lg border",
+        open ? "border-border bg-muted/40" : "border-transparent",
+      )}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="grid w-full grid-cols-[34px_minmax(0,208px)_minmax(160px,1fr)] items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-accent/40"
+        className="grid w-full cursor-pointer grid-cols-[44px_minmax(0,220px)_minmax(160px,1fr)] items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-accent/40"
       >
-        <div className="ro-icon-xs relative shrink-0" style={medalVars(item.topTier)}>
+        <div className="ro-icon-sm relative shrink-0" style={medalVars(item.topTier)}>
           <MedalIcon tier={item.topTier} icon={item.icon} />
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold leading-tight">{item.name}</div>
-          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-wide">
+          <div className="flex flex-wrap gap-x-2 gap-y-0 text-[10px] uppercase leading-tight tracking-wide">
             {tierCounts.map((g) => (
               <span
                 key={g.tier}
@@ -85,8 +70,8 @@ function PopularityRow({
             ))}
           </div>
         </div>
-        <div className="max-w-[430px] pr-12">
-          <div className="relative h-4">
+        <div className="pr-12">
+          <div className="relative h-6">
             <div className="absolute inset-0 flex overflow-hidden rounded-sm bg-muted shadow-[inset_0_0_0_1px_hsl(var(--border))]">
               {TIERS.map((tier, i) => {
                 const width = pct(item.counts[i] ?? 0);
@@ -130,7 +115,7 @@ function PopularityRow({
                         color: on ? cfg.labelColor : "hsl(var(--muted-foreground) / 0.55)",
                       }}
                     >
-                      {cfg.label} {step.value}
+                      {cfg.label} {on ? step.value : "??"}
                     </span>
                   );
                 })}
@@ -179,21 +164,21 @@ function PopularityRow({
 
 function UncrackedRow({ item }: { item: PopularityUncracked }) {
   return (
-    <div className="grid grid-cols-[34px_minmax(0,208px)_minmax(160px,1fr)] items-center gap-2 rounded-lg p-1.5 opacity-50">
+    <div className="grid max-w-[1000px] grid-cols-[44px_minmax(0,220px)_minmax(160px,1fr)] items-center gap-2 rounded-lg p-1.5 opacity-50">
       {/* eslint-disable-next-line @next/next/no-img-element -- external CDN, not a local asset */}
       <img
         src={getSpellIconUrl(item.icon, "small")}
         alt=""
-        width={34}
-        height={34}
+        width={44}
+        height={44}
         className="block rounded-md border border-border grayscale"
       />
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold leading-tight">{item.name}</div>
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Uncracked</div>
       </div>
-      <div className="max-w-[430px] pr-12">
-        <div className="h-4 rounded-sm bg-muted shadow-[inset_0_0_0_1px_hsl(var(--border))]" />
+      <div className="pr-12">
+        <div className="h-6 rounded-sm bg-muted shadow-[inset_0_0_0_1px_hsl(var(--border))]" />
       </div>
     </div>
   );
@@ -203,14 +188,14 @@ function GroupSection({
   label,
   items,
   uncracked,
-  roster,
+  denominator,
   open,
   onToggle,
 }: {
   label: AchievementGroup;
   items: PopularityItem[];
   uncracked: PopularityUncracked[];
-  roster: number;
+  denominator: number;
   open: Record<string, boolean>;
   onToggle: (achievementId: string) => void;
 }) {
@@ -218,7 +203,7 @@ function GroupSection({
   return (
     <div className="flex flex-row gap-3">
       <div className="flex w-6 flex-none items-center justify-center border-r border-border">
-        <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground [writing-mode:vertical-rl] rotate-180">
+        <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground [writing-mode:vertical-rl] rotate-180 2xl:text-sm">
           {label}
         </span>
       </div>
@@ -227,7 +212,7 @@ function GroupSection({
           <PopularityRow
             key={item.achievementId}
             item={item}
-            roster={roster}
+            denominator={denominator}
             open={!!open[item.achievementId]}
             onToggle={() => onToggle(item.achievementId)}
           />
@@ -243,6 +228,7 @@ function GroupSection({
 export function AchievementPopularity(): React.JSX.Element {
   const { data, isLoading } = api.achievement.getAchievementPopularity.useQuery();
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
+  const [basis, setBasis] = React.useState<"roster" | "max">("roster");
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
 
@@ -254,24 +240,50 @@ export function AchievementPopularity(): React.JSX.Element {
     );
   }
 
+  const denominator = basis === "roster" ? data.roster : data.max;
+  // data.items is already sorted by total descending (see getAchievementPopularity), so the
+  // first entry is the most-earned achievement — the one the "% of most-earned" basis names.
+  const topItem = data.items[0];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-3">
-        <p className="max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
-          How rare each achievement is: the filled track is the share of the{" "}
-          <span className="text-foreground">{data.roster} S2 players</span> who hold it, split by
-          the tier they&apos;re standing on. Click a row for who has it.
+        <p className="flex-1 text-[13px] leading-relaxed text-muted-foreground">
+          {basis === "roster" ? (
+            <>
+              Achievements earned by all <span className="text-foreground">{data.roster}</span>{" "}
+              players active in season 2 (incl. All Time award winners).
+            </>
+          ) : (
+            <>
+              Achievements scaled against the most-earned one,{" "}
+              <span className="text-foreground">{topItem?.name}</span> (
+              <span className="text-foreground">{data.max}</span> families).
+            </>
+          )}
         </p>
-        <TierLegend />
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <span className={basis === "roster" ? "font-semibold text-foreground" : ""}>
+            % of roster
+          </span>
+          <Switch
+            checked={basis === "max"}
+            onCheckedChange={(checked) => setBasis(checked ? "max" : "roster")}
+            aria-label="Toggle bar scale between share of roster and share of the most-earned achievement"
+          />
+          <span className={basis === "max" ? "font-semibold text-foreground" : ""}>
+            % of most-earned
+          </span>
+        </div>
       </div>
-      <div className="flex flex-col gap-3">
+      <div className="mx-auto flex w-full max-w-[1050px] flex-col gap-8">
         {data.groups.map((group) => (
           <GroupSection
             key={group}
             label={group}
             items={data.items.filter((i) => i.group === group)}
             uncracked={data.uncracked.filter((u) => u.group === group)}
-            roster={data.roster}
+            denominator={denominator}
             open={open}
             onToggle={toggle}
           />

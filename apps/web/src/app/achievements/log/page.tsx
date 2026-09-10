@@ -21,7 +21,7 @@ export default function AchievementLogPage() {
           wide board; the chronological feed is one tab over for whoever wants that instead. */}
       <Tabs defaultValue="popularity">
         <TabsList>
-          <TabsTrigger value="popularity">Popularity</TabsTrigger>
+          <TabsTrigger value="popularity">Player Count per Achievement</TabsTrigger>
           <TabsTrigger value="log">Log</TabsTrigger>
         </TabsList>
         <TabsContent value="popularity">

@@ -76,6 +76,9 @@ const STEADFAST: AchievementDefinition = {
     silver: { shape: "consistency_match", minCount: 5 },
     gold: { shape: "consistency_match", minCount: 10 },
     thorium: { shape: "consistency_match", minCount: 20 },
+    // Continues this ladder's own doubling from gold onward (10 -> 20 -> 40), not the
+    // class-attendance ladder's 25/50 — the two families of achievements have never shared steps.
+    arcanite: { shape: "consistency_match", minCount: 40 },
   },
 };
 
@@ -93,6 +96,7 @@ const FLEXIBLE: AchievementDefinition = {
     silver: { shape: "flexibility_match", minCount: 5 },
     gold: { shape: "flexibility_match", minCount: 10 },
     thorium: { shape: "flexibility_match", minCount: 20 },
+    arcanite: { shape: "flexibility_match", minCount: 40 },
   },
 };
 
@@ -108,6 +112,7 @@ const PUT_ME_IN_COACH: AchievementDefinition = {
     silver: { shape: "bench_credit_count", minCount: 5 },
     gold: { shape: "bench_credit_count", minCount: 10 },
     thorium: { shape: "bench_credit_count", minCount: 20 },
+    arcanite: { shape: "bench_credit_count", minCount: 40 },
   },
 };
 
