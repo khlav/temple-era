@@ -28,6 +28,7 @@ import {
   getAwardById,
   getAdminCatalog,
   getAchievementLogPage,
+  getAchievementPopularity,
 } from "~/server/services/achievement-queries";
 import { getRandomIconNames, searchIconNames } from "~/server/services/wow-icon-catalog";
 
@@ -262,4 +263,9 @@ export const achievementRouter = createTRPCRouter({
       });
       return { entries, nextCursor: hasMore ? offset + entries.length : undefined };
     }),
+
+  // Backs the Achievement Popularity view (/achievements/log's second tab) — guild-wide aggregate
+  // stats, same public-browsing category as getAchievementLog above: hidden achievements are not
+  // masked here either, and nothing here is per-family private state.
+  getAchievementPopularity: publicProcedure.query(({ ctx }) => getAchievementPopularity(ctx.db)),
 });
