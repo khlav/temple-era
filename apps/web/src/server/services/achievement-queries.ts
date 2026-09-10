@@ -447,6 +447,227 @@ export interface AdminAchievementTier {
   holders: AdminAwardHolder[];
 }
 
+const TIERS: AchievementTierLevel[] = ["copper", "silver", "gold", "thorium", "arcanite"];
+
+export const ACHIEVEMENT_GROUPS = ["Core", "Class", "Crafting", "Legendary"] as const;
+export type AchievementGroup = (typeof ACHIEVEMENT_GROUPS)[number];
+
+/** Coarser than `ruleShape` — a display grouping for the Popularity view, not a catalog concept
+ *  stored anywhere. Hidden wins over shape: secrecy is the defining trait for that bucket, not the
+ *  mechanic underneath (e.g. "Guild Armorist" is recipe-gated but hidden, so it's Legendary, not
+ *  Crafting). */
+function resolveAchievementGroup(hidden: boolean, ruleShape: string | null): AchievementGroup {
+  if (hidden) return "Legendary";
+  if (ruleShape === "recipe_set_threshold") return "Crafting";
+  if (ruleShape === "class_attendance_threshold" || ruleShape === "class_breadth_window") {
+    return "Class";
+  }
+  return "Core";
+}
+
+const LADDER_UNIT: Partial<Record<string, string>> = {
+  zone_breadth_window: "zones",
+  class_breadth_window: "classes",
+  raid_marathon_density: "raids",
+  weighted_attendance_threshold: "% attendance this season",
+};
+
+/** The single count-like field driving a tier's threshold, whatever it's called for that rule
+ *  shape — null for a manual (ruleConfig-less) tier. */
+function ladderThreshold(ruleConfig: AchievementRuleConfig): number | null {
+  switch (ruleConfig.shape) {
+    case "consistency_match":
+    case "flexibility_match":
+    case "bench_credit_count":
+    case "zone_attendance_threshold":
+    case "class_attendance_threshold":
+    case "family_double_up_cooccurrence":
+      return ruleConfig.minCount;
+    case "zone_breadth_window":
+      return ruleConfig.minDistinctZones;
+    case "class_breadth_window":
+      return ruleConfig.minDistinctClasses;
+    case "raid_marathon_density":
+      return ruleConfig.minRaidsInOneWeek;
+    case "weighted_attendance_threshold":
+      return ruleConfig.minPercent;
+    case "recipe_set_threshold":
+      return null;
+  }
+}
+
+export interface LadderStep {
+  tier: AchievementTierLevel;
+  value: number;
+}
+
+/** "1/5/10/20 times this season"-style progression across an achievement's tiers, each step
+ *  tagged with the real tier it belongs to — a season achievement can start its ladder at Silver
+ *  rather than Copper (e.g. "Shapeshifter"), so step position alone can't be assumed to match tier
+ *  rank. Deliberately null for recipe_set_threshold (a "recipes known" count doesn't read as an
+ *  escalating ladder the way an attendance count does) and for manual-only achievements (no
+ *  ruleConfig to read from). */
+function buildLadder(
+  sortedTiers: { tier: string; ruleConfig: AchievementRuleConfig | null }[],
+  ruleShape: string | null,
+): { steps: LadderStep[]; unit: string } | null {
+  if (!ruleShape || ruleShape === "recipe_set_threshold") return null;
+  const steps = sortedTiers
+    .map((t) => {
+      const value = t.ruleConfig ? ladderThreshold(t.ruleConfig) : null;
+      return value === null ? null : { tier: t.tier as AchievementTierLevel, value };
+    })
+    .filter((s): s is LadderStep => s !== null);
+  if (steps.length === 0) return null;
+  return { steps, unit: LADDER_UNIT[ruleShape] ?? "times this season" };
+}
+
+export interface PopularityEarner {
+  characterId: number;
+  name: string;
+  class: string;
+  tier: AchievementTierLevel;
+}
+
+export interface PopularityItem {
+  achievementId: string;
+  name: string;
+  icon: string;
+  hidden: boolean;
+  group: AchievementGroup;
+  /** Distinct-family count per tier, indexed 0=copper..4=arcanite. Each family is counted once, at
+   *  the highest tier it holds — same "current highest tier" fold getAdminCatalog uses for its
+   *  holder grouping, never once per tier crossed on the way there. */
+  counts: number[];
+  total: number;
+  topTier: AchievementTierLevel;
+  description: string;
+  ladder: { steps: LadderStep[]; unit: string } | null;
+  /** One row per family, at its highest tier — sorted by name. */
+  earners: PopularityEarner[];
+}
+
+export interface PopularityUncracked {
+  achievementId: string;
+  name: string;
+  icon: string;
+  hidden: boolean;
+  group: AchievementGroup;
+  description: string;
+}
+
+export interface AchievementPopularity {
+  /** Distinct families with at least one award, across the whole catalog — the denominator the
+   *  Popularity view's bars read "share" against. */
+  roster: number;
+  /** Largest single achievement's family count — the denominator the Popularity view's bars read
+   *  "share" against when the viewer switches to the "% of most-earned" basis. */
+  max: number;
+  groups: readonly AchievementGroup[];
+  items: PopularityItem[];
+  uncracked: PopularityUncracked[];
+}
+
+/** Backs the Achievement Popularity view (`/achievements/log`'s second tab) — guild-wide
+ *  aggregate stats, same public-browsing category as getAchievementLogPage: hidden achievements
+ *  are not masked here either (the view is allowed to be how someone discovers one exists), and
+ *  nothing here is per-family private state the way getUnseenAwards/getAllAwards are. */
+export async function getAchievementPopularity(db: DB): Promise<AchievementPopularity> {
+  const [achievementRows, rosterRows] = await Promise.all([
+    db.query.achievements.findMany({
+      with: {
+        tiers: {
+          with: {
+            awards: {
+              with: {
+                primaryCharacter: { columns: { characterId: true, name: true, class: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: (achievement, { asc }) => [asc(achievement.createdAt)],
+    }),
+    db
+      .select({ roster: sql<number>`count(distinct ${achievementAwards.primaryCharacterId})::int` })
+      .from(achievementAwards),
+  ]);
+  const roster = rosterRows[0]?.roster ?? 0;
+
+  const items: PopularityItem[] = [];
+  const uncracked: PopularityUncracked[] = [];
+
+  for (const achievement of achievementRows) {
+    const sortedTiers = [...achievement.tiers].sort(
+      (a, b) =>
+        TIER_RANK[a.tier as AchievementTierLevel] - TIER_RANK[b.tier as AchievementTierLevel],
+    );
+    const group = resolveAchievementGroup(achievement.hidden, achievement.ruleShape);
+    const description = resolveAchievementDescription(
+      achievement.description,
+      sortedTiers[0]?.ruleConfig ?? null,
+      achievement.scope,
+    );
+
+    // Same fold as getAdminCatalog: a holder is counted once, under the highest tier it's crossed.
+    const highestRankByCharacter = new Map<number, number>();
+    const characterInfo = new Map<number, { name: string; class: string }>();
+    for (const tier of sortedTiers) {
+      const rank = TIER_RANK[tier.tier as AchievementTierLevel];
+      for (const award of tier.awards) {
+        characterInfo.set(award.primaryCharacterId, {
+          name: award.primaryCharacter.name,
+          class: award.primaryCharacter.class,
+        });
+        const current = highestRankByCharacter.get(award.primaryCharacterId) ?? -1;
+        if (rank > current) highestRankByCharacter.set(award.primaryCharacterId, rank);
+      }
+    }
+
+    if (highestRankByCharacter.size === 0) {
+      uncracked.push({
+        achievementId: achievement.id,
+        name: achievement.name,
+        icon: achievement.icon,
+        hidden: achievement.hidden,
+        group,
+        description,
+      });
+      continue;
+    }
+
+    const counts = [0, 0, 0, 0, 0];
+    const earners: PopularityEarner[] = [];
+    let topRank = 0;
+    for (const [characterId, rank] of highestRankByCharacter) {
+      counts[rank]!++;
+      if (rank > topRank) topRank = rank;
+      const info = characterInfo.get(characterId)!;
+      earners.push({ characterId, name: info.name, class: info.class, tier: TIERS[rank]! });
+    }
+    earners.sort((a, b) => a.name.localeCompare(b.name));
+
+    items.push({
+      achievementId: achievement.id,
+      name: achievement.name,
+      icon: achievement.icon,
+      hidden: achievement.hidden,
+      group,
+      counts,
+      total: earners.length,
+      topTier: TIERS[topRank]!,
+      description,
+      ladder: buildLadder(sortedTiers, achievement.ruleShape),
+      earners,
+    });
+  }
+
+  items.sort((a, b) => b.total - a.total);
+  const max = items.reduce((m, item) => Math.max(m, item.total), 0);
+
+  return { roster, max, groups: ACHIEVEMENT_GROUPS, items, uncracked };
+}
+
 export interface AchievementLogEntry {
   /** Eastern calendar day the group falls on ("YYYY-MM-DD") — matches getEasternDate()'s own
    *  bucketing (raid-formatting.ts) so this lines up with how the rest of the app reads "the same
