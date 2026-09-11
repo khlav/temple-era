@@ -267,7 +267,7 @@ export function AchievementPopularity(): React.JSX.Element {
   const { data, isLoading } = api.achievement.getAchievementPopularity.useQuery();
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
   const [basis, setBasis] = React.useState<"roster" | "max">("roster");
-  const [sortDirection, setSortDirection] = React.useState<"desc" | "asc">("asc");
+  const [sortDirection, setSortDirection] = React.useState<"desc" | "asc">("desc");
   const [listMode, setListMode] = React.useState<"grouped" | "combined">("grouped");
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
