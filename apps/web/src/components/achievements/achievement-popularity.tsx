@@ -1,12 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  Layers,
+  List,
+  Loader2,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { api } from "~/trpc/react";
 import { MedalIcon, TIER_CONFIG, TIER_LABEL } from "~/components/achievements/reveal-overlay";
 import type { AchievementTierLevel } from "~/components/achievements/reveal-overlay";
 import { CharacterLink } from "~/components/ui/character-link";
-import { Switch } from "~/components/ui/switch";
 import { getSpellIconUrl } from "~/hooks/use-spell-icon";
 import { cn } from "~/lib/utils";
 import type {
@@ -17,9 +24,40 @@ import type {
 
 const TIERS: AchievementTierLevel[] = ["copper", "silver", "gold", "thorium", "arcanite"];
 
+const VIEW_PREFS_KEY = "temple:achievement-popularity-view";
+
+interface ViewPrefs {
+  basis: "roster" | "max";
+  sortDirection: "desc" | "asc";
+  listMode: "grouped" | "combined";
+}
+
 function medalVars(tier: AchievementTierLevel) {
   const t = TIER_CONFIG[tier];
   return { ["--ro-tier" as string]: t.tier, ["--ro-hi" as string]: t.hi };
+}
+
+// A single click target whose icon and label both name the current setting — the label doubles
+// as the button's accessible name, so no separate aria-label is needed.
+function IconToggleButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-accent/40 hover:text-foreground"
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </button>
+  );
 }
 
 function PopularityRow({
@@ -229,10 +267,40 @@ export function AchievementPopularity(): React.JSX.Element {
   const { data, isLoading } = api.achievement.getAchievementPopularity.useQuery();
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
   const [basis, setBasis] = React.useState<"roster" | "max">("roster");
-  const [sortDirection, setSortDirection] = React.useState<"desc" | "asc">("desc");
+  const [sortDirection, setSortDirection] = React.useState<"desc" | "asc">("asc");
   const [listMode, setListMode] = React.useState<"grouped" | "combined">("grouped");
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
+
+  // Read persisted display settings after mount, not in the initial state — the server render
+  // has no access to localStorage, so seeding state from it there would mismatch the first
+  // client render. A silent parse/access failure (storage disabled, private browsing) just
+  // leaves the defaults in place.
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VIEW_PREFS_KEY);
+      if (!raw) return;
+      const prefs = JSON.parse(raw) as Partial<ViewPrefs>;
+      if (prefs.basis === "roster" || prefs.basis === "max") setBasis(prefs.basis);
+      if (prefs.sortDirection === "desc" || prefs.sortDirection === "asc") {
+        setSortDirection(prefs.sortDirection);
+      }
+      if (prefs.listMode === "grouped" || prefs.listMode === "combined") {
+        setListMode(prefs.listMode);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      const prefs: ViewPrefs = { basis, sortDirection, listMode };
+      window.localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      // ignore
+    }
+  }, [basis, sortDirection, listMode]);
 
   // Must run on every render — including the isLoading/error early returns below — so the hook
   // count stays stable across the loading-to-loaded transition (Rules of Hooks).
@@ -285,46 +353,22 @@ export function AchievementPopularity(): React.JSX.Element {
             </>
           )}
         </p>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className={basis === "roster" ? "font-semibold text-foreground" : ""}>
-              % of roster
-            </span>
-            <Switch
-              checked={basis === "max"}
-              onCheckedChange={(checked) => setBasis(checked ? "max" : "roster")}
-              aria-label="Toggle bar scale between share of roster and share of the most-earned achievement"
-            />
-            <span className={basis === "max" ? "font-semibold text-foreground" : ""}>
-              % of most-earned
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className={sortDirection === "desc" ? "font-semibold text-foreground" : ""}>
-              Most earned first
-            </span>
-            <Switch
-              checked={sortDirection === "asc"}
-              onCheckedChange={(checked) => setSortDirection(checked ? "asc" : "desc")}
-              aria-label="Toggle sort direction between most-earned first and least-earned first"
-            />
-            <span className={sortDirection === "asc" ? "font-semibold text-foreground" : ""}>
-              Least earned first
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className={listMode === "grouped" ? "font-semibold text-foreground" : ""}>
-              Grouped
-            </span>
-            <Switch
-              checked={listMode === "combined"}
-              onCheckedChange={(checked) => setListMode(checked ? "combined" : "grouped")}
-              aria-label="Toggle listing between grouped by category and a single combined list"
-            />
-            <span className={listMode === "combined" ? "font-semibold text-foreground" : ""}>
-              Combined
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
+          <IconToggleButton
+            icon={basis === "roster" ? Users : Trophy}
+            label={basis === "roster" ? "% of roster" : "% of most-earned"}
+            onClick={() => setBasis((b) => (b === "roster" ? "max" : "roster"))}
+          />
+          <IconToggleButton
+            icon={sortDirection === "desc" ? ArrowDownWideNarrow : ArrowUpNarrowWide}
+            label={sortDirection === "desc" ? "Most earned first" : "Least earned first"}
+            onClick={() => setSortDirection((d) => (d === "desc" ? "asc" : "desc"))}
+          />
+          <IconToggleButton
+            icon={listMode === "grouped" ? Layers : List}
+            label={listMode === "grouped" ? "Grouped" : "Combined"}
+            onClick={() => setListMode((m) => (m === "grouped" ? "combined" : "grouped"))}
+          />
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-[1050px] flex-col gap-8">
@@ -341,19 +385,26 @@ export function AchievementPopularity(): React.JSX.Element {
             />
           ))
         ) : (
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            {sortedItems.map((item) => (
-              <PopularityRow
-                key={item.achievementId}
-                item={item}
-                denominator={denominator}
-                open={!!open[item.achievementId]}
-                onToggle={() => toggle(item.achievementId)}
-              />
-            ))}
-            {data.uncracked.map((item) => (
-              <UncrackedRow key={item.achievementId} item={item} />
-            ))}
+          // Same "flex-none w-6" rail as GroupSection, just without its label/border — keeps
+          // rows at the identical x-offset when the toggle drops the category groupings, so
+          // switching modes reads as removing the labels in place rather than the whole list
+          // sliding left.
+          <div className="flex flex-row gap-3">
+            <div className="w-6 flex-none" />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              {sortedItems.map((item) => (
+                <PopularityRow
+                  key={item.achievementId}
+                  item={item}
+                  denominator={denominator}
+                  open={!!open[item.achievementId]}
+                  onToggle={() => toggle(item.achievementId)}
+                />
+              ))}
+              {data.uncracked.map((item) => (
+                <UncrackedRow key={item.achievementId} item={item} />
+              ))}
+            </div>
           </div>
         )}
       </div>
