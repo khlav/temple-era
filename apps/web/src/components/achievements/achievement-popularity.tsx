@@ -234,6 +234,16 @@ export function AchievementPopularity(): React.JSX.Element {
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
 
+  // Must run on every render — including the isLoading/error early returns below — so the hook
+  // count stays stable across the loading-to-loaded transition (Rules of Hooks).
+  // Re-sort only for the ascending case — the query already hands back descending — with a name
+  // tiebreak so equal-total items land in a stable order either way the toggle is flipped.
+  const sortedItems = React.useMemo(() => {
+    const items = [...(data?.items ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    items.sort((a, b) => (sortDirection === "desc" ? b.total - a.total : a.total - b.total));
+    return items;
+  }, [data?.items, sortDirection]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -257,14 +267,6 @@ export function AchievementPopularity(): React.JSX.Element {
   // first entry is the most-earned achievement — the one the "% of most-earned" basis names.
   // That's independent of the sort-direction toggle below, which only reorders what's rendered.
   const topItem = data.items[0];
-
-  // Re-sort only for the ascending case — the query already hands back descending — with a name
-  // tiebreak so equal-total items land in a stable order either way the toggle is flipped.
-  const sortedItems = React.useMemo(() => {
-    const items = [...data.items].sort((a, b) => a.name.localeCompare(b.name));
-    items.sort((a, b) => (sortDirection === "desc" ? b.total - a.total : a.total - b.total));
-    return items;
-  }, [data.items, sortDirection]);
 
   return (
     <div className="flex flex-col gap-4">
