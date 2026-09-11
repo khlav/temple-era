@@ -229,6 +229,8 @@ export function AchievementPopularity(): React.JSX.Element {
   const { data, isLoading } = api.achievement.getAchievementPopularity.useQuery();
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
   const [basis, setBasis] = React.useState<"roster" | "max">("roster");
+  const [sortDirection, setSortDirection] = React.useState<"desc" | "asc">("desc");
+  const [listMode, setListMode] = React.useState<"grouped" | "combined">("grouped");
   const toggle = (achievementId: string) =>
     setOpen((s) => ({ ...s, [achievementId]: !s[achievementId] }));
 
@@ -253,7 +255,16 @@ export function AchievementPopularity(): React.JSX.Element {
   const denominator = basis === "roster" ? data.roster : data.max;
   // data.items is already sorted by total descending (see getAchievementPopularity), so the
   // first entry is the most-earned achievement — the one the "% of most-earned" basis names.
+  // That's independent of the sort-direction toggle below, which only reorders what's rendered.
   const topItem = data.items[0];
+
+  // Re-sort only for the ascending case — the query already hands back descending — with a name
+  // tiebreak so equal-total items land in a stable order either way the toggle is flipped.
+  const sortedItems = React.useMemo(() => {
+    const items = [...data.items].sort((a, b) => a.name.localeCompare(b.name));
+    items.sort((a, b) => (sortDirection === "desc" ? b.total - a.total : a.total - b.total));
+    return items;
+  }, [data.items, sortDirection]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -272,32 +283,77 @@ export function AchievementPopularity(): React.JSX.Element {
             </>
           )}
         </p>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className={basis === "roster" ? "font-semibold text-foreground" : ""}>
-            % of roster
-          </span>
-          <Switch
-            checked={basis === "max"}
-            onCheckedChange={(checked) => setBasis(checked ? "max" : "roster")}
-            aria-label="Toggle bar scale between share of roster and share of the most-earned achievement"
-          />
-          <span className={basis === "max" ? "font-semibold text-foreground" : ""}>
-            % of most-earned
-          </span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className={basis === "roster" ? "font-semibold text-foreground" : ""}>
+              % of roster
+            </span>
+            <Switch
+              checked={basis === "max"}
+              onCheckedChange={(checked) => setBasis(checked ? "max" : "roster")}
+              aria-label="Toggle bar scale between share of roster and share of the most-earned achievement"
+            />
+            <span className={basis === "max" ? "font-semibold text-foreground" : ""}>
+              % of most-earned
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className={sortDirection === "desc" ? "font-semibold text-foreground" : ""}>
+              Most earned first
+            </span>
+            <Switch
+              checked={sortDirection === "asc"}
+              onCheckedChange={(checked) => setSortDirection(checked ? "asc" : "desc")}
+              aria-label="Toggle sort direction between most-earned first and least-earned first"
+            />
+            <span className={sortDirection === "asc" ? "font-semibold text-foreground" : ""}>
+              Least earned first
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className={listMode === "grouped" ? "font-semibold text-foreground" : ""}>
+              Grouped
+            </span>
+            <Switch
+              checked={listMode === "combined"}
+              onCheckedChange={(checked) => setListMode(checked ? "combined" : "grouped")}
+              aria-label="Toggle listing between grouped by category and a single combined list"
+            />
+            <span className={listMode === "combined" ? "font-semibold text-foreground" : ""}>
+              Combined
+            </span>
+          </div>
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-[1050px] flex-col gap-8">
-        {data.groups.map((group) => (
-          <GroupSection
-            key={group}
-            label={group}
-            items={data.items.filter((i) => i.group === group)}
-            uncracked={data.uncracked.filter((u) => u.group === group)}
-            denominator={denominator}
-            open={open}
-            onToggle={toggle}
-          />
-        ))}
+        {listMode === "grouped" ? (
+          data.groups.map((group) => (
+            <GroupSection
+              key={group}
+              label={group}
+              items={sortedItems.filter((i) => i.group === group)}
+              uncracked={data.uncracked.filter((u) => u.group === group)}
+              denominator={denominator}
+              open={open}
+              onToggle={toggle}
+            />
+          ))
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            {sortedItems.map((item) => (
+              <PopularityRow
+                key={item.achievementId}
+                item={item}
+                denominator={denominator}
+                open={!!open[item.achievementId]}
+                onToggle={() => toggle(item.achievementId)}
+              />
+            ))}
+            {data.uncracked.map((item) => (
+              <UncrackedRow key={item.achievementId} item={item} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
