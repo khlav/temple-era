@@ -10,7 +10,11 @@ export type CreateSoftresRequest = z.infer<typeof CreateSoftresRequestSchema>;
 export const CreateSoftresSuccessSchema = z.object({
   success: z.literal(true),
   zone: z.string(),
+  /** Admin (soft-reserve-managing) link — carries the token, only ever posted to the SoftRes
+   * Token thread, never to a raid channel. */
   adminUrl: z.string(),
+  /** Public (no-token) link — safe to post in a raid channel for members to reserve against. */
+  publicUrl: z.string(),
   createdDate: z.string(),
 });
 

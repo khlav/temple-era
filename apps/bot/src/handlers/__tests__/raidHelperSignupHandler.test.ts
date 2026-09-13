@@ -6,14 +6,21 @@ import { logger } from "../../config/logger.js";
 
 // vi.mock factories are hoisted above the rest of this module, so the ids they close over
 // must be declared through vi.hoisted rather than as plain top-level consts.
-const { RAID_HELPER_BOT_ID, OTHER_USER_ID, SR_CHANNEL_ID, OTHER_CHANNEL_ID, TOKEN_THREAD_ID } =
-  vi.hoisted(() => ({
-    RAID_HELPER_BOT_ID: "111111111111111111",
-    OTHER_USER_ID: "999999999999999999",
-    SR_CHANNEL_ID: "222222222222222222",
-    OTHER_CHANNEL_ID: "444444444444444444",
-    TOKEN_THREAD_ID: "333333333333333333",
-  }));
+const {
+  RAID_HELPER_BOT_ID,
+  OTHER_USER_ID,
+  SR_CHANNEL_ID,
+  OTHER_CHANNEL_ID,
+  TOKEN_THREAD_ID,
+  SERVER_ID,
+} = vi.hoisted(() => ({
+  RAID_HELPER_BOT_ID: "111111111111111111",
+  OTHER_USER_ID: "999999999999999999",
+  SR_CHANNEL_ID: "222222222222222222",
+  OTHER_CHANNEL_ID: "444444444444444444",
+  TOKEN_THREAD_ID: "333333333333333333",
+  SERVER_ID: "555555555555555555",
+}));
 
 vi.mock("../../config/env.js", () => ({
   config: {
@@ -22,6 +29,7 @@ vi.mock("../../config/env.js", () => ({
     discordRaidHelperBotId: RAID_HELPER_BOT_ID,
     discordRaidSrChannelIds: [SR_CHANNEL_ID],
     discordSoftresTokenThreadId: TOKEN_THREAD_ID,
+    discordServerId: SERVER_ID,
   },
 }));
 
@@ -59,12 +67,19 @@ function fakeMessage(overrides: {
   channelId?: string;
   components?: unknown[];
   threadFetch?: ReturnType<typeof vi.fn>;
+  channelSend?: ReturnType<typeof vi.fn>;
+  channelSendable?: boolean;
 }): Message {
+  const channelId = overrides.channelId ?? SR_CHANNEL_ID;
   return {
     id: overrides.id,
-    channelId: overrides.channelId ?? SR_CHANNEL_ID,
+    channelId,
     author: { id: overrides.authorId, bot: true, tag: "Raid-Helper#0000" },
     components: overrides.components ?? signupComponents(),
+    channel: {
+      isSendable: () => overrides.channelSendable ?? true,
+      send: overrides.channelSend ?? vi.fn().mockResolvedValue(undefined),
+    },
     client: {
       channels: { fetch: overrides.threadFetch ?? vi.fn() },
     },
@@ -115,7 +130,9 @@ describe("handleRaidHelperSignup", () => {
   });
 
   it("classifies a signup post and calls ensure-softres", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ success: true, created: false, links: [] }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
     const message = fakeMessage({ id: "4", authorId: RAID_HELPER_BOT_ID });
 
     await handleRaidHelperSignup(message);
@@ -130,57 +147,88 @@ describe("handleRaidHelperSignup", () => {
     );
   });
 
-  it("does not post to the Token thread when created is false", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ success: true, created: false, links: [] }));
+  it("does not post anywhere when created is false", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
     const threadFetch = vi.fn();
-    const message = fakeMessage({ id: "5", authorId: RAID_HELPER_BOT_ID, threadFetch });
+    const channelSend = vi.fn();
+    const message = fakeMessage({
+      id: "5",
+      authorId: RAID_HELPER_BOT_ID,
+      threadFetch,
+      channelSend,
+    });
 
     await handleRaidHelperSignup(message);
 
     expect(threadFetch).not.toHaveBeenCalled();
+    expect(channelSend).not.toHaveBeenCalled();
   });
 
-  it("posts the admin link to the Token thread for each created SoftRes", async () => {
+  it("posts a public embed to the signup channel and an admin embed to the Token thread", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({
         success: true,
         created: true,
+        eventTitle: "Sunday BWL/MC @7PM",
         links: [
           {
-            zone: "Molten Core",
-            instanceId: 1,
-            adminUrl: "https://softres.it/mc-admin",
-            eventDate: "Sunday 09/13/2026",
+            zone: "Blackwing Lair",
+            instanceId: 3,
+            adminUrl: "https://softres.it/bwl-admin",
+            publicUrl: "https://softres.it/bwl-public",
+            eventDate: "Sun, Sep 13 at 7:00 PM Server Time",
           },
           {
-            zone: "Blackwing Lair",
+            zone: "Molten Core",
             instanceId: 2,
-            adminUrl: "https://softres.it/bwl-admin",
-            eventDate: "Sunday 09/13/2026",
+            adminUrl: "https://softres.it/mc-admin",
+            publicUrl: "https://softres.it/mc-public",
+            eventDate: "Sun, Sep 13 at 7:00 PM Server Time",
           },
         ],
       }),
     );
-    const send = vi.fn().mockResolvedValue(undefined);
-    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
-    const message = fakeMessage({ id: "6", authorId: RAID_HELPER_BOT_ID, threadFetch });
+    const threadSend = vi.fn().mockResolvedValue(undefined);
+    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send: threadSend });
+    const channelSend = vi.fn().mockResolvedValue(undefined);
+    const message = fakeMessage({
+      id: "6",
+      authorId: RAID_HELPER_BOT_ID,
+      threadFetch,
+      channelSend,
+    });
 
     await handleRaidHelperSignup(message);
 
-    expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
-    expect(send).toHaveBeenCalledTimes(2);
-    expect(send).toHaveBeenNthCalledWith(
-      1,
-      "Molten Core Sunday 09/13/2026: https://softres.it/mc-admin",
+    const expectedTitleUrl = `https://discord.com/channels/${SERVER_ID}/${SR_CHANNEL_ID}/6`;
+
+    expect(channelSend).toHaveBeenCalledTimes(1);
+    const publicEmbed = (
+      channelSend.mock.calls[0]![0] as { embeds: { toJSON(): unknown }[] }
+    ).embeds[0]!.toJSON() as { title: string; url: string; description: string; color: number };
+    expect(publicEmbed.title).toBe("SRs : Sunday BWL/MC @7PM");
+    expect(publicEmbed.url).toBe(expectedTitleUrl);
+    expect(publicEmbed.description).toBe(
+      "Sun, Sep 13 at 7:00 PM Server Time\n\nBlackwing Lair: https://softres.it/bwl-public\nMolten Core: https://softres.it/mc-public",
     );
-    expect(send).toHaveBeenNthCalledWith(
-      2,
-      "Blackwing Lair Sunday 09/13/2026: https://softres.it/bwl-admin",
+
+    expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
+    expect(threadSend).toHaveBeenCalledTimes(1);
+    const adminEmbed = (
+      threadSend.mock.calls[0]![0] as { embeds: { toJSON(): unknown }[] }
+    ).embeds[0]!.toJSON() as { title: string; description: string };
+    expect(adminEmbed.title).toBe("SRs : Sunday BWL/MC @7PM");
+    expect(adminEmbed.description).toBe(
+      "Sun, Sep 13 at 7:00 PM Server Time\n\nBlackwing Lair: https://softres.it/bwl-admin\nMolten Core: https://softres.it/mc-admin",
     );
   });
 
   it("skips a duplicate message id without a second fetch call", async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ success: true, created: false, links: [] }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
     const message = fakeMessage({ id: "7", authorId: RAID_HELPER_BOT_ID });
 
     await handleRaidHelperSignup(message);
@@ -227,23 +275,63 @@ describe("handleRaidHelperSignup", () => {
     );
   });
 
+  it("logs but still posts the Token thread embed when the signup channel is not sendable", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        created: true,
+        eventTitle: "Thursday Onyxia",
+        links: [
+          {
+            zone: "Onyxia",
+            instanceId: 1,
+            adminUrl: "https://softres.it/mc-admin",
+            publicUrl: "https://softres.it/mc-public",
+            eventDate: "Sunday 09/13/2026",
+          },
+        ],
+      }),
+    );
+    const threadSend = vi.fn().mockResolvedValue(undefined);
+    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send: threadSend });
+    const channelSend = vi.fn();
+    const message = fakeMessage({
+      id: "11",
+      authorId: RAID_HELPER_BOT_ID,
+      threadFetch,
+      channelSend,
+      channelSendable: false,
+    });
+
+    await handleRaidHelperSignup(message);
+
+    expect(channelSend).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: SR_CHANNEL_ID }),
+      "Raid signup channel is not sendable",
+    );
+    expect(threadSend).toHaveBeenCalledTimes(1);
+  });
+
   it("logs and returns without posting when the Token thread is not fetchable", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({
         success: true,
         created: true,
+        eventTitle: "Thursday Onyxia",
         links: [
           {
-            zone: "Molten Core",
+            zone: "Onyxia",
             instanceId: 1,
             adminUrl: "https://softres.it/mc-admin",
+            publicUrl: "https://softres.it/mc-public",
             eventDate: "Sunday 09/13/2026",
           },
         ],
       }),
     );
     const threadFetch = vi.fn().mockResolvedValue(null);
-    const message = fakeMessage({ id: "11", authorId: RAID_HELPER_BOT_ID, threadFetch });
+    const message = fakeMessage({ id: "12", authorId: RAID_HELPER_BOT_ID, threadFetch });
 
     await handleRaidHelperSignup(message);
 

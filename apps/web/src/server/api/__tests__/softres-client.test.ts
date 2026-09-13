@@ -41,7 +41,22 @@ describe("createSoftResRaid", () => {
       raidId: "1aKrV2Je",
       adminToken: "3ca599",
       adminUrl: "https://softres.it/raid/1aKrV2Je?adminToken=3ca599",
+      publicUrl: "https://softres.it/raid/1aKrV2Je",
     });
+  });
+
+  it("resolves an already-absolute Location header without doubling the origin", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
+      .mockResolvedValueOnce(
+        mockCreateResponse(302, "https://softres.it/raid/1aKrV2Je?adminToken=3ca599"),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createSoftResRaid(2);
+
+    expect(result.adminUrl).toBe("https://softres.it/raid/1aKrV2Je?adminToken=3ca599");
   });
 
   it("sends the instance id and default settings in the POST body", async () => {

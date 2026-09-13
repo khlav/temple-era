@@ -70,12 +70,14 @@ export async function POST(request: Request) {
     }
 
     const created = await createSoftResRaid(instanceId);
-    const createdDate = formatEasternDateTime(new Date(), "EEEE MM/dd/yyyy");
+    // "Server Time" (not "zzz"/EDT-EST) since Discord members read this as WoW server time.
+    const createdDate = formatEasternDateTime(new Date(), "EEE, MMM d 'at' h:mm a 'Server Time'");
 
     const result: CreateSoftresResult = {
       success: true,
       zone,
       adminUrl: created.adminUrl,
+      publicUrl: created.publicUrl,
       createdDate,
     };
     return await compressResponse(result, request);

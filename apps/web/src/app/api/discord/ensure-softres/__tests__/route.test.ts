@@ -6,7 +6,10 @@ vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
 // A fixed Raid Helper `startTime` (unix seconds) used by every mocked event below, so
 // `eventDate` assertions stay correct regardless of DST/timezone specifics.
 const TEST_START_TIME = 1789430400;
-const TEST_EVENT_DATE = formatEasternDateTime(new Date(TEST_START_TIME * 1000), "EEEE MM/dd/yyyy");
+const TEST_EVENT_DATE = formatEasternDateTime(
+  new Date(TEST_START_TIME * 1000),
+  "EEE, MMM d 'at' h:mm a 'Server Time'",
+);
 
 const mockFetchEventDetail = vi.fn();
 vi.mock("~/server/services/raid-helper-client", () => ({
@@ -62,7 +65,12 @@ describe("POST /api/discord/ensure-softres", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ success: true, created: false, links: [] });
+    expect(body).toEqual({
+      success: true,
+      created: false,
+      links: [],
+      eventTitle: "Thursday Onyxia",
+    });
     expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
   });
 
@@ -77,6 +85,7 @@ describe("POST /api/discord/ensure-softres", () => {
       raidId: "abc123",
       adminToken: "tok",
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+      publicUrl: "https://softres.it/raid/abc123",
     });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
@@ -94,9 +103,11 @@ describe("POST /api/discord/ensure-softres", () => {
           zone: "Onyxia",
           instanceId: 1,
           adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+          publicUrl: "https://softres.it/raid/abc123",
           eventDate: TEST_EVENT_DATE,
         },
       ],
+      eventTitle: "Thursday Onyxia",
     });
   });
 
@@ -112,11 +123,13 @@ describe("POST /api/discord/ensure-softres", () => {
         raidId: "bwl1",
         adminToken: "tokA",
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        publicUrl: "https://softres.it/raid/bwl1",
       })
       .mockResolvedValueOnce({
         raidId: "mc1",
         adminToken: "tokB",
         adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
+        publicUrl: "https://softres.it/raid/mc1",
       });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
@@ -129,17 +142,20 @@ describe("POST /api/discord/ensure-softres", () => {
     expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(2, 2); // Molten Core
     expect(body.success).toBe(true);
     expect(body.created).toBe(true);
+    expect(body.eventTitle).toBe("Sunday BWL/MC @7PM");
     expect(body.links).toEqual([
       {
         zone: "Blackwing Lair",
         instanceId: 3,
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        publicUrl: "https://softres.it/raid/bwl1",
         eventDate: TEST_EVENT_DATE,
       },
       {
         zone: "Molten Core",
         instanceId: 2,
         adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
+        publicUrl: "https://softres.it/raid/mc1",
         eventDate: TEST_EVENT_DATE,
       },
     ]);
@@ -157,7 +173,12 @@ describe("POST /api/discord/ensure-softres", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ success: true, created: false, links: [] });
+    expect(body).toEqual({
+      success: true,
+      created: false,
+      links: [],
+      eventTitle: "Guild Meeting @9PM",
+    });
     expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
   });
 
@@ -185,7 +206,12 @@ describe("POST /api/discord/ensure-softres", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ success: true, created: false, links: [] });
+    expect(body).toEqual({
+      success: true,
+      created: false,
+      links: [],
+      eventTitle: "Thursday Onyxia",
+    });
   });
 
   it("preserves an already-created link when a later zone fails in a doubleheader", async () => {
@@ -200,6 +226,7 @@ describe("POST /api/discord/ensure-softres", () => {
         raidId: "bwl1",
         adminToken: "tokA",
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        publicUrl: "https://softres.it/raid/bwl1",
       })
       .mockRejectedValueOnce(new Error("Failed to establish a SoftRes session"));
 
@@ -215,6 +242,7 @@ describe("POST /api/discord/ensure-softres", () => {
         zone: "Blackwing Lair",
         instanceId: 3,
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        publicUrl: "https://softres.it/raid/bwl1",
         eventDate: TEST_EVENT_DATE,
       },
     ]);

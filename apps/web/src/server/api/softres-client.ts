@@ -86,6 +86,8 @@ interface CreatedSoftResRaid {
   raidId: string;
   adminToken: string;
   adminUrl: string;
+  /** The same raid's public (no-token) page — safe to post anywhere, unlike `adminUrl`. */
+  publicUrl: string;
 }
 
 const DEFAULT_CREATE_SETTINGS = {
@@ -157,7 +159,16 @@ export async function createSoftResRaid(instanceId: number): Promise<CreatedSoft
     throw new Error(`Could not parse SoftRes admin link from redirect: ${location}`);
   }
   const [, raidId, adminToken] = match;
-  return { raidId: raidId!, adminToken: adminToken!, adminUrl: `https://softres.it${location}` };
+  // `location` may be relative ("/raid/id?...") or already absolute, depending on how the
+  // undocumented endpoint's redirect() call was invoked server-side — resolving against a base
+  // handles both instead of assuming relative and risking a doubled "https://softres.itthttps://...".
+  const adminUrl = new URL(location, "https://softres.it").toString();
+  return {
+    raidId: raidId!,
+    adminToken: adminToken!,
+    adminUrl,
+    publicUrl: `https://softres.it/raid/${raidId}`,
+  };
 }
 
 /** Minimal Set-Cookie parser — only needs the two cookie values' raw content, not full cookie-attribute parsing. */

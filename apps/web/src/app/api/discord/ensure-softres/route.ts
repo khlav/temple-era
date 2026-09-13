@@ -62,29 +62,40 @@ export async function POST(request: Request) {
 
     // 3. Fetch event detail and check whether a SoftRes raid already exists
     const event = await fetchEventDetail(eventId);
+    const eventTitle = event.displayTitle ?? event.title ?? "Raid Signup";
 
     if (event.softresId) {
-      const result: EnsureSoftresResult = { success: true, created: false, links: [] };
+      const result: EnsureSoftresResult = { success: true, created: false, links: [], eventTitle };
       return await compressResponse(result, request);
     }
 
     // 4. Identify zone(s) raided from the event's title/channel name
-    const zones = parseZonesFromEventTitle(event.displayTitle ?? event.title, event.channelName);
+    const zones = parseZonesFromEventTitle(eventTitle, event.channelName);
     if (zones.length === 0) {
       logger.warn(
         { eventId, title: event.title },
         "Could not identify any zone for ensure-softres",
       );
-      const result: EnsureSoftresResult = { success: true, created: false, links: [] };
+      const result: EnsureSoftresResult = { success: true, created: false, links: [], eventTitle };
       return await compressResponse(result, request);
     }
 
     // 5. Create exactly one SR per zone, sequentially — each call re-establishes its own
     // anonymous session, so running them concurrently risks cookie/session cross-talk against
-    // the same undocumented endpoint.
-    const eventDate = formatEasternDateTime(new Date(event.startTime * 1000), "EEEE MM/dd/yyyy");
-    const links: Array<{ zone: string; instanceId: number; adminUrl: string; eventDate: string }> =
-      [];
+    // the same undocumented endpoint. Includes time-of-day, not just the date, since the bot's
+    // embed shows it as the event's date/time line. "Server Time" (not "zzz"/EDT-EST) since
+    // Discord members read this as WoW server time, not a literal US Eastern timezone label.
+    const eventDate = formatEasternDateTime(
+      new Date(event.startTime * 1000),
+      "EEE, MMM d 'at' h:mm a 'Server Time'",
+    );
+    const links: Array<{
+      zone: string;
+      instanceId: number;
+      adminUrl: string;
+      publicUrl: string;
+      eventDate: string;
+    }> = [];
     for (const zone of zones) {
       const instanceId = SOFTRES_CREATE_INSTANCE_IDS[zone];
       if (instanceId === undefined) {
@@ -95,7 +106,13 @@ export async function POST(request: Request) {
       }
       try {
         const created = await createSoftResRaid(instanceId);
-        links.push({ zone, instanceId, adminUrl: created.adminUrl, eventDate });
+        links.push({
+          zone,
+          instanceId,
+          adminUrl: created.adminUrl,
+          publicUrl: created.publicUrl,
+          eventDate,
+        });
       } catch (error) {
         // A failure on one zone of a doubleheader must not discard the admin link(s) already
         // created above — the admin token only ever exists in that one call's redirect header,
@@ -104,7 +121,12 @@ export async function POST(request: Request) {
       }
     }
 
-    const result: EnsureSoftresResult = { success: true, created: links.length > 0, links };
+    const result: EnsureSoftresResult = {
+      success: true,
+      created: links.length > 0,
+      links,
+      eventTitle,
+    };
     return await compressResponse(result, request);
   } catch (error) {
     logger.error({ err: error }, "Error in ensure-softres");

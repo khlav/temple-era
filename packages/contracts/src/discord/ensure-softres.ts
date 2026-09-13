@@ -9,7 +9,11 @@ export type EnsureSoftresRequest = z.infer<typeof EnsureSoftresRequestSchema>;
 export const EnsureSoftresCreatedLinkSchema = z.object({
   zone: z.string(),
   instanceId: z.number(),
+  /** Admin (soft-reserve-managing) link — carries the token, only ever posted to the SoftRes
+   * Token thread, never to a raid channel. */
   adminUrl: z.string(),
+  /** Public (no-token) link — safe to post in a raid channel for members to reserve against. */
+  publicUrl: z.string(),
   /** Human-readable "Weekday MM/DD/YYYY" for the raid night, e.g. "Sunday 09/13/2026" —
    * derived from the Raid Helper event's startTime, matching the day/date raid leads
    * already include in their own hand-posted Token thread messages. */
@@ -21,6 +25,9 @@ export const EnsureSoftresSuccessSchema = z.object({
   /** false when softresId was already present — no SRs were created */
   created: z.boolean(),
   links: z.array(EnsureSoftresCreatedLinkSchema),
+  /** The Raid-Helper event's display title (e.g. "Sunday BWL/MC @7PM"), used by the bot to
+   * title the embed it posts — present even when `links` is empty. */
+  eventTitle: z.string(),
 });
 
 export const EnsureSoftresFailureSchema = z.object({

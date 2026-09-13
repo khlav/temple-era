@@ -3,6 +3,7 @@ import { CreateSoftresResponseSchema } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
+import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
 
 // Discord shows `name`; the bot/web exchange `value`, matching RAID_ZONE_CONFIG's instance
 // slugs (apps/web/src/lib/raid-zones.ts) so no new identifier space is invented here.
@@ -85,15 +86,27 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       return;
     }
 
+    const title = `SRs : ${result.zone}`;
+
     // Public reply — a successful creation is meant to be visible to others in the channel
     // the command was run from, unlike the permission-denied/error replies above and below.
-    await interaction.reply({
-      content: `Created a SoftRes for ${result.zone}: ${result.adminUrl}`,
+    // Uses `publicUrl`, never `adminUrl` — the admin token must never appear outside the
+    // SoftRes Token thread.
+    const publicEmbed = buildPublicSoftresEmbed({
+      title,
+      dateLabel: result.createdDate,
+      links: [{ zone: result.zone, url: result.publicUrl }],
     });
+    await interaction.reply({ embeds: [publicEmbed] });
 
     const thread = await interaction.client.channels.fetch(config.discordSoftresTokenThreadId);
     if (thread?.isSendable()) {
-      await thread.send(`${result.zone} ${result.createdDate}: ${result.adminUrl}`);
+      const adminEmbed = buildAdminSoftresEmbed({
+        title,
+        dateLabel: result.createdDate,
+        links: [{ zone: result.zone, url: result.adminUrl }],
+      });
+      await thread.send({ embeds: [adminEmbed] });
     } else {
       logger.error(
         { threadId: config.discordSoftresTokenThreadId },

@@ -112,6 +112,7 @@ describe("handleSrCommand", () => {
         success: true,
         zone: "Molten Core",
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
       }),
     );
@@ -130,13 +131,24 @@ describe("handleSrCommand", () => {
       }),
     );
     expect(interaction.reply).toHaveBeenCalledTimes(1);
-    expect(interaction.reply).toHaveBeenCalledWith({
-      content: "Created a SoftRes for Molten Core: https://softres.it/raid/abc123?adminToken=tok",
-    });
+    const publicEmbed = (
+      (interaction.reply as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+        embeds: { toJSON(): unknown }[];
+      }
+    ).embeds[0]!.toJSON() as { title: string; description: string };
+    expect(publicEmbed.title).toBe("SRs : Molten Core");
+    expect(publicEmbed.description).toBe(
+      "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123",
+    );
+
     expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith(
-      "Molten Core Sunday 09/13/2026: https://softres.it/raid/abc123?adminToken=tok",
+    const adminEmbed = (
+      send.mock.calls[0]![0] as { embeds: { toJSON(): unknown }[] }
+    ).embeds[0]!.toJSON() as { title: string; description: string };
+    expect(adminEmbed.title).toBe("SRs : Molten Core");
+    expect(adminEmbed.description).toBe(
+      "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123?adminToken=tok",
     );
   });
 
@@ -221,6 +233,7 @@ describe("handleSrCommand", () => {
         success: true,
         zone: "Molten Core",
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
       }),
     );
@@ -248,6 +261,7 @@ describe("handleSrCommand", () => {
         success: true,
         zone: "Molten Core",
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
       }),
     );
@@ -259,9 +273,12 @@ describe("handleSrCommand", () => {
     // The public success reply already went out — the thread-post failure must be logged,
     // never turned into a second reply on an already-acknowledged interaction.
     expect(interaction.reply).toHaveBeenCalledTimes(1);
-    expect(interaction.reply).toHaveBeenCalledWith({
-      content: "Created a SoftRes for Molten Core: https://softres.it/raid/abc123?adminToken=tok",
-    });
+    const publicEmbed = (
+      (interaction.reply as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+        embeds: { toJSON(): unknown }[];
+      }
+    ).embeds[0]!.toJSON() as { title: string };
+    expect(publicEmbed.title).toBe("SRs : Molten Core");
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "thread archived" }),
       "Error creating SoftRes via /sr",

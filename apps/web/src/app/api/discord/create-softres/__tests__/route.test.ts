@@ -3,7 +3,7 @@ import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
 
-const TEST_CREATED_DATE = formatEasternDateTime(new Date(), "EEEE MM/dd/yyyy");
+const TEST_CREATED_DATE = formatEasternDateTime(new Date(), "EEE, MMM d 'at' h:mm a 'Server Time'");
 
 const mockCreateSoftResRaid = vi.fn();
 vi.mock("~/server/api/softres-client", () => ({
@@ -52,6 +52,7 @@ describe("POST /api/discord/create-softres", () => {
       raidId: "abc123",
       adminToken: "tok",
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+      publicUrl: "https://softres.it/raid/abc123",
     });
 
     const { POST } = await import("~/app/api/discord/create-softres/route");
@@ -65,6 +66,7 @@ describe("POST /api/discord/create-softres", () => {
       success: true,
       zone: zoneName,
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+      publicUrl: "https://softres.it/raid/abc123",
       createdDate: TEST_CREATED_DATE,
     });
   });
