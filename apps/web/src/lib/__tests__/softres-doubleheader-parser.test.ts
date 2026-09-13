@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 
 describe("parseZonesFromEventTitle", () => {
-  it("parses a BWL/MC doubleheader title", () => {
+  it("splits a doubleheader title into its zones (BWL/MC)", () => {
     expect(parseZonesFromEventTitle("Sunday BWL/MC @7PM", undefined)).toEqual([
       "Blackwing Lair",
       "Molten Core",
