@@ -1,6 +1,7 @@
 import {
   CheckPermissionsResponseSchema,
   RAIDLOG_MANAGE_SCOPE,
+  SOFTRES_ACCESS_SCOPE,
   type CheckPermissionsResponse,
 } from "@temple-era/contracts";
 import { config } from "../config/env.js";
@@ -19,6 +20,8 @@ export interface PermissionCheckResult {
    * the bot logged as a raid-creation failure rather than a permission problem.
    */
   canManageRaidLogs: boolean;
+  /** Whether the user holds `softres:access` — the scope `/sr` gates on. */
+  canAccessSoftres: boolean;
   error?: string; // Optional error message when success = false
   statusCode?: number; // Optional HTTP status code
 }
@@ -32,6 +35,10 @@ export interface PermissionCheckResult {
  */
 function resolveCanManageRaidLogs(response: CheckPermissionsResponse): boolean {
   return (response.scopes ?? []).includes(RAIDLOG_MANAGE_SCOPE);
+}
+
+function resolveCanAccessSoftres(response: CheckPermissionsResponse): boolean {
+  return (response.scopes ?? []).includes(SOFTRES_ACCESS_SCOPE);
 }
 
 export async function checkUserPermissions(discordUserId: string): Promise<PermissionCheckResult> {
@@ -59,6 +66,7 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
         success: false,
         hasAccount: false,
         canManageRaidLogs: false,
+        canAccessSoftres: false,
         error: `HTTP ${response.status}`,
         statusCode: response.status,
       };
@@ -79,6 +87,7 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
         success: false,
         hasAccount: false,
         canManageRaidLogs: false,
+        canAccessSoftres: false,
         error: "Malformed check-permissions response",
         statusCode: response.status,
       };
@@ -88,6 +97,7 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
       success: true,
       hasAccount: parsed.data.hasAccount,
       canManageRaidLogs: resolveCanManageRaidLogs(parsed.data),
+      canAccessSoftres: resolveCanAccessSoftres(parsed.data),
     };
   } catch (error) {
     logger.error(
@@ -102,6 +112,7 @@ export async function checkUserPermissions(discordUserId: string): Promise<Permi
       success: false,
       hasAccount: false,
       canManageRaidLogs: false,
+      canAccessSoftres: false,
       error: error instanceof Error ? error.message : String(error),
     };
   }

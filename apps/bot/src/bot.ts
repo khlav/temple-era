@@ -7,6 +7,8 @@ import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
 import { handleRaidHelperSignup } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
+import { registerCommands } from "./commands/registerCommands.js";
+import { handleSrCommand } from "./commands/srCommand.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -48,6 +50,8 @@ export function createBot(): Client {
   client.on(Events.ClientReady, () => {
     logger.info(`Bot logged in as ${client.user?.tag}`);
     logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
+
+    void registerCommands(client);
 
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {
@@ -92,6 +96,12 @@ export function createBot(): Client {
     // Only process main channel messages (not threads)
     if (!newMessage.channel.isThread()) {
       void handleMessageUpdate(oldMessage as Message, newMessage as Message);
+    }
+  });
+
+  client.on(Events.InteractionCreate, (interaction) => {
+    if (interaction.isChatInputCommand() && interaction.commandName === "sr") {
+      void handleSrCommand(interaction);
     }
   });
 

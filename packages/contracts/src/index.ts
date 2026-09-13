@@ -14,3 +14,4 @@ export * from "./discord/update-raid.js";
 export * from "./discord/update-bench.js";
 export * from "./discord/proxy.js";
 export * from "./discord/ensure-softres.js";
+export * from "./discord/create-softres.js";

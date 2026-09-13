@@ -21,6 +21,10 @@ export const config = {
     .filter(Boolean),
   discordRaidHelperBotId: process.env.DISCORD_RAID_HELPER_BOT_ID!,
   discordSoftresTokenThreadId: process.env.DISCORD_SOFTRES_TOKEN_THREAD_ID!,
+  // Guild-scoped slash-command registration (/sr). The value already exists in every Doppler
+  // config — apps/web has read it as DISCORD_SERVER_ID for a while — this is just the first
+  // time apps/bot's own schema needs it.
+  discordServerId: process.env.DISCORD_SERVER_ID!,
   // Logging configuration
   logLevel: process.env.LOG_LEVEL || "info",
   // Thread cleanup configuration (optional - disabled by default)
@@ -37,6 +41,7 @@ const required = [
   "templeWebApiToken",
   "discordRaidHelperBotId",
   "discordSoftresTokenThreadId",
+  "discordServerId",
 ];
 
 for (const key of required) {
