@@ -39,13 +39,15 @@ function embedTitleAndDescription(call: unknown) {
 function fakeInteraction(overrides: {
   zone?: string;
   threadFetch?: ReturnType<typeof vi.fn>;
+  deferReply?: ReturnType<typeof vi.fn>;
+  editReply?: ReturnType<typeof vi.fn>;
   deleteReply?: ReturnType<typeof vi.fn>;
 }): ChatInputCommandInteraction {
   const interaction = {
     options: { getString: () => overrides.zone ?? "mc" },
     user: { id: USER_ID },
-    deferReply: vi.fn().mockResolvedValue(undefined),
-    editReply: vi.fn().mockResolvedValue(undefined),
+    deferReply: overrides.deferReply ?? vi.fn().mockResolvedValue(undefined),
+    editReply: overrides.editReply ?? vi.fn().mockResolvedValue(undefined),
     deleteReply: overrides.deleteReply ?? vi.fn().mockResolvedValue(undefined),
     followUp: vi.fn().mockResolvedValue(undefined),
     client: {
@@ -298,6 +300,47 @@ describe("handleSrCommand", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "thread archived" }),
       "Error creating SoftRes via /sr",
+    );
+  });
+
+  it("logs without throwing when deferReply itself rejects", async () => {
+    const deferReply = vi.fn().mockRejectedValue(new Error("Unknown interaction"));
+    const editReply = vi.fn().mockRejectedValue(new Error("Interaction has not been deferred"));
+    const interaction = fakeInteraction({ deferReply, editReply });
+
+    await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
+
+    expect(mockCheckUserPermissions).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ zone: "mc", error: "Unknown interaction" }),
+      "Error creating SoftRes via /sr",
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ zone: "mc", error: "Interaction has not been deferred" }),
+      "Failed to notify user of /sr failure",
+    );
+  });
+
+  it("logs without throwing when the catch block's own editReply rejects", async () => {
+    mockCheckUserPermissions.mockResolvedValue({
+      success: true,
+      hasAccount: true,
+      canManageRaidLogs: false,
+      canAccessSoftres: true,
+    });
+    fetchMock.mockRejectedValue(new Error("network down"));
+    const editReply = vi.fn().mockRejectedValue(new Error("Unknown Message"));
+    const interaction = fakeInteraction({ editReply });
+
+    await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ zone: "mc", error: "network down" }),
+      "Error creating SoftRes via /sr",
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ zone: "mc", error: "Unknown Message" }),
+      "Failed to notify user of /sr failure",
     );
   });
 });

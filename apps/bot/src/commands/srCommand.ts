@@ -46,13 +46,6 @@ export const srCommandData = new SlashCommandBuilder()
  */
 export async function handleSrCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const zone = interaction.options.getString("zone", true);
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  const permissions = await checkUserPermissions(interaction.user.id);
-  if (!permissions.success || !permissions.hasAccount || !permissions.canAccessSoftres) {
-    await interaction.editReply({ content: "You don't have permission to create SoftRes raids." });
-    return;
-  }
 
   // Tracks whether the invoker has already gotten a response, so a failure in the
   // Token-thread post below (which runs after the public reply is sent) never tries to
@@ -60,6 +53,17 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
   let acknowledged = false;
 
   try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const permissions = await checkUserPermissions(interaction.user.id);
+    if (!permissions.success || !permissions.hasAccount || !permissions.canAccessSoftres) {
+      await interaction.editReply({
+        content: "You don't have permission to create SoftRes raids.",
+      });
+      acknowledged = true;
+      return;
+    }
+
     const response = await fetch(`${config.apiBaseUrl}/api/discord/create-softres`, {
       method: "POST",
       headers: {
@@ -131,7 +135,23 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       "Error creating SoftRes via /sr",
     );
     if (!acknowledged) {
-      await interaction.editReply({ content: "Something went wrong creating the SR." });
+      // Best-effort: if this itself rejects (e.g. deferReply above never actually acknowledged
+      // the interaction, so there is nothing valid to edit), log and swallow rather than let a
+      // second failure escape this catch — `bot.ts` invokes the handler as
+      // `void handleSrCommand(interaction)`, so an uncaught rejection here would otherwise be
+      // unhandled, contrary to this codebase's "API failures are logged but don't crash the
+      // bot" invariant.
+      try {
+        await interaction.editReply({ content: "Something went wrong creating the SR." });
+      } catch (replyError) {
+        logger.error(
+          {
+            error: replyError instanceof Error ? replyError.message : String(replyError),
+            zone,
+          },
+          "Failed to notify user of /sr failure",
+        );
+      }
     }
   }
 }
