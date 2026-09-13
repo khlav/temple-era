@@ -81,3 +81,92 @@ export async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidD
     })),
   };
 }
+
+interface CreatedSoftResRaid {
+  raidId: string;
+  adminToken: string;
+  adminUrl: string;
+}
+
+const DEFAULT_CREATE_SETTINGS = {
+  edition: "classic",
+  faction: "horde",
+  protection: true,
+  reserve_limit: 2,
+  item_limit: 0,
+  item_reserve_limit: 0,
+  hide_reserves: false,
+  notes_enabled: true,
+  class_restrictions: true,
+  raid_series_id: "",
+} as const;
+
+/**
+ * Creates a new SoftRes raid for the given classic-edition instance id (see
+ * `~/lib/softres-create-instance-ids` — a different id space from this file's `instance` slugs,
+ * which are for the read endpoint only) and returns its admin link.
+ *
+ * Reverse-engineers an undocumented, unauthenticated Inertia.js/Laravel POST that returns no
+ * body — only a 302 redirect whose `Location` header carries the admin token. Uses a fresh,
+ * stateless anonymous session per call (one GET immediately before the create POST to obtain a
+ * CSRF/session cookie pair, then discards it) rather than a persisted bot-account session —
+ * softres.it's create endpoint requires no login, only a valid CSRF-protected session, confirmed
+ * live against a real incognito-browser request.
+ *
+ * `redirect: "manual"` is load-bearing: the default `fetch` behavior of auto-following redirects
+ * would discard the `Location` header entirely, losing the admin token. Note this behavior is
+ * environment-sensitive — browsers yield an opaque `redirect` response for `redirect: "manual"`,
+ * while Node's `undici` (what Next.js's Node runtime actually uses) yields a normal 3xx response
+ * with a readable `Location` header, read directly below.
+ */
+export async function createSoftResRaid(instanceId: number): Promise<CreatedSoftResRaid> {
+  // 1. Fresh anonymous session: GET any page, read Set-Cookie for XSRF-TOKEN + softres_session_v2.
+  const sessionRes = await fetch("https://softres.it/", {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  const cookies = parseSetCookieHeader(sessionRes.headers.getSetCookie());
+  const xsrfToken = decodeURIComponent(cookies["XSRF-TOKEN"] ?? "");
+  if (!xsrfToken || !cookies["softres_session_v2"]) {
+    throw new Error("Failed to establish a SoftRes session (no XSRF/session cookie in response)");
+  }
+
+  // 2. POST to create, WITHOUT following the redirect — the admin token lives in Location.
+  const createRes = await fetch("https://softres.it/raid", {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      "content-type": "application/json",
+      accept: "text/html, application/xhtml+xml",
+      origin: "https://softres.it",
+      referer: "https://softres.it/",
+      "x-inertia": "true",
+      "x-requested-with": "XMLHttpRequest",
+      "x-xsrf-token": xsrfToken,
+      cookie: `XSRF-TOKEN=${cookies["XSRF-TOKEN"]}; softres_session_v2=${cookies["softres_session_v2"]}`,
+    },
+    body: JSON.stringify({ ...DEFAULT_CREATE_SETTINGS, instances: [instanceId] }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+
+  const location = createRes.headers.get("location");
+  if (!location) {
+    throw new Error(`SoftRes raid creation did not return a redirect (status ${createRes.status})`);
+  }
+  const match = /\/raid\/([a-zA-Z0-9]+)\?adminToken=([a-zA-Z0-9]+)/.exec(location);
+  if (!match) {
+    throw new Error(`Could not parse SoftRes admin link from redirect: ${location}`);
+  }
+  const [, raidId, adminToken] = match;
+  return { raidId: raidId!, adminToken: adminToken!, adminUrl: `https://softres.it${location}` };
+}
+
+/** Minimal Set-Cookie parser — only needs the two cookie values' raw content, not full cookie-attribute parsing. */
+function parseSetCookieHeader(setCookieValues: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const raw of setCookieValues) {
+    const [pair] = raw.split(";");
+    const [name, value] = pair?.split("=") ?? [];
+    if (name && value) result[name] = value;
+  }
+  return result;
+}

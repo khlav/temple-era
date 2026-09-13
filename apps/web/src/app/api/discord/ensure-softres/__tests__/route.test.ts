@@ -1,0 +1,175 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
+
+const mockFetchEventDetail = vi.fn();
+vi.mock("~/server/services/raid-helper-client", () => ({
+  fetchEventDetail: (...args: unknown[]) => mockFetchEventDetail(...args),
+}));
+
+const mockCreateSoftResRaid = vi.fn();
+vi.mock("~/server/api/softres-client", () => ({
+  createSoftResRaid: (...args: unknown[]) => mockCreateSoftResRaid(...args),
+}));
+
+function makeRequest(body: unknown, authorization = "Bearer test-token") {
+  return new Request("http://localhost/api/discord/ensure-softres", {
+    method: "POST",
+    headers: { authorization, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+describe("POST /api/discord/ensure-softres", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 for a missing or invalid bearer token", async () => {
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(
+      makeRequest({ eventId: "123456789012345678" }, "Bearer wrong-token"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(mockFetchEventDetail).not.toHaveBeenCalled();
+  });
+
+  it("400s on an invalid eventId", async () => {
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "not-a-snowflake" }));
+
+    expect(response.status).toBe(400);
+    expect(mockFetchEventDetail).not.toHaveBeenCalled();
+  });
+
+  it("no-ops when softresId is already present", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: "existing-raid-id",
+      title: "Thursday Onyxia",
+      channelName: "onyxia-signups",
+    });
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, created: false, links: [] });
+    expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
+  });
+
+  it("creates exactly 1 SR for Onyxia", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: undefined,
+      title: "Thursday Onyxia",
+      channelName: "onyxia-signups",
+    });
+    mockCreateSoftResRaid.mockResolvedValue({
+      raidId: "abc123",
+      adminToken: "tok",
+      adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+    });
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(mockCreateSoftResRaid).toHaveBeenCalledTimes(1);
+    expect(mockCreateSoftResRaid).toHaveBeenCalledWith(1);
+    expect(body).toEqual({
+      success: true,
+      created: true,
+      links: [
+        {
+          zone: "Onyxia",
+          instanceId: 1,
+          adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        },
+      ],
+    });
+  });
+
+  it("creates 2 SRs for a non-Onyxia zone / creates one SR per identified zone (doubleheader)", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: undefined,
+      title: "Sunday BWL/MC @7PM",
+      channelName: "bwl-mc-signups",
+    });
+    mockCreateSoftResRaid
+      .mockResolvedValueOnce({
+        raidId: "bwl1",
+        adminToken: "tokA",
+        adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+      })
+      .mockResolvedValueOnce({
+        raidId: "mc1",
+        adminToken: "tokB",
+        adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
+      });
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(mockCreateSoftResRaid).toHaveBeenCalledTimes(2);
+    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(1, 3); // Blackwing Lair
+    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(2, 2); // Molten Core
+    expect(body.success).toBe(true);
+    expect(body.created).toBe(true);
+    expect(body.links).toEqual([
+      {
+        zone: "Blackwing Lair",
+        instanceId: 3,
+        adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+      },
+      {
+        zone: "Molten Core",
+        instanceId: 2,
+        adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
+      },
+    ]);
+  });
+
+  it("no-ops with a logged warning when no known zone can be identified", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: undefined,
+      title: "Guild Meeting @9PM",
+      channelName: "general",
+    });
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, created: false, links: [] });
+    expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when the Raid Helper event fetch fails", async () => {
+    mockFetchEventDetail.mockRejectedValue(new Error("Raid Helper event fetch failed: 500"));
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+
+    expect(response.status).toBe(500);
+    expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when SoftRes raid creation fails", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: undefined,
+      title: "Thursday Onyxia",
+      channelName: "onyxia-signups",
+    });
+    mockCreateSoftResRaid.mockRejectedValue(new Error("Failed to establish a SoftRes session"));
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+
+    expect(response.status).toBe(500);
+  });
+});
