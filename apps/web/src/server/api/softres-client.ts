@@ -156,7 +156,12 @@ export async function createSoftResRaid(instanceId: number): Promise<CreatedSoft
   }
   const match = /\/raid\/([a-zA-Z0-9]+)\?adminToken=([a-zA-Z0-9]+)/.exec(location);
   if (!match) {
-    throw new Error(`Could not parse SoftRes admin link from redirect: ${location}`);
+    // Log only the path, never the query string — a would-be adminToken can still be present
+    // there even when the shape doesn't match what this regex expects, and this error is
+    // logged upstream (`ensure-softres`/`create-softres`'s catch blocks), which is a wider
+    // audience than the Token thread the token is otherwise confined to.
+    const [pathOnly] = location.split("?");
+    throw new Error(`Could not parse SoftRes admin link from redirect: ${pathOnly}`);
   }
   const [, raidId, adminToken] = match;
   // `location` may be relative ("/raid/id?...") or already absolute, depending on how the

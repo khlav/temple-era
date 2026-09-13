@@ -105,8 +105,11 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       links: [{ zone: result.zone, url: result.publicUrl }],
     });
     await interaction.deleteReply();
-    await interaction.followUp({ embeds: [publicEmbed] });
+    // Set before the follow-up, not after: once the ephemeral placeholder is deleted, a
+    // failed followUp() has nothing left to safely reply to anyway — the catch block must
+    // not attempt an editReply against a reply that no longer exists.
     acknowledged = true;
+    await interaction.followUp({ embeds: [publicEmbed] });
 
     const thread = await interaction.client.channels.fetch(config.discordSoftresTokenThreadId);
     if (thread?.isSendable()) {

@@ -113,4 +113,16 @@ describe("createSoftResRaid", () => {
 
     await expect(createSoftResRaid(1)).rejects.toThrow(/Could not parse SoftRes admin link/);
   });
+
+  it("never includes the query string (a possible adminToken) in the parse-failure error", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
+      .mockResolvedValueOnce(mockCreateResponse(302, "/raid/abc123?admintoken=leaked-secret"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createSoftResRaid(1)).rejects.toThrow(
+      /^Could not parse SoftRes admin link from redirect: \/raid\/abc123$/,
+    );
+  });
 });
