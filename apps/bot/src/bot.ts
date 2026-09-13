@@ -5,7 +5,10 @@ import { logger } from "./config/logger.js";
 import { handleMessage } from "./handlers/messageHandler.js";
 import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
+import { handleRaidHelperSignup } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
+import { registerCommands } from "./commands/registerCommands.js";
+import { handleSrCommand } from "./commands/srCommand.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -48,6 +51,8 @@ export function createBot(): Client {
     logger.info(`Bot logged in as ${client.user?.tag}`);
     logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
 
+    void registerCommands(client);
+
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {
       cron.schedule(
@@ -72,6 +77,10 @@ export function createBot(): Client {
       void handleThreadMessage(message);
     } else {
       void handleMessage(message);
+      // Filters on discordRaidSrChannelIds, a channel set that is mutually exclusive with
+      // discordLogsChannelId in every real Doppler config today — safe to run unconditionally
+      // alongside handleMessage above.
+      void handleRaidHelperSignup(message);
     }
   });
 
@@ -87,6 +96,12 @@ export function createBot(): Client {
     // Only process main channel messages (not threads)
     if (!newMessage.channel.isThread()) {
       void handleMessageUpdate(oldMessage as Message, newMessage as Message);
+    }
+  });
+
+  client.on(Events.InteractionCreate, (interaction) => {
+    if (interaction.isChatInputCommand() && interaction.commandName === "sr") {
+      void handleSrCommand(interaction);
     }
   });
 

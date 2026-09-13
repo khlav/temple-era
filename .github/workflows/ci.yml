@@ -170,6 +170,10 @@ jobs:
           DISCORD_RAID_LOGS_CHANNEL_ID: "123456789"
           API_BASE_URL: "https://api.example.com"
           TEMPLE_WEB_API_TOKEN: "test-token-placeholder"
+          DISCORD_RAID_SR_CHANNEL_IDS: "123456789"
+          DISCORD_RAID_HELPER_BOT_ID: "123456789"
+          DISCORD_SOFTRES_TOKEN_THREAD_ID: "123456789"
+          DISCORD_SERVER_ID: "123456789"
         run: |
           node --input-type=module << 'EOF'
           import('./dist/index.js')
