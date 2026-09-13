@@ -11,6 +11,7 @@ import { fetchEventDetail } from "~/server/services/raid-helper-client";
 import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 import { SOFTRES_CREATE_INSTANCE_IDS } from "~/lib/softres-create-instance-ids";
 import { createSoftResRaid } from "~/server/api/softres-client";
+import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 /**
  * Given a Raid-Helper `eventId`, ensures the event has a SoftRes soft-reserve raid: no-ops if
@@ -81,7 +82,9 @@ export async function POST(request: Request) {
     // 5. Create exactly one SR per zone, sequentially — each call re-establishes its own
     // anonymous session, so running them concurrently risks cookie/session cross-talk against
     // the same undocumented endpoint.
-    const links: Array<{ zone: string; instanceId: number; adminUrl: string }> = [];
+    const eventDate = formatEasternDateTime(new Date(event.startTime * 1000), "EEEE MM/dd/yyyy");
+    const links: Array<{ zone: string; instanceId: number; adminUrl: string; eventDate: string }> =
+      [];
     for (const zone of zones) {
       const instanceId = SOFTRES_CREATE_INSTANCE_IDS[zone];
       if (instanceId === undefined) {
@@ -91,7 +94,7 @@ export async function POST(request: Request) {
         continue;
       }
       const created = await createSoftResRaid(instanceId);
-      links.push({ zone, instanceId, adminUrl: created.adminUrl });
+      links.push({ zone, instanceId, adminUrl: created.adminUrl, eventDate });
     }
 
     const result: EnsureSoftresResult = { success: true, created: true, links };

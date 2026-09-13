@@ -10,6 +10,10 @@ export const EnsureSoftresCreatedLinkSchema = z.object({
   zone: z.string(),
   instanceId: z.number(),
   adminUrl: z.string(),
+  /** Human-readable "Weekday MM/DD/YYYY" for the raid night, e.g. "Sunday 09/13/2026" —
+   * derived from the Raid Helper event's startTime, matching the day/date raid leads
+   * already include in their own hand-posted Token thread messages. */
+  eventDate: z.string(),
 });
 
 export const EnsureSoftresSuccessSchema = z.object({

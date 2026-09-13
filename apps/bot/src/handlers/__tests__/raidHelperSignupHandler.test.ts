@@ -146,8 +146,18 @@ describe("handleRaidHelperSignup", () => {
         success: true,
         created: true,
         links: [
-          { zone: "Molten Core", instanceId: 1, adminUrl: "https://softres.it/mc-admin" },
-          { zone: "Blackwing Lair", instanceId: 2, adminUrl: "https://softres.it/bwl-admin" },
+          {
+            zone: "Molten Core",
+            instanceId: 1,
+            adminUrl: "https://softres.it/mc-admin",
+            eventDate: "Sunday 09/13/2026",
+          },
+          {
+            zone: "Blackwing Lair",
+            instanceId: 2,
+            adminUrl: "https://softres.it/bwl-admin",
+            eventDate: "Sunday 09/13/2026",
+          },
         ],
       }),
     );
@@ -159,8 +169,14 @@ describe("handleRaidHelperSignup", () => {
 
     expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
     expect(send).toHaveBeenCalledTimes(2);
-    expect(send).toHaveBeenNthCalledWith(1, "Molten Core: https://softres.it/mc-admin");
-    expect(send).toHaveBeenNthCalledWith(2, "Blackwing Lair: https://softres.it/bwl-admin");
+    expect(send).toHaveBeenNthCalledWith(
+      1,
+      "Molten Core Sunday 09/13/2026: https://softres.it/mc-admin",
+    );
+    expect(send).toHaveBeenNthCalledWith(
+      2,
+      "Blackwing Lair Sunday 09/13/2026: https://softres.it/bwl-admin",
+    );
   });
 
   it("skips a duplicate message id without a second fetch call", async () => {
@@ -216,7 +232,14 @@ describe("handleRaidHelperSignup", () => {
       jsonResponse({
         success: true,
         created: true,
-        links: [{ zone: "Molten Core", instanceId: 1, adminUrl: "https://softres.it/mc-admin" }],
+        links: [
+          {
+            zone: "Molten Core",
+            instanceId: 1,
+            adminUrl: "https://softres.it/mc-admin",
+            eventDate: "Sunday 09/13/2026",
+          },
+        ],
       }),
     );
     const threadFetch = vi.fn().mockResolvedValue(null);

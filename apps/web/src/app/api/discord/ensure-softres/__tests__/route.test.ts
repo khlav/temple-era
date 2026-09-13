@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
+
+// A fixed Raid Helper `startTime` (unix seconds) used by every mocked event below, so
+// `eventDate` assertions stay correct regardless of DST/timezone specifics.
+const TEST_START_TIME = 1789430400;
+const TEST_EVENT_DATE = formatEasternDateTime(new Date(TEST_START_TIME * 1000), "EEEE MM/dd/yyyy");
 
 const mockFetchEventDetail = vi.fn();
 vi.mock("~/server/services/raid-helper-client", () => ({
@@ -48,6 +54,7 @@ describe("POST /api/discord/ensure-softres", () => {
       softresId: "existing-raid-id",
       title: "Thursday Onyxia",
       channelName: "onyxia-signups",
+      startTime: TEST_START_TIME,
     });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
@@ -64,6 +71,7 @@ describe("POST /api/discord/ensure-softres", () => {
       softresId: undefined,
       title: "Thursday Onyxia",
       channelName: "onyxia-signups",
+      startTime: TEST_START_TIME,
     });
     mockCreateSoftResRaid.mockResolvedValue({
       raidId: "abc123",
@@ -86,6 +94,7 @@ describe("POST /api/discord/ensure-softres", () => {
           zone: "Onyxia",
           instanceId: 1,
           adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+          eventDate: TEST_EVENT_DATE,
         },
       ],
     });
@@ -96,6 +105,7 @@ describe("POST /api/discord/ensure-softres", () => {
       softresId: undefined,
       title: "Sunday BWL/MC @7PM",
       channelName: "bwl-mc-signups",
+      startTime: TEST_START_TIME,
     });
     mockCreateSoftResRaid
       .mockResolvedValueOnce({
@@ -124,11 +134,13 @@ describe("POST /api/discord/ensure-softres", () => {
         zone: "Blackwing Lair",
         instanceId: 3,
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        eventDate: TEST_EVENT_DATE,
       },
       {
         zone: "Molten Core",
         instanceId: 2,
         adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
+        eventDate: TEST_EVENT_DATE,
       },
     ]);
   });
@@ -164,6 +176,7 @@ describe("POST /api/discord/ensure-softres", () => {
       softresId: undefined,
       title: "Thursday Onyxia",
       channelName: "onyxia-signups",
+      startTime: TEST_START_TIME,
     });
     mockCreateSoftResRaid.mockRejectedValue(new Error("Failed to establish a SoftRes session"));
 

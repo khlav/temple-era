@@ -84,7 +84,7 @@ export async function handleRaidHelperSignup(message: Message) {
     }
 
     for (const link of result.links) {
-      await thread.send(`${link.zone}: ${link.adminUrl}`);
+      await thread.send(`${link.zone} ${link.eventDate}: ${link.adminUrl}`);
       logger.info(
         { eventId: message.id, zone: link.zone },
         "Posted SoftRes admin link to Token thread",
