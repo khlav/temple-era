@@ -36,18 +36,28 @@ export const srCommandData = new SlashCommandBuilder()
  * Permission-denied and error replies are ephemeral (private to the invoker) — only a
  * successful creation is meant to be visible to others in the channel the command was run
  * from, so a raid lead running `/sr` in a raid channel makes the link visible there too.
+ *
+ * Defers ephemerally before any network call: `checkUserPermissions` plus `create-softres`
+ * (itself two outbound softres.it round-trips) can together exceed Discord's 3-second
+ * interaction-ack window, especially on a cold start. Missing that window would leave an SR
+ * already created with its one-time admin token unreachable, which is a worse failure than a
+ * slow reply — so the ack happens first, and every outcome after that uses `editReply` (still
+ * ephemeral) or, on success, `deleteReply` + a public `followUp` for the visible embed.
  */
 export async function handleSrCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const zone = interaction.options.getString("zone", true);
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const permissions = await checkUserPermissions(interaction.user.id);
   if (!permissions.success || !permissions.hasAccount || !permissions.canAccessSoftres) {
-    await interaction.reply({
-      content: "You don't have permission to create SoftRes raids.",
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply({ content: "You don't have permission to create SoftRes raids." });
     return;
   }
+
+  // Tracks whether the invoker has already gotten a response, so a failure in the
+  // Token-thread post below (which runs after the public reply is sent) never tries to
+  // reply again to an interaction whose ephemeral placeholder was already deleted.
+  let acknowledged = false;
 
   try {
     const response = await fetch(`${config.apiBaseUrl}/api/discord/create-softres`, {
@@ -66,10 +76,8 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
         { endpoint: "/api/discord/create-softres", zone, error: parsed.error.message },
         "Unexpected response shape from create-softres",
       );
-      await interaction.reply({
-        content: "Something went wrong creating the SR.",
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply({ content: "Something went wrong creating the SR." });
+      acknowledged = true;
       return;
     }
     const result = parsed.data;
@@ -79,25 +87,26 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
         { zone, error: "error" in result ? result.error : "unknown" },
         "create-softres reported failure",
       );
-      await interaction.reply({
-        content: "Something went wrong creating the SR.",
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply({ content: "Something went wrong creating the SR." });
+      acknowledged = true;
       return;
     }
 
     const title = `SRs : ${result.zone}`;
 
-    // Public reply — a successful creation is meant to be visible to others in the channel
-    // the command was run from, unlike the permission-denied/error replies above and below.
-    // Uses `publicUrl`, never `adminUrl` — the admin token must never appear outside the
-    // SoftRes Token thread.
+    // Public follow-up — a successful creation is meant to be visible to others in the channel
+    // the command was run from, unlike the permission-denied/error replies above. Replaces the
+    // ephemeral "thinking" placeholder rather than editing it, since a deferred ephemeral reply
+    // can never be turned public. Uses `publicUrl`, never `adminUrl` — the admin token must
+    // never appear outside the SoftRes Token thread.
     const publicEmbed = buildPublicSoftresEmbed({
       title,
       dateLabel: result.createdDate,
       links: [{ zone: result.zone, url: result.publicUrl }],
     });
-    await interaction.reply({ embeds: [publicEmbed] });
+    await interaction.deleteReply();
+    await interaction.followUp({ embeds: [publicEmbed] });
+    acknowledged = true;
 
     const thread = await interaction.client.channels.fetch(config.discordSoftresTokenThreadId);
     if (thread?.isSendable()) {
@@ -118,13 +127,8 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       { error: error instanceof Error ? error.message : String(error), zone },
       "Error creating SoftRes via /sr",
     );
-    // The Token-thread post above runs after the success reply, so a failure there must not
-    // trigger a second reply to an already-acknowledged interaction.
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: "Something went wrong creating the SR.",
-        flags: MessageFlags.Ephemeral,
-      });
+    if (!acknowledged) {
+      await interaction.editReply({ content: "Something went wrong creating the SR." });
     }
   }
 }

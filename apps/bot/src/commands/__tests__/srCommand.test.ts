@@ -1,4 +1,4 @@
-import { MessageFlags, type ChatInputCommandInteraction } from "discord.js";
+import { type ChatInputCommandInteraction } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { handleSrCommand } from "../srCommand.js";
@@ -30,19 +30,24 @@ function jsonResponse(body: unknown) {
   return { json: () => Promise.resolve(body) } as Response;
 }
 
+function embedTitleAndDescription(call: unknown) {
+  const { embeds } = call as { embeds: { toJSON(): { title: string; description: string } }[] };
+  const data = embeds[0]!.toJSON();
+  return { title: data.title, description: data.description };
+}
+
 function fakeInteraction(overrides: {
   zone?: string;
   threadFetch?: ReturnType<typeof vi.fn>;
+  deleteReply?: ReturnType<typeof vi.fn>;
 }): ChatInputCommandInteraction {
   const interaction = {
     options: { getString: () => overrides.zone ?? "mc" },
     user: { id: USER_ID },
-    replied: false,
-    deferred: false,
-    reply: vi.fn().mockImplementation(function (this: { replied: boolean }) {
-      this.replied = true;
-      return Promise.resolve(undefined);
-    }),
+    deferReply: vi.fn().mockResolvedValue(undefined),
+    editReply: vi.fn().mockResolvedValue(undefined),
+    deleteReply: overrides.deleteReply ?? vi.fn().mockResolvedValue(undefined),
+    followUp: vi.fn().mockResolvedValue(undefined),
     client: {
       channels: { fetch: overrides.threadFetch ?? vi.fn() },
     },
@@ -63,6 +68,24 @@ describe("handleSrCommand", () => {
     vi.clearAllMocks();
   });
 
+  it("defers ephemerally before doing any network work", async () => {
+    mockCheckUserPermissions.mockResolvedValue({
+      success: true,
+      hasAccount: true,
+      canManageRaidLogs: false,
+      canAccessSoftres: false,
+    });
+    const interaction = fakeInteraction({});
+
+    await handleSrCommand(interaction);
+
+    expect(interaction.deferReply).toHaveBeenCalledTimes(1);
+    const deferArg = (interaction.deferReply as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      flags: number;
+    };
+    expect(deferArg.flags).toBeDefined();
+  });
+
   it("denies a user without softres:access", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
@@ -74,9 +97,8 @@ describe("handleSrCommand", () => {
 
     await handleSrCommand(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledWith({
+    expect(interaction.editReply).toHaveBeenCalledWith({
       content: "You don't have permission to create SoftRes raids.",
-      flags: MessageFlags.Ephemeral,
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -93,14 +115,13 @@ describe("handleSrCommand", () => {
 
     await handleSrCommand(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledWith({
+    expect(interaction.editReply).toHaveBeenCalledWith({
       content: "You don't have permission to create SoftRes raids.",
-      flags: MessageFlags.Ephemeral,
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("creates an SR for the chosen zone and replies with the link", async () => {
+  it("creates an SR for the chosen zone, deletes the placeholder, and follows up publicly", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -130,12 +151,12 @@ describe("handleSrCommand", () => {
         body: JSON.stringify({ zone: "mc" }),
       }),
     );
-    expect(interaction.reply).toHaveBeenCalledTimes(1);
-    const publicEmbed = (
-      (interaction.reply as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
-        embeds: { toJSON(): unknown }[];
-      }
-    ).embeds[0]!.toJSON() as { title: string; description: string };
+    expect(interaction.editReply).not.toHaveBeenCalled();
+    expect(interaction.deleteReply).toHaveBeenCalledTimes(1);
+    expect(interaction.followUp).toHaveBeenCalledTimes(1);
+    const publicEmbed = embedTitleAndDescription(
+      (interaction.followUp as ReturnType<typeof vi.fn>).mock.calls[0]![0],
+    );
     expect(publicEmbed.title).toBe("SRs : Molten Core");
     expect(publicEmbed.description).toBe(
       "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123",
@@ -143,16 +164,14 @@ describe("handleSrCommand", () => {
 
     expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
     expect(send).toHaveBeenCalledTimes(1);
-    const adminEmbed = (
-      send.mock.calls[0]![0] as { embeds: { toJSON(): unknown }[] }
-    ).embeds[0]!.toJSON() as { title: string; description: string };
+    const adminEmbed = embedTitleAndDescription(send.mock.calls[0]![0]);
     expect(adminEmbed.title).toBe("SRs : Molten Core");
     expect(adminEmbed.description).toBe(
       "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123?adminToken=tok",
     );
   });
 
-  it("replies ephemerally and does not post to the thread when create-softres reports failure", async () => {
+  it("edits the deferred reply and does not post to the thread when create-softres reports failure", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -165,11 +184,11 @@ describe("handleSrCommand", () => {
 
     await handleSrCommand(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledTimes(1);
-    expect(interaction.reply).toHaveBeenCalledWith({
+    expect(interaction.editReply).toHaveBeenCalledTimes(1);
+    expect(interaction.editReply).toHaveBeenCalledWith({
       content: "Something went wrong creating the SR.",
-      flags: MessageFlags.Ephemeral,
     });
+    expect(interaction.followUp).not.toHaveBeenCalled();
     expect(threadFetch).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "Unknown zone" }),
@@ -177,7 +196,7 @@ describe("handleSrCommand", () => {
     );
   });
 
-  it("replies ephemerally and logs on a malformed create-softres response", async () => {
+  it("edits the deferred reply and logs on a malformed create-softres response", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -189,9 +208,8 @@ describe("handleSrCommand", () => {
 
     await handleSrCommand(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledWith({
+    expect(interaction.editReply).toHaveBeenCalledWith({
       content: "Something went wrong creating the SR.",
-      flags: MessageFlags.Ephemeral,
     });
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ endpoint: "/api/discord/create-softres", zone: "mc" }),
@@ -199,7 +217,7 @@ describe("handleSrCommand", () => {
     );
   });
 
-  it("replies ephemerally and logs without throwing when fetch itself rejects", async () => {
+  it("edits the deferred reply and logs without throwing when fetch itself rejects", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -211,9 +229,8 @@ describe("handleSrCommand", () => {
 
     await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
 
-    expect(interaction.reply).toHaveBeenCalledWith({
+    expect(interaction.editReply).toHaveBeenCalledWith({
       content: "Something went wrong creating the SR.",
-      flags: MessageFlags.Ephemeral,
     });
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "network down" }),
@@ -221,7 +238,7 @@ describe("handleSrCommand", () => {
     );
   });
 
-  it("logs an error but leaves the success reply standing when the Token thread is not sendable", async () => {
+  it("logs an error but leaves the public follow-up standing when the Token thread is not sendable", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -242,14 +259,14 @@ describe("handleSrCommand", () => {
 
     await handleSrCommand(interaction);
 
-    expect(interaction.reply).toHaveBeenCalledTimes(1);
+    expect(interaction.followUp).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ threadId: TOKEN_THREAD_ID }),
       "SoftRes Token thread channel is not fetchable or not sendable",
     );
   });
 
-  it("does not reply a second time when posting to the Token thread throws after a successful reply", async () => {
+  it("does not attempt another reply when posting to the Token thread throws after the public follow-up", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -270,15 +287,14 @@ describe("handleSrCommand", () => {
 
     await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
 
-    // The public success reply already went out — the thread-post failure must be logged,
-    // never turned into a second reply on an already-acknowledged interaction.
-    expect(interaction.reply).toHaveBeenCalledTimes(1);
-    const publicEmbed = (
-      (interaction.reply as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
-        embeds: { toJSON(): unknown }[];
-      }
-    ).embeds[0]!.toJSON() as { title: string };
+    // The public follow-up already went out and the ephemeral placeholder was already
+    // deleted — the thread-post failure must be logged, never turned into another reply.
+    expect(interaction.followUp).toHaveBeenCalledTimes(1);
+    const publicEmbed = embedTitleAndDescription(
+      (interaction.followUp as ReturnType<typeof vi.fn>).mock.calls[0]![0],
+    );
     expect(publicEmbed.title).toBe("SRs : Molten Core");
+    expect(interaction.editReply).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "thread archived" }),
       "Error creating SoftRes via /sr",
