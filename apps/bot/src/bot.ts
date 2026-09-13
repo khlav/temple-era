@@ -5,6 +5,7 @@ import { logger } from "./config/logger.js";
 import { handleMessage } from "./handlers/messageHandler.js";
 import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
+import { handleRaidHelperSignup } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
 
 export function createBot(): Client {
@@ -72,6 +73,10 @@ export function createBot(): Client {
       void handleThreadMessage(message);
     } else {
       void handleMessage(message);
+      // Filters on discordRaidSrChannelIds, a channel set that is mutually exclusive with
+      // discordLogsChannelId in every real Doppler config today — safe to run unconditionally
+      // alongside handleMessage above.
+      void handleRaidHelperSignup(message);
     }
   });
 

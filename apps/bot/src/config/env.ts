@@ -12,6 +12,15 @@ export const config = {
   discordLogsChannelId: process.env.DISCORD_RAID_LOGS_CHANNEL_ID!,
   apiBaseUrl: process.env.API_BASE_URL!,
   templeWebApiToken: process.env.TEMPLE_WEB_API_TOKEN!,
+  // SoftRes automation: the Raid-Helper signup channels to watch, the Raid-Helper bot's own
+  // user ID, and the Token thread admin links get posted to. The first two already carry real
+  // values in every Doppler config (apps/web already reads them); only the third is new.
+  discordRaidSrChannelIds: (process.env.DISCORD_RAID_SR_CHANNEL_IDS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+  discordRaidHelperBotId: process.env.DISCORD_RAID_HELPER_BOT_ID!,
+  discordSoftresTokenThreadId: process.env.DISCORD_SOFTRES_TOKEN_THREAD_ID!,
   // Logging configuration
   logLevel: process.env.LOG_LEVEL || "info",
   // Thread cleanup configuration (optional - disabled by default)
@@ -21,10 +30,25 @@ export const config = {
 };
 
 // Validate required environment variables
-const required = ["discordBotToken", "discordLogsChannelId", "apiBaseUrl", "templeWebApiToken"];
+const required = [
+  "discordBotToken",
+  "discordLogsChannelId",
+  "apiBaseUrl",
+  "templeWebApiToken",
+  "discordRaidHelperBotId",
+  "discordSoftresTokenThreadId",
+];
 
 for (const key of required) {
   if (!config[key as keyof typeof config]) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
+}
+
+// discordRaidSrChannelIds is array-valued, so the `!config[key]` truthy check above never flags
+// an empty array as missing — check its length separately.
+if (config.discordRaidSrChannelIds.length === 0) {
+  throw new Error(
+    "Missing required environment variable: discordRaidSrChannelIds (DISCORD_RAID_SR_CHANNEL_IDS)",
+  );
 }
