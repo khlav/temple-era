@@ -34,14 +34,20 @@ function fakeInteraction(overrides: {
   zone?: string;
   threadFetch?: ReturnType<typeof vi.fn>;
 }): ChatInputCommandInteraction {
-  return {
+  const interaction = {
     options: { getString: () => overrides.zone ?? "mc" },
     user: { id: USER_ID },
-    reply: vi.fn().mockResolvedValue(undefined),
+    replied: false,
+    deferred: false,
+    reply: vi.fn().mockImplementation(function (this: { replied: boolean }) {
+      this.replied = true;
+      return Promise.resolve(undefined);
+    }),
     client: {
       channels: { fetch: overrides.threadFetch ?? vi.fn() },
     },
-  } as unknown as ChatInputCommandInteraction;
+  };
+  return interaction as unknown as ChatInputCommandInteraction;
 }
 
 describe("handleSrCommand", () => {
@@ -227,6 +233,38 @@ describe("handleSrCommand", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ threadId: TOKEN_THREAD_ID }),
       "SoftRes Token thread channel is not fetchable or not sendable",
+    );
+  });
+
+  it("does not reply a second time when posting to the Token thread throws after a successful reply", async () => {
+    mockCheckUserPermissions.mockResolvedValue({
+      success: true,
+      hasAccount: true,
+      canManageRaidLogs: false,
+      canAccessSoftres: true,
+    });
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        zone: "Molten Core",
+        adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        createdDate: "Sunday 09/13/2026",
+      }),
+    );
+    const threadFetch = vi.fn().mockRejectedValue(new Error("thread archived"));
+    const interaction = fakeInteraction({ threadFetch });
+
+    await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
+
+    // The public success reply already went out — the thread-post failure must be logged,
+    // never turned into a second reply on an already-acknowledged interaction.
+    expect(interaction.reply).toHaveBeenCalledTimes(1);
+    expect(interaction.reply).toHaveBeenCalledWith({
+      content: "Created a SoftRes for Molten Core: https://softres.it/raid/abc123?adminToken=tok",
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ zone: "mc", error: "thread archived" }),
+      "Error creating SoftRes via /sr",
     );
   });
 });

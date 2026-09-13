@@ -171,7 +171,7 @@ describe("POST /api/discord/ensure-softres", () => {
     expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
   });
 
-  it("returns 500 when SoftRes raid creation fails", async () => {
+  it("returns success with no links when SoftRes raid creation fails for the only zone", async () => {
     mockFetchEventDetail.mockResolvedValue({
       softresId: undefined,
       title: "Thursday Onyxia",
@@ -182,7 +182,41 @@ describe("POST /api/discord/ensure-softres", () => {
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
     const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ success: true, created: false, links: [] });
+  });
+
+  it("preserves an already-created link when a later zone fails in a doubleheader", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: undefined,
+      title: "Sunday BWL/MC @7PM",
+      channelName: "bwl-mc-signups",
+      startTime: TEST_START_TIME,
+    });
+    mockCreateSoftResRaid
+      .mockResolvedValueOnce({
+        raidId: "bwl1",
+        adminToken: "tokA",
+        adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+      })
+      .mockRejectedValueOnce(new Error("Failed to establish a SoftRes session"));
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const response = await POST(makeRequest({ eventId: "123456789012345678" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.created).toBe(true);
+    expect(body.links).toEqual([
+      {
+        zone: "Blackwing Lair",
+        instanceId: 3,
+        adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
+        eventDate: TEST_EVENT_DATE,
+      },
+    ]);
   });
 });

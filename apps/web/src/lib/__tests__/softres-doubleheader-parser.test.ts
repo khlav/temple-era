@@ -22,6 +22,15 @@ describe("parseZonesFromEventTitle", () => {
     ]);
   });
 
+  it("matches full Ahn'Qiraj zone names, not just the AQ20/AQ40 abbreviations", () => {
+    expect(parseZonesFromEventTitle("Sunday Ruins of Ahn'Qiraj", undefined)).toEqual([
+      "Ruins of Ahn'Qiraj",
+    ]);
+    expect(parseZonesFromEventTitle("Temple of Ahn'Qiraj @8PM", undefined)).toEqual([
+      "Temple of Ahn'Qiraj",
+    ]);
+  });
+
   it("parses a solo Onyxia title", () => {
     expect(parseZonesFromEventTitle("Thursday Onyxia", undefined)).toEqual(["Onyxia"]);
   });

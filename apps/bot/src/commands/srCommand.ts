@@ -105,9 +105,13 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       { error: error instanceof Error ? error.message : String(error), zone },
       "Error creating SoftRes via /sr",
     );
-    await interaction.reply({
-      content: "Something went wrong creating the SR.",
-      flags: MessageFlags.Ephemeral,
-    });
+    // The Token-thread post above runs after the success reply, so a failure there must not
+    // trigger a second reply to an already-acknowledged interaction.
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: "Something went wrong creating the SR.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
   }
 }

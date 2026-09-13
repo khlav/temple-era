@@ -93,11 +93,18 @@ export async function POST(request: Request) {
         logger.warn({ eventId, zone }, "No SoftRes create instance id known for zone");
         continue;
       }
-      const created = await createSoftResRaid(instanceId);
-      links.push({ zone, instanceId, adminUrl: created.adminUrl, eventDate });
+      try {
+        const created = await createSoftResRaid(instanceId);
+        links.push({ zone, instanceId, adminUrl: created.adminUrl, eventDate });
+      } catch (error) {
+        // A failure on one zone of a doubleheader must not discard the admin link(s) already
+        // created above — the admin token only ever exists in that one call's redirect header,
+        // so losing it here means the SR it created can never be administered.
+        logger.error({ eventId, zone, err: error }, "Failed to create SoftRes raid for zone");
+      }
     }
 
-    const result: EnsureSoftresResult = { success: true, created: true, links };
+    const result: EnsureSoftresResult = { success: true, created: links.length > 0, links };
     return await compressResponse(result, request);
   } catch (error) {
     logger.error({ err: error }, "Error in ensure-softres");
