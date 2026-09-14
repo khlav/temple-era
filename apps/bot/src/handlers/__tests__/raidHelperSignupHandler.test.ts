@@ -37,6 +37,11 @@ vi.mock("../../config/logger.js", () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
+const mockGetZoneEmoji = vi.fn().mockReturnValue(undefined);
+vi.mock("../../services/zoneEmoji.js", () => ({
+  getZoneEmoji: (...args: unknown[]) => mockGetZoneEmoji(...args),
+}));
+
 function signupComponents(): unknown[] {
   return [
     {
@@ -100,6 +105,7 @@ describe("handleRaidHelperSignup", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    mockGetZoneEmoji.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -226,6 +232,53 @@ describe("handleRaidHelperSignup", () => {
     expect(adminEmbed.title).toBe("SRs : Sunday BWL/MC @7PM");
     expect(adminEmbed.description).toBe(
       "Sun, Sep 13 at 7:00 PM Server Time\n\nBlackwing Lair: https://softres.it/bwl-admin\nMolten Core: https://softres.it/mc-admin",
+    );
+  });
+
+  it("prefixes each zone line with that zone's emoji when one is available", async () => {
+    mockGetZoneEmoji.mockImplementation((zone: string) =>
+      zone === "Molten Core" ? "<:mc:222222222222222222>" : undefined,
+    );
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        created: true,
+        eventTitle: "Sunday BWL/MC @7PM",
+        links: [
+          {
+            zone: "Blackwing Lair",
+            instanceId: 3,
+            adminUrl: "https://softres.it/bwl-admin",
+            publicUrl: "https://softres.it/bwl-public",
+            eventDate: "Sun, Sep 13 at 7:00 PM Server Time",
+          },
+          {
+            zone: "Molten Core",
+            instanceId: 2,
+            adminUrl: "https://softres.it/mc-admin",
+            publicUrl: "https://softres.it/mc-public",
+            eventDate: "Sun, Sep 13 at 7:00 PM Server Time",
+          },
+        ],
+      }),
+    );
+    const threadSend = vi.fn().mockResolvedValue(undefined);
+    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send: threadSend });
+    const channelSend = vi.fn().mockResolvedValue(undefined);
+    const message = fakeMessage({
+      id: "13",
+      authorId: RAID_HELPER_BOT_ID,
+      threadFetch,
+      channelSend,
+    });
+
+    await handleRaidHelperSignup(message);
+
+    const publicEmbed = (
+      channelSend.mock.calls[0]![0] as { embeds: { toJSON(): { description: string } }[] }
+    ).embeds[0]!.toJSON();
+    expect(publicEmbed.description).toBe(
+      "Sun, Sep 13 at 7:00 PM Server Time\n\nBlackwing Lair: https://softres.it/bwl-public\n<:mc:222222222222222222> Molten Core: https://softres.it/mc-public",
     );
   });
 

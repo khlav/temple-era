@@ -34,6 +34,22 @@ describe("softresEmbeds", () => {
     expect(data.url).toBeUndefined();
   });
 
+  it("prefixes a zone line with its emoji when one is given, and leaves it plain otherwise", () => {
+    const embed = buildPublicSoftresEmbed({
+      title: "SRs : Sunday BWL/MC @7PM",
+      dateLabel: "Sun, Sep 13 at 7:00 PM Server Time",
+      links: [
+        { zone: "Blackwing Lair", url: "https://softres.it/raid/bwl1", emoji: "<:bwl:111>" },
+        { zone: "Molten Core", url: "https://softres.it/raid/mc1" },
+      ],
+    });
+    const description = embed.toJSON().description;
+
+    expect(description).toContain("<:bwl:111> Blackwing Lair: https://softres.it/raid/bwl1");
+    expect(description).toContain("Molten Core: https://softres.it/raid/mc1");
+    expect(description).not.toMatch(/undefined Molten Core/);
+  });
+
   it("builds an admin embed with a distinct color from the public embed", () => {
     const publicEmbed = buildPublicSoftresEmbed({
       title: "SRs : Molten Core",
