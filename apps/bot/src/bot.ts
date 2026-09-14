@@ -50,6 +50,10 @@ export function createBot(): Client {
   client.on(Events.ClientReady, () => {
     logger.info(`Bot logged in as ${client.user?.tag}`);
     logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
+    logger.info(
+      { channelIds: config.discordRaidSrChannelIds },
+      `Monitoring ${config.discordRaidSrChannelIds.length} SR signup channel(s)`,
+    );
 
     void registerCommands(client);
 

@@ -66,6 +66,8 @@ function fakeMessage(overrides: {
   authorId: string;
   channelId?: string;
   components?: unknown[];
+  content?: string;
+  embeds?: { title?: string; description?: string }[];
   threadFetch?: ReturnType<typeof vi.fn>;
   channelSend?: ReturnType<typeof vi.fn>;
   channelSendable?: boolean;
@@ -75,6 +77,8 @@ function fakeMessage(overrides: {
     id: overrides.id,
     channelId,
     author: { id: overrides.authorId, bot: true, tag: "Raid-Helper#0000" },
+    content: overrides.content ?? "",
+    embeds: overrides.embeds ?? [],
     components: overrides.components ?? signupComponents(),
     channel: {
       isSendable: () => overrides.channelSendable ?? true,
