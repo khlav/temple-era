@@ -82,7 +82,10 @@ function formatDayHeader(timestampSec: number): string {
 }
 
 function parseAdminUrl(url: string): { raidId: string; adminToken: string } | null {
-  const match = /\/raid\/([a-zA-Z0-9]+)\?adminToken=([a-zA-Z0-9]+)/.exec(url);
+  // Anchored to the end of the value (`&`/`#`/end-of-string): an unanchored `[a-zA-Z0-9]+`
+  // would silently truncate a raidId or token containing `-`/`_`/`.`, showing a wrong value in
+  // the label even though the underlying link (which uses the untouched `url`) still works.
+  const match = /\/raid\/([\w.-]+)\?adminToken=([\w.-]+)(?=$|&|#)/.exec(url);
   return match ? { raidId: match[1]!, adminToken: match[2]! } : null;
 }
 
@@ -123,8 +126,11 @@ function renderDescription(entries: ResolvedEntry[]): string {
 const ENTRY_LINE_REGEX = /^ {2}- (.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)$/;
 // Pre-this-feature-revision format: "<t:UNIX:f> {emoji }{zone}: {url}" (flat, no day grouping).
 // Parsed as a fallback so a format change mid-lockout-week doesn't drop that week's
-// already-posted entries on the next edit.
-const LEGACY_LINE_REGEX = /^<t:(\d+):f> (?:(\S+) )?(.+?): (\S+)$/;
+// already-posted entries on the next edit. The optional emoji group is anchored to actual
+// Discord custom-emoji syntax — a looser `\S+` would swallow the first word of a multi-word,
+// emoji-less zone (e.g. "Molten Core" with no emoji) as if it were one, leaving the recovered
+// zone as just "Core" and losing the SHORT_ZONE_NAMES shortening on that entry.
+const LEGACY_LINE_REGEX = /^<t:(\d+):f> (?:(<a?:\w+:\d+>) )?(.+?): (\S+)$/;
 
 function parseExistingEntries(description: string): ResolvedEntry[] {
   return description.split("\n").flatMap((line): ResolvedEntry[] => {

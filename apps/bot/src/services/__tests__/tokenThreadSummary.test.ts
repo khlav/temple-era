@@ -176,6 +176,45 @@ describe("postWeeklyTokenEntries", () => {
     );
   });
 
+  it("keeps the raidId and admin token intact when they contain non-alphanumeric characters", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const client = fakeClient({ existingMessages: [], send });
+
+    await postWeeklyTokenEntries(client, [
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/abc-123?adminToken=tok_45.6",
+        timestampSec: TUE_7PM,
+      },
+    ]);
+
+    const embed = send.mock.calls[0]![0].embeds[0];
+    expect(embed.data.description).toBe(
+      `- **Tuesday 9/15**\n  - Ony @ 7pm — [abc-123 | admintoken: tok_45.6](https://softres.it/raid/abc-123?adminToken=tok_45.6#ts=${TUE_7PM})`,
+    );
+  });
+
+  it("recovers a multi-word zone's short name from a legacy entry with no emoji", async () => {
+    const existing = fakeMessage({
+      footer: "lockout-week:2026-09-15",
+      description: `<t:${TUE_7PM}:f> Molten Core: https://softres.it/raid/tue2?adminToken=tokB`,
+    });
+    const client = fakeClient({ existingMessages: [existing] });
+
+    await postWeeklyTokenEntries(client, [
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/wed1?adminToken=tokO",
+        timestampSec: WED_630PM,
+      },
+    ]);
+
+    const embed = existing.edit.mock.calls[0]![0].embeds[0];
+    expect(embed.data.description).toContain(
+      `  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+    );
+  });
+
   it("recovers entries from a legacy flat-format message and re-renders them grouped", async () => {
     const existing = fakeMessage({
       footer: "lockout-week:2026-09-15",
