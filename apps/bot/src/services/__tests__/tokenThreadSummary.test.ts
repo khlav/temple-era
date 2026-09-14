@@ -14,6 +14,13 @@ vi.mock("../../config/logger.js", () => ({
 
 const BOT_USER_ID = "bot-user-id";
 
+// Tuesday 9/15/2026 7:00pm ET, 7:30pm ET; Wednesday 9/16/2026 6:30pm ET; Thursday 9/17/2026
+// 7:00pm ET — all within the lockout week keyed "2026-09-15".
+const TUE_7PM = 1789513200;
+const TUE_730PM = 1789515000;
+const WED_630PM = 1789597800;
+const THU_7PM = 1789686000;
+
 interface FakeMessage {
   id: string;
   author: { id: string };
@@ -67,7 +74,7 @@ function fakeClient(overrides: {
 describe("postWeeklyTokenEntries", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-09-10T12:00:00Z")); // within the 2026-09-08 lockout week
+    vi.setSystemTime(new Date("2026-09-15T12:00:00Z")); // within the 2026-09-15 lockout week
   });
 
   afterEach(() => {
@@ -81,35 +88,78 @@ describe("postWeeklyTokenEntries", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("sends a new message when no summary exists yet for this week", async () => {
+  it("groups entries by day, in chronological order, with short flat/half-hour times", async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const client = fakeClient({ existingMessages: [], send });
 
     await postWeeklyTokenEntries(client, [
-      { zone: "Molten Core", url: "https://softres.it/raid/mc?adminToken=abc", timestampSec: 1000 },
+      // Deliberately out of order, and mixing two different days.
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/wed1?adminToken=tokW",
+        timestampSec: WED_630PM,
+      },
+      {
+        zone: "Blackwing Lair",
+        url: "https://softres.it/raid/tue1?adminToken=tokA",
+        emoji: "<:bwl_nefarian:1>",
+        timestampSec: TUE_730PM,
+      },
+      {
+        zone: "Molten Core",
+        url: "https://softres.it/raid/tue2?adminToken=tokB",
+        emoji: "<:mc_ragnaros:2>",
+        timestampSec: TUE_7PM,
+      },
     ]);
 
     expect(send).toHaveBeenCalledTimes(1);
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      "<t:1000:f> Molten Core: https://softres.it/raid/mc?adminToken=abc",
+      [
+        "- **Tuesday 9/15**",
+        "  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=" +
+          TUE_7PM +
+          ")",
+        "  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | admintoken: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=" +
+          TUE_730PM +
+          ")",
+        "- **Wednesday 9/16**",
+        "  - ZG @ 6:30pm — [wed1 | admintoken: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=" +
+          WED_630PM +
+          ")",
+      ].join("\n"),
     );
-    expect(embed.data.footer.text).toBe("lockout-week:2026-09-08");
+    expect(embed.data.footer.text).toBe("lockout-week:2026-09-15");
   });
 
-  it("edits the existing message for this week instead of sending a new one", async () => {
+  it("falls back to a plain link label when the admin URL doesn't match the expected shape", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const client = fakeClient({ existingMessages: [], send });
+
+    await postWeeklyTokenEntries(client, [
+      { zone: "Onyxia", url: "https://softres.it/weird-shape", timestampSec: TUE_7PM },
+    ]);
+
+    const embed = send.mock.calls[0]![0].embeds[0];
+    expect(embed.data.description).toBe(
+      `- **Tuesday 9/15**\n  - Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
+    );
+  });
+
+  it("edits the existing message for this week, merging and re-grouping by day", async () => {
     const existing = fakeMessage({
-      footer: "lockout-week:2026-09-08",
-      description: "<t:1000:f> Molten Core: https://softres.it/raid/mc?adminToken=abc",
+      footer: "lockout-week:2026-09-15",
+      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
     });
     const send = vi.fn();
     const client = fakeClient({ existingMessages: [existing], send });
 
     await postWeeklyTokenEntries(client, [
       {
-        zone: "Blackwing Lair",
-        url: "https://softres.it/raid/bwl?adminToken=def",
-        timestampSec: 2000,
+        zone: "Naxxramas",
+        url: "https://softres.it/raid/thu1?adminToken=tokN",
+        timestampSec: THU_7PM,
       },
     ]);
 
@@ -117,39 +167,55 @@ describe("postWeeklyTokenEntries", () => {
     expect(existing.edit).toHaveBeenCalledTimes(1);
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      "<t:1000:f> Molten Core: https://softres.it/raid/mc?adminToken=abc\n" +
-        "<t:2000:f> Blackwing Lair: https://softres.it/raid/bwl?adminToken=def",
+      [
+        "- **Tuesday 9/15**",
+        `  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        "- **Thursday 9/17**",
+        `  - Naxx @ 7pm — [thu1 | admintoken: tokN](https://softres.it/raid/thu1?adminToken=tokN#ts=${THU_7PM})`,
+      ].join("\n"),
     );
   });
 
-  it("merges out-of-order entries back into chronological order", async () => {
+  it("recovers entries from a legacy flat-format message and re-renders them grouped", async () => {
     const existing = fakeMessage({
-      footer: "lockout-week:2026-09-08",
-      description: "<t:5000:f> Zul'Gurub: https://softres.it/raid/zg?adminToken=zzz",
+      footer: "lockout-week:2026-09-15",
+      description: `<t:${TUE_7PM}:f> <:mc_ragnaros:2> Molten Core: https://softres.it/raid/tue2?adminToken=tokB`,
     });
     const client = fakeClient({ existingMessages: [existing] });
 
     await postWeeklyTokenEntries(client, [
-      { zone: "Molten Core", url: "https://softres.it/raid/mc?adminToken=abc", timestampSec: 1000 },
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/wed1?adminToken=tokO",
+        timestampSec: WED_630PM,
+      },
     ]);
 
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      "<t:1000:f> Molten Core: https://softres.it/raid/mc?adminToken=abc\n" +
-        "<t:5000:f> Zul'Gurub: https://softres.it/raid/zg?adminToken=zzz",
+      [
+        "- **Tuesday 9/15**",
+        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        "- **Wednesday 9/16**",
+        `  - Ony @ 6:30pm — [wed1 | admintoken: tokO](https://softres.it/raid/wed1?adminToken=tokO#ts=${WED_630PM})`,
+      ].join("\n"),
     );
   });
 
   it("starts a new message rather than editing a prior week's summary", async () => {
     const staleWeek = fakeMessage({
-      footer: "lockout-week:2026-09-01",
-      description: "<t:1000:f> Molten Core: https://softres.it/raid/mc?adminToken=abc",
+      footer: "lockout-week:2026-09-08",
+      description: `- **Tuesday 9/8**\n  - Ony @ 7pm — [x | admintoken: y](https://softres.it/raid/x?adminToken=y#ts=1000)`,
     });
     const send = vi.fn().mockResolvedValue(undefined);
     const client = fakeClient({ existingMessages: [staleWeek], send });
 
     await postWeeklyTokenEntries(client, [
-      { zone: "Onyxia", url: "https://softres.it/raid/ony?adminToken=xyz", timestampSec: 3000 },
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/tue2?adminToken=tokO",
+        timestampSec: TUE_7PM,
+      },
     ]);
 
     expect(staleWeek.edit).not.toHaveBeenCalled();
@@ -159,37 +225,22 @@ describe("postWeeklyTokenEntries", () => {
   it("ignores messages from other authors even if they carry a matching-looking footer", async () => {
     const humanMessage = fakeMessage({
       author: { id: "some-human" },
-      footer: "lockout-week:2026-09-08",
-      description: "<t:1000:f> should not be reused",
+      footer: "lockout-week:2026-09-15",
+      description: "should not be reused",
     });
     const send = vi.fn().mockResolvedValue(undefined);
     const client = fakeClient({ existingMessages: [humanMessage], send });
 
     await postWeeklyTokenEntries(client, [
-      { zone: "Naxxramas", url: "https://softres.it/raid/naxx?adminToken=n", timestampSec: 4000 },
+      {
+        zone: "Naxxramas",
+        url: "https://softres.it/raid/thu1?adminToken=tokN",
+        timestampSec: THU_7PM,
+      },
     ]);
 
     expect(humanMessage.edit).not.toHaveBeenCalled();
     expect(send).toHaveBeenCalledTimes(1);
-  });
-
-  it("prefixes a bullet with the zone's emoji when one is given", async () => {
-    const send = vi.fn().mockResolvedValue(undefined);
-    const client = fakeClient({ existingMessages: [], send });
-
-    await postWeeklyTokenEntries(client, [
-      {
-        zone: "Molten Core",
-        url: "https://softres.it/raid/mc?adminToken=abc",
-        timestampSec: 1000,
-        emoji: "<:mc_ragnaros:123>",
-      },
-    ]);
-
-    const embed = send.mock.calls[0]![0].embeds[0];
-    expect(embed.data.description).toBe(
-      "<t:1000:f> <:mc_ragnaros:123> Molten Core: https://softres.it/raid/mc?adminToken=abc",
-    );
   });
 
   it("logs and does not throw when the thread is not sendable", async () => {
@@ -201,7 +252,7 @@ describe("postWeeklyTokenEntries", () => {
         {
           zone: "Molten Core",
           url: "https://softres.it/raid/mc?adminToken=abc",
-          timestampSec: 1000,
+          timestampSec: TUE_7PM,
         },
       ]),
     ).resolves.toBeUndefined();
