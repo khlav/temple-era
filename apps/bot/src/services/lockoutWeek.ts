@@ -48,6 +48,13 @@ export function getLockoutWeekKey(date: Date): string {
   return tuesday.toISOString().slice(0, 10);
 }
 
+/** The ET calendar day a given instant falls in, as "YYYY-MM-DD" — used by
+ * tokenThreadSummary.ts to group entries by raid night regardless of lockout-week boundaries. */
+export function getEasternDayKey(date: Date): string {
+  const { year, month, day } = getEasternDateParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /** "Sep 8" from a `getLockoutWeekKey` result, for the embed title. */
 export function formatLockoutWeekLabel(weekKey: string): string {
   const [year, month, day] = weekKey.split("-").map(Number);

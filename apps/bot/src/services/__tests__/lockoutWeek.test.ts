@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLockoutWeekLabel, getLockoutWeekKey } from "../lockoutWeek.js";
+import { formatLockoutWeekLabel, getEasternDayKey, getLockoutWeekKey } from "../lockoutWeek.js";
 
 describe("getLockoutWeekKey", () => {
   it("returns the same Tuesday for every day within that lockout week", () => {
@@ -40,6 +40,17 @@ describe("getLockoutWeekKey", () => {
     expect(getLockoutWeekKey(new Date("2025-12-30T12:00:00Z"))).toBe("2025-12-30");
     expect(getLockoutWeekKey(new Date("2026-01-04T12:00:00Z"))).toBe("2025-12-30");
     expect(getLockoutWeekKey(new Date("2026-01-06T05:00:00Z"))).toBe("2026-01-06");
+  });
+});
+
+describe("getEasternDayKey", () => {
+  it("returns the same day key for two instants on the same ET calendar day", () => {
+    expect(getEasternDayKey(new Date("2026-09-15T23:00:00Z"))).toBe("2026-09-15"); // 7pm ET
+    expect(getEasternDayKey(new Date("2026-09-16T03:59:00Z"))).toBe("2026-09-15"); // 11:59pm ET
+  });
+
+  it("rolls over at ET midnight, not UTC midnight", () => {
+    expect(getEasternDayKey(new Date("2026-09-16T04:00:00Z"))).toBe("2026-09-16"); // 12:00am ET
   });
 });
 
