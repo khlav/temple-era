@@ -22,13 +22,38 @@ const deduplicator = new MessageDeduplicator();
  *    heuristic.
  */
 export async function handleRaidHelperSignup(message: Message) {
+  if (!config.discordRaidSrChannelIds.includes(message.channelId)) return;
+
+  // Logged at info (not debug) so it survives production's default log level with no config
+  // change — this is the ground truth for "is the gateway connection actually delivering
+  // MessageCreate events for this channel at all," independent of who posted or why a later
+  // gate might skip it.
+  logger.info(
+    {
+      eventId: message.id,
+      channelId: message.channelId,
+      authorId: message.author.id,
+      content: message.content,
+      embedTitle: message.embeds[0]?.title,
+      embedDescription: message.embeds[0]?.description,
+    },
+    "Saw a message in a monitored SR channel",
+  );
+
   // Gate on IS the Raid Helper bot — the inverse of every other handler's "skip bot authors" guard.
   if (message.author.id !== config.discordRaidHelperBotId) return;
-  if (!config.discordRaidSrChannelIds.includes(message.channelId)) return;
-  if (!hasBenchButton(message)) return; // not a signup post (e.g. a roster confirmation)
+
+  if (!hasBenchButton(message)) {
+    // not a signup post (e.g. a roster confirmation, which never carries a Bench button)
+    logger.info(
+      { eventId: message.id, channelId: message.channelId },
+      "Raid Helper message has no Bench button, skipping",
+    );
+    return;
+  }
 
   if (deduplicator.has(message.id)) {
-    logger.debug(`Raid Helper signup ${message.id} already processed, skipping`);
+    logger.info({ eventId: message.id }, "Raid Helper signup already processed, skipping");
     return;
   }
   deduplicator.add(message.id);
