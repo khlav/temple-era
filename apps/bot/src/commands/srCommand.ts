@@ -3,7 +3,8 @@ import { CreateSoftresResponseSchema } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
-import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { postWeeklyTokenEntries } from "../services/tokenThreadSummary.js";
 import { getZoneEmoji } from "../services/zoneEmoji.js";
 
 // Discord shows `name`; the bot/web exchange `value`, matching RAID_ZONE_CONFIG's instance
@@ -116,20 +117,14 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
     acknowledged = true;
     await interaction.followUp({ embeds: [publicEmbed] });
 
-    const thread = await interaction.client.channels.fetch(config.discordSoftresTokenThreadId);
-    if (thread?.isSendable()) {
-      const adminEmbed = buildAdminSoftresEmbed({
-        title,
-        dateLabel: result.createdDate,
-        links: [{ zone: result.zone, url: result.adminUrl, emoji: getZoneEmoji(result.zone) }],
-      });
-      await thread.send({ embeds: [adminEmbed] });
-    } else {
-      logger.error(
-        { threadId: config.discordSoftresTokenThreadId },
-        "SoftRes Token thread channel is not fetchable or not sendable",
-      );
-    }
+    await postWeeklyTokenEntries(interaction.client, [
+      {
+        zone: result.zone,
+        url: result.adminUrl,
+        emoji: getZoneEmoji(result.zone),
+        timestampSec: result.createdTimestamp,
+      },
+    ]);
   } catch (error) {
     logger.error(
       { error: error instanceof Error ? error.message : String(error), zone },

@@ -18,6 +18,10 @@ export const EnsureSoftresCreatedLinkSchema = z.object({
    * derived from the Raid Helper event's startTime, matching the day/date raid leads
    * already include in their own hand-posted Token thread messages. */
   eventDate: z.string(),
+  /** The same raid night, as unix seconds (Raid Helper's `startTime`) — a machine-sortable
+   * sibling to `eventDate`, used to keep the bot's weekly Token-thread summary in
+   * chronological order regardless of the order raids are created in. */
+  eventTimestamp: z.number(),
 });
 
 export const EnsureSoftresSuccessSchema = z.object({

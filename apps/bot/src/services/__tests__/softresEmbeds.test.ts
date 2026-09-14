@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../softresEmbeds.js";
+import { ADMIN_EMBED_COLOR, buildPublicSoftresEmbed } from "../softresEmbeds.js";
 
 describe("softresEmbeds", () => {
   const links = [
@@ -50,19 +50,13 @@ describe("softresEmbeds", () => {
     expect(description).not.toMatch(/undefined Molten Core/);
   });
 
-  it("builds an admin embed with a distinct color from the public embed", () => {
+  it("exports a distinct admin color for tokenThreadSummary.ts to reuse", () => {
     const publicEmbed = buildPublicSoftresEmbed({
       title: "SRs : Molten Core",
       dateLabel: "Sunday 09/13/2026",
       links: [links[1]!],
     });
-    const adminEmbed = buildAdminSoftresEmbed({
-      title: "SRs : Molten Core",
-      dateLabel: "Sunday 09/13/2026",
-      links: [{ zone: "Molten Core", url: "https://softres.it/raid/mc1?adminToken=tok" }],
-    });
 
-    expect(adminEmbed.toJSON().color).not.toBe(publicEmbed.toJSON().color);
-    expect(adminEmbed.toJSON().description).toContain("adminToken=tok");
+    expect(ADMIN_EMBED_COLOR).not.toBe(publicEmbed.toJSON().color);
   });
 });

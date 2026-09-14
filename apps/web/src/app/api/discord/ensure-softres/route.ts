@@ -95,6 +95,7 @@ export async function POST(request: Request) {
       adminUrl: string;
       publicUrl: string;
       eventDate: string;
+      eventTimestamp: number;
     }> = [];
     for (const zone of zones) {
       const instanceId = SOFTRES_CREATE_INSTANCE_IDS[zone];
@@ -112,6 +113,7 @@ export async function POST(request: Request) {
           adminUrl: created.adminUrl,
           publicUrl: created.publicUrl,
           eventDate,
+          eventTimestamp: event.startTime,
         });
       } catch (error) {
         // A failure on one zone of a doubleheader must not discard the admin link(s) already

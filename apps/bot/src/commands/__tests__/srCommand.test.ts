@@ -4,8 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleSrCommand } from "../srCommand.js";
 import { logger } from "../../config/logger.js";
 
-const { TOKEN_THREAD_ID, USER_ID } = vi.hoisted(() => ({
-  TOKEN_THREAD_ID: "333333333333333333",
+const { USER_ID } = vi.hoisted(() => ({
   USER_ID: "999999999999999999",
 }));
 
@@ -13,7 +12,6 @@ vi.mock("../../config/env.js", () => ({
   config: {
     apiBaseUrl: "https://example.test",
     templeWebApiToken: "test-token",
-    discordSoftresTokenThreadId: TOKEN_THREAD_ID,
   },
 }));
 
@@ -31,6 +29,11 @@ vi.mock("../../services/zoneEmoji.js", () => ({
   getZoneEmoji: (...args: unknown[]) => mockGetZoneEmoji(...args),
 }));
 
+const mockPostWeeklyTokenEntries = vi.fn().mockResolvedValue(undefined);
+vi.mock("../../services/tokenThreadSummary.js", () => ({
+  postWeeklyTokenEntries: (...args: unknown[]) => mockPostWeeklyTokenEntries(...args),
+}));
+
 function jsonResponse(body: unknown) {
   return { json: () => Promise.resolve(body) } as Response;
 }
@@ -43,7 +46,6 @@ function embedTitleAndDescription(call: unknown) {
 
 function fakeInteraction(overrides: {
   zone?: string;
-  threadFetch?: ReturnType<typeof vi.fn>;
   deferReply?: ReturnType<typeof vi.fn>;
   editReply?: ReturnType<typeof vi.fn>;
   deleteReply?: ReturnType<typeof vi.fn>;
@@ -55,9 +57,7 @@ function fakeInteraction(overrides: {
     editReply: overrides.editReply ?? vi.fn().mockResolvedValue(undefined),
     deleteReply: overrides.deleteReply ?? vi.fn().mockResolvedValue(undefined),
     followUp: vi.fn().mockResolvedValue(undefined),
-    client: {
-      channels: { fetch: overrides.threadFetch ?? vi.fn() },
-    },
+    client: {},
   };
   return interaction as unknown as ChatInputCommandInteraction;
 }
@@ -69,6 +69,7 @@ describe("handleSrCommand", () => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mockGetZoneEmoji.mockReturnValue(undefined);
+    mockPostWeeklyTokenEntries.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -143,11 +144,10 @@ describe("handleSrCommand", () => {
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
         publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
+        createdTimestamp: 1757784000,
       }),
     );
-    const send = vi.fn().mockResolvedValue(undefined);
-    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
-    const interaction = fakeInteraction({ zone: "mc", threadFetch });
+    const interaction = fakeInteraction({ zone: "mc" });
 
     await handleSrCommand(interaction);
 
@@ -170,13 +170,14 @@ describe("handleSrCommand", () => {
       "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123",
     );
 
-    expect(threadFetch).toHaveBeenCalledWith(TOKEN_THREAD_ID);
-    expect(send).toHaveBeenCalledTimes(1);
-    const adminEmbed = embedTitleAndDescription(send.mock.calls[0]![0]);
-    expect(adminEmbed.title).toBe("SRs : Molten Core");
-    expect(adminEmbed.description).toBe(
-      "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123?adminToken=tok",
-    );
+    expect(mockPostWeeklyTokenEntries).toHaveBeenCalledWith(interaction.client, [
+      {
+        zone: "Molten Core",
+        url: "https://softres.it/raid/abc123?adminToken=tok",
+        emoji: undefined,
+        timestampSec: 1757784000,
+      },
+    ]);
   });
 
   it("prefixes both embeds' zone line with the zone's emoji when one is available", async () => {
@@ -194,11 +195,10 @@ describe("handleSrCommand", () => {
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
         publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
+        createdTimestamp: 1757784000,
       }),
     );
-    const send = vi.fn().mockResolvedValue(undefined);
-    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
-    const interaction = fakeInteraction({ zone: "mc", threadFetch });
+    const interaction = fakeInteraction({ zone: "mc" });
 
     await handleSrCommand(interaction);
 
@@ -209,10 +209,14 @@ describe("handleSrCommand", () => {
     expect(publicEmbed.description).toBe(
       "Sunday 09/13/2026\n\n<:mc:123456789012345678> Molten Core: https://softres.it/raid/abc123",
     );
-    const adminEmbed = embedTitleAndDescription(send.mock.calls[0]![0]);
-    expect(adminEmbed.description).toBe(
-      "Sunday 09/13/2026\n\n<:mc:123456789012345678> Molten Core: https://softres.it/raid/abc123?adminToken=tok",
-    );
+    expect(mockPostWeeklyTokenEntries).toHaveBeenCalledWith(interaction.client, [
+      {
+        zone: "Molten Core",
+        url: "https://softres.it/raid/abc123?adminToken=tok",
+        emoji: "<:mc:123456789012345678>",
+        timestampSec: 1757784000,
+      },
+    ]);
   });
 
   it("edits the deferred reply and does not post to the thread when create-softres reports failure", async () => {
@@ -223,8 +227,7 @@ describe("handleSrCommand", () => {
       canAccessSoftres: true,
     });
     fetchMock.mockResolvedValue(jsonResponse({ success: false, error: "Unknown zone" }));
-    const threadFetch = vi.fn();
-    const interaction = fakeInteraction({ threadFetch });
+    const interaction = fakeInteraction({});
 
     await handleSrCommand(interaction);
 
@@ -233,7 +236,7 @@ describe("handleSrCommand", () => {
       content: "Something went wrong creating the SR.",
     });
     expect(interaction.followUp).not.toHaveBeenCalled();
-    expect(threadFetch).not.toHaveBeenCalled();
+    expect(mockPostWeeklyTokenEntries).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ zone: "mc", error: "Unknown zone" }),
       "create-softres reported failure",
@@ -282,7 +285,7 @@ describe("handleSrCommand", () => {
     );
   });
 
-  it("logs an error but leaves the public follow-up standing when the Token thread is not sendable", async () => {
+  it("does not attempt another reply when merging into the Token thread summary throws after the public follow-up", async () => {
     mockCheckUserPermissions.mockResolvedValue({
       success: true,
       hasAccount: true,
@@ -296,38 +299,11 @@ describe("handleSrCommand", () => {
         adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
         publicUrl: "https://softres.it/raid/abc123",
         createdDate: "Sunday 09/13/2026",
+        createdTimestamp: 1757784000,
       }),
     );
-    const threadFetch = vi.fn().mockResolvedValue(null);
-    const interaction = fakeInteraction({ threadFetch });
-
-    await handleSrCommand(interaction);
-
-    expect(interaction.followUp).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ threadId: TOKEN_THREAD_ID }),
-      "SoftRes Token thread channel is not fetchable or not sendable",
-    );
-  });
-
-  it("does not attempt another reply when posting to the Token thread throws after the public follow-up", async () => {
-    mockCheckUserPermissions.mockResolvedValue({
-      success: true,
-      hasAccount: true,
-      canManageRaidLogs: false,
-      canAccessSoftres: true,
-    });
-    fetchMock.mockResolvedValue(
-      jsonResponse({
-        success: true,
-        zone: "Molten Core",
-        adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
-        publicUrl: "https://softres.it/raid/abc123",
-        createdDate: "Sunday 09/13/2026",
-      }),
-    );
-    const threadFetch = vi.fn().mockRejectedValue(new Error("thread archived"));
-    const interaction = fakeInteraction({ threadFetch });
+    mockPostWeeklyTokenEntries.mockRejectedValue(new Error("thread archived"));
+    const interaction = fakeInteraction({});
 
     await expect(handleSrCommand(interaction)).resolves.toBeUndefined();
 

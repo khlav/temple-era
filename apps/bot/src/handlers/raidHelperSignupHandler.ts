@@ -3,7 +3,8 @@ import { EnsureSoftresResponseSchema } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { hasBenchButton } from "../services/hasBenchButton.js";
-import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { postWeeklyTokenEntries } from "../services/tokenThreadSummary.js";
 import { getZoneEmoji } from "../services/zoneEmoji.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
@@ -12,8 +13,8 @@ const deduplicator = new MessageDeduplicator();
 
 /**
  * Detects a qualifying Raid-Helper signup post and calls Phase 1's `ensure-softres` endpoint,
- * then posts an embed of the public (no-token) link(s) in the signup channel and a matching
- * admin-link embed to the configured SoftRes Token thread.
+ * then posts an embed of the public (no-token) link(s) in the signup channel and merges the
+ * matching admin link(s) into that lockout week's summary message in the SoftRes Token thread.
  *
  * Two deliberate inversions from every other handler in this codebase:
  *  - it acts BECAUSE the author is a bot (Raid-Helper), not despite it — gating on
@@ -122,29 +123,18 @@ export async function handleRaidHelperSignup(message: Message) {
       logger.error({ channelId: message.channelId }, "Raid signup channel is not sendable");
     }
 
-    const thread = await message.client.channels.fetch(config.discordSoftresTokenThreadId);
-    if (!thread || !thread.isSendable()) {
-      logger.error(
-        { threadId: config.discordSoftresTokenThreadId },
-        "SoftRes Token thread channel is not fetchable or not sendable",
-      );
-      return;
-    }
-
-    const adminEmbed = buildAdminSoftresEmbed({
-      title,
-      titleUrl,
-      dateLabel,
-      links: result.links.map((link) => ({
+    await postWeeklyTokenEntries(
+      message.client,
+      result.links.map((link) => ({
         zone: link.zone,
         url: link.adminUrl,
         emoji: getZoneEmoji(link.zone),
+        timestampSec: link.eventTimestamp,
       })),
-    });
-    await thread.send({ embeds: [adminEmbed] });
+    );
     logger.info(
       { eventId: message.id, zones: result.links.map((link) => link.zone) },
-      "Posted SoftRes admin link(s) to Token thread",
+      "Merged SoftRes admin link(s) into the weekly Token thread summary",
     );
   } catch (error) {
     logger.error(

@@ -16,6 +16,10 @@ export const CreateSoftresSuccessSchema = z.object({
   /** Public (no-token) link — safe to post in a raid channel for members to reserve against. */
   publicUrl: z.string(),
   createdDate: z.string(),
+  /** Unix seconds this SR was created at — `/sr` has no raid-night concept of its own, so
+   * "now" is the machine-sortable timestamp used to keep the bot's weekly Token-thread
+   * summary in chronological order alongside `ensure-softres`'s `eventTimestamp` entries. */
+  createdTimestamp: z.number(),
 });
 
 export const CreateSoftresFailureSchema = z.object({
