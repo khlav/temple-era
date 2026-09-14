@@ -48,7 +48,7 @@ export function createBot(): Client {
     }),
   });
 
-  client.on(Events.ClientReady, () => {
+  client.on(Events.ClientReady, async () => {
     logger.info(`Bot logged in as ${client.user?.tag}`);
     logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
     logger.info(
@@ -57,7 +57,10 @@ export function createBot(): Client {
     );
 
     void registerCommands(client);
-    void ensureZoneEmoji(client);
+    // Awaited, not fire-and-forget: getZoneEmoji is read synchronously by /sr and the signup
+    // handler, so a signup that lands before this resolves would otherwise render without its
+    // zone icon for that one instance.
+    await ensureZoneEmoji(client);
 
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {
