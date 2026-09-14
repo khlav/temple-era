@@ -105,6 +105,7 @@ describe("POST /api/discord/ensure-softres", () => {
           adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
           publicUrl: "https://softres.it/raid/abc123",
           eventDate: TEST_EVENT_DATE,
+          eventTimestamp: TEST_START_TIME,
         },
       ],
       eventTitle: "Thursday Onyxia",
@@ -150,6 +151,7 @@ describe("POST /api/discord/ensure-softres", () => {
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
         publicUrl: "https://softres.it/raid/bwl1",
         eventDate: TEST_EVENT_DATE,
+        eventTimestamp: TEST_START_TIME,
       },
       {
         zone: "Molten Core",
@@ -157,6 +159,7 @@ describe("POST /api/discord/ensure-softres", () => {
         adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
         publicUrl: "https://softres.it/raid/mc1",
         eventDate: TEST_EVENT_DATE,
+        eventTimestamp: TEST_START_TIME,
       },
     ]);
   });
@@ -244,6 +247,7 @@ describe("POST /api/discord/ensure-softres", () => {
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
         publicUrl: "https://softres.it/raid/bwl1",
         eventDate: TEST_EVENT_DATE,
+        eventTimestamp: TEST_START_TIME,
       },
     ]);
   });

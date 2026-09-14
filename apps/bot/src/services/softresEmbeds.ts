@@ -4,7 +4,9 @@ import { EmbedBuilder } from "discord.js";
 // the admin link (carries the token, Token-thread only) so the two are visually distinct even
 // without reading the content.
 const PUBLIC_EMBED_COLOR = 0x57f287;
-const ADMIN_EMBED_COLOR = 0xed4245;
+// Exported: reused by tokenThreadSummary.ts so the weekly admin-token summary stays visually
+// consistent (red) with the rest of this module's SoftRes embeds.
+export const ADMIN_EMBED_COLOR = 0xed4245;
 
 export interface SoftresEmbedLink {
   zone: string;
@@ -46,9 +48,4 @@ function buildEmbed(options: SoftresEmbedOptions, color: number): EmbedBuilder {
 /** Public embed: safe to post in a raid channel. Callers must pass `publicUrl`-derived links. */
 export function buildPublicSoftresEmbed(options: SoftresEmbedOptions): EmbedBuilder {
   return buildEmbed(options, PUBLIC_EMBED_COLOR);
-}
-
-/** Admin embed: only ever posted to the SoftRes Token thread. Callers must pass `adminUrl`-derived links. */
-export function buildAdminSoftresEmbed(options: SoftresEmbedOptions): EmbedBuilder {
-  return buildEmbed(options, ADMIN_EMBED_COLOR);
 }

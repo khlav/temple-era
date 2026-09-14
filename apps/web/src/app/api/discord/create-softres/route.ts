@@ -79,6 +79,7 @@ export async function POST(request: Request) {
       adminUrl: created.adminUrl,
       publicUrl: created.publicUrl,
       createdDate,
+      createdTimestamp: Math.floor(Date.now() / 1000),
     };
     return await compressResponse(result, request);
   } catch (error) {

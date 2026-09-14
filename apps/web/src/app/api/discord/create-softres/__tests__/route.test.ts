@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
 
-const TEST_CREATED_DATE = formatEasternDateTime(new Date(), "EEE, MMM d 'at' h:mm a 'Server Time'");
+// Fixed "now" so createdDate/createdTimestamp assertions are deterministic.
+const TEST_NOW = new Date("2026-09-13T23:00:00Z");
+const TEST_CREATED_DATE = formatEasternDateTime(TEST_NOW, "EEE, MMM d 'at' h:mm a 'Server Time'");
+const TEST_CREATED_TIMESTAMP = Math.floor(TEST_NOW.getTime() / 1000);
 
 const mockCreateSoftResRaid = vi.fn();
 vi.mock("~/server/api/softres-client", () => ({
@@ -19,7 +22,13 @@ function makeRequest(body: unknown, authorization = "Bearer test-token") {
 }
 
 describe("POST /api/discord/create-softres", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(TEST_NOW);
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -68,6 +77,7 @@ describe("POST /api/discord/create-softres", () => {
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
       publicUrl: "https://softres.it/raid/abc123",
       createdDate: TEST_CREATED_DATE,
+      createdTimestamp: TEST_CREATED_TIMESTAMP,
     });
   });
 
