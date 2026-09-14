@@ -4,6 +4,7 @@ import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { getZoneEmoji } from "../services/zoneEmoji.js";
 
 // Discord shows `name`; the bot/web exchange `value`, matching RAID_ZONE_CONFIG's instance
 // slugs (apps/web/src/lib/raid-zones.ts) so no new identifier space is invented here.
@@ -106,7 +107,7 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
     const publicEmbed = buildPublicSoftresEmbed({
       title,
       dateLabel: result.createdDate,
-      links: [{ zone: result.zone, url: result.publicUrl }],
+      links: [{ zone: result.zone, url: result.publicUrl, emoji: getZoneEmoji(result.zone) }],
     });
     await interaction.deleteReply();
     // Set before the follow-up, not after: once the ephemeral placeholder is deleted, a
@@ -120,7 +121,7 @@ export async function handleSrCommand(interaction: ChatInputCommandInteraction):
       const adminEmbed = buildAdminSoftresEmbed({
         title,
         dateLabel: result.createdDate,
-        links: [{ zone: result.zone, url: result.adminUrl }],
+        links: [{ zone: result.zone, url: result.adminUrl, emoji: getZoneEmoji(result.zone) }],
       });
       await thread.send({ embeds: [adminEmbed] });
     } else {

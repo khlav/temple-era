@@ -9,6 +9,7 @@ import { handleRaidHelperSignup } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
 import { registerCommands } from "./commands/registerCommands.js";
 import { handleSrCommand } from "./commands/srCommand.js";
+import { ensureZoneEmoji } from "./services/zoneEmoji.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -56,6 +57,7 @@ export function createBot(): Client {
     );
 
     void registerCommands(client);
+    void ensureZoneEmoji(client);
 
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {

@@ -26,6 +26,11 @@ vi.mock("../../services/permissionChecker.js", () => ({
   checkUserPermissions: (...args: unknown[]) => mockCheckUserPermissions(...args),
 }));
 
+const mockGetZoneEmoji = vi.fn().mockReturnValue(undefined);
+vi.mock("../../services/zoneEmoji.js", () => ({
+  getZoneEmoji: (...args: unknown[]) => mockGetZoneEmoji(...args),
+}));
+
 function jsonResponse(body: unknown) {
   return { json: () => Promise.resolve(body) } as Response;
 }
@@ -63,6 +68,7 @@ describe("handleSrCommand", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    mockGetZoneEmoji.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -170,6 +176,42 @@ describe("handleSrCommand", () => {
     expect(adminEmbed.title).toBe("SRs : Molten Core");
     expect(adminEmbed.description).toBe(
       "Sunday 09/13/2026\n\nMolten Core: https://softres.it/raid/abc123?adminToken=tok",
+    );
+  });
+
+  it("prefixes both embeds' zone line with the zone's emoji when one is available", async () => {
+    mockCheckUserPermissions.mockResolvedValue({
+      success: true,
+      hasAccount: true,
+      canManageRaidLogs: false,
+      canAccessSoftres: true,
+    });
+    mockGetZoneEmoji.mockReturnValue("<:mc:123456789012345678>");
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        zone: "Molten Core",
+        adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
+        publicUrl: "https://softres.it/raid/abc123",
+        createdDate: "Sunday 09/13/2026",
+      }),
+    );
+    const send = vi.fn().mockResolvedValue(undefined);
+    const threadFetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
+    const interaction = fakeInteraction({ zone: "mc", threadFetch });
+
+    await handleSrCommand(interaction);
+
+    expect(mockGetZoneEmoji).toHaveBeenCalledWith("Molten Core");
+    const publicEmbed = embedTitleAndDescription(
+      (interaction.followUp as ReturnType<typeof vi.fn>).mock.calls[0]![0],
+    );
+    expect(publicEmbed.description).toBe(
+      "Sunday 09/13/2026\n\n<:mc:123456789012345678> Molten Core: https://softres.it/raid/abc123",
+    );
+    const adminEmbed = embedTitleAndDescription(send.mock.calls[0]![0]);
+    expect(adminEmbed.description).toBe(
+      "Sunday 09/13/2026\n\n<:mc:123456789012345678> Molten Core: https://softres.it/raid/abc123?adminToken=tok",
     );
   });
 

@@ -9,6 +9,9 @@ const ADMIN_EMBED_COLOR = 0xed4245;
 export interface SoftresEmbedLink {
   zone: string;
   url: string;
+  /** `<:name:id>` from zoneEmoji.ts's getZoneEmoji, or undefined if that zone has no uploaded
+   *  emoji yet — the line renders as plain text in that case rather than blocking on it. */
+  emoji?: string;
 }
 
 export interface SoftresEmbedOptions {
@@ -27,9 +30,14 @@ function buildEmbed(options: SoftresEmbedOptions, color: number): EmbedBuilder {
     .setTitle(options.title)
     .setColor(color)
     .setDescription(
-      [options.dateLabel, "", ...options.links.map((link) => `${link.zone}: ${link.url}`)].join(
-        "\n",
-      ),
+      [
+        options.dateLabel,
+        "",
+        ...options.links.map((link) => {
+          const prefix = link.emoji ? `${link.emoji} ` : "";
+          return `${prefix}${link.zone}: ${link.url}`;
+        }),
+      ].join("\n"),
     );
   if (options.titleUrl) embed.setURL(options.titleUrl);
   return embed;

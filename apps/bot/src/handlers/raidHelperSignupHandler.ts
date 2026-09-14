@@ -4,6 +4,7 @@ import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { hasBenchButton } from "../services/hasBenchButton.js";
 import { buildAdminSoftresEmbed, buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
+import { getZoneEmoji } from "../services/zoneEmoji.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
 // Track processed messages to prevent duplicate processing
@@ -110,7 +111,11 @@ export async function handleRaidHelperSignup(message: Message) {
         title,
         titleUrl,
         dateLabel,
-        links: result.links.map((link) => ({ zone: link.zone, url: link.publicUrl })),
+        links: result.links.map((link) => ({
+          zone: link.zone,
+          url: link.publicUrl,
+          emoji: getZoneEmoji(link.zone),
+        })),
       });
       await message.channel.send({ embeds: [publicEmbed] });
     } else {
@@ -130,7 +135,11 @@ export async function handleRaidHelperSignup(message: Message) {
       title,
       titleUrl,
       dateLabel,
-      links: result.links.map((link) => ({ zone: link.zone, url: link.adminUrl })),
+      links: result.links.map((link) => ({
+        zone: link.zone,
+        url: link.adminUrl,
+        emoji: getZoneEmoji(link.zone),
+      })),
     });
     await thread.send({ embeds: [adminEmbed] });
     logger.info(
