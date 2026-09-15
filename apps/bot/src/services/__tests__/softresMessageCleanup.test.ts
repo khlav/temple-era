@@ -41,6 +41,18 @@ function fakeMessage(overrides: Partial<FakeMessage> & { title?: string }): Fake
   };
 }
 
+// Mirrors real Discord pagination: `before` walks backwards (older) through the channel's
+// history in pages of at most `limit`, newest-first — needed to exercise the cleanup job's own
+// paging loop rather than always handing it everything in one call.
+function fakeMessagesFetch(all: FakeMessage[]) {
+  const sorted = [...all].sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+  return vi.fn().mockImplementation(({ limit, before }: { limit: number; before?: string }) => {
+    const startIndex = before ? sorted.findIndex((m) => m.id === before) + 1 : 0;
+    const page = sorted.slice(startIndex, startIndex + limit);
+    return Promise.resolve(new Map(page.map((m) => [m.id, m])));
+  });
+}
+
 function fakeClient(channelMessages: Record<string, FakeMessage[] | null>): Client {
   return {
     user: { id: BOT_USER_ID },
@@ -54,7 +66,7 @@ function fakeClient(channelMessages: Record<string, FakeMessage[] | null>): Clie
         }
         return Promise.resolve({
           isTextBased: () => true,
-          messages: { fetch: vi.fn().mockResolvedValue(new Map(messages.map((m) => [m.id, m]))) },
+          messages: { fetch: fakeMessagesFetch(messages) },
         });
       }),
     },
@@ -62,9 +74,15 @@ function fakeClient(channelMessages: Record<string, FakeMessage[] | null>): Clie
 }
 
 describe("cleanupOldSoftresMessages", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
+    const { config } = await import("../../config/env.js");
+    Object.assign(config, {
+      discordRaidSrChannelIds: [CHANNEL_A],
+      threadCleanupEnabled: true,
+      threadCleanupDays: 3,
+    });
   });
 
   afterEach(() => {
@@ -153,16 +171,46 @@ describe("cleanupOldSoftresMessages", () => {
     expect(srMessage.delete).not.toHaveBeenCalled();
   });
 
+  it("pages past a busy channel's first 100 messages to find an old SR post behind them", async () => {
+    // Reproduces a chatty channel: 100 very recent (within-cutoff) messages sit in front of an
+    // old, past-cutoff SR post. A single unpaginated fetch({ limit: 100 }) would never see it.
+    const cutoff = NOW.getTime() - 3 * DAY_MS;
+    const newestSr = fakeMessage({
+      id: "newest-sr",
+      title: "SRs : AQ40",
+      createdTimestamp: NOW.getTime(),
+    });
+    const chatter = Array.from({ length: 100 }, (_, i) =>
+      fakeMessage({
+        id: `chatter-${i}`,
+        title: undefined,
+        // Spread across the last ~50 hours — comfortably inside the 72h cutoff.
+        createdTimestamp: NOW.getTime() - (i + 1) * 30 * 60 * 1000,
+      }),
+    );
+    const oldDel = vi.fn().mockResolvedValue(undefined);
+    const oldSr = fakeMessage({
+      id: "old-sr",
+      title: "SRs : BWL/MC",
+      createdTimestamp: cutoff - 10 * DAY_MS,
+      delete: oldDel,
+    });
+    const client = fakeClient({ [CHANNEL_A]: [newestSr, ...chatter, oldSr] });
+
+    await cleanupOldSoftresMessages(client);
+
+    expect(oldDel).toHaveBeenCalledTimes(1);
+    expect(newestSr.delete).not.toHaveBeenCalled();
+  });
+
   it("does nothing when cleanup is disabled", async () => {
-    const envModule = await import("../../config/env.js");
-    (envModule.config as { threadCleanupEnabled: boolean }).threadCleanupEnabled = false;
+    const { config } = await import("../../config/env.js");
+    (config as { threadCleanupEnabled: boolean }).threadCleanupEnabled = false;
 
     const client = fakeClient({ [CHANNEL_A]: [] });
     await cleanupOldSoftresMessages(client);
 
     expect(client.channels.fetch).not.toHaveBeenCalled();
-
-    (envModule.config as { threadCleanupEnabled: boolean }).threadCleanupEnabled = true;
   });
 
   it("skips a channel that isn't text-based, without throwing", async () => {
@@ -171,8 +219,8 @@ describe("cleanupOldSoftresMessages", () => {
   });
 
   it("continues to other channels when one channel doesn't resolve", async () => {
-    const envModule = await import("../../config/env.js");
-    (envModule.config as { discordRaidSrChannelIds: string[] }).discordRaidSrChannelIds = [
+    const { config } = await import("../../config/env.js");
+    (config as { discordRaidSrChannelIds: string[] }).discordRaidSrChannelIds = [
       CHANNEL_A,
       CHANNEL_B,
     ];
@@ -192,10 +240,6 @@ describe("cleanupOldSoftresMessages", () => {
     await cleanupOldSoftresMessages(client);
 
     expect(oldDel).toHaveBeenCalledTimes(1);
-
-    (envModule.config as { discordRaidSrChannelIds: string[] }).discordRaidSrChannelIds = [
-      CHANNEL_A,
-    ];
   });
 
   it("logs and continues when an individual message delete fails", async () => {
