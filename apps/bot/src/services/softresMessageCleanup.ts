@@ -57,9 +57,15 @@ async function findSoftresMessages(
  * correct however raid cadence shifts (a skipped week, two posts close together) without needing
  * to know the raid schedule itself.
  *
- * "Keep only the newest" is safe because every configured SR channel is a single weekday's raid
- * channel (e.g. "mon-aq40", "wed-zg") — one raid, once a week, so it never holds two concurrently
- * open signups the way a single shared signups channel for the whole guild would.
+ * "Keep only the newest" relies on there never being two live (not-yet-occurred) SR posts in one
+ * channel at once — otherwise an early post for a still-upcoming raid could rank behind a later
+ * one and get deleted while still relevant. Every configured SR channel is a single weekday's
+ * raid channel (e.g. "mon-aq40", "wed-zg"), so that only requires next week's post to never
+ * appear before this week's raid has happened. Checked against real posting history across
+ * several channels: next week's signup consistently appears shortly AFTER the current week's
+ * raid, never before it (e.g. "tues-naxx" 9/8's post superseded by 9/15's the very next day,
+ * once 9/8 had already happened) — so this holds today. It would need revisiting if raid
+ * officers start opening signups more than `threadCleanupDays` ahead of the raid itself.
  */
 export async function cleanupOldSoftresMessages(client: Client): Promise<void> {
   if (!config.threadCleanupEnabled) return;
