@@ -303,9 +303,10 @@ describe("postWeeklyTokenEntries", () => {
   });
 
   it("finds and merges into the raid's own week's existing summary even when 'now' is a different week", async () => {
-    // "Now" is 2026-09-20 (the following lockout week) — e.g. a late manual /sr for a raid
-    // earlier in the 2026-09-15 week, after the new week has already started.
-    vi.setSystemTime(new Date("2026-09-20T12:00:00Z"));
+    // "Now" is 2026-09-22 — the following lockout week (2026-09-15's week runs through
+    // Monday 9/21) — e.g. a late manual /sr for a raid earlier in the 2026-09-15 week, after
+    // the new week has already started.
+    vi.setSystemTime(new Date("2026-09-22T12:00:00Z"));
     const existing = fakeMessage({
       footer: "lockout-week:2026-09-15",
       description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
