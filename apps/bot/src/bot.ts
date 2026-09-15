@@ -7,6 +7,7 @@ import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
 import { scheduleRaidHelperSignupCheck } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
+import { cleanupOldSoftresMessages } from "./services/softresMessageCleanup.js";
 import { registerCommands } from "./commands/registerCommands.js";
 import { handleSrCommand } from "./commands/srCommand.js";
 import { ensureZoneEmoji } from "./services/zoneEmoji.js";
@@ -68,6 +69,7 @@ export function createBot(): Client {
         config.threadCleanupCron,
         () => {
           void cleanupOldThreads(client);
+          void cleanupOldSoftresMessages(client);
         },
         {
           timezone: "America/New_York",
