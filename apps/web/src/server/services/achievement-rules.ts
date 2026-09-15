@@ -159,10 +159,13 @@ function classifyBucket(result: SignupMatchResult): MatchedSignup["bucket"] | nu
     if (cn === "tentative" || cn === "late") return "tentative";
     if (cn === "absent" || cn === "absence") return "absent";
   }
-  // A real class name was given (so not "skipped") but no family member has that class — the
+  // A real class name was given (so not "skipped") but no family member has that class. The
   // faction-placeholder convention (Paladin/Horde, Shaman/Alliance) for "I'll play whatever's
-  // needed" always lands here, since it can never match a literal class on the family. Still a
-  // real, family-identified signup, just one with no fixed intended character.
+  // needed" always lands here, since it can never match a literal class on the family — but so
+  // does any other family-identified signup with no class match (a typo, an unlinked alt, a
+  // class the player mains on a different character). That's deliberate, not just the
+  // placeholder case slipping through: none of these identify a real signed-up character either,
+  // so they're all equally a genuine swap if a family member attends instead.
   if (result.status === "unmatched") return "flex";
   return null;
 }
