@@ -171,31 +171,44 @@ describe("cleanupOldSoftresMessages", () => {
     expect(srMessage.delete).not.toHaveBeenCalled();
   });
 
-  it("pages past a busy channel's first 100 messages to find an old SR post behind them", async () => {
-    // Reproduces a chatty channel: 100 very recent (within-cutoff) messages sit in front of an
-    // old, past-cutoff SR post. A single unpaginated fetch({ limit: 100 }) would never see it.
-    const cutoff = NOW.getTime() - 3 * DAY_MS;
+  it("keeps paging past the cutoff boundary to reach an old SR post several pages further back", async () => {
+    // Models a channel whose history crosses the delete cutoff early (page 2) well before the
+    // actual old SR post it's looking for (page 4) — the exact shape that would fool a paging
+    // loop into stopping "once we're past the cutoff", since being past the cutoff is where the
+    // job needs to keep looking, not where it can stop.
     const newestSr = fakeMessage({
       id: "newest-sr",
       title: "SRs : AQ40",
       createdTimestamp: NOW.getTime(),
     });
-    const chatter = Array.from({ length: 100 }, (_, i) =>
+    // 150 recent messages (within the 72h cutoff), spaced 1 minute apart — spans page 1 and
+    // part of page 2 without crossing the cutoff.
+    const recentFiller = Array.from({ length: 150 }, (_, i) =>
       fakeMessage({
-        id: `chatter-${i}`,
+        id: `recent-${i}`,
         title: undefined,
-        // Spread across the last ~50 hours — comfortably inside the 72h cutoff.
-        createdTimestamp: NOW.getTime() - (i + 1) * 30 * 60 * 1000,
+        createdTimestamp: NOW.getTime() - (i + 1) * 60 * 1000,
+      }),
+    );
+    // 200 much older messages (10+ days back, well past the cutoff), spanning pages 2 through 4
+    // — this is the bulk of history the buggy version stopped scanning as soon as it saw one.
+    const oldFiller = Array.from({ length: 200 }, (_, i) =>
+      fakeMessage({
+        id: `old-filler-${i}`,
+        title: undefined,
+        createdTimestamp: NOW.getTime() - 10 * DAY_MS - i * 60 * 1000,
       }),
     );
     const oldDel = vi.fn().mockResolvedValue(undefined);
     const oldSr = fakeMessage({
       id: "old-sr",
       title: "SRs : BWL/MC",
-      createdTimestamp: cutoff - 10 * DAY_MS,
+      createdTimestamp: NOW.getTime() - 20 * DAY_MS,
       delete: oldDel,
     });
-    const client = fakeClient({ [CHANNEL_A]: [newestSr, ...chatter, oldSr] });
+    const client = fakeClient({
+      [CHANNEL_A]: [newestSr, ...recentFiller, ...oldFiller, oldSr],
+    });
 
     await cleanupOldSoftresMessages(client);
 

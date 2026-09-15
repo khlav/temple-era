@@ -4,8 +4,10 @@ import { logger } from "../config/logger.js";
 
 // Discord returns pages newest-first, capped at 100 per call — a single unpaginated fetch
 // would miss any SR post pushed past that window by ordinary channel chatter (raid banter,
-// reactions to the signup itself), leaving it undeletable forever. This bounds the number of
-// pages fetched per channel per run rather than paging back through a channel's entire history.
+// reactions to the signup itself), leaving it undeletable forever. This safety-caps the number
+// of pages fetched per channel per run (1000 messages) rather than paging indefinitely — real
+// channels only carry a handful of SR posts, so exhausting history (an empty page) is expected
+// to happen well before this in practice.
 const MAX_PAGES = 10;
 
 // Both the auto-signup flow (raidHelperSignupHandler.ts) and the manual /sr command post
@@ -21,13 +23,13 @@ function isSoftresMessage(message: Message, botUserId: string | undefined): bool
 }
 
 /** Pages backwards through `channel`'s history (newest page first) collecting SR messages,
- * stopping once a page's oldest message is older than `cutoffTime` — everything before that
- * point is already outside the delete window, so there's no reason to keep paging — or once
- * `MAX_PAGES` is hit. Returned newest-first. */
+ * until history is exhausted (an empty page) or `MAX_PAGES` is hit. Deliberately does NOT stop
+ * early on crossing the delete cutoff — the far side of that cutoff is exactly where the old SR
+ * posts this job exists to find live, so stopping there would mean never reaching them. Returned
+ * newest-first. */
 async function findSoftresMessages(
   channel: TextBasedChannel,
   botUserId: string | undefined,
-  cutoffTime: number,
 ): Promise<Message[]> {
   const found: Message[] = [];
   let before: string | undefined;
@@ -41,7 +43,6 @@ async function findSoftresMessages(
     const oldestInBatch = [...batch.values()].reduce((a, b) =>
       a.createdTimestamp < b.createdTimestamp ? a : b,
     );
-    if (oldestInBatch.createdTimestamp < cutoffTime) break;
     before = oldestInBatch.id;
   }
 
@@ -73,7 +74,7 @@ export async function cleanupOldSoftresMessages(client: Client): Promise<void> {
         continue;
       }
 
-      const srMessages = await findSoftresMessages(channel, client.user?.id, cutoffTime);
+      const srMessages = await findSoftresMessages(channel, client.user?.id);
 
       // The first (newest) entry is always kept — only messages behind it are eligible.
       const deletable = srMessages.slice(1).filter((m) => m.createdTimestamp < cutoffTime);
