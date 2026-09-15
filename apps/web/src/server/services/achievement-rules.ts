@@ -116,7 +116,13 @@ export interface AttendedRaid {
 export interface MatchedSignup {
   raidId: number;
   signedUpCharacterId: number;
-  bucket: "confirmed" | "bench" | "tentative" | "absent";
+  /** "flex" is a family match with no class match — e.g. a Horde player signing up as
+   *  "Paladin"/an Alliance player as "Shaman" to mean "put me on whatever's needed", a
+   *  convention that can never resolve to a real character. `signedUpCharacterId` for a
+   *  "flex" row is the family's primary character id (there is no real signed-up character
+   *  to point to), so the flexibility scorer's "did the signed-up character personally
+   *  attend" check still works: if the primary attended themselves, that's not a swap. */
+  bucket: "confirmed" | "bench" | "tentative" | "absent" | "flex";
   checkpointHoursBeforeStart: number;
   /** The raid's own start time — needed because a signup-only shape (Bench Credit) has no
    *  corresponding attendedRaids row to borrow a date from; window-filtering matchedSignups
@@ -153,6 +159,14 @@ function classifyBucket(result: SignupMatchResult): MatchedSignup["bucket"] | nu
     if (cn === "tentative" || cn === "late") return "tentative";
     if (cn === "absent" || cn === "absence") return "absent";
   }
+  // A real class name was given (so not "skipped") but no family member has that class. The
+  // faction-placeholder convention (Paladin/Horde, Shaman/Alliance) for "I'll play whatever's
+  // needed" always lands here, since it can never match a literal class on the family — but so
+  // does any other family-identified signup with no class match (a typo, an unlinked alt, a
+  // class the player mains on a different character). That's deliberate, not just the
+  // placeholder case slipping through: none of these identify a real signed-up character either,
+  // so they're all equally a genuine swap if a family member attends instead.
+  if (result.status === "unmatched") return "flex";
   return null;
 }
 
@@ -513,7 +527,15 @@ function scoreFlexibilityMatch(
   }
   const qualifyingRaidIds = new Set(
     context.matchedSignups
-      .filter((s) => withinWindow(s.raidStartTime, window) && s.bucket === "confirmed")
+      // "flex" (a faction-placeholder class like Horde signing up as Paladin) is included here
+      // but deliberately excluded from Consistency's own "confirmed"-only filter above — it has
+      // no real signed-up character, so it can never count as "attended as the same character",
+      // only as a swap when someone in the family covers the raid instead.
+      .filter(
+        (s) =>
+          withinWindow(s.raidStartTime, window) &&
+          (s.bucket === "confirmed" || s.bucket === "flex"),
+      )
       .filter((s) => {
         // Cross-character: someone from the family attended this raid, but not the specific
         // character that signed up for it. Requiring the signed-up character's OWN absence (not
