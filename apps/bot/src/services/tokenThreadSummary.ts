@@ -185,7 +185,13 @@ async function postWeeklyTokenEntriesInner(
       return;
     }
 
-    const weekKey = getLockoutWeekKey(new Date());
+    // Derived from the raid's own scheduled time, not "now" — a SoftRes link created early for
+    // next week's raid (or a late manual /sr for a raid earlier this lockout week) must land in
+    // that raid's actual week, not whichever week happens to be current when this runs. Every
+    // caller passes entries for exactly one raid night (possibly several zones for a
+    // doubleheader), so they always share one lockout week — entries.length >= 1 is guaranteed
+    // by postWeeklyTokenEntries's own early return above.
+    const weekKey = getLockoutWeekKey(new Date(entries[0]!.timestampSec * 1000));
     const footerMarker = `${FOOTER_MARKER_PREFIX}${weekKey}`;
 
     // Generous limit: this thread only ever gets ~1 bot message per week, so even a handful

@@ -282,6 +282,50 @@ describe("postWeeklyTokenEntries", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the raid's own lockout week, not 'now', when the SR is created well before that week starts", async () => {
+    // "Now" is 2026-09-08 (the prior lockout week) — e.g. an officer creates the SR days ahead
+    // of a raid scheduled for TUE_7PM, which falls in the 2026-09-15 week.
+    vi.setSystemTime(new Date("2026-09-08T12:00:00Z"));
+    const send = vi.fn().mockResolvedValue(undefined);
+    const client = fakeClient({ existingMessages: [], send });
+
+    await postWeeklyTokenEntries(client, [
+      {
+        zone: "Molten Core",
+        url: "https://softres.it/raid/tue2?adminToken=tokB",
+        timestampSec: TUE_7PM,
+      },
+    ]);
+
+    const embed = send.mock.calls[0]![0].embeds[0];
+    expect(embed.data.footer.text).toBe("lockout-week:2026-09-15");
+    expect(embed.data.title).toBe("SR Admin Tokens — Week of Sep 15");
+  });
+
+  it("finds and merges into the raid's own week's existing summary even when 'now' is a different week", async () => {
+    // "Now" is 2026-09-22 — the following lockout week (2026-09-15's week runs through
+    // Monday 9/21) — e.g. a late manual /sr for a raid earlier in the 2026-09-15 week, after
+    // the new week has already started.
+    vi.setSystemTime(new Date("2026-09-22T12:00:00Z"));
+    const existing = fakeMessage({
+      footer: "lockout-week:2026-09-15",
+      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+    });
+    const send = vi.fn();
+    const client = fakeClient({ existingMessages: [existing], send });
+
+    await postWeeklyTokenEntries(client, [
+      {
+        zone: "Naxxramas",
+        url: "https://softres.it/raid/thu1?adminToken=tokN",
+        timestampSec: THU_7PM,
+      },
+    ]);
+
+    expect(send).not.toHaveBeenCalled();
+    expect(existing.edit).toHaveBeenCalledTimes(1);
+  });
+
   it("logs and does not throw when the thread is not sendable", async () => {
     const send = vi.fn();
     const client = fakeClient({ send, isSendable: false });
