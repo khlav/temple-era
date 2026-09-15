@@ -14,18 +14,21 @@ const deduplicator = new MessageDeduplicator();
 // Raid-Helper posts a signup message with NO components at all — the class-select dropdown and
 // Bench/Late/Tentative/Absence buttons only appear once Raid-Helper finishes building the event
 // out, an edit that lands some unmeasured amount of time after the initial post. Checking
-// immediately on MessageCreate therefore always sees a bare, button-less message, so
-// `scheduleRaidHelperSignupCheck` waits this long, then re-fetches the message once and checks
-// the fresh copy — a single delayed look rather than reacting to every one of the message's many
-// later edits (every subsequent signup/status change re-edits the same message for the rest of
-// the event's life), which would need its own re-entrancy handling this doesn't have.
-const SIGNUP_CHECK_DELAY_MS = 10_000;
+// immediately on MessageCreate therefore always sees a bare, button-less message.
+// `scheduleRaidHelperSignupCheck` re-fetches and re-checks on this backoff schedule (gaps between
+// successive attempts, not offsets from the original post) rather than a single fixed delay,
+// since we don't know the real build-out latency and a one-shot check would permanently miss any
+// post slower than that guess. Still bounded and one-time per message — not a `MessageUpdate`
+// listener — since every later signup/status change re-edits the same message for the rest of
+// the event's life, and reacting to all of those would need its own re-entrancy handling on top
+// of this.
+const SIGNUP_CHECK_RETRY_DELAYS_MS = [5_000, 10_000, 20_000, 60_000];
 
 /**
  * Entry point for MessageCreate. Cheaply filters to a Raid-Helper post in a monitored SR
  * channel (logging every monitored-channel message regardless, so the "is the gateway even
  * delivering these" question never depends on who posted or why a later gate might skip it),
- * then schedules the single delayed Bench-button check — see SIGNUP_CHECK_DELAY_MS.
+ * then schedules the first delayed Bench-button check — see SIGNUP_CHECK_RETRY_DELAYS_MS.
  *
  * Deliberate inversion from every other handler in this codebase: it acts BECAUSE the author is
  * a bot (Raid-Helper), not despite it — gating on `message.author.id ===
@@ -48,22 +51,52 @@ export function scheduleRaidHelperSignupCheck(message: Message): void {
 
   if (message.author.id !== config.discordRaidHelperBotId) return;
 
-  setTimeout(() => {
-    void recheckAndProcessSignup(message);
-  }, SIGNUP_CHECK_DELAY_MS);
+  scheduleAttempt(message, 0);
 }
 
-/** Re-fetches the message after the delay — the original `Message` object is a stale snapshot
- *  from creation (message caching is disabled, so nothing updates it in place) — then hands the
- *  fresh copy to `handleRaidHelperSignup`. */
-async function recheckAndProcessSignup(message: Message): Promise<void> {
+function scheduleAttempt(message: Message, attemptIndex: number): void {
+  const delayMs = SIGNUP_CHECK_RETRY_DELAYS_MS[attemptIndex];
+  if (delayMs === undefined) return; // out of retries — scheduleAttempt is never called past the last index
+  setTimeout(() => {
+    void attemptSignupCheck(message, attemptIndex);
+  }, delayMs);
+}
+
+/** Re-fetches the message — the original `Message` object is a stale snapshot from creation
+ *  (message caching is disabled, so nothing updates it in place) — and either hands a fresh copy
+ *  with a Bench button to `handleRaidHelperSignup`, or schedules the next backoff attempt. A
+ *  failed fetch (e.g. a transient API hiccup) is treated the same as "no button yet" and also
+ *  retried, up to the same bound. */
+async function attemptSignupCheck(message: Message, attemptIndex: number): Promise<void> {
+  const isLastAttempt = attemptIndex === SIGNUP_CHECK_RETRY_DELAYS_MS.length - 1;
+
   let fresh: Message;
   try {
     fresh = await message.fetch();
   } catch (error) {
     logger.error(
-      { error: error instanceof Error ? error.message : String(error), eventId: message.id },
+      {
+        error: error instanceof Error ? error.message : String(error),
+        eventId: message.id,
+        attempt: attemptIndex + 1,
+        giving_up: isLastAttempt,
+      },
       "Could not re-fetch Raid Helper signup message before checking for a Bench button",
+    );
+    if (!isLastAttempt) scheduleAttempt(message, attemptIndex + 1);
+    return;
+  }
+
+  if (!hasBenchButton(fresh)) {
+    if (!isLastAttempt) {
+      scheduleAttempt(message, attemptIndex + 1);
+      return;
+    }
+    // still not a signup post after every retry (e.g. a roster confirmation, which never
+    // carries a Bench button — or, rarely, Raid-Helper took longer than our whole backoff window)
+    logger.info(
+      { eventId: fresh.id, channelId: fresh.channelId },
+      "Raid Helper message still has no Bench button after all retries, giving up",
     );
     return;
   }
@@ -81,11 +114,12 @@ async function recheckAndProcessSignup(message: Message): Promise<void> {
  */
 export async function handleRaidHelperSignup(message: Message): Promise<void> {
   if (!hasBenchButton(message)) {
-    // still not a signup post after the delay (e.g. a roster confirmation, which never carries
-    // a Bench button — or, rarely, Raid-Helper just hasn't finished building it out yet)
+    // Defense in depth — attemptSignupCheck already verifies this before calling here, so a
+    // real signup post never reaches this branch. Kept as a self-contained guard for any direct
+    // caller (e.g. a test) that skips the retry loop's own check.
     logger.info(
       { eventId: message.id, channelId: message.channelId },
-      "Raid Helper message still has no Bench button after the delay, skipping",
+      "Raid Helper message has no Bench button, skipping",
     );
     return;
   }

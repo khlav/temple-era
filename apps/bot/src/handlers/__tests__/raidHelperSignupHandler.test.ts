@@ -145,14 +145,14 @@ describe("scheduleRaidHelperSignupCheck", () => {
     expect(message.fetch).not.toHaveBeenCalled();
   });
 
-  it("re-fetches after the delay and proceeds when the fresh copy now has a Bench button", async () => {
+  it("re-fetches after the first backoff delay (5s) and proceeds when the fresh copy already has a Bench button", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
     );
     const message = fakeMessage({ id: "1c", authorId: RAID_HELPER_BOT_ID });
 
     scheduleRaidHelperSignupCheck(message);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(5_000);
 
     expect(message.fetch).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -161,7 +161,44 @@ describe("scheduleRaidHelperSignupCheck", () => {
     );
   });
 
-  it("re-fetches after the delay and gives up (no ensure-softres call) when the fresh copy still has no Bench button", async () => {
+  it("retries on the 5s/10s/20s/60s backoff until the fresh copy has a Bench button", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
+    const staleMessage = fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID });
+    const freshFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeMessage({
+          id: "1f",
+          authorId: RAID_HELPER_BOT_ID,
+          components: rosterConfirmationComponents(),
+        }),
+      )
+      .mockResolvedValueOnce(
+        fakeMessage({
+          id: "1f",
+          authorId: RAID_HELPER_BOT_ID,
+          components: rosterConfirmationComponents(),
+        }),
+      )
+      .mockResolvedValueOnce(
+        fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID }), // default signupComponents()
+      );
+    (staleMessage as unknown as { fetch: typeof freshFetch }).fetch = freshFetch;
+
+    scheduleRaidHelperSignupCheck(staleMessage);
+    // 5s (no button) -> 10s (no button) -> 20s (button found, proceeds)
+    await vi.advanceTimersByTimeAsync(5_000 + 10_000 + 20_000);
+
+    expect(freshFetch).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.test/api/discord/ensure-softres",
+      expect.objectContaining({ body: JSON.stringify({ eventId: "1f" }) }),
+    );
+  });
+
+  it("gives up (no ensure-softres call) after exhausting all four retries with no Bench button", async () => {
     const staleMessage = fakeMessage({
       id: "1d",
       authorId: RAID_HELPER_BOT_ID,
@@ -177,29 +214,56 @@ describe("scheduleRaidHelperSignupCheck", () => {
     (staleMessage as unknown as { fetch: typeof freshFetch }).fetch = freshFetch;
 
     scheduleRaidHelperSignupCheck(staleMessage);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(5_000 + 10_000 + 20_000 + 60_000);
 
-    expect(freshFetch).toHaveBeenCalledTimes(1);
+    expect(freshFetch).toHaveBeenCalledTimes(4);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({ eventId: "1d" }),
-      "Raid Helper message still has no Bench button after the delay, skipping",
+      "Raid Helper message still has no Bench button after all retries, giving up",
     );
   });
 
-  it("logs and returns without throwing when the delayed re-fetch itself rejects", async () => {
+  it("treats a failed re-fetch as one retry, not a permanent failure — a later attempt can still succeed", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
     const message = fakeMessage({
       id: "1e",
+      authorId: RAID_HELPER_BOT_ID,
+      fetch: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("message deleted"))
+        .mockResolvedValueOnce(fakeMessage({ id: "1e", authorId: RAID_HELPER_BOT_ID })),
+    });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(5_000 + 10_000);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ error: "message deleted", eventId: "1e", giving_up: false }),
+      "Could not re-fetch Raid Helper signup message before checking for a Bench button",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.test/api/discord/ensure-softres",
+      expect.objectContaining({ body: JSON.stringify({ eventId: "1e" }) }),
+    );
+  });
+
+  it("logs a final giving-up failure and returns without throwing when every re-fetch attempt rejects", async () => {
+    const message = fakeMessage({
+      id: "1g",
       authorId: RAID_HELPER_BOT_ID,
       fetch: vi.fn().mockRejectedValue(new Error("message deleted")),
     });
 
     scheduleRaidHelperSignupCheck(message);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(5_000 + 10_000 + 20_000 + 60_000);
 
+    expect(message.fetch).toHaveBeenCalledTimes(4);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ error: "message deleted", eventId: "1e" }),
+    expect(logger.error).toHaveBeenLastCalledWith(
+      expect.objectContaining({ error: "message deleted", eventId: "1g", giving_up: true }),
       "Could not re-fetch Raid Helper signup message before checking for a Bench button",
     );
   });
