@@ -11,25 +11,29 @@ import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 // Track processed messages to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
 
+// Raid-Helper posts a signup message with NO components at all — the class-select dropdown and
+// Bench/Late/Tentative/Absence buttons only appear once Raid-Helper finishes building the event
+// out, an edit that lands some unmeasured amount of time after the initial post. Checking
+// immediately on MessageCreate therefore always sees a bare, button-less message, so
+// `scheduleRaidHelperSignupCheck` waits this long, then re-fetches the message once and checks
+// the fresh copy — a single delayed look rather than reacting to every one of the message's many
+// later edits (every subsequent signup/status change re-edits the same message for the rest of
+// the event's life), which would need its own re-entrancy handling this doesn't have.
+const SIGNUP_CHECK_DELAY_MS = 10_000;
+
 /**
- * Detects a qualifying Raid-Helper signup post and calls Phase 1's `ensure-softres` endpoint,
- * then posts an embed of the public (no-token) link(s) in the signup channel and merges the
- * matching admin link(s) into that lockout week's summary message in the SoftRes Token thread.
+ * Entry point for MessageCreate. Cheaply filters to a Raid-Helper post in a monitored SR
+ * channel (logging every monitored-channel message regardless, so the "is the gateway even
+ * delivering these" question never depends on who posted or why a later gate might skip it),
+ * then schedules the single delayed Bench-button check — see SIGNUP_CHECK_DELAY_MS.
  *
- * Two deliberate inversions from every other handler in this codebase:
- *  - it acts BECAUSE the author is a bot (Raid-Helper), not despite it — gating on
- *    `message.author.id === config.discordRaidHelperBotId` rather than skipping bot authors.
- *  - it reuses the ported `hasBenchButton` check to distinguish a signup post from a
- *    roster-confirmation post (which never carries a Bench button), rather than an embed-text
- *    heuristic.
+ * Deliberate inversion from every other handler in this codebase: it acts BECAUSE the author is
+ * a bot (Raid-Helper), not despite it — gating on `message.author.id ===
+ * config.discordRaidHelperBotId` rather than skipping bot authors.
  */
-export async function handleRaidHelperSignup(message: Message) {
+export function scheduleRaidHelperSignupCheck(message: Message): void {
   if (!config.discordRaidSrChannelIds.includes(message.channelId)) return;
 
-  // Logged at info (not debug) so it survives production's default log level with no config
-  // change — this is the ground truth for "is the gateway connection actually delivering
-  // MessageCreate events for this channel at all," independent of who posted or why a later
-  // gate might skip it.
   logger.info(
     {
       eventId: message.id,
@@ -42,14 +46,46 @@ export async function handleRaidHelperSignup(message: Message) {
     "Saw a message in a monitored SR channel",
   );
 
-  // Gate on IS the Raid Helper bot — the inverse of every other handler's "skip bot authors" guard.
   if (message.author.id !== config.discordRaidHelperBotId) return;
 
+  setTimeout(() => {
+    void recheckAndProcessSignup(message);
+  }, SIGNUP_CHECK_DELAY_MS);
+}
+
+/** Re-fetches the message after the delay — the original `Message` object is a stale snapshot
+ *  from creation (message caching is disabled, so nothing updates it in place) — then hands the
+ *  fresh copy to `handleRaidHelperSignup`. */
+async function recheckAndProcessSignup(message: Message): Promise<void> {
+  let fresh: Message;
+  try {
+    fresh = await message.fetch();
+  } catch (error) {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error), eventId: message.id },
+      "Could not re-fetch Raid Helper signup message before checking for a Bench button",
+    );
+    return;
+  }
+
+  await handleRaidHelperSignup(fresh);
+}
+
+/**
+ * Checks an already-gated, freshly-fetched Raid-Helper signup message for a Bench button — it
+ * reuses the ported `hasBenchButton` check to distinguish a signup post from a
+ * roster-confirmation post (which never carries a Bench button), rather than an embed-text
+ * heuristic — and if found, calls Phase 1's `ensure-softres` endpoint, then posts an embed of the
+ * public (no-token) link(s) in the signup channel and merges the matching admin link(s) into
+ * that lockout week's summary message in the SoftRes Token thread.
+ */
+export async function handleRaidHelperSignup(message: Message): Promise<void> {
   if (!hasBenchButton(message)) {
-    // not a signup post (e.g. a roster confirmation, which never carries a Bench button)
+    // still not a signup post after the delay (e.g. a roster confirmation, which never carries
+    // a Bench button — or, rarely, Raid-Helper just hasn't finished building it out yet)
     logger.info(
       { eventId: message.id, channelId: message.channelId },
-      "Raid Helper message has no Bench button, skipping",
+      "Raid Helper message still has no Bench button after the delay, skipping",
     );
     return;
   }

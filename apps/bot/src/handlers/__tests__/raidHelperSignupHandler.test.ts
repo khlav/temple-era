@@ -1,7 +1,10 @@
 import { ComponentType, type Message } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { handleRaidHelperSignup } from "../raidHelperSignupHandler.js";
+import {
+  handleRaidHelperSignup,
+  scheduleRaidHelperSignupCheck,
+} from "../raidHelperSignupHandler.js";
 import { logger } from "../../config/logger.js";
 
 // vi.mock factories are hoisted above the rest of this module, so the ids they close over
@@ -72,9 +75,10 @@ function fakeMessage(overrides: {
   embeds?: { title?: string; description?: string }[];
   channelSend?: ReturnType<typeof vi.fn>;
   channelSendable?: boolean;
+  fetch?: ReturnType<typeof vi.fn>;
 }): Message {
   const channelId = overrides.channelId ?? SR_CHANNEL_ID;
-  return {
+  const message = {
     id: overrides.id,
     channelId,
     author: { id: overrides.authorId, bot: true, tag: "Raid-Helper#0000" },
@@ -87,11 +91,119 @@ function fakeMessage(overrides: {
     },
     client: {},
   } as unknown as Message;
+  // Defaults to resolving with itself — matches the common case where the fresh fetch after the
+  // delay carries the same shape the test already set up (e.g. signupComponents()).
+  (message as unknown as { fetch: ReturnType<typeof vi.fn> }).fetch =
+    overrides.fetch ?? vi.fn().mockResolvedValue(message);
+  return message;
 }
 
 function jsonResponse(body: unknown) {
   return { json: () => Promise.resolve(body) } as Response;
 }
+
+describe("scheduleRaidHelperSignupCheck", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it("ignores a message from a non-Raid-Helper author — no timer scheduled, no re-fetch ever", async () => {
+    const message = fakeMessage({ id: "1", authorId: OTHER_USER_ID });
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(message.fetch).not.toHaveBeenCalled();
+  });
+
+  it("ignores a Raid-Helper message in an unconfigured channel — no timer scheduled, no re-fetch ever", async () => {
+    const message = fakeMessage({
+      id: "2",
+      authorId: RAID_HELPER_BOT_ID,
+      channelId: OTHER_CHANNEL_ID,
+    });
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(message.fetch).not.toHaveBeenCalled();
+  });
+
+  it("logs the sighting immediately, before the delayed re-fetch fires", () => {
+    const message = fakeMessage({ id: "1b", authorId: RAID_HELPER_BOT_ID });
+    scheduleRaidHelperSignupCheck(message);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "1b" }),
+      "Saw a message in a monitored SR channel",
+    );
+    expect(message.fetch).not.toHaveBeenCalled();
+  });
+
+  it("re-fetches after the delay and proceeds when the fresh copy now has a Bench button", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
+    );
+    const message = fakeMessage({ id: "1c", authorId: RAID_HELPER_BOT_ID });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(message.fetch).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.test/api/discord/ensure-softres",
+      expect.objectContaining({ body: JSON.stringify({ eventId: "1c" }) }),
+    );
+  });
+
+  it("re-fetches after the delay and gives up (no ensure-softres call) when the fresh copy still has no Bench button", async () => {
+    const staleMessage = fakeMessage({
+      id: "1d",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+    });
+    const freshFetch = vi.fn().mockResolvedValue(
+      fakeMessage({
+        id: "1d",
+        authorId: RAID_HELPER_BOT_ID,
+        components: rosterConfirmationComponents(),
+      }),
+    );
+    (staleMessage as unknown as { fetch: typeof freshFetch }).fetch = freshFetch;
+
+    scheduleRaidHelperSignupCheck(staleMessage);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(freshFetch).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "1d" }),
+      "Raid Helper message still has no Bench button after the delay, skipping",
+    );
+  });
+
+  it("logs and returns without throwing when the delayed re-fetch itself rejects", async () => {
+    const message = fakeMessage({
+      id: "1e",
+      authorId: RAID_HELPER_BOT_ID,
+      fetch: vi.fn().mockRejectedValue(new Error("message deleted")),
+    });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ error: "message deleted", eventId: "1e" }),
+      "Could not re-fetch Raid Helper signup message before checking for a Bench button",
+    );
+  });
+});
 
 describe("handleRaidHelperSignup", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -106,22 +218,6 @@ describe("handleRaidHelperSignup", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.clearAllMocks();
-  });
-
-  it("ignores a message from a non-Raid-Helper author, with no fetch call", async () => {
-    const message = fakeMessage({ id: "1", authorId: OTHER_USER_ID });
-    await handleRaidHelperSignup(message);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("ignores a Raid-Helper message in an unconfigured channel, with no fetch call", async () => {
-    const message = fakeMessage({
-      id: "2",
-      authorId: RAID_HELPER_BOT_ID,
-      channelId: OTHER_CHANNEL_ID,
-    });
-    await handleRaidHelperSignup(message);
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("ignores a roster confirmation post (no Bench button), with no fetch call", async () => {
