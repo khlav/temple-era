@@ -387,6 +387,40 @@ describe("shape: consistency", () => {
     });
     expect((await scoreByShape(NOOP_DB, 1, noMatch, config, WINDOW)).crossed).toBe(false);
   });
+
+  it("consistency: a 'flex' (faction-placeholder) signup never counts, even when the primary personally attended", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "consistency_match",
+      minCount: 1,
+      lockoutWeeks: 6,
+    };
+    // signedUpCharacterId here is the family's primary id (the "flex" fallback), and that same
+    // id shows up in attendedRaids — but Consistency only reads bucket === "confirmed", so this
+    // must not count. A flex signup has no real signed-up character to be "consistent" about.
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1,
+          zone: "Molten Core",
+          class: "Shaman",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-10"),
+          attendanceWeight: 1,
+        },
+      ],
+      matchedSignups: [
+        {
+          raidId: 1,
+          signedUpCharacterId: 1,
+          bucket: "flex",
+          checkpointHoursBeforeStart: 120,
+          raidStartTime: new Date("2026-09-10"),
+        },
+      ],
+    });
+    expect((await scoreByShape(NOOP_DB, 1, context, config, WINDOW)).crossed).toBe(false);
+  });
 });
 
 describe("shape: flexibility", () => {
@@ -465,6 +499,68 @@ describe("shape: flexibility", () => {
           bucket: "confirmed",
           checkpointHoursBeforeStart: 24,
           raidStartTime: new Date("2026-09-10"),
+        },
+      ],
+    });
+    expect((await scoreByShape(NOOP_DB, 1, context, config, WINDOW)).crossed).toBe(false);
+  });
+
+  it("flexibility: counts a 'flex' (faction-placeholder) signup as a swap when a different family member attended — TEMPLE regression, Horde signing up as Paladin", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "flexibility_match",
+      minCount: 1,
+      lockoutWeeks: 6,
+    };
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 2, // a secondary attended, not the family's primary id (1)
+          zone: "Blackwing Lair",
+          class: "Warrior",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-11"),
+          attendanceWeight: 1,
+        },
+      ],
+      matchedSignups: [
+        {
+          raidId: 1,
+          signedUpCharacterId: 1, // "flex" fallback: the family's primary character id
+          bucket: "flex",
+          checkpointHoursBeforeStart: 24,
+          raidStartTime: new Date("2026-09-11"),
+        },
+      ],
+    });
+    expect((await scoreByShape(NOOP_DB, 1, context, config, WINDOW)).crossed).toBe(true);
+  });
+
+  it("flexibility: does NOT count a 'flex' signup when the family's primary personally attended — no one to swap to", async () => {
+    const config: AchievementRuleConfig = {
+      shape: "flexibility_match",
+      minCount: 1,
+      lockoutWeeks: 6,
+    };
+    const context = ctx({
+      attendedRaids: [
+        {
+          raidId: 1,
+          characterId: 1, // the primary attended themselves
+          zone: "Blackwing Lair",
+          class: "Shaman",
+          lockoutWeekStart: new Date(),
+          startTime: new Date("2026-09-11"),
+          attendanceWeight: 1,
+        },
+      ],
+      matchedSignups: [
+        {
+          raidId: 1,
+          signedUpCharacterId: 1,
+          bucket: "flex",
+          checkpointHoursBeforeStart: 24,
+          raidStartTime: new Date("2026-09-11"),
         },
       ],
     });
@@ -1015,6 +1111,55 @@ describe("buildRuleEvaluationContext", () => {
         bucket: "bench",
         checkpointHoursBeforeStart: 96,
         raidStartTime: new Date("2026-09-10"),
+      },
+    ]);
+  });
+
+  it("context: a family-identified signup with no class match (a faction-placeholder like Horde signing up as Paladin) becomes bucket 'flex', not dropped", async () => {
+    mockDb.select
+      .mockReturnValueOnce(
+        chainable([{ characterId: 1, class: "Shaman", primaryCharacterId: null }]),
+      )
+      .mockReturnValueOnce(chainable([])) // attendanceRows
+      .mockReturnValueOnce(chainable([])) // benchRows
+      .mockReturnValueOnce(chainable([]));
+    mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([
+      { raidId: 1, raidHelperEventId: "evt-1", startTime: new Date("2026-09-11") },
+    ]);
+    mockGetSignupSnapshotHistoryForOccurrence.mockResolvedValue([
+      {
+        checkpoint: "24h",
+        signups: [{ userId: "u1", name: "Asham", className: "Paladin", specName: "Retribution" }],
+      },
+    ]);
+    mockMatchSignupsToCharacters.mockResolvedValue([
+      {
+        userId: "u1",
+        discordName: "Asham",
+        className: "Paladin",
+        specName: "Retribution",
+        partyId: null,
+        slotId: null,
+        status: "unmatched",
+        matchedPrimaryCharacterId: 1, // family identified via Discord link — class just doesn't exist on it
+        matchedPrimaryCharacterName: "Asham",
+      },
+    ]);
+
+    const context = await buildRuleEvaluationContext(
+      mockDb as never,
+      1,
+      null,
+      new Date("2026-09-15"),
+    );
+
+    expect(context.matchedSignups).toEqual([
+      {
+        raidId: 1,
+        signedUpCharacterId: 1,
+        bucket: "flex",
+        checkpointHoursBeforeStart: 24,
+        raidStartTime: new Date("2026-09-11"),
       },
     ]);
   });
