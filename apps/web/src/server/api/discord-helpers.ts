@@ -353,6 +353,11 @@ export function extractSoftResUrls(
           embedTitle = parsedTitle;
         }
       }
+      // Strip the bot's own "SRs : " prefix (apps/bot/src/services/softresEmbeds.ts) so its
+      // embeds display the bare event title, matching the Raid-Helper-sourced ones.
+      if (embedTitle?.startsWith("SRs : ")) {
+        embedTitle = embedTitle.slice("SRs : ".length);
+      }
 
       if (embed.url) addRaidIds(extractSoftResRaidIds(embed.url), embedTitle);
       if (embed.title) addRaidIds(extractSoftResRaidIds(embed.title), embedTitle);
@@ -529,16 +534,24 @@ export async function getDiscordSoftResLinks(): Promise<DiscordSoftResLink[]> {
   // Raid-helper bot user ID
   const RAID_HELPER_BOT_ID = env.DISCORD_RAID_HELPER_BOT_ID;
 
-  // Filter to raid-helper bot messages with SoftRes URLs from last 7 days
-  // Only include signup messages (which have a "Bench" button component)
+  // Three sources of SoftRes links in these channels:
+  //  1. A Raid-Helper signup post carrying the link in its embed/fields/components — gated on
+  //     the Bench button so a roster-confirmation post (no button, same author) doesn't slip
+  //     through.
+  //  2. A human pasting a SoftRes link directly into the channel.
+  //  3. The bot's own auto-posted (or `/sr`-created) "SRs : ..." embed
+  //     (apps/bot/src/services/softresEmbeds.ts).
+  // Only case 1 needs the Bench-button gate, since it's the only one sharing an author with a
+  // non-signup message type; every other author's SoftRes link is trusted as-is.
   const filteredMessages = messages.filter((message) => {
     const messageDate = new Date(message.timestamp);
-    const isRaidHelperBot = message.author.id === RAID_HELPER_BOT_ID;
-    const hasSoftResUrls = extractSoftResUrls(message).length > 0;
     const isWithin7Days = messageDate >= sevenDaysAgo;
-    const isSignupMessage = hasBenchButton(message);
+    if (!isWithin7Days) return false;
 
-    return isRaidHelperBot && hasSoftResUrls && isSignupMessage && isWithin7Days;
+    if (extractSoftResUrls(message).length === 0) return false;
+
+    const isRaidHelperBot = message.author.id === RAID_HELPER_BOT_ID;
+    return !isRaidHelperBot || hasBenchButton(message);
   });
 
   // Extract SoftRes links with context
