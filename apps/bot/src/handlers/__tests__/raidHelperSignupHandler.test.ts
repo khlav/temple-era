@@ -1,7 +1,8 @@
-import { ComponentType, type Message } from "discord.js";
+import { Collection, ComponentType, type Message } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  handleRaidHelperRoster,
   handleRaidHelperSignup,
   scheduleRaidHelperSignupCheck,
 } from "../raidHelperSignupHandler.js";
@@ -9,14 +10,21 @@ import { logger } from "../../config/logger.js";
 
 // vi.mock factories are hoisted above the rest of this module, so the ids they close over
 // must be declared through vi.hoisted rather than as plain top-level consts.
-const { RAID_HELPER_BOT_ID, OTHER_USER_ID, SR_CHANNEL_ID, OTHER_CHANNEL_ID, SERVER_ID } =
-  vi.hoisted(() => ({
-    RAID_HELPER_BOT_ID: "111111111111111111",
-    OTHER_USER_ID: "999999999999999999",
-    SR_CHANNEL_ID: "222222222222222222",
-    OTHER_CHANNEL_ID: "444444444444444444",
-    SERVER_ID: "555555555555555555",
-  }));
+const {
+  RAID_HELPER_BOT_ID,
+  OTHER_USER_ID,
+  SR_CHANNEL_ID,
+  OTHER_CHANNEL_ID,
+  SERVER_ID,
+  BOT_USER_ID,
+} = vi.hoisted(() => ({
+  RAID_HELPER_BOT_ID: "111111111111111111",
+  OTHER_USER_ID: "999999999999999999",
+  SR_CHANNEL_ID: "222222222222222222",
+  OTHER_CHANNEL_ID: "444444444444444444",
+  SERVER_ID: "555555555555555555",
+  BOT_USER_ID: "666666666666666666",
+}));
 
 vi.mock("../../config/env.js", () => ({
   config: {
@@ -72,9 +80,10 @@ function fakeMessage(overrides: {
   channelId?: string;
   components?: unknown[];
   content?: string;
-  embeds?: { title?: string; description?: string }[];
+  embeds?: { title?: string; description?: string; url?: string }[];
   channelSend?: ReturnType<typeof vi.fn>;
   channelSendable?: boolean;
+  channelMessagesFetch?: ReturnType<typeof vi.fn>;
   fetch?: ReturnType<typeof vi.fn>;
 }): Message {
   const channelId = overrides.channelId ?? SR_CHANNEL_ID;
@@ -88,8 +97,11 @@ function fakeMessage(overrides: {
     channel: {
       isSendable: () => overrides.channelSendable ?? true,
       send: overrides.channelSend ?? vi.fn().mockResolvedValue(undefined),
+      messages: {
+        fetch: overrides.channelMessagesFetch ?? vi.fn().mockResolvedValue(new Collection()),
+      },
     },
-    client: {},
+    client: { user: { id: BOT_USER_ID } },
   } as unknown as Message;
   // Defaults to resolving with itself — matches the common case where the fresh fetch after the
   // delay carries the same shape the test already set up (e.g. signupComponents()).
@@ -97,6 +109,24 @@ function fakeMessage(overrides: {
     overrides.fetch ?? vi.fn().mockResolvedValue(message);
   return message;
 }
+
+/** A bot-authored SoftRes embed message, as returned from `channel.messages.fetch` — the shape
+ *  `findSoftresEmbedForEvent` searches for. */
+function fakeSoftresEmbedMessage(overrides: {
+  id: string;
+  embedUrl: string;
+  forward?: ReturnType<typeof vi.fn>;
+}): Message {
+  return {
+    id: overrides.id,
+    author: { id: BOT_USER_ID, bot: true },
+    createdTimestamp: Number(overrides.id),
+    embeds: [{ title: "SRs : Sunday BWL/MC @7PM", url: overrides.embedUrl }],
+    forward: overrides.forward ?? vi.fn().mockResolvedValue(undefined),
+  } as unknown as Message;
+}
+
+const EVENT_URL = `https://discord.com/channels/${SERVER_ID}/${SR_CHANNEL_ID}/999000000000000001`;
 
 function jsonResponse(body: unknown) {
   return { json: () => Promise.resolve(body) } as Response;
@@ -165,22 +195,14 @@ describe("scheduleRaidHelperSignupCheck", () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: true, created: false, links: [], eventTitle: "Thursday Onyxia" }),
     );
-    const staleMessage = fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID });
+    const staleMessage = fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID, components: [] });
     const freshFetch = vi
       .fn()
       .mockResolvedValueOnce(
-        fakeMessage({
-          id: "1f",
-          authorId: RAID_HELPER_BOT_ID,
-          components: rosterConfirmationComponents(),
-        }),
+        fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID, components: [] }),
       )
       .mockResolvedValueOnce(
-        fakeMessage({
-          id: "1f",
-          authorId: RAID_HELPER_BOT_ID,
-          components: rosterConfirmationComponents(),
-        }),
+        fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID, components: [] }),
       )
       .mockResolvedValueOnce(
         fakeMessage({ id: "1f", authorId: RAID_HELPER_BOT_ID }), // default signupComponents()
@@ -198,30 +220,50 @@ describe("scheduleRaidHelperSignupCheck", () => {
     );
   });
 
-  it("gives up (no ensure-softres call) after exhausting all four retries with no Bench button", async () => {
-    const staleMessage = fakeMessage({
+  it("gives up (no ensure-softres call) after exhausting all four retries with neither button type", async () => {
+    const noButtonsMessage = fakeMessage({
       id: "1d",
       authorId: RAID_HELPER_BOT_ID,
-      components: rosterConfirmationComponents(),
+      components: [],
     });
     const freshFetch = vi.fn().mockResolvedValue(
       fakeMessage({
         id: "1d",
         authorId: RAID_HELPER_BOT_ID,
-        components: rosterConfirmationComponents(),
+        components: [],
       }),
     );
-    (staleMessage as unknown as { fetch: typeof freshFetch }).fetch = freshFetch;
+    (noButtonsMessage as unknown as { fetch: typeof freshFetch }).fetch = freshFetch;
 
-    scheduleRaidHelperSignupCheck(staleMessage);
+    scheduleRaidHelperSignupCheck(noButtonsMessage);
     await vi.advanceTimersByTimeAsync(5_000 + 10_000 + 20_000 + 60_000);
 
     expect(freshFetch).toHaveBeenCalledTimes(4);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({ eventId: "1d" }),
-      "Raid Helper message still has no Bench button after all retries, giving up",
+      "Raid Helper message still has no Bench or Confirm button after all retries, giving up",
     );
+  });
+
+  it("dispatches to the roster handler once a fresh fetch shows a Confirm button", async () => {
+    const message = fakeMessage({
+      id: "1h",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ title: "Sunday BWL/MC @7PM", url: EVENT_URL }],
+    });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    // Reaching this log (rather than the Bench-button ensure-softres path) confirms the retry
+    // loop routed a Confirm-button message to the roster handler.
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "1h" }),
+      "No matching SoftRes embed found for this roster post",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("treats a failed re-fetch as one retry, not a permanent failure — a later attempt can still succeed", async () => {
@@ -563,6 +605,234 @@ describe("handleRaidHelperSignup", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ error: "token thread down", eventId: "12" }),
       "Error ensuring SoftRes link",
+    );
+  });
+});
+
+describe("handleRaidHelperRoster", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("ignores a message with no Confirm button, with no channel search", async () => {
+    const channelMessagesFetch = vi.fn();
+    const message = fakeMessage({
+      id: "20",
+      authorId: RAID_HELPER_BOT_ID,
+      components: signupComponents(),
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(channelMessagesFetch).not.toHaveBeenCalled();
+  });
+
+  it("skips a duplicate roster message id without a second channel search", async () => {
+    const channelMessagesFetch = vi.fn().mockResolvedValue(new Collection());
+    const message = fakeMessage({
+      id: "21",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ url: EVENT_URL }],
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+    await handleRaidHelperRoster(message);
+
+    expect(channelMessagesFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns and skips when neither the embed nor a button custom_id yields the original event", async () => {
+    const channelMessagesFetch = vi.fn();
+    const message = fakeMessage({
+      id: "22",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(), // no custom_id set on the test fixture's buttons
+      embeds: [{ title: "Sunday BWL/MC @7PM" }], // no .url
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(channelMessagesFetch).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "22" }),
+      "Could not resolve the original signup message from a Raid Helper roster post",
+    );
+  });
+
+  it("resolves the event from a Confirm button's custom_id when the embed has no .url", async () => {
+    const forward = vi.fn().mockResolvedValue(undefined);
+    const srMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000002",
+      embedUrl: EVENT_URL,
+      forward,
+    });
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
+    const message = fakeMessage({
+      id: "23",
+      authorId: RAID_HELPER_BOT_ID,
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              label: "Confirm",
+              customId: "confirm-999000000000000001-187282620059484160",
+            },
+            {
+              type: ComponentType.Button,
+              label: "Cancel",
+              customId: "cancel-999000000000000001-187282620059484160",
+            },
+          ],
+        },
+      ],
+      embeds: [{ title: "Sunday BWL/MC @7PM" }], // no .url — forces the custom_id fallback
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(forward).toHaveBeenCalledWith(message.channel);
+  });
+
+  it("finds the matching SoftRes embed by event URL and forwards it into the roster channel", async () => {
+    const forward = vi.fn().mockResolvedValue(undefined);
+    const srMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000002",
+      embedUrl: EVENT_URL,
+      forward,
+    });
+    const otherBotMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000003",
+      embedUrl: "https://discord.com/channels/different/event/link",
+    });
+    const channelMessagesFetch = vi.fn().mockResolvedValue(
+      new Collection([
+        [otherBotMessage.id, otherBotMessage],
+        [srMessage.id, srMessage],
+      ]),
+    );
+    const message = fakeMessage({
+      id: "24",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ title: "Sunday BWL/MC @7PM", url: EVENT_URL }],
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(forward).toHaveBeenCalledTimes(1);
+    expect(forward).toHaveBeenCalledWith(message.channel);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "24", softresMessageId: srMessage.id }),
+      "Forwarded the SoftRes embed after the roster post",
+    );
+  });
+
+  it("paginates backwards through channel history until it finds the matching embed", async () => {
+    const forward = vi.fn().mockResolvedValue(undefined);
+    const srMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000002",
+      embedUrl: EVENT_URL,
+      forward,
+    });
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Collection([["a", fakeSoftresEmbedMessage({ id: "1", embedUrl: "nope" })]]),
+      )
+      .mockResolvedValueOnce(new Collection([[srMessage.id, srMessage]]));
+    const message = fakeMessage({
+      id: "25",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ url: EVENT_URL }],
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(channelMessagesFetch).toHaveBeenCalledTimes(2);
+    expect(forward).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs and gives up when channel history is exhausted with no matching embed", async () => {
+    const channelMessagesFetch = vi.fn().mockResolvedValue(new Collection());
+    const message = fakeMessage({
+      id: "26",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ url: EVENT_URL }],
+      channelMessagesFetch,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ eventId: "26" }),
+      "No matching SoftRes embed found for this roster post",
+    );
+  });
+
+  it("logs without throwing when forward() rejects", async () => {
+    const forward = vi.fn().mockRejectedValue(new Error("cannot forward"));
+    const srMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000002",
+      embedUrl: EVENT_URL,
+      forward,
+    });
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
+    const message = fakeMessage({
+      id: "27",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ url: EVENT_URL }],
+      channelMessagesFetch,
+    });
+
+    await expect(handleRaidHelperRoster(message)).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ error: "cannot forward", eventId: "27" }),
+      "Error forwarding SoftRes embed for roster post",
+    );
+  });
+
+  it("logs and skips without forwarding when the roster channel is not sendable", async () => {
+    const forward = vi.fn().mockResolvedValue(undefined);
+    const srMessage = fakeSoftresEmbedMessage({
+      id: "999000000000000002",
+      embedUrl: EVENT_URL,
+      forward,
+    });
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
+    const message = fakeMessage({
+      id: "28",
+      authorId: RAID_HELPER_BOT_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ url: EVENT_URL }],
+      channelMessagesFetch,
+      channelSendable: false,
+    });
+
+    await handleRaidHelperRoster(message);
+
+    expect(forward).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: SR_CHANNEL_ID }),
+      "Roster channel is not sendable",
     );
   });
 });

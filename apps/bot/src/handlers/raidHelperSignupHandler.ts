@@ -1,15 +1,19 @@
-import { type Message } from "discord.js";
+import { ComponentType, type Message, type TextBasedChannel } from "discord.js";
 import { EnsureSoftresResponseSchema } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { hasBenchButton } from "../services/hasBenchButton.js";
+import { hasConfirmButton } from "../services/hasConfirmButton.js";
 import { buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
 import { postWeeklyTokenEntries } from "../services/tokenThreadSummary.js";
 import { getZoneEmoji } from "../services/zoneEmoji.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
 
-// Track processed messages to prevent duplicate processing
+// Track processed messages to prevent duplicate processing — one deduplicator per Raid-Helper
+// message type, since a signup post and its later roster post are two distinct Discord messages
+// (different snowflakes), never colliding on the same id.
 const deduplicator = new MessageDeduplicator();
+const rosterDeduplicator = new MessageDeduplicator();
 
 // Raid-Helper posts a signup message with NO components at all — the class-select dropdown and
 // Bench/Late/Tentative/Absence buttons only appear once Raid-Helper finishes building the event
@@ -87,21 +91,27 @@ async function attemptSignupCheck(message: Message, attemptIndex: number): Promi
     return;
   }
 
-  if (!hasBenchButton(fresh)) {
-    if (!isLastAttempt) {
-      scheduleAttempt(message, attemptIndex + 1);
-      return;
-    }
-    // still not a signup post after every retry (e.g. a roster confirmation, which never
-    // carries a Bench button — or, rarely, Raid-Helper took longer than our whole backoff window)
-    logger.info(
-      { eventId: fresh.id, channelId: fresh.channelId },
-      "Raid Helper message still has no Bench button after all retries, giving up",
-    );
+  if (hasBenchButton(fresh)) {
+    await handleRaidHelperSignup(fresh);
     return;
   }
 
-  await handleRaidHelperSignup(fresh);
+  if (hasConfirmButton(fresh)) {
+    await handleRaidHelperRoster(fresh);
+    return;
+  }
+
+  if (!isLastAttempt) {
+    scheduleAttempt(message, attemptIndex + 1);
+    return;
+  }
+  // still neither post type after every retry — rarely, Raid-Helper took longer than our whole
+  // backoff window; more often this is some other Raid-Helper message type entirely (e.g. an
+  // announcement) that never gets either button set.
+  logger.info(
+    { eventId: fresh.id, channelId: fresh.channelId },
+    "Raid Helper message still has no Bench or Confirm button after all retries, giving up",
+  );
 }
 
 /**
@@ -210,6 +220,135 @@ export async function handleRaidHelperSignup(message: Message): Promise<void> {
     logger.error(
       { error: error instanceof Error ? error.message : String(error), eventId: message.id },
       "Error ensuring SoftRes link",
+    );
+  }
+}
+
+// Discord returns pages newest-first, capped at 100 per call. Mirrors the pagination in
+// softresMessageCleanup.ts's findSoftresMessages, but this one only needs the *first* match (the
+// bot's own SR embed is expected to still be the newest or near-newest message in the channel by
+// the time a roster post lands) rather than every SR message in the channel, so it short-circuits
+// instead of collecting.
+const FIND_SR_EMBED_MAX_PAGES = 10;
+
+/**
+ * Both a Raid-Helper roster/confirmation embed's `.url` and our own SR embed's `.url` (set via
+ * `titleUrl` above) point at the same original signup message — Raid-Helper sets the roster
+ * embed's title-link back to the signup post it confirms, and we set our SR embed's the same way.
+ * That's just a URL string on each embed, not a live reference, so it still matches even after
+ * the signup post itself is later archived/deleted out of the channel by cleanup.
+ */
+function resolveEventUrl(message: Message): string | undefined {
+  const embedUrl = message.embeds[0]?.url;
+  if (embedUrl) return embedUrl;
+
+  // Fallback: Raid-Helper's Confirm/Cancel button custom_ids are `confirm-{eventId}-{userId}` /
+  // `cancel-{eventId}-{userId}`, where `eventId` is that same original signup message's
+  // snowflake — recover it and rebuild the same URL shape, in case the embed itself ever omits
+  // `.url`.
+  for (const row of message.components) {
+    if (row.type !== ComponentType.ActionRow) continue;
+    for (const component of row.components) {
+      const customId = "customId" in component ? component.customId : undefined;
+      const match = customId ? /^(?:confirm|cancel)-(\d+)-/.exec(customId) : null;
+      if (match?.[1]) {
+        return `https://discord.com/channels/${config.discordServerId}/${message.channelId}/${match[1]}`;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Pages backwards through `channel`'s history for the bot's own message whose embed links back
+ *  to `eventUrl` — i.e. the SR embed posted for this same event. Returns the first (most recent)
+ *  match, or undefined if history is exhausted without one. */
+async function findSoftresEmbedForEvent(
+  channel: TextBasedChannel,
+  botUserId: string | undefined,
+  eventUrl: string,
+): Promise<Message | undefined> {
+  let before: string | undefined;
+
+  for (let page = 0; page < FIND_SR_EMBED_MAX_PAGES; page++) {
+    // cache: false — matches this bot's near-zero-cache invariant (see AGENTS.md); a full
+    // FIND_SR_EMBED_MAX_PAGES sweep would otherwise populate the message cache on every roster.
+    const batch = await channel.messages.fetch({ limit: 100, before, cache: false });
+    if (batch.size === 0) break;
+
+    const match = [...batch.values()].find(
+      (m) => m.author.id === botUserId && m.embeds[0]?.url === eventUrl,
+    );
+    if (match) return match;
+
+    // Discord returns each page newest-first, so the collection's last entry is the oldest.
+    const oldestInBatch = batch.last();
+    if (!oldestInBatch) break;
+    before = oldestInBatch.id;
+  }
+
+  return undefined;
+}
+
+/**
+ * Handles a Raid-Helper roster/confirmation post (Confirm/Cancel buttons, posted once signups
+ * for an event are locked in) by finding the bot's own SoftRes embed for that same event and
+ * forwarding it into the channel right after — so the SR link(s) stay visible near the final
+ * roster instead of scrolled off up near the original signup post.
+ */
+export async function handleRaidHelperRoster(message: Message): Promise<void> {
+  if (!hasConfirmButton(message)) {
+    // Defense in depth — attemptSignupCheck already verifies this before calling here. Kept as
+    // a self-contained guard for any direct caller (e.g. a test) that skips the retry loop.
+    logger.info(
+      { eventId: message.id, channelId: message.channelId },
+      "Raid Helper message has no Confirm button, skipping roster forward",
+    );
+    return;
+  }
+
+  if (rosterDeduplicator.has(message.id)) {
+    logger.info({ eventId: message.id }, "Raid Helper roster already processed, skipping");
+    return;
+  }
+  rosterDeduplicator.add(message.id);
+
+  const eventUrl = resolveEventUrl(message);
+  if (!eventUrl) {
+    logger.warn(
+      { eventId: message.id, channelId: message.channelId },
+      "Could not resolve the original signup message from a Raid Helper roster post",
+    );
+    return;
+  }
+
+  try {
+    const srMessage = await findSoftresEmbedForEvent(
+      message.channel,
+      message.client.user?.id,
+      eventUrl,
+    );
+    if (!srMessage) {
+      logger.info(
+        { eventId: message.id, channelId: message.channelId },
+        "No matching SoftRes embed found for this roster post",
+      );
+      return;
+    }
+
+    if (!message.channel.isSendable()) {
+      logger.error({ channelId: message.channelId }, "Roster channel is not sendable");
+      return;
+    }
+
+    await srMessage.forward(message.channel);
+    logger.info(
+      { eventId: message.id, softresMessageId: srMessage.id, channelId: message.channelId },
+      "Forwarded the SoftRes embed after the roster post",
+    );
+  } catch (error) {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error), eventId: message.id },
+      "Error forwarding SoftRes embed for roster post",
     );
   }
 }
