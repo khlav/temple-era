@@ -1,4 +1,4 @@
-import { ComponentType, type Message } from "discord.js";
+import { Collection, ComponentType, type Message } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -98,7 +98,7 @@ function fakeMessage(overrides: {
       isSendable: () => overrides.channelSendable ?? true,
       send: overrides.channelSend ?? vi.fn().mockResolvedValue(undefined),
       messages: {
-        fetch: overrides.channelMessagesFetch ?? vi.fn().mockResolvedValue(new Map()),
+        fetch: overrides.channelMessagesFetch ?? vi.fn().mockResolvedValue(new Collection()),
       },
     },
     client: { user: { id: BOT_USER_ID } },
@@ -629,7 +629,7 @@ describe("handleRaidHelperRoster", () => {
   });
 
   it("skips a duplicate roster message id without a second channel search", async () => {
-    const channelMessagesFetch = vi.fn().mockResolvedValue(new Map());
+    const channelMessagesFetch = vi.fn().mockResolvedValue(new Collection());
     const message = fakeMessage({
       id: "21",
       authorId: RAID_HELPER_BOT_ID,
@@ -670,7 +670,9 @@ describe("handleRaidHelperRoster", () => {
       embedUrl: EVENT_URL,
       forward,
     });
-    const channelMessagesFetch = vi.fn().mockResolvedValue(new Map([[srMessage.id, srMessage]]));
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
     const message = fakeMessage({
       id: "23",
       authorId: RAID_HELPER_BOT_ID,
@@ -712,7 +714,7 @@ describe("handleRaidHelperRoster", () => {
       embedUrl: "https://discord.com/channels/different/event/link",
     });
     const channelMessagesFetch = vi.fn().mockResolvedValue(
-      new Map([
+      new Collection([
         [otherBotMessage.id, otherBotMessage],
         [srMessage.id, srMessage],
       ]),
@@ -745,9 +747,9 @@ describe("handleRaidHelperRoster", () => {
     const channelMessagesFetch = vi
       .fn()
       .mockResolvedValueOnce(
-        new Map([["a", fakeSoftresEmbedMessage({ id: "1", embedUrl: "nope" })]]),
+        new Collection([["a", fakeSoftresEmbedMessage({ id: "1", embedUrl: "nope" })]]),
       )
-      .mockResolvedValueOnce(new Map([[srMessage.id, srMessage]]));
+      .mockResolvedValueOnce(new Collection([[srMessage.id, srMessage]]));
     const message = fakeMessage({
       id: "25",
       authorId: RAID_HELPER_BOT_ID,
@@ -763,7 +765,7 @@ describe("handleRaidHelperRoster", () => {
   });
 
   it("logs and gives up when channel history is exhausted with no matching embed", async () => {
-    const channelMessagesFetch = vi.fn().mockResolvedValue(new Map());
+    const channelMessagesFetch = vi.fn().mockResolvedValue(new Collection());
     const message = fakeMessage({
       id: "26",
       authorId: RAID_HELPER_BOT_ID,
@@ -787,7 +789,9 @@ describe("handleRaidHelperRoster", () => {
       embedUrl: EVENT_URL,
       forward,
     });
-    const channelMessagesFetch = vi.fn().mockResolvedValue(new Map([[srMessage.id, srMessage]]));
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
     const message = fakeMessage({
       id: "27",
       authorId: RAID_HELPER_BOT_ID,
@@ -811,7 +815,9 @@ describe("handleRaidHelperRoster", () => {
       embedUrl: EVENT_URL,
       forward,
     });
-    const channelMessagesFetch = vi.fn().mockResolvedValue(new Map([[srMessage.id, srMessage]]));
+    const channelMessagesFetch = vi
+      .fn()
+      .mockResolvedValue(new Collection([[srMessage.id, srMessage]]));
     const message = fakeMessage({
       id: "28",
       authorId: RAID_HELPER_BOT_ID,

@@ -270,7 +270,9 @@ async function findSoftresEmbedForEvent(
   let before: string | undefined;
 
   for (let page = 0; page < FIND_SR_EMBED_MAX_PAGES; page++) {
-    const batch = await channel.messages.fetch({ limit: 100, before });
+    // cache: false — matches this bot's near-zero-cache invariant (see AGENTS.md); a full
+    // FIND_SR_EMBED_MAX_PAGES sweep would otherwise populate the message cache on every roster.
+    const batch = await channel.messages.fetch({ limit: 100, before, cache: false });
     if (batch.size === 0) break;
 
     const match = [...batch.values()].find(
@@ -278,9 +280,9 @@ async function findSoftresEmbedForEvent(
     );
     if (match) return match;
 
-    const oldestInBatch = [...batch.values()].reduce((a, b) =>
-      a.createdTimestamp < b.createdTimestamp ? a : b,
-    );
+    // Discord returns each page newest-first, so the collection's last entry is the oldest.
+    const oldestInBatch = batch.last();
+    if (!oldestInBatch) break;
     before = oldestInBatch.id;
   }
 
