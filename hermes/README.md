@@ -27,22 +27,12 @@ changed slash command, an automatic behavior, a page, a permission). This is the
 ## Getting it onto the Hermes host
 
 Hermes reads extra skills from `skills.external_dirs` in the profile's `config.yaml`; each entry is a
-directory of `<skill-name>/SKILL.md` folders. The repo is public, so a plain read-only clone needs no
-credentials.
+directory of `<skill-name>/SKILL.md` folders. The host keeps a read-only sparse clone of this repo and
+points `external_dirs` at its `hermes/skills`.
 
-```bash
-# once
-git clone --depth 1 https://github.com/khlav/temple-era.git /opt/temple-era
-
-# profile config.yaml
-skills:
-  external_dirs:
-    - /opt/temple-era/hermes/skills
-
-# keep it fresh (cron), then restart the profile's gateway when it changed —
-# Hermes does not hot-reload skills
-git -C /opt/temple-era pull --ff-only
-```
+A merge that changes `hermes/skills/**` is deployed automatically — pulled, validated, and the gateway
+restarted (Hermes does not hot-reload its skills index). The flow, the one-time host setup, and how to
+test it are in [deploy/README.md](deploy/README.md).
 
 ## SOUL.md identity note
 
