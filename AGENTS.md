@@ -45,6 +45,7 @@ A pnpm + Turborepo workspace holding two previously separate applications, both 
 | `apps/bot` | Discord gateway bot — a thin client over four of the five `/api/discord/*` endpoints the web app owns (the fifth, `proxy`, serves Templar) | **Northflank** (Docker) |
 | `packages/contracts` | `@temple-era/contracts` — Zod schemas for the `/api/discord/*` wire contract, imported by both apps | — (compiled into each) |
 | `packages/wcl` | `@temple-era/wcl` — Warcraft Logs URL and report-ID parsing, imported by both apps | — (compiled into each) |
+| `packages/softres-blocks` | `@temple-era/softres-blocks` — the pure logic behind the SoftRes Discord posts: the public SR embed and the weekly "SR Admin Tokens" block (render, parse, merge, lockout weeks). Both apps write that one Discord message and edit it by parsing the other's text, so the format lives here once. No discord.js, no fetch — each app owns its own transport | — (compiled into each) |
 
 The two apps deploy independently to different platforms. Nothing in this repo couples their release cycles.
 
@@ -98,7 +99,7 @@ pnpm install          # install the whole workspace
 pnpm build            # build both apps    ⚠️ see warning below
 pnpm typecheck        # tsc --noEmit in both apps
 pnpm lint             # oxlint across both apps
-pnpm test             # vitest across apps/web, apps/bot and packages/wcl
+pnpm test             # vitest across apps/web, apps/bot, packages/wcl and packages/softres-blocks
 pnpm format:fix       # oxfmt across both apps
 ```
 

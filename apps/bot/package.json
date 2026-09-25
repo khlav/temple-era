@@ -27,6 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "@temple-era/contracts": "workspace:*",
+    "@temple-era/softres-blocks": "workspace:*",
     "@temple-era/wcl": "workspace:*",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2",

@@ -2,23 +2,14 @@ import { NextResponse } from "next/server";
 import {
   ResolveSoftresEventRequestSchema,
   firstIssueMessage,
-  type ResolveSoftresEventCandidate,
   type ResolveSoftresEventResult,
 } from "@temple-era/contracts";
 import { logger } from "~/lib/logger";
 import { env } from "~/env.js";
 import { compressResponse } from "~/lib/compression";
-import { formatEasternDateTime } from "~/lib/raid-formatting";
 import { getZoneForInstance } from "~/lib/raid-zones";
-import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
-import { fetchEventDetail, fetchScheduledEvents } from "~/server/services/raid-helper-client";
-
-// A raid posted a while ago is not a candidate for a token someone is pasting now, and every
-// candidate costs a Raid Helper detail fetch — so keep the window and the fan-out small.
-const LOOKBACK_SECONDS = 12 * 60 * 60;
-const LOOKAHEAD_SECONDS = 14 * 24 * 60 * 60;
-const MAX_CANDIDATES = 5;
+import { findEventsForZone } from "~/server/services/softres-event-lookup";
 
 /**
  * SoftRes knows a raid's zone but not when it is. Given a softres.it raid id, returns that zone
@@ -92,41 +83,12 @@ export async function POST(request: Request) {
       return await compressResponse(result, request);
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    const inWindow = (await fetchScheduledEvents())
-      .filter(
-        (e) => e.startTime >= now - LOOKBACK_SECONDS && e.startTime <= now + LOOKAHEAD_SECONDS,
-      )
-      .filter(
-        (e) =>
-          !dateHint ||
-          formatEasternDateTime(new Date(e.startTime * 1000), "yyyy-MM-dd") === dateHint,
-      )
-      .sort((a, b) => a.startTime - b.startTime);
-
-    // The list has no titles; a zone match needs each event's detail. Fetched one by one and a
-    // failure skips that event rather than the whole lookup.
-    const candidates: ResolveSoftresEventCandidate[] = [];
-    for (const posted of inWindow) {
-      if (candidates.length >= MAX_CANDIDATES) break;
-      try {
-        const detail = await fetchEventDetail(posted.id);
-        const title = detail.displayTitle ?? detail.title ?? "Raid";
-        if (parseZonesFromEventTitle(title, detail.channelName).includes(zone)) {
-          candidates.push({
-            eventId: posted.id,
-            title,
-            source: "raid-helper",
-            timestamp: detail.startTime,
-          });
-        }
-      } catch (error) {
-        logger.warn(
-          { eventId: posted.id, error: error instanceof Error ? error.message : String(error) },
-          "Skipping Raid Helper event in resolve-softres-event",
-        );
-      }
-    }
+    const candidates = (await findEventsForZone(zone, dateHint)).map((m) => ({
+      eventId: m.eventId,
+      title: m.title,
+      source: "raid-helper" as const,
+      timestamp: m.timestamp,
+    }));
 
     const result: ResolveSoftresEventResult = { success: true, zone, candidates };
     return await compressResponse(result, request);

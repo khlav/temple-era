@@ -100,6 +100,8 @@ The bot operates through three main message handlers:
   deletes any older than `threadCleanupDays`, except the single most recent one per channel —
   kept regardless of age, since that's always the current raid's post.
 
+- **Weekly token block** (`tokenThreadSummary.ts`): the bot's Discord transport for the "SR Admin Tokens" block. What the block says — rendering, parsing, the one-line-per-raid merge, lockout weeks — is `@temple-era/softres-blocks`, shared with the web app's Templar create-SR endpoint, which edits the same message over REST. Change the format there, never here, or the two writers will stop understanding each other.
+
 - **Token-thread prompt** (`tokenThreadPrompt.ts`, TEMPLE-131): when someone posts a softres.it admin
   link in the SoftRes Token thread, replies with an Add/Dismiss button (a picker if several Raid Helper
   events fit) that merges it into the weekly "SR Admin Tokens" block. The zone comes from softres.it and
