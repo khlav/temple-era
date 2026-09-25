@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Client } from "discord.js";
-import { postWeeklyTokenEntries } from "../tokenThreadSummary.js";
+import { isRaidInWeeklyBlock, postWeeklyTokenEntries } from "../tokenThreadSummary.js";
 
 const { THREAD_ID } = vi.hoisted(() => ({ THREAD_ID: "111111111111111111" }));
 
@@ -340,5 +340,61 @@ describe("postWeeklyTokenEntries", () => {
       ]),
     ).resolves.toBeUndefined();
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe("postWeeklyTokenEntries — one line per raid", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("replaces an existing line for the same raid id instead of duplicating it", async () => {
+    const edit = vi.fn().mockResolvedValue(undefined);
+    const existing = fakeMessage({
+      footer: "lockout-week:2026-09-15",
+      description: `- **Tuesday 9/15**\n  - Naxx @ 7pm — [same1 | admintoken: old](https://softres.it/raid/same1?adminToken=old#ts=${TUE_7PM})`,
+      edit,
+    });
+    const client = fakeClient({ existingMessages: [existing] });
+
+    await postWeeklyTokenEntries(client, [
+      {
+        zone: "Naxxramas",
+        url: "https://softres.it/raid/same1?adminToken=new",
+        timestampSec: TUE_730PM,
+      },
+    ]);
+
+    const description = edit.mock.calls[0]![0].embeds[0].data.description as string;
+    expect(description.match(/same1 \|/g)).toHaveLength(1);
+    expect(description).toContain("Naxx @ 7:30pm");
+    expect(description).toContain("admintoken: new");
+  });
+});
+
+describe("isRaidInWeeklyBlock", () => {
+  it("is true only for a raid id already listed in that week's block", async () => {
+    const client = fakeClient({
+      existingMessages: [
+        fakeMessage({
+          footer: "lockout-week:2026-09-15",
+          description: `- **Tuesday 9/15**\n  - MC @ 7pm — [abc123 | admintoken: tok](https://softres.it/raid/abc123?adminToken=tok#ts=${TUE_7PM})`,
+        }),
+      ],
+    });
+    expect(await isRaidInWeeklyBlock(client, "abc123", TUE_7PM)).toBe(true);
+    expect(await isRaidInWeeklyBlock(client, "other", TUE_7PM)).toBe(false);
+  });
+
+  it("is false when the week has no block yet, or the thread cannot be read", async () => {
+    const empty = fakeClient({ existingMessages: [] });
+    const unsendable = fakeClient({ isSendable: false });
+    expect(await isRaidInWeeklyBlock(empty, "abc123", TUE_7PM)).toBe(false);
+    expect(await isRaidInWeeklyBlock(unsendable, "abc123", TUE_7PM)).toBe(false);
   });
 });

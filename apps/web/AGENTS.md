@@ -313,6 +313,7 @@ The website provides REST API endpoints for the Discord bot at `apps/bot`:
 - `POST /api/discord/check-permissions` - Checks user permissions
 - `POST /api/discord/update-raid` - Updates existing raid data
 - `POST /api/discord/update-bench` - Updates raid bench assignments
+- `POST /api/discord/resolve-softres-event` - Resolves a softres.it raid id to its zone plus the upcoming Raid Helper events naming it (SoftRes has no date of its own)
 - `POST /api/discord/proxy/{discordId}` - Proxies a v1 API call on behalf of an opted-in user (requires `templarEnabled = true` on target user)
 - All require `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header
 - Helper functions in `src/server/api/discord-helpers.ts`

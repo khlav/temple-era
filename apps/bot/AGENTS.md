@@ -100,6 +100,14 @@ The bot operates through three main message handlers:
   deletes any older than `threadCleanupDays`, except the single most recent one per channel —
   kept regardless of age, since that's always the current raid's post.
 
+- **Token-thread prompt** (`tokenThreadPrompt.ts`, TEMPLE-131): when someone posts a softres.it admin
+  link in the SoftRes Token thread, replies with an Add/Dismiss button (a picker if several Raid Helper
+  events fit) that merges it into the weekly "SR Admin Tokens" block. The zone comes from softres.it and
+  the raid night from `POST /api/discord/resolve-softres-event` — SoftRes has no date of its own, so no
+  matching event means no prompt. Ephemeral messages only exist for interactions, so the prompt is a
+  normal reply and the click is answered ephemerally. The token is re-read from the original message on
+  click, never stored in a custom id.
+
 - **Message Deduplication** (`messageDeduplication.ts`): Prevents duplicate processing of messages. **Not an LRU cache**, despite how it reads — it is a `Map` of id → timestamp with a periodic sweep, so entries expire on a TTL and there is no size cap or eviction by access order. Memory is bounded by arrival rate × TTL window, not by a fixed capacity.
 
 ### API Integration

@@ -1,4 +1,4 @@
-import { EmbedBuilder, type Client } from "discord.js";
+import { EmbedBuilder, type Client, type TextBasedChannel } from "discord.js";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { ADMIN_EMBED_COLOR } from "./softresEmbeds.js";
@@ -81,6 +81,12 @@ function formatDayHeader(timestampSec: number): string {
   return `${weekday} ${monthDay}`;
 }
 
+/** "Tuesday 9/29 @ 7pm" — the same day/time wording the block itself uses, for prompts that
+ * describe an entry before it is added. */
+export function formatRaidWhen(timestampSec: number): string {
+  return `${formatDayHeader(timestampSec)} @ ${formatShortTime(timestampSec)}`;
+}
+
 function parseAdminUrl(url: string): { raidId: string; adminToken: string } | null {
   // Anchored to the end of the value (`&`/`#`/end-of-string): an unanchored `[a-zA-Z0-9]+`
   // would silently truncate a raidId or token containing `-`/`_`/`.`, showing a wrong value in
@@ -148,6 +154,61 @@ function parseExistingEntries(description: string): ResolvedEntry[] {
   });
 }
 
+function raidIdOf(url: string): string | null {
+  return parseAdminUrl(url)?.raidId ?? null;
+}
+
+async function findWeeklyBlock(client: Client, thread: TextBasedChannel, footerMarker: string) {
+  // Generous limit: this thread only ever gets ~1 bot message per week, so even a handful
+  // of human messages in between won't push this week's tracker out of range.
+  const recent = await thread.messages.fetch({ limit: 50 });
+  return recent.find(
+    (m) => m.author.id === client.user?.id && m.embeds[0]?.footer?.text === footerMarker,
+  );
+}
+
+/**
+ * Whether the lockout week containing `timestampSec` already lists `raidId` — lets the
+ * add-to-block prompt stay quiet for a raid the bot (or an earlier click) already recorded.
+ * False on any lookup failure: an unneeded prompt is better than a missing one.
+ */
+export async function isRaidInWeeklyBlock(
+  client: Client,
+  raidId: string,
+  timestampSec: number,
+): Promise<boolean> {
+  try {
+    const thread = await client.channels.fetch(config.discordSoftresTokenThreadId);
+    if (!thread?.isSendable() || !thread.isTextBased()) return false;
+    const marker = `${FOOTER_MARKER_PREFIX}${getLockoutWeekKey(new Date(timestampSec * 1000))}`;
+    const existing = await findWeeklyBlock(client, thread, marker);
+    if (!existing) return false;
+    return parseExistingEntries(existing.embeds[0]?.description ?? "").some(
+      (e) => raidIdOf(e.url) === raidId,
+    );
+  } catch (error) {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error), raidId },
+      "Failed to check the weekly SoftRes token block for a raid",
+    );
+    return false;
+  }
+}
+
+/** A raid appears once: re-adding one (a corrected time, a second click) replaces its old line
+ * rather than duplicating it. Entries whose URL has no parseable raid id can't be matched and are
+ * kept as they are. */
+function mergeEntries(existing: ResolvedEntry[], added: ResolvedEntry[]): ResolvedEntry[] {
+  const addedIds = new Set(
+    added.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
+  );
+  const kept = existing.filter((e) => {
+    const id = raidIdOf(e.url);
+    return id === null || !addedIds.has(id);
+  });
+  return [...kept, ...added];
+}
+
 // Serializes calls so two raids created within the same tick can't race a fetch-then-edit
 // against each other and silently drop one's entry — cheap insurance since apps/bot has no
 // storage to fall back on for reconciling a lost update after the fact.
@@ -194,12 +255,7 @@ async function postWeeklyTokenEntriesInner(
     const weekKey = getLockoutWeekKey(new Date(entries[0]!.timestampSec * 1000));
     const footerMarker = `${FOOTER_MARKER_PREFIX}${weekKey}`;
 
-    // Generous limit: this thread only ever gets ~1 bot message per week, so even a handful
-    // of human messages in between won't push this week's tracker out of range.
-    const recent = await thread.messages.fetch({ limit: 50 });
-    const existing = recent.find(
-      (m) => m.author.id === client.user?.id && m.embeds[0]?.footer?.text === footerMarker,
-    );
+    const existing = await findWeeklyBlock(client, thread, footerMarker);
 
     const existingEntries = existing
       ? parseExistingEntries(existing.embeds[0]?.description ?? "")
@@ -215,7 +271,7 @@ async function postWeeklyTokenEntriesInner(
     const embed = new EmbedBuilder()
       .setTitle(`SR Admin Tokens — Week of ${formatLockoutWeekLabel(weekKey)}`)
       .setColor(ADMIN_EMBED_COLOR)
-      .setDescription(renderDescription([...existingEntries, ...newEntries]))
+      .setDescription(renderDescription(mergeEntries(existingEntries, newEntries)))
       .setFooter({ text: footerMarker });
 
     if (existing) {

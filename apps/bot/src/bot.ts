@@ -11,6 +11,11 @@ import { cleanupOldSoftresMessages } from "./services/softresMessageCleanup.js";
 import { registerCommands } from "./commands/registerCommands.js";
 import { handleSrCommand } from "./commands/srCommand.js";
 import { ensureZoneEmoji } from "./services/zoneEmoji.js";
+import {
+  handleTokenPromptInteraction,
+  handleTokenThreadMessage,
+  isTokenPromptCustomId,
+} from "./services/tokenThreadPrompt.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -86,6 +91,7 @@ export function createBot(): Client {
   client.on(Events.MessageCreate, (message) => {
     if (message.channel.isThread()) {
       void handleThreadMessage(message);
+      void handleTokenThreadMessage(message);
     } else {
       void handleMessage(message);
       // Filters on discordRaidSrChannelIds, a channel set that is mutually exclusive with
@@ -113,6 +119,11 @@ export function createBot(): Client {
   client.on(Events.InteractionCreate, (interaction) => {
     if (interaction.isChatInputCommand() && interaction.commandName === "sr") {
       void handleSrCommand(interaction);
+    } else if (
+      (interaction.isButton() || interaction.isStringSelectMenu()) &&
+      isTokenPromptCustomId(interaction.customId)
+    ) {
+      void handleTokenPromptInteraction(interaction);
     }
   });
 
