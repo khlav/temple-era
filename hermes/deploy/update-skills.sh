@@ -25,6 +25,10 @@ HEALTH_TIMEOUT="${HERMES_SKILLS_HEALTH_TIMEOUT:-240}"
 POLL_SECS="${HERMES_SKILLS_POLL_SECS:-5}"
 LOCK_FILE="${HERMES_SKILLS_LOCK_FILE:-/var/lock/hermes-skills-update.lock}"
 SKILLS_PATH="hermes/skills"
+# The commit whose skills the running gateway was last started with. Kept apart from the checkout's
+# HEAD on purpose: a deploy interrupted after the checkout (SSH dropped, script killed) must be
+# retried next time, not mistaken for "already up to date". Inside .git so it is never in the tree.
+MARKER="$REPO_DIR/.git/hermes-deployed-sha"
 
 CHECK_ONLY=0
 if [ "${1:-}" = "--check" ]; then CHECK_ONLY=1; fi
@@ -35,6 +39,8 @@ log() {
 }
 
 repo() { git -C "$REPO_DIR" "$@"; }
+
+mark_deployed() { printf '%s\n' "$1" >"$MARKER"; }
 
 # Reads one field of the gateway's own state file. Prints nothing if the file is missing/unreadable.
 state_field() {
@@ -85,7 +91,8 @@ validate_skills() {
     fi
     # Frontmatter = the lines between the first two '---'; empty if the file doesn't open with one.
     frontmatter="$(tr -d '\r' <"$file" | awk 'NR==1 { if ($0 != "---") exit; next } $0 == "---" { exit } { print }')"
-    if ! printf '%s\n' "$frontmatter" | grep -Eq "^name:[[:space:]]*[\"']?${name}[\"']?[[:space:]]*$"; then
+    # Fixed-string match: a folder name is data, never a regex.
+    if ! printf '%s\n' "$frontmatter" | grep -Fxq -e "name: $name" -e "name: \"$name\"" -e "name: '$name'"; then
       log "invalid: $name/SKILL.md frontmatter must have name: $name"
       bad=1
     fi
@@ -105,23 +112,30 @@ fi
 
 repo fetch --quiet --depth 1 --filter=blob:none origin "$REF"
 new="$(repo rev-parse FETCH_HEAD)"
-old="$(repo rev-parse HEAD)"
+head="$(repo rev-parse HEAD)"
+deployed=""
+if [ -f "$MARKER" ]; then deployed="$(tr -d '[:space:]' <"$MARKER")"; fi
 
-if [ "$new" = "$old" ]; then
-  log "already at ${old:0:12}, nothing to do"
+if [ -n "$deployed" ] && [ "$new" = "$deployed" ]; then
+  log "already deployed at ${new:0:12}, nothing to do"
   exit 0
 fi
 
+# What the gateway is (or should be) running: the marker, else the checkout on first use.
+base="${deployed:-$head}"
+
+# A base commit we can't read (e.g. garbage-collected) counts as "changed": converge, don't guess.
 skills_changed=1
-if repo diff --quiet --no-renames "$old" "$new" -- "$SKILLS_PATH"; then skills_changed=0; fi
+if repo diff --quiet --no-renames "$base" "$new" -- "$SKILLS_PATH" 2>/dev/null; then skills_changed=0; fi
 
 if [ "$skills_changed" -eq 0 ]; then
   if [ "$CHECK_ONLY" -eq 1 ]; then
-    log "check: ${old:0:12} -> ${new:0:12}, $SKILLS_PATH unchanged, would not restart"
+    log "check: ${base:0:12} -> ${new:0:12}, $SKILLS_PATH unchanged, would not restart"
     exit 0
   fi
   repo checkout --quiet --detach "$new"
-  log "advanced ${old:0:12} -> ${new:0:12}; $SKILLS_PATH unchanged, no restart"
+  mark_deployed "$new"
+  log "advanced ${base:0:12} -> ${new:0:12}; $SKILLS_PATH unchanged, no restart"
   exit 0
 fi
 
@@ -134,30 +148,31 @@ if ! repo archive "$new" "$SKILLS_PATH" | tar -x -C "$tmp"; then
   exit 2
 fi
 if ! validate_skills "$tmp"; then
-  log "candidate ${new:0:12} rejected; staying on ${old:0:12}"
+  log "candidate ${new:0:12} rejected; staying on ${base:0:12}"
   exit 2
 fi
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
-  log "check: would deploy ${old:0:12} -> ${new:0:12} and reload $SERVICE"
+  log "check: would deploy ${base:0:12} -> ${new:0:12} and reload $SERVICE"
   exit 0
 fi
 
 repo checkout --quiet --detach "$new"
 pid_before="$(state_field pid)"
-log "deploying ${old:0:12} -> ${new:0:12}; reloading $SERVICE (drain-first)"
+log "deploying ${base:0:12} -> ${new:0:12}; reloading $SERVICE (drain-first)"
 if systemctl reload "$SERVICE" && wait_healthy "$pid_before"; then
+  mark_deployed "$new"
   log "gateway healthy on ${new:0:12}"
   exit 0
 fi
 
-log "gateway not healthy after reload; rolling back to ${old:0:12}"
-repo checkout --quiet --detach "$old"
+log "gateway not healthy after reload; rolling back to ${base:0:12}"
+repo checkout --quiet --detach "$base" || log "could not check out ${base:0:12} for the rollback"
 pid_before="$(state_field pid)"
 systemctl restart "$SERVICE" || true
 if wait_healthy "$pid_before"; then
-  log "rolled back to ${old:0:12}; gateway healthy"
+  log "rolled back to ${base:0:12}; gateway healthy"
   exit 3
 fi
-log "gateway UNHEALTHY after rollback to ${old:0:12} — needs a human"
+log "gateway UNHEALTHY after rollback to ${base:0:12} — needs a human"
 exit 4

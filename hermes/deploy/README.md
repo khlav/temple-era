@@ -26,7 +26,9 @@ Fetches `main` into a sparse clone of this repo and, **only if `hermes/skills/**
 3. waits for a **new** gateway process that is running and connected to Discord;
 4. if that doesn't happen, rolls back to the previous commit and restarts.
 
-Other merges advance the checkout without restarting anything. `update-skills.sh --check` fetches and
+The commit the gateway was last started with is recorded separately from the checkout, so a deploy that
+is interrupted after the checkout (SSH dropped, script killed) is retried next time rather than
+mistaken for "already up to date". Other merges advance the checkout without restarting anything. `update-skills.sh --check` fetches and
 reports what it would do, changing nothing live.
 
 | Exit | Meaning |
@@ -55,7 +57,7 @@ hermes/deploy/test-update-skills.sh
 ```bash
 # 1. sparse clone; the repo is public so no credentials are needed
 git clone --depth 1 --filter=blob:none --sparse https://github.com/khlav/temple-era.git /opt/temple-era
-git -C /opt/temple-era sparse-checkout set hermes/skills
+git -C /opt/temple-era sparse-checkout set hermes/skills hermes/deploy
 
 # 2. install the script where the forced command points
 install -m 0755 /opt/temple-era/hermes/deploy/update-skills.sh /usr/local/bin/hermes-skills-update

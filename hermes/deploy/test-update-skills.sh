@@ -110,6 +110,20 @@ expect_eq "exits 2" "$rc" "2"
 expect_eq "live checkout untouched" "$(head_of)" "$c3"
 expect_eq "gateway untouched" "$(pid_of)" "$pid_now"
 
+echo "7. deploy interrupted after the checkout (script killed): the next run still restarts"
+skill demo "a demo skill" v6 && commit c6
+c6="$(git -C "$T/origin.git" rev-parse main)"
+git -C "$HERMES_SKILLS_REPO_DIR" fetch -q --depth 1 --filter=blob:none origin main
+git -C "$HERMES_SKILLS_REPO_DIR" checkout -q --detach FETCH_HEAD # what an interrupted run leaves behind
+expect_eq "checkout is already at the new commit" "$(head_of)" "$c6"
+pid_now="$(pid_of)"
+"$SCRIPT" >/dev/null && ok "exits 0" || bad "exits 0"
+[ "$(pid_of)" != "$pid_now" ] && ok "gateway was restarted anyway" || bad "gateway was restarted anyway"
+expect_eq "marker records the deployed commit" "$(tr -d '[:space:]' <"$HERMES_SKILLS_REPO_DIR/.git/hermes-deployed-sha")" "$c6"
+pid_now="$(pid_of)"
+"$SCRIPT" | grep -q "nothing to do" && ok "and the run after that is a no-op" || bad "and the run after that is a no-op"
+expect_eq "no further restart" "$(pid_of)" "$pid_now"
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
