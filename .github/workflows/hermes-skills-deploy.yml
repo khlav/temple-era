@@ -1,0 +1,53 @@
+name: Hermes skills deploy
+
+# Tells the Hermes host to pull hermes/skills/ and restart the Templar gateway. Fires ONLY when
+# those files change on main (a few times a month), so there is no polling. Delivery goes through
+# the same generic .github/scripts/notify-webhook.sh the PR webhooks use; what happens on the
+# receiving end is documented in hermes/deploy/README.md — the payload carries no instructions, the
+# host runs one fixed script that ignores it, and always deploys main.
+#
+# workflow_dispatch re-sends the event by hand (e.g. after fixing the host). If nothing changed on
+# the host it is a harmless no-op.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hermes/skills/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-skills-deploy
+  cancel-in-progress: false
+
+jobs:
+  notify-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and send hermes_skills_updated payload
+        env:
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          TRIGGER: ${{ github.event_name }}
+          WEBHOOK_URL: ${{ secrets.HERMES_DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.HERMES_DEPLOY_WEBHOOK_TOKEN }}
+        run: |
+          chmod +x .github/scripts/notify-webhook.sh
+          jq -n \
+            --arg action_type "hermes_skills_updated" \
+            --arg repository "$REPOSITORY" \
+            --arg sha "$SHA" \
+            --arg ref "$REF_NAME" \
+            --arg actor "$ACTOR" \
+            --arg trigger "$TRIGGER" \
+            '{action_type: $action_type, repository: $repository, data: {
+                sha: $sha, ref: $ref, actor: $actor, trigger: $trigger
+              }}' \
+          | .github/scripts/notify-webhook.sh
