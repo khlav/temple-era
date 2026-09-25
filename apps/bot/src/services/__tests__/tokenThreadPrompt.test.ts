@@ -73,6 +73,19 @@ describe("extractAdminLinks", () => {
   });
 });
 
+describe("extractAdminLinks — never truncates", () => {
+  it("rejects a token or raid id continued by - or _ rather than cutting it short", () => {
+    expect(extractAdminLinks("https://softres.it/raid/abc123?adminToken=tok-en9")).toEqual([]);
+    expect(extractAdminLinks("https://softres.it/raid/abc_123?adminToken=token9")).toEqual([]);
+  });
+
+  it("still accepts a link followed by ordinary punctuation", () => {
+    expect(
+      extractAdminLinks("see https://softres.it/raid/abc123?adminToken=tok9, thanks."),
+    ).toEqual([{ raidId: "abc123", adminToken: "tok9" }]);
+  });
+});
+
 describe("parseDateHint", () => {
   const now = new Date("2026-09-25T12:00:00Z");
 

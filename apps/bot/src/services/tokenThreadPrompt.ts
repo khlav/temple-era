@@ -43,7 +43,11 @@ const PICK_PREFIX = "tokpick";
 const DISMISS_PREFIX = "tokdismiss";
 const MAX_LINKS_PER_MESSAGE = 3;
 
-const ADMIN_LINK_REGEX = /softres\.it\/raid\/([A-Za-z0-9]+)\?adminToken=([A-Za-z0-9]+)/g;
+// Alphanumeric like softres.it's own ids, but a following `-`/`_` rejects the match instead of
+// truncating it — the same chars tokenThreadSummary's parseAdminUrl accepts, so a token is never
+// written into the shared block cut short.
+const ADMIN_LINK_REGEX =
+  /softres\.it\/raid\/([A-Za-z0-9]+)(?![\w.-])\?adminToken=([A-Za-z0-9]+)(?![A-Za-z0-9_-])/g;
 const DATE_REGEX = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
 
 // Zone names come back from the web app; a custom id has 100 chars, so carry a short code.
