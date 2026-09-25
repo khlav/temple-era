@@ -66,6 +66,11 @@ A thread for raid leads holds one red embed per raid week: **"SR Admin Tokens �
 - Grouped by day, then by zone and time, each line is a clickable admin link showing the raid id and admin
   token. New SRs from the automatic flow and `/sr` are added by editing that week's embed, not by posting a
   new message each time.
+- If someone posts a softres.it admin link in that thread by hand, the bot replies with an **Add to
+  block** button (or a picker when several raids fit). It works out the zone from softres.it and the raid
+  night from the matching Raid-Helper event, and only offers when it can. The person who posted it, or
+  anyone with SoftRes access, can click it; the prompt then disappears. If no prompt appears, the bot
+  couldn't match a scheduled raid — the link just stays as posted.
 - Admin tokens must not be pasted into public channels. Never repeat one into a public conversation.
 
 "Where is my admin token?" → the SoftRes Token thread, in this week's embed (or the week of the raid).

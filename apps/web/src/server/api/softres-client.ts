@@ -18,7 +18,7 @@ import { getClassNameBySoftResSpecId } from "~/lib/softres-spec-ids";
  */
 interface SoftResApiRaidResponse {
   id: string;
-  raid_date: number; // Unix seconds
+  raid_date: number | null; // Unix seconds; null unless the raid was linked through Raid Helper
   instances?: Array<{ slug: string }>;
   reserves?: Array<{
     name: string;
@@ -71,7 +71,8 @@ export async function fetchSoftResRaidData(raidId: string): Promise<SoftResRaidD
     raidId: raw.id,
     instance: instances[0] ?? null,
     instances,
-    raidDate: new Date(raw.raid_date * 1000).toISOString(),
+    raidDate: new Date((raw.raid_date ?? 0) * 1000).toISOString(),
+    raidTimestamp: raw.raid_date ?? null,
     reserved: (raw.reserves ?? []).map((r) => ({
       name: r.name,
       class: getClassNameBySoftResSpecId(r.spec) ?? "Unknown",
