@@ -121,12 +121,19 @@ if [ -n "$deployed" ] && [ "$new" = "$deployed" ]; then
   exit 0
 fi
 
-# What the gateway is (or should be) running: the marker, else the checkout on first use.
+# What we roll back to: the last deployed commit, else the checkout as it was before this run.
 base="${deployed:-$head}"
 
-# A base commit we can't read (e.g. garbage-collected) counts as "changed": converge, don't guess.
 skills_changed=1
-if repo diff --quiet --no-renames "$base" "$new" -- "$SKILLS_PATH" 2>/dev/null; then skills_changed=0; fi
+if [ -z "$deployed" ]; then
+  # No record of what the gateway loaded (first run, or the clone was re-created): never assume it
+  # matches HEAD — an earlier run may have been killed right after its checkout. Converge instead:
+  # restart once if there are skills to load; nothing to do if the candidate has none yet.
+  if ! repo cat-file -e "$new:$SKILLS_PATH" 2>/dev/null; then skills_changed=0; fi
+# A base commit we can't read (e.g. garbage-collected) counts as "changed": converge, don't guess.
+elif repo diff --quiet --no-renames "$deployed" "$new" -- "$SKILLS_PATH" 2>/dev/null; then
+  skills_changed=0
+fi
 
 if [ "$skills_changed" -eq 0 ]; then
   if [ "$CHECK_ONLY" -eq 1 ]; then

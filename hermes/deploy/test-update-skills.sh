@@ -124,6 +124,20 @@ pid_now="$(pid_of)"
 "$SCRIPT" | grep -q "nothing to do" && ok "and the run after that is a no-op" || bad "and the run after that is a no-op"
 expect_eq "no further restart" "$(pid_of)" "$pid_now"
 
+echo "8. no marker at all (first run, or the clone was re-created): converges with a restart even though HEAD already matches"
+rm -f "$HERMES_SKILLS_REPO_DIR/.git/hermes-deployed-sha"
+pid_now="$(pid_of)"
+"$SCRIPT" >/dev/null && ok "exits 0" || bad "exits 0"
+[ "$(pid_of)" != "$pid_now" ] && ok "gateway restarted" || bad "gateway restarted"
+expect_eq "marker recreated" "$(tr -d '[:space:]' <"$HERMES_SKILLS_REPO_DIR/.git/hermes-deployed-sha")" "$c6"
+
+echo "9. no marker and the candidate has no skills yet (today's main): nothing to do, no error"
+rm -f "$HERMES_SKILLS_REPO_DIR/.git/hermes-deployed-sha"
+git -C "$src" rm -rq hermes/skills && commit c7
+pid_now="$(pid_of)"
+"$SCRIPT" | grep -q "no restart" && ok "says no restart" || bad "says no restart"
+expect_eq "no restart" "$(pid_of)" "$pid_now"
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
