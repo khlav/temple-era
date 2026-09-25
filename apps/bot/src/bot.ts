@@ -5,7 +5,17 @@ import { logger } from "./config/logger.js";
 import { handleMessage } from "./handlers/messageHandler.js";
 import { handleThreadMessage } from "./handlers/threadMessageHandler.js";
 import { handleMessageUpdate } from "./handlers/messageUpdateHandler.js";
+import { scheduleRaidHelperSignupCheck } from "./handlers/raidHelperSignupHandler.js";
 import { cleanupOldThreads } from "./services/threadCleanup.js";
+import { cleanupOldSoftresMessages } from "./services/softresMessageCleanup.js";
+import { registerCommands } from "./commands/registerCommands.js";
+import { handleSrCommand } from "./commands/srCommand.js";
+import { ensureZoneEmoji } from "./services/zoneEmoji.js";
+import {
+  handleTokenPromptInteraction,
+  handleTokenThreadMessage,
+  isTokenPromptCustomId,
+} from "./services/tokenThreadPrompt.js";
 
 export function createBot(): Client {
   const client = new Client({
@@ -44,9 +54,19 @@ export function createBot(): Client {
     }),
   });
 
-  client.on(Events.ClientReady, () => {
+  client.on(Events.ClientReady, async () => {
     logger.info(`Bot logged in as ${client.user?.tag}`);
     logger.info(`Monitoring channel: ${config.discordLogsChannelId}`);
+    logger.info(
+      { channelIds: config.discordRaidSrChannelIds },
+      `Monitoring ${config.discordRaidSrChannelIds.length} SR signup channel(s)`,
+    );
+
+    void registerCommands(client);
+    // Awaited, not fire-and-forget: getZoneEmoji is read synchronously by /sr and the signup
+    // handler, so a signup that lands before this resolves would otherwise render without its
+    // zone icon for that one instance.
+    await ensureZoneEmoji(client);
 
     // Schedule thread cleanup job
     if (config.threadCleanupEnabled) {
@@ -54,6 +74,7 @@ export function createBot(): Client {
         config.threadCleanupCron,
         () => {
           void cleanupOldThreads(client);
+          void cleanupOldSoftresMessages(client);
         },
         {
           timezone: "America/New_York",
@@ -70,8 +91,13 @@ export function createBot(): Client {
   client.on(Events.MessageCreate, (message) => {
     if (message.channel.isThread()) {
       void handleThreadMessage(message);
+      void handleTokenThreadMessage(message);
     } else {
       void handleMessage(message);
+      // Filters on discordRaidSrChannelIds, a channel set that is mutually exclusive with
+      // discordLogsChannelId in every real Doppler config today — safe to run unconditionally
+      // alongside handleMessage above.
+      scheduleRaidHelperSignupCheck(message);
     }
   });
 
@@ -87,6 +113,17 @@ export function createBot(): Client {
     // Only process main channel messages (not threads)
     if (!newMessage.channel.isThread()) {
       void handleMessageUpdate(oldMessage as Message, newMessage as Message);
+    }
+  });
+
+  client.on(Events.InteractionCreate, (interaction) => {
+    if (interaction.isChatInputCommand() && interaction.commandName === "sr") {
+      void handleSrCommand(interaction);
+    } else if (
+      (interaction.isButton() || interaction.isStringSelectMenu()) &&
+      isTokenPromptCustomId(interaction.customId)
+    ) {
+      void handleTokenPromptInteraction(interaction);
     }
   });
 

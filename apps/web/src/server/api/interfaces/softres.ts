@@ -22,5 +22,8 @@ export interface SoftResRaidData {
   instance: string | null; // First recognized raid-zone instance id, e.g. "aq40" (can be null)
   instances?: string[]; // All recognized raid-zone instance ids for this raid
   raidDate: string; // ISO date string
+  /** Unix seconds of SoftRes's own `raid_date`, or null when none was ever set — only raids linked
+   * through Raid Helper carry one. Unlike `raidDate`, null is preserved rather than read as 1970. */
+  raidTimestamp?: number | null;
   reserved: SoftResReservedCharacter[];
 }

@@ -22,6 +22,14 @@ export function discordSnowflake(message: string) {
 export const RAIDLOG_MANAGE_SCOPE = "raidlog:manage";
 
 /**
+ * The scope `/sr` gates on. Same duplication reasoning as `RAIDLOG_MANAGE_SCOPE` above: a
+ * literal copy of `apps/web/src/lib/scopes.ts`'s `SCOPE.SOFTRES_ACCESS`, not an import, since
+ * this package must stay dependency-free of the web app's Postgres-tied module.
+ * `check-permissions/route.ts` carries a compile-time assertion that the two agree.
+ */
+export const SOFTRES_ACCESS_SCOPE = "softres:access";
+
+/**
  * Scopes are deliberately `string`, not an enum. The bot is deployed from a different pipeline
  * than the web app, so it will routinely run against a web build that knows scopes this package
  * has never heard of. An enum would turn that into a parse failure and a dead bot.

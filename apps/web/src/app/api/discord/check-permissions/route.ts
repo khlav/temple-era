@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   CheckPermissionsRequestSchema,
   RAIDLOG_MANAGE_SCOPE,
+  SOFTRES_ACCESS_SCOPE,
   firstIssueMessage,
   type CheckPermissionsResponse,
 } from "@temple-era/contracts";
@@ -20,6 +21,8 @@ import type { SCOPE } from "~/lib/scopes";
 // typechecking.
 const _scopeLiteralsAgree: typeof SCOPE.RAIDLOG_MANAGE = RAIDLOG_MANAGE_SCOPE;
 void _scopeLiteralsAgree;
+const _softresScopeLiteralsAgree: typeof SCOPE.SOFTRES_ACCESS = SOFTRES_ACCESS_SCOPE;
+void _softresScopeLiteralsAgree;
 
 export async function POST(request: Request) {
   try {
