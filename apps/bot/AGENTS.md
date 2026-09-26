@@ -153,13 +153,17 @@ Required variables (`src/config/env.ts` exits at startup if any is missing):
 - `DISCORD_SOFTRES_TOKEN_THREAD_ID` - The SoftRes Token thread the weekly admin-token block lives in
 - `DISCORD_SERVER_ID` - The guild, for `/sr` registration and the zone emoji
 
-The Northflank service gets all of these from its own configuration, not from Doppler at
-runtime. Only `DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN` are pushed there by
-`sync-bot-secrets.yml`; the rest are set by hand on the service. **Adding a required variable to
-`env.ts` therefore means adding it to Northflank too** — Doppler alone does not reach the bot, and
-a missing one shows up as a startup crash, not a build error. (Do not confuse this with
-`apps/web`'s env: the web app reads its own set from Vercel, e.g. `DISCORD_SOFTRES_TOKEN_THREAD_ID`
-is separately needed there for Templar's create-SR endpoint.)
+The bot's whole environment lives in the Northflank **secret group** and is synced from Doppler
+(`prd`) by `.github/workflows/sync-bot-secrets.yml` on each bot deploy — the container itself
+has no Doppler dependency. To add a required variable: set it in Doppler, add it to
+`REQUIRED_KEYS` (and its `secrets.<NAME>` line) in that workflow, and read it in `env.ts`.
+`src/config/__tests__/northflank-sync.test.ts` fails if `env.ts` requires a variable the
+workflow doesn't manage, because a missing one otherwise shows up as a startup crash after
+deploy, not a build error. The workflow only writes when a value differs (a write redeploys the
+bot), refuses a local/non-https `API_BASE_URL`, and carries over any group keys it doesn't
+manage. (Do not confuse this with `apps/web`'s env: the web app reads its own set from Vercel,
+e.g. `DISCORD_SOFTRES_TOKEN_THREAD_ID` is separately needed there for Templar's create-SR
+endpoint.)
 
 Optional variables:
 - `LOG_LEVEL` - Logging level (default: `info`)
