@@ -11,8 +11,8 @@ name: PR opened webhook
 # fires, because whatever's on the receiving end needs to see all of them to
 # find the ones referencing a ticket. What the receiving end does with the
 # payload (ticket parsing, state-advancement logic, anything else) is
-# intentionally out of scope here — see AGENTS.md's "Auto-advancing Plane
-# tickets on PR open" section for the contract.
+# intentionally out of scope here — see AGENTS.md's "Ticket automation"
+# section.
 
 on:
   pull_request:

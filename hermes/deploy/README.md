@@ -7,7 +7,7 @@ deploy is push-based: nothing runs unless those files change on `main`.
 merge to main touching hermes/skills/**
   -> .github/workflows/hermes-skills-deploy.yml   (path-filtered; also workflow_dispatch)
   -> generic webhook (.github/scripts/notify-webhook.sh, event hermes_skills_updated)
-  -> a dedicated n8n workflow: verify the token, SSH to the host, alert on failure
+  -> a dedicated receiving workflow: verify the token, SSH to the host, alert on failure
   -> authorized_keys forced command  ->  update-skills.sh   (on the host)
 ```
 
@@ -74,22 +74,22 @@ skills:
     - /opt/temple-era/hermes/skills
 ```
 
-Add a key for the n8n SSH node to `~/.ssh/authorized_keys`, locked to the script so even a leaked key
+Add a key for the receiving workflow's SSH step to `~/.ssh/authorized_keys`, locked to the script so even a leaked key
 can do nothing else:
 
 ```
-command="/usr/local/bin/hermes-skills-update",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... n8n-hermes-skills-deploy
+command="/usr/local/bin/hermes-skills-update",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... hermes-skills-deploy
 ```
 
-## n8n side (not in this repo)
+## Receiving side (not in this repo)
 
 A small dedicated workflow: webhook with header auth (bearer token = `HERMES_DEPLOY_WEBHOOK_TOKEN`) →
-check `action_type == "hermes_skills_updated"` → SSH node with the key above → on a non-zero exit,
-alert. The SSH node's command text is irrelevant (the forced command ignores it).
+check `action_type == "hermes_skills_updated"` → SSH step with the key above → on a non-zero exit,
+alert. The SSH step's command text is irrelevant (the forced command ignores it).
 
 GitHub repo secrets: `HERMES_DEPLOY_WEBHOOK_URL` and `HERMES_DEPLOY_WEBHOOK_TOKEN`.
 
 ## Disabling
 
-Remove the `authorized_keys` line (the deploy stops working immediately) or disable the n8n workflow.
+Remove the `authorized_keys` line (the deploy stops working immediately) or disable the receiving workflow.
 The gateway keeps running the skills it last loaded.

@@ -10,6 +10,6 @@ else
   echo "❌ Branch name does not follow convention: $current_branch"
   echo "   Expected format: {type}/{ticket-id}-{description}"
   echo "   Types: feature, fix, chore, refactor, hotfix, dev, claude"
-  echo "   Ticket ID: a Plane TEMPLE ticket (e.g. temple-10), or 'noticket' if none"
+  echo "   Ticket ID: a TEMPLE ticket (e.g. temple-10), or 'noticket' if none"
   exit 1
 fi
