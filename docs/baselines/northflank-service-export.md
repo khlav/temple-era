@@ -83,21 +83,15 @@ Five plain environment variables are set directly on the service:
 
 > **Update, 2026-09-26 — this table is the 2026-07-28 snapshot, now out of date.** The bot has
 > since gained the SoftRes features, and its `env.ts` now requires eight variables. What the
-> service is configured with today (names only, as reported from the Northflank dashboard):
+> secret group holds these eleven keys (names only, read from the sync workflow's own log):
+> `DISCORD_BOT_TOKEN`, `TEMPLE_WEB_API_TOKEN`, `API_BASE_URL`, `DISCORD_RAID_LOGS_CHANNEL_ID`,
+> `DISCORD_RAID_SR_CHANNEL_IDS`, `DISCORD_RAID_HELPER_BOT_ID`, `DISCORD_SOFTRES_TOKEN_THREAD_ID`,
+> `DISCORD_SERVER_ID`, and the optional `DISCORD_LOG_THREAD_CLEANUP_ENABLED` / `_DAYS` / `_CRON`.
 >
-> | Name | Source |
-> |---|---|
-> | `DISCORD_BOT_TOKEN`, `TEMPLE_WEB_API_TOKEN` | secret group, pushed from Doppler by `sync-bot-secrets.yml` |
-> | `API_BASE_URL` | set by hand; must equal the web app's `NEXT_PUBLIC_APP_URL` |
-> | `DISCORD_RAID_LOGS_CHANNEL_ID` | set by hand |
-> | `DISCORD_RAID_SR_CHANNEL_IDS` | set by hand — comma-separated signup channels |
-> | `DISCORD_RAID_HELPER_BOT_ID` | set by hand |
-> | `DISCORD_SOFTRES_TOKEN_THREAD_ID` | set by hand |
-> | `DISCORD_SERVER_ID` | set by hand |
-> | `DISCORD_LOG_THREAD_CLEANUP_ENABLED` / `_DAYS` / `_CRON` | set by hand (optional; enabled, 2 days, `0 1 * * *`) |
->
-> `apps/bot/AGENTS.md` is the maintained list. Anything added to `env.ts` must be added to the
-> Northflank service by hand — Doppler does not reach it.
+> Until TEMPLE-133 only the two tokens were synced from Doppler by `sync-bot-secrets.yml`; the
+> other nine were maintained by hand in the same group. The workflow now manages all eleven —
+> `apps/bot/AGENTS.md` is the maintained description. Note the section above listing five plain
+> variables predates this and is not what the service holds today.
 
 ### ⚠️ Gap in this export: two required secrets are not enumerated
 
