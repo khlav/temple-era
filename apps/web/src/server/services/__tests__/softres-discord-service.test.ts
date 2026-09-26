@@ -30,6 +30,59 @@ function stubDiscord(routes: Record<string, unknown>) {
   });
 }
 
+interface FakeMessage {
+  id: string;
+  author: { id: string };
+  embeds: Array<{ description?: string; footer?: { text: string } }>;
+}
+
+/**
+ * A stateful stand-in for the Token thread. `interfere` runs right after each write and may
+ * overwrite a message, the way a second writer's PATCH would.
+ */
+function fakeThread(
+  initial: FakeMessage[],
+  interfere?: (messages: FakeMessage[], writeCount: number) => void,
+) {
+  const messages = [...initial];
+  let writes = 0;
+  let nextId = 1;
+  const base = `https://discord.com/api/v10/channels/${THREAD}/messages`;
+  mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? "GET";
+    if (url === "https://discord.com/api/v10/users/@me") return ok({ id: BOT_ID });
+    if (method === "GET" && url === `${base}?limit=50`) return ok(messages);
+    if (method === "GET" && url.startsWith(`${base}/`)) {
+      const found = messages.find((m) => m.id === url.slice(base.length + 1));
+      return found ? ok(found) : { ok: false, status: 404, json: async () => ({}) };
+    }
+    if (method === "POST" && url === base) {
+      const msg = {
+        id: `new${nextId++}`,
+        author: { id: BOT_ID },
+        embeds: JSON.parse(init!.body as string).embeds,
+      };
+      messages.push(msg);
+      interfere?.(messages, ++writes);
+      return ok({ id: msg.id });
+    }
+    if (method === "PATCH" && url.startsWith(`${base}/`)) {
+      const msg = messages.find((m) => m.id === url.slice(base.length + 1))!;
+      msg.embeds = JSON.parse(init!.body as string).embeds;
+      interfere?.(messages, ++writes);
+      return ok({ id: msg.id });
+    }
+    throw new Error(`unexpected request: ${method} ${url}`);
+  });
+  return messages;
+}
+
+const entry = {
+  zone: "Naxxramas",
+  url: "https://softres.it/raid/abc123?adminToken=tok",
+  timestampSec: TS,
+};
+
 describe("upsertWeeklyTokenBlock", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -38,26 +91,15 @@ describe("upsertWeeklyTokenBlock", () => {
     vi.clearAllMocks();
   });
 
-  const entry = {
-    zone: "Naxxramas",
-    url: "https://softres.it/raid/abc123?adminToken=tok",
-    timestampSec: TS,
-  };
-
   it("creates the week's block when none exists", async () => {
-    stubDiscord({
-      "GET /users/@me": { id: BOT_ID },
-      [`GET /channels/${THREAD}/messages?limit=50`]: [],
-      [`POST /channels/${THREAD}/messages`]: { id: "new" },
-    });
+    const messages = fakeThread([]);
     const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
 
     await upsertWeeklyTokenBlock([entry]);
 
-    const post = mockFetch.mock.calls.find(([, init]) => init?.method === "POST")!;
-    const embed = JSON.parse(post[1].body).embeds[0];
-    expect(embed.footer.text).toBe("lockout-week:2026-09-29");
-    expect(embed.description).toContain("Naxx @ 8pm");
+    expect(messages).toHaveLength(1);
+    expect(messages[0]!.embeds[0]!.footer!.text).toBe("lockout-week:2026-09-29");
+    expect(messages[0]!.embeds[0]!.description).toContain("Naxx @ 8pm");
   });
 
   it("edits the existing block for that week, merging rather than replacing", async () => {
@@ -68,28 +110,92 @@ describe("upsertWeeklyTokenBlock", () => {
         timestampSec: TS + 86400,
       },
     ]);
-    stubDiscord({
-      "GET /users/@me": { id: BOT_ID },
-      [`GET /channels/${THREAD}/messages?limit=50`]: [
-        // A human message and another week's block must not be picked.
-        { id: "human", author: { id: "someone" }, embeds: [] },
-        {
-          id: "other-week",
-          author: { id: BOT_ID },
-          embeds: [{ description: "x", footer: { text: "lockout-week:2026-09-22" } }],
-        },
-        { id: "this-week", author: { id: BOT_ID }, embeds: [existing] },
-      ],
-      [`PATCH /channels/${THREAD}/messages/this-week`]: { id: "this-week" },
-    });
+    const messages = fakeThread([
+      // A human message and another week's block must not be picked.
+      { id: "human", author: { id: "someone" }, embeds: [] },
+      {
+        id: "other-week",
+        author: { id: BOT_ID },
+        embeds: [{ description: "x", footer: { text: "lockout-week:2026-09-22" } }],
+      },
+      { id: "this-week", author: { id: BOT_ID }, embeds: [existing] },
+    ]);
     const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
 
     await upsertWeeklyTokenBlock([entry]);
 
-    const patch = mockFetch.mock.calls.find(([, init]) => init?.method === "PATCH")!;
-    const description = JSON.parse(patch[1].body).embeds[0].description as string;
+    expect(messages).toHaveLength(3);
+    const description = messages.find((m) => m.id === "this-week")!.embeds[0]!.description!;
     expect(description).toContain("ZG @ 8pm");
     expect(description).toContain("Naxx @ 8pm");
+  });
+
+  it("notices when another writer overwrote its entry, and writes it again", async () => {
+    const original = buildWeeklyBlockEmbed(undefined, [
+      { zone: "Molten Core", url: "https://softres.it/raid/mc1?adminToken=m", timestampSec: TS },
+    ]);
+    let interfered = false;
+    const messages = fakeThread(
+      [{ id: "this-week", author: { id: BOT_ID }, embeds: [original] }],
+      (all, writeCount) => {
+        // The first write is clobbered by a competing writer who never saw this entry.
+        if (writeCount === 1 && !interfered) {
+          interfered = true;
+          all.find((m) => m.id === "this-week")!.embeds = [original];
+        }
+      },
+    );
+    const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
+
+    await upsertWeeklyTokenBlock([entry]);
+
+    const description = messages.find((m) => m.id === "this-week")!.embeds[0]!.description!;
+    expect(description).toContain("abc123");
+    expect(description).toContain("mc1");
+    const patches = mockFetch.mock.calls.filter(([, init]) => init?.method === "PATCH");
+    expect(patches).toHaveLength(2);
+  });
+
+  it("gives up with an error if the write keeps getting overwritten", async () => {
+    const original = buildWeeklyBlockEmbed(undefined, [
+      { zone: "Molten Core", url: "https://softres.it/raid/mc1?adminToken=m", timestampSec: TS },
+    ]);
+    fakeThread([{ id: "this-week", author: { id: BOT_ID }, embeds: [original] }], (all) => {
+      all.find((m) => m.id === "this-week")!.embeds = [original];
+    });
+    const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
+
+    await expect(upsertWeeklyTokenBlock([entry])).rejects.toThrow(/did not persist/);
+    expect(mockFetch.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(3);
+  });
+
+  it("runs concurrent calls one at a time, so neither loses its entry", async () => {
+    const messages = fakeThread([]);
+    const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
+    const second = {
+      zone: "Zul'Gurub",
+      url: "https://softres.it/raid/zg1?adminToken=z",
+      timestampSec: TS,
+    };
+
+    await Promise.all([upsertWeeklyTokenBlock([entry]), upsertWeeklyTokenBlock([second])]);
+
+    expect(messages).toHaveLength(1);
+    const description = messages[0]!.embeds[0]!.description!;
+    expect(description).toContain("abc123");
+    expect(description).toContain("zg1");
+  });
+
+  it("keeps working for later calls after one fails", async () => {
+    mockFetch
+      .mockRejectedValueOnce(new Error("network"))
+      .mockRejectedValueOnce(new Error("network"));
+    const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
+    await expect(upsertWeeklyTokenBlock([entry])).rejects.toThrow();
+
+    const messages = fakeThread([]);
+    await upsertWeeklyTokenBlock([entry]);
+    expect(messages).toHaveLength(1);
   });
 
   it("throws on a Discord error without echoing the response body", async () => {
@@ -100,8 +206,9 @@ describe("upsertWeeklyTokenBlock", () => {
     });
     const { upsertWeeklyTokenBlock } = await import("../softres-discord-service");
 
-    await expect(upsertWeeklyTokenBlock([entry])).rejects.toThrow(/500/);
-    await expect(upsertWeeklyTokenBlock([entry])).rejects.not.toThrow(/adminToken/);
+    const error = await upsertWeeklyTokenBlock([entry]).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/500/);
+    expect((error as Error).message).not.toMatch(/adminToken/);
   });
 });
 

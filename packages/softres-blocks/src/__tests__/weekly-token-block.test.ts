@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminUrlRaidId,
   blockHasRaid,
   buildWeeklyBlockEmbed,
   formatRaidWhen,
@@ -135,6 +136,11 @@ describe("weeklyBlockFooter / blockHasRaid / formatRaidWhen", () => {
 
     expect(blockHasRaid(embed.description, "abc123")).toBe(true);
     expect(blockHasRaid(embed.description, "other")).toBe(false);
+  });
+
+  it("reads the raid id out of an admin link, or null for an odd shape", () => {
+    expect(adminUrlRaidId("https://softres.it/raid/abc123?adminToken=tok")).toBe("abc123");
+    expect(adminUrlRaidId("https://softres.it/weird-shape")).toBeNull();
   });
 
   it("describes a raid night the way the block words it", () => {

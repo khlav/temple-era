@@ -1,5 +1,7 @@
 import {
   ZONE_EMOJI_NAMES,
+  adminUrlRaidId,
+  blockHasRaid,
   buildWeeklyBlockEmbed,
   weeklyBlockFooter,
   type EmbedData,
@@ -123,17 +125,49 @@ export async function postChannelEmbed(channelId: string, embed: EmbedData): Pro
   return message.id;
 }
 
+// A read-merge-write on a message other writers also edit can lose an update: two writers read
+// the same text and the later PATCH wins. Within this process a queue serialises them; across
+// instances (a second serverless invocation, or the bot's own writer) it cannot, so every write is
+// followed by a re-read that confirms this raid actually landed, and repeated if it did not.
+const MAX_WRITE_ATTEMPTS = 3;
+let queue: Promise<void> = Promise.resolve();
+
 /**
  * Finds (or creates) the lockout week's admin-token block in the Token thread and merges
  * `entries` into it — the REST twin of the bot's `postWeeklyTokenEntries`. The week's message is
- * re-derived from the thread's history by its footer marker, so there is no state to lose.
+ * re-derived from the thread's history by its footer marker, so no state is kept between calls.
  * Throws on failure; the caller decides what a lost token means.
  */
-export async function upsertWeeklyTokenBlock(entries: WeeklyTokenEntry[]): Promise<void> {
+export function upsertWeeklyTokenBlock(entries: WeeklyTokenEntry[]): Promise<void> {
+  const run = queue.then(() => upsertWithVerification(entries));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function upsertWithVerification(entries: WeeklyTokenEntry[]): Promise<void> {
   const threadId = env.DISCORD_SOFTRES_TOKEN_THREAD_ID;
   if (!threadId) throw new Error("DISCORD_SOFTRES_TOKEN_THREAD_ID is not set");
   if (entries.length === 0) return;
 
+  const raidIds = entries
+    .map((e) => adminUrlRaidId(e.url))
+    .filter((id): id is string => id !== null);
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
+    const messageId = await writeWeeklyBlock(threadId, entries);
+    // Nothing to check against if the link has no parseable raid id; the write itself succeeded.
+    if (raidIds.length === 0) return;
+
+    const written = await discord<DiscordMessage>(`/channels/${threadId}/messages/${messageId}`);
+    const description = written.embeds?.[0]?.description ?? "";
+    if (raidIds.every((id) => blockHasRaid(description, id))) return;
+    logger.warn({ attempt, raidIds }, "Weekly token block write was overwritten; retrying");
+  }
+  throw new Error("Weekly token block write did not persist");
+}
+
+/** One read-merge-write; returns the id of the block message that was written. */
+async function writeWeeklyBlock(threadId: string, entries: WeeklyTokenEntry[]): Promise<string> {
   const [botId, recent] = await Promise.all([
     getBotUserId(),
     discord<DiscordMessage[]>(`/channels/${threadId}/messages?limit=50`),
@@ -144,15 +178,14 @@ export async function upsertWeeklyTokenBlock(entries: WeeklyTokenEntry[]): Promi
   );
 
   const embed = buildWeeklyBlockEmbed(existing?.embeds?.[0]?.description, entries);
-  if (existing) {
-    await discord(`/channels/${threadId}/messages/${existing.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ embeds: [embed] }),
-    });
-  } else {
-    await discord(`/channels/${threadId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ embeds: [embed] }),
-    });
-  }
+  const written = existing
+    ? await discord<{ id: string }>(`/channels/${threadId}/messages/${existing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ embeds: [embed] }),
+      })
+    : await discord<{ id: string }>(`/channels/${threadId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+  return written.id;
 }

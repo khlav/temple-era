@@ -92,9 +92,12 @@ function parseAdminUrl(url: string): { raidId: string; adminToken: string } | nu
   return match ? { raidId: match[1]!, adminToken: match[2]! } : null;
 }
 
-function raidIdOf(url: string): string | null {
+/** The raid id in a softres.it admin link, or null if the link has an unexpected shape. */
+export function adminUrlRaidId(url: string): string | null {
   return parseAdminUrl(url)?.raidId ?? null;
 }
+
+const raidIdOf = adminUrlRaidId;
 
 /** `[raidId | admintoken: value](url)` — concise enough that the line doesn't wrap, and still a
  * real working link. Falls back to a plain link if the URL doesn't match the expected shape,
