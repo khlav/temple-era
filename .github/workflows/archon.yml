@@ -109,6 +109,14 @@ jobs:
           # overhead) - enough headroom for the next big dependency-upgrade
           # PR without going wide enough to invite long-context degradation.
           config.max_model_tokens: "256000"
+          # Required for any model that is not in PR-Agent's built-in MAX_TOKENS
+          # registry (pr_agent/algo/__init__.py). deepseek/deepseek-flash is not - the
+          # registry only lists deepseek-chat and deepseek-reasoner - so without this
+          # every describe/review/improve call fails before it reaches the API with
+          # "Model ... is not defined in MAX_TOKENS ... and no custom_model_max_tokens
+          # is set", and the job still reports success. Matches max_model_tokens above,
+          # which is what actually limits the prompt.
+          config.custom_model_max_tokens: "256000"
           # Appends a run-details section (models used, tokens, time, AI calls) to
           # the review comment. Added to see which model actually answered - the
           # fallback chain above can succeed silently on deepseek when the primary
