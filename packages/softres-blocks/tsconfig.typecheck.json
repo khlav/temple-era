@@ -1,0 +1,11 @@
+{
+  /* Same settings as the build, but covering the test files too and emitting nothing.
+     tsconfig.json deliberately excludes tests from the emit; without this second project
+     they would never be typechecked at all. */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

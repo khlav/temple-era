@@ -28,6 +28,9 @@ export const env = createEnv({
     DISCORD_RAID_HELPER_BOT_ID: z.string(),
     DISCORD_WEBHOOK_PUBLIC_KEY: z.string().optional(),
     DISCORD_SERVER_ID: z.string(),
+    // The bot's SoftRes Token thread. Optional so a deploy never breaks on it; the Templar
+    // create-SR endpoint (POST /api/v1/softres) answers 503 until it is set.
+    DISCORD_SOFTRES_TOKEN_THREAD_ID: z.string().optional(),
     // Break-glass superadmins: comma-separated Discord user IDs granted every scope, resolved
     // from env rather than the DB so access cannot be revoked through the admin UI.
     SUPERADMIN_DISCORD_IDS: z
@@ -100,6 +103,7 @@ export const env = createEnv({
     DISCORD_RAID_HELPER_BOT_ID: process.env.DISCORD_RAID_HELPER_BOT_ID,
     DISCORD_WEBHOOK_PUBLIC_KEY: process.env.DISCORD_WEBHOOK_PUBLIC_KEY,
     DISCORD_SERVER_ID: process.env.DISCORD_SERVER_ID,
+    DISCORD_SOFTRES_TOKEN_THREAD_ID: process.env.DISCORD_SOFTRES_TOKEN_THREAD_ID,
     SUPERADMIN_DISCORD_IDS: process.env.SUPERADMIN_DISCORD_IDS,
     RAID_HELPER_API_KEY: process.env.RAID_HELPER_API_KEY,
     DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID: process.env.DISCORD_RAID_HELPER_ARCHIVE_CHANNEL_ID,

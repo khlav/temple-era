@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { ZONE_EMOJI_NAMES } from "@temple-era/softres-blocks";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 
@@ -9,33 +10,26 @@ import { logger } from "../config/logger.js";
  * checked against the web app's own `wow-icon-names.json` dump before being picked here, and
  * confirmed by actually rendering them for review — not guessed.
  */
-const ZONE_ICON_SOURCES: Record<string, { emojiName: string; iconUrl: string }> = {
+const ZONE_ICON_SOURCES: Record<string, { iconUrl: string }> = {
   "Molten Core": {
-    emojiName: "mc_ragnaros",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_ragnaros.jpg",
   },
   "Blackwing Lair": {
-    emojiName: "bwl_nefarian",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_nefarion.jpg",
   },
   "Temple of Ahn'Qiraj": {
-    emojiName: "aq40_cthun",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_cthun.jpg",
   },
   Naxxramas: {
-    emojiName: "naxx_kelthuzad",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_kelthuzad_01.jpg",
   },
   Onyxia: {
-    emojiName: "ony_onyxia",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_onyxia.jpg",
   },
   "Zul'Gurub": {
-    emojiName: "zg_hakkar",
     iconUrl: "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_hakkar.jpg",
   },
   "Ruins of Ahn'Qiraj": {
-    emojiName: "aq20_ossirian",
     iconUrl:
       "https://wow.zamimg.com/images/wow/icons/medium/achievement_boss_ossiriantheunscarred.jpg",
   },
@@ -56,7 +50,10 @@ export async function ensureZoneEmoji(client: Client): Promise<void> {
     const guild = await client.guilds.fetch(config.discordServerId);
     const existing = await guild.emojis.fetch();
 
-    for (const [zoneName, { emojiName, iconUrl }] of Object.entries(ZONE_ICON_SOURCES)) {
+    for (const [zoneName, { iconUrl }] of Object.entries(ZONE_ICON_SOURCES)) {
+      // Names come from the shared package so the web app looks up the very same emoji.
+      const emojiName = ZONE_EMOJI_NAMES[zoneName];
+      if (!emojiName) continue;
       let emoji = existing.find((e) => e.name === emojiName);
       if (!emoji) {
         try {
