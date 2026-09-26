@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Deploys hermes/skills/ to the Hermes host: fetch, validate, check out, and restart the gateway —
-# but only when the skills actually changed. Run by an n8n SSH node through an authorized_keys forced
-# command (see hermes/deploy/README.md), so it takes NO input from the caller. The HERMES_* variables
+# Deploys agent/skills/ to the agent host: fetch, validate, check out, and restart the gateway —
+# but only when the skills actually changed. Run by the receiving workflow's SSH step through an authorized_keys forced
+# command (see agent/deploy/README.md), so it takes NO input from the caller. The AGENT_* variables
 # below exist for the sandbox test (test-update-skills.sh); the forced-command path never sets them.
 #
 # Usage: update-skills.sh [--check]     --check fetches and reports, but changes nothing live.
@@ -16,26 +16,31 @@
 
 set -euo pipefail
 
-REPO_DIR="${HERMES_SKILLS_REPO_DIR:-/opt/temple-era}"
-REF="${HERMES_SKILLS_REF:-main}"
-SERVICE="${HERMES_SKILLS_SERVICE:-hermes-gateway-temple-era.service}"
-HERMES_HOME="${HERMES_HOME:-/root/.hermes/profiles/temple-era}"
+REPO_DIR="${AGENT_SKILLS_REPO_DIR:-/opt/temple-era}"
+REF="${AGENT_SKILLS_REF:-main}"
+# Host-specific values (which service to reload, where the agent keeps its state) come from the host's
+# own config file, not from this repo. The sandbox test sets them in the environment instead.
+CONFIG_FILE="${AGENT_SKILLS_CONFIG:-/etc/agent-skills-update.env}"
+# shellcheck disable=SC1090
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+SERVICE="${AGENT_SKILLS_SERVICE:?AGENT_SKILLS_SERVICE is not set (put it in $CONFIG_FILE)}"
+AGENT_HOME="${AGENT_HOME:?AGENT_HOME is not set (put it in $CONFIG_FILE)}"
 # Worst case is drain (TimeoutStopSec=90) + RestartSec=60 + startup, so leave real headroom.
-HEALTH_TIMEOUT="${HERMES_SKILLS_HEALTH_TIMEOUT:-240}"
-POLL_SECS="${HERMES_SKILLS_POLL_SECS:-5}"
-LOCK_FILE="${HERMES_SKILLS_LOCK_FILE:-/var/lock/hermes-skills-update.lock}"
-SKILLS_PATH="hermes/skills"
+HEALTH_TIMEOUT="${AGENT_SKILLS_HEALTH_TIMEOUT:-240}"
+POLL_SECS="${AGENT_SKILLS_POLL_SECS:-5}"
+LOCK_FILE="${AGENT_SKILLS_LOCK_FILE:-/var/lock/agent-skills-update.lock}"
+SKILLS_PATH="agent/skills"
 # The commit whose skills the running gateway was last started with. Kept apart from the checkout's
 # HEAD on purpose: a deploy interrupted after the checkout (SSH dropped, script killed) must be
 # retried next time, not mistaken for "already up to date". Inside .git so it is never in the tree.
-MARKER="$REPO_DIR/.git/hermes-deployed-sha"
+MARKER="$REPO_DIR/.git/agent-deployed-sha"
 
 CHECK_ONLY=0
 if [ "${1:-}" = "--check" ]; then CHECK_ONLY=1; fi
 
 log() {
-  echo "[hermes-skills] $*"
-  logger -t hermes-skills -- "$*" 2>/dev/null || true
+  echo "[agent-skills] $*"
+  logger -t agent-skills -- "$*" 2>/dev/null || true
 }
 
 repo() { git -C "$REPO_DIR" "$@"; }
@@ -44,7 +49,7 @@ mark_deployed() { printf '%s\n' "$1" >"$MARKER"; }
 
 # Reads one field of the gateway's own state file. Prints nothing if the file is missing/unreadable.
 state_field() {
-  python3 - "$HERMES_HOME/gateway_state.json" "$1" <<'PY'
+  python3 - "$AGENT_HOME/gateway_state.json" "$1" <<'PY'
 import json, sys
 try:
     d = json.load(open(sys.argv[1]))

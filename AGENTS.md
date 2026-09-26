@@ -23,7 +23,7 @@ read both.
 contracts belong in this file. App-specific changes belong in the app's own
 `AGENTS.md`. A user-facing change to the bot or the site (a slash command, an
 automatic bot behavior, a page, a permission) also updates
-`hermes/skills/temple-features/SKILL.md` in the same PR — that is what Templar
+`agent/skills/temple-features/SKILL.md` in the same PR — that is what Templar
 tells users the bot and site can do.
 
 ## Scope discipline
@@ -394,4 +394,4 @@ so review comments on either are noise.
 - `docs/followups/legacy-access-booleans-cleanup.md` — what still has to happen before `isRaidManager` can leave the `/api/discord/check-permissions` response
 - `apps/web/AGENTS.md` — web architecture, tRPC/Drizzle patterns, API surface, database schema
 - `apps/bot/AGENTS.md` — bot handlers, Discord.js patterns, gateway behaviour
-- `hermes/README.md` — the skills Templar (the Hermes agent) reads, and how the Hermes host consumes them
+- `agent/README.md` — the skills Templar (the Discord agent) reads, and how the agent host consumes them

@@ -1,13 +1,13 @@
-# hermes/deploy/
+# agent/deploy/
 
-How `hermes/skills/**` reaches the Hermes host without polling. It changes a few times a month, so the
+How `agent/skills/**` reaches the agent host without polling. It changes a few times a month, so the
 deploy is push-based: nothing runs unless those files change on `main`.
 
 ```
-merge to main touching hermes/skills/**
-  -> .github/workflows/hermes-skills-deploy.yml   (path-filtered; also workflow_dispatch)
-  -> generic webhook (.github/scripts/notify-webhook.sh, event hermes_skills_updated)
-  -> a dedicated n8n workflow: verify the token, SSH to the host, alert on failure
+merge to main touching agent/skills/**
+  -> .github/workflows/agent-skills-deploy.yml   (path-filtered; also workflow_dispatch)
+  -> generic webhook (.github/scripts/notify-webhook.sh, event agent_skills_updated)
+  -> a dedicated receiving workflow: verify the token, SSH to the host, alert on failure
   -> authorized_keys forced command  ->  update-skills.sh   (on the host)
 ```
 
@@ -17,10 +17,10 @@ update.
 
 ## update-skills.sh
 
-Fetches `main` into a sparse clone of this repo and, **only if `hermes/skills/**` changed**:
+Fetches `main` into a sparse clone of this repo and, **only if `agent/skills/**` changed**:
 
 1. validates every skill on the candidate (from git objects, before touching the live checkout) — each
-   `hermes/skills/<name>/SKILL.md` needs frontmatter with `name: <name>` and a `description`;
+   `agent/skills/<name>/SKILL.md` needs frontmatter with `name: <name>` and a `description`;
 2. checks it out and reloads the gateway (`systemctl reload` → SIGUSR1: drain active conversations,
    then restart);
 3. waits for a **new** gateway process that is running and connected to Discord;
@@ -45,11 +45,11 @@ A full deploy can take a few minutes: drain (up to 90s) + the unit's `RestartSec
 
 Sandbox test that drives the real script through `--check`, deploy, no-op, skills-unchanged advance,
 rollback on an unhealthy gateway, and rejection of a broken skill — against a throwaway repo, a fake
-`HERMES_HOME` and a stub `systemctl`. It never touches the real gateway. Needs bash, git, python3 and
+`AGENT_HOME` and a stub `systemctl`. It never touches the real gateway. Needs bash, git, python3 and
 flock; run it on the host or any Linux box:
 
 ```bash
-hermes/deploy/test-update-skills.sh
+agent/deploy/test-update-skills.sh
 ```
 
 ## Host setup (once)
@@ -57,39 +57,43 @@ hermes/deploy/test-update-skills.sh
 ```bash
 # 1. sparse clone; the repo is public so no credentials are needed
 git clone --depth 1 --filter=blob:none --sparse https://github.com/khlav/temple-era.git /opt/temple-era
-git -C /opt/temple-era sparse-checkout set hermes/skills hermes/deploy
+git -C /opt/temple-era sparse-checkout set agent/skills agent/deploy
 
 # 2. install the script where the forced command points
-install -m 0755 /opt/temple-era/hermes/deploy/update-skills.sh /usr/local/bin/hermes-skills-update
+install -m 0755 /opt/temple-era/agent/deploy/update-skills.sh /usr/local/bin/agent-skills-update
 ```
 
 `update-skills.sh` only reaches the host's live checkout through `main`, so a change to the script
 itself needs the `install` step re-run by hand.
 
-Point the profile at the clone in its `config.yaml`:
+Tell the script which service to reload and where the agent keeps its state, in a host-side file the script
+sources (nothing host-specific lives in this repo):
 
-```yaml
-skills:
-  external_dirs:
-    - /opt/temple-era/hermes/skills
+```bash
+# /etc/agent-skills-update.env
+AGENT_SKILLS_SERVICE=<systemd unit of the gateway>
+AGENT_HOME=<the agent profile directory that holds gateway_state.json>
 ```
 
-Add a key for the n8n SSH node to `~/.ssh/authorized_keys`, locked to the script so even a leaked key
+Point the agent's extra-skills directory setting at `/opt/temple-era/agent/skills` (in the agent's own
+configuration; how that is spelled depends on the runtime).
+
+Add a key for the receiving workflow's SSH step to `~/.ssh/authorized_keys`, locked to the script so even a leaked key
 can do nothing else:
 
 ```
-command="/usr/local/bin/hermes-skills-update",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... n8n-hermes-skills-deploy
+command="/usr/local/bin/agent-skills-update",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... agent-skills-deploy
 ```
 
-## n8n side (not in this repo)
+## Receiving side (not in this repo)
 
-A small dedicated workflow: webhook with header auth (bearer token = `HERMES_DEPLOY_WEBHOOK_TOKEN`) →
-check `action_type == "hermes_skills_updated"` → SSH node with the key above → on a non-zero exit,
-alert. The SSH node's command text is irrelevant (the forced command ignores it).
+A small dedicated workflow: webhook with header auth (bearer token = `AGENT_DEPLOY_WEBHOOK_TOKEN`) →
+check `action_type == "agent_skills_updated"` → SSH step with the key above → on a non-zero exit,
+alert. The SSH step's command text is irrelevant (the forced command ignores it).
 
-GitHub repo secrets: `HERMES_DEPLOY_WEBHOOK_URL` and `HERMES_DEPLOY_WEBHOOK_TOKEN`.
+GitHub repo secrets: `AGENT_DEPLOY_WEBHOOK_URL` and `AGENT_DEPLOY_WEBHOOK_TOKEN`.
 
 ## Disabling
 
-Remove the `authorized_keys` line (the deploy stops working immediately) or disable the n8n workflow.
+Remove the `authorized_keys` line (the deploy stops working immediately) or disable the receiving workflow.
 The gateway keeps running the skills it last loaded.

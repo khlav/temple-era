@@ -25,7 +25,7 @@ The contract between them is enforced by nothing. The bot hand-declares `interfa
 
 ### Hard constraint: Templar
 
-A third bot — separate, Hermes/openclaw-style — consumes `/api/v1/*` and `/api/discord/proxy/[discordId]` **using the same `TEMPLE_WEB_API_TOKEN` as the log-monitoring bot**. It is not joining this monorepo.
+A third bot — separate, an autonomous-agent-style bot — consumes `/api/v1/*` and `/api/discord/proxy/[discordId]` **using the same `TEMPLE_WEB_API_TOKEN` as the log-monitoring bot**. It is not joining this monorepo.
 
 Therefore, **at no point in this migration may the v1 REST surface, the proxy route, the OpenAPI spec (`src/lib/openapi-registry.ts`), or the value/semantics of `TEMPLE_WEB_API_TOKEN` change.** Phase 7's contracts package must not alter any wire format. Treat this as a release gate, not a guideline.
 

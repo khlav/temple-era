@@ -1,9 +1,9 @@
-name: Hermes skills deploy
+name: Agent skills deploy
 
-# Tells the Hermes host to pull hermes/skills/ and restart the Templar gateway. Fires ONLY when
+# Tells the agent host to pull agent/skills/ and restart the Templar gateway. Fires ONLY when
 # those files change on main (a few times a month), so there is no polling. Delivery goes through
 # the same generic .github/scripts/notify-webhook.sh the PR webhooks use; what happens on the
-# receiving end is documented in hermes/deploy/README.md — the payload carries no instructions, the
+# receiving end is documented in agent/deploy/README.md — the payload carries no instructions, the
 # host runs one fixed script that ignores it, and always deploys main.
 #
 # workflow_dispatch re-sends the event by hand (e.g. after fixing the host). If nothing changed on
@@ -13,14 +13,14 @@ on:
   push:
     branches: [main]
     paths:
-      - "hermes/skills/**"
+      - "agent/skills/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: hermes-skills-deploy
+  group: agent-skills-deploy
   cancel-in-progress: false
 
 jobs:
@@ -29,19 +29,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Build and send hermes_skills_updated payload
+      - name: Build and send agent_skills_updated payload
         env:
           REPOSITORY: ${{ github.repository }}
           SHA: ${{ github.sha }}
           REF_NAME: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
           TRIGGER: ${{ github.event_name }}
-          WEBHOOK_URL: ${{ secrets.HERMES_DEPLOY_WEBHOOK_URL }}
-          WEBHOOK_TOKEN: ${{ secrets.HERMES_DEPLOY_WEBHOOK_TOKEN }}
+          # The HERMES_* names are the previous secret names; drop the fallbacks once the
+          # AGENT_* secrets are set.
+          WEBHOOK_URL: ${{ secrets.AGENT_DEPLOY_WEBHOOK_URL || secrets.HERMES_DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.AGENT_DEPLOY_WEBHOOK_TOKEN || secrets.HERMES_DEPLOY_WEBHOOK_TOKEN }}
         run: |
           chmod +x .github/scripts/notify-webhook.sh
           jq -n \
-            --arg action_type "hermes_skills_updated" \
+            --arg action_type "agent_skills_updated" \
             --arg repository "$REPOSITORY" \
             --arg sha "$SHA" \
             --arg ref "$REF_NAME" \
