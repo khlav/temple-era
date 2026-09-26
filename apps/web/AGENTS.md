@@ -244,6 +244,7 @@ Required environment variables:
 - `DISCORD_RAID_SR_CHANNEL_IDS` - Comma-separated SR channel IDs
 - `DISCORD_RAID_HELPER_BOT_ID` - Raid Helper bot user ID
 - `DISCORD_SERVER_ID` - Discord server/guild ID
+- `DISCORD_SOFTRES_TOKEN_THREAD_ID` - (optional) the SoftRes Token thread, same id the bot uses; `POST /api/v1/softres` needs it
 - `RAID_HELPER_API_KEY` - Raid Helper API key
 - `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` - Upstash QStash (see "Scheduled Jobs (QStash)" below); shared across `dev`/`stg`/`prd`
 
@@ -370,6 +371,11 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `DELETE /api/v1/world-buffs/assignments/:id` - Delete a scheduled turn-in (hard delete, no cancelled state); requires `worldbuff:manage`
 - `POST /api/v1/achievements` - Create a custom (manual-grant) achievement, always hidden, exactly one tier; requires `achievement:manage`
 - `POST /api/v1/achievements/:id/grant` - Grant a custom achievement's tier to a family by achievement ID (tier resolved automatically); requires `achievement:manage`
+
+### SoftRes (Templar)
+
+- `POST /api/v1/softres` - Creates a SoftRes SR the way the bot's `/sr` does (public "SRs : ..." post in a raid signup channel + admin link filed in the weekly Token-thread block), for Templar to call through the proxy on a user's behalf. Requires `softres:access`. Body: `zone` plus at most one of `date` (Eastern `YYYY-MM-DD`; the site finds that day's Raid Helper event for the zone), `eventId`, or `timestamp`; `channelId` is required unless `date`/`eventId` is given and must be one of `DISCORD_RAID_SR_CHANNEL_IDS`. The response never carries the admin link. Like `admin/connections` it is deliberately **not** in the OpenAPI spec, so the external Templar contract is unchanged (TEMPLE-132).
+- Posts to Discord over REST (`src/server/services/softres-discord-service.ts`) using `@temple-era/softres-blocks` for what the embeds say. Needs `DISCORD_SOFTRES_TOKEN_THREAD_ID` (optional in the env schema; the endpoint answers 503 until it is set). Finding "the raid for this zone/day" is `src/server/services/softres-event-lookup.ts`, shared with `POST /api/discord/resolve-softres-event`.
 
 ### Admin
 

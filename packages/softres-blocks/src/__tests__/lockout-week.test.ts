@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLockoutWeekLabel, getEasternDayKey, getLockoutWeekKey } from "../lockoutWeek.js";
+import { formatLockoutWeekLabel, getEasternDayKey, getLockoutWeekKey } from "../lockout-week.js";
 
 describe("getLockoutWeekKey", () => {
   it("returns the same Tuesday for every day within that lockout week", () => {
