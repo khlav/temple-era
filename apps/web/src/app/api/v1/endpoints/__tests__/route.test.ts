@@ -32,6 +32,27 @@ describe("GET /api/v1/endpoints/spec", () => {
     expect(Object.keys(body.paths)).toHaveLength(2);
   });
 
+  it("only advertises tags that can produce a fragment, not the off-spec routes' tags", async () => {
+    const body = await getSpec(url("/api/v1/endpoints/spec")).json();
+    expect(body.tags).not.toContain("SoftRes");
+    expect(body.tags).not.toContain("Admin");
+    // every advertised tag really does resolve
+    for (const tag of body.tags) {
+      expect(getSpec(url(`/api/v1/endpoints/spec?tag=${encodeURIComponent(tag)}`)).status).toBe(
+        200,
+      );
+    }
+  });
+
+  it("points a known off-spec tag at the index instead of calling it unknown", async () => {
+    const res = getSpec(url("/api/v1/endpoints/spec?tag=SoftRes"));
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toContain("not in the spec");
+    expect(body.error).toContain("/api/v1/endpoints?tag=SoftRes");
+    expect(body.tags).not.toContain("SoftRes");
+  });
+
   it("400s without a tag and 404s on an unknown one, listing the valid tags both times", async () => {
     const missing = getSpec(url("/api/v1/endpoints/spec"));
     expect(missing.status).toBe(400);
