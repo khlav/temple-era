@@ -82,12 +82,12 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: PR Agent action step
-        # Pinned to v0.41.1 by commit SHA rather than @main - Archon's own
+        # Pinned to v0.46.0 by commit SHA rather than @main - Archon's own
         # first review on this PR flagged @main as a supply-chain risk: a
         # compromised upstream push would execute immediately with this
         # workflow's write permissions (issues, PRs, contents, checks).
         id: pr_agent
-        uses: the-pr-agent/pr-agent@743f52d80f3513193dfc7626f778c73478df6d0a # v0.41.1
+        uses: the-pr-agent/pr-agent@1d01f24f455bb879c1d9c557ad7de3d72dcc7975 # v0.46.0
         env:
           # Archon App token first, GITHUB_TOKEN as fallback - see the mint
           # step above for why the fallback exists.
@@ -150,6 +150,11 @@ jobs:
           # overhead) - enough headroom for the next big dependency-upgrade
           # PR without going wide enough to invite long-context degradation.
           config.max_model_tokens: "256000"
+          # Appends a run-details section (models used, tokens, time, AI calls) to
+          # the review comment. Added to see which model actually answered - the
+          # fallback chain above can succeed silently on deepseek when the primary
+          # errors, and nothing else in the comment or log says so.
+          config.output_run_details: "true"
           # TEMPLE-78: apps/web/drizzle/meta/**/*.json (per-migration full
           # schema snapshots plus _journal.json) is machine-generated and not
           # incremental - it dominated PR #73's diff (11,435 of 12,943 lines,
