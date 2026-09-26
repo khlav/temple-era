@@ -2,10 +2,8 @@
 name: temple-features
 description: "What the Temple Discord bot and temple-era.com do — slash commands, the automatic SoftRes flow, the weekly SR admin-token summary, roster forwarding, raid creation from Warcraft Logs links, site pages and who can use them. Load this to answer 'what does the bot do', 'where did my SR link/token go', 'how do I run /sr', or to create an SR for a user."
 version: 1.1.0
-metadata:
-  hermes:
-    tags: [temple-era, discord, bot, slash-commands, softres, sr, features]
-    related_skills: [temple-era]
+tags: [temple-era, discord, bot, slash-commands, softres, sr, features]
+related_skills: [temple-era]
 ---
 
 # Temple Features — what the bot and the site do
@@ -21,7 +19,7 @@ Describe what happens and where results land. Do not describe how any of it is b
 The API details (attendance, raid plans, characters, tickets) are in the `temple-era` skill. This skill
 is the "what exists and where do I find it" map.
 
-> Keep in step with the code: this file lives in the monorepo (`hermes/skills/temple-features/`) and is
+> Keep in step with the code: this file lives in the monorepo (`agent/skills/temple-features/`) and is
 > updated in the same PR as any user-facing bot or site change.
 
 ## Slash commands
