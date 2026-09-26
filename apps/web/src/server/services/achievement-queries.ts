@@ -241,6 +241,89 @@ export async function getAwardById(
   return award!;
 }
 
+export interface EarnedAchievementTier {
+  tier: AchievementTierLevel;
+  awardedAt: Date;
+  source: "rule" | "manual";
+}
+
+export interface EarnedAchievement {
+  achievementId: string;
+  name: string;
+  icon: string;
+  /** Resolved against the highest earned tier's ruleConfig — see resolveAchievementDescription.
+   *  "" when the achievement has no description template. */
+  description: string;
+  scope: "season" | "all_time";
+  seasonName: string | null;
+  hidden: boolean;
+  highestTier: AchievementTierLevel;
+  /** Every tier this family has crossed, lowest first. Crossing a tier inserts a row for every
+   *  lower tier the achievement defines in the same pass (see UnseenAward.holderCount), so this runs
+   *  up to `highestTier` — though not every achievement defines all five tiers, and a manually
+   *  granted tier stands alone. */
+  tiers: EarnedAchievementTier[];
+}
+
+/** Backs the read-only API surfaces (GraphQL v2 `Character.achievements`) — every achievement this
+ *  family has earned, one entry per achievement with its tiers folded in. Earned only: a hidden
+ *  achievement appears here exactly when the family holds an award for it, the same rule
+ *  getDisplayCatalog applies to the character page, so this can't leak a hidden achievement's
+ *  existence any earlier than the site does. Ordered rarest highest tier first, then name. */
+export async function getEarnedAchievements(
+  db: DB,
+  primaryCharacterId: number,
+): Promise<EarnedAchievement[]> {
+  const rows = await db.query.achievementAwards.findMany({
+    where: eq(achievementAwards.primaryCharacterId, primaryCharacterId),
+    with: { achievementTier: { with: { achievement: { with: { season: true } } } } },
+  });
+
+  interface Acc {
+    entry: EarnedAchievement;
+    template: string | null;
+    highestRuleConfig: AchievementRuleConfig | null;
+  }
+  const byAchievement = new Map<string, Acc>();
+  for (const row of rows) {
+    const { achievement } = row.achievementTier;
+    const tier = row.achievementTier.tier as AchievementTierLevel;
+    let acc = byAchievement.get(achievement.id);
+    if (!acc) {
+      acc = {
+        entry: {
+          achievementId: achievement.id,
+          name: achievement.name,
+          icon: achievement.icon,
+          description: "",
+          scope: achievement.scope,
+          seasonName: achievement.season?.name ?? null,
+          hidden: achievement.hidden,
+          highestTier: tier,
+          tiers: [],
+        },
+        template: achievement.description,
+        highestRuleConfig: row.achievementTier.ruleConfig,
+      };
+      byAchievement.set(achievement.id, acc);
+    }
+    acc.entry.tiers.push({ tier, awardedAt: row.awardedAt, source: row.source });
+    if (TIER_RANK[tier] > TIER_RANK[acc.entry.highestTier]) {
+      acc.entry.highestTier = tier;
+      acc.highestRuleConfig = row.achievementTier.ruleConfig;
+    }
+  }
+
+  const earned = [...byAchievement.values()].map(({ entry, template, highestRuleConfig }) => ({
+    ...entry,
+    description: resolveAchievementDescription(template, highestRuleConfig, entry.scope),
+    tiers: [...entry.tiers].sort((a, b) => TIER_RANK[a.tier] - TIER_RANK[b.tier]),
+  }));
+  return earned.sort(
+    (a, b) => TIER_RANK[b.highestTier] - TIER_RANK[a.highestTier] || a.name.localeCompare(b.name),
+  );
+}
+
 export interface DisplayAchievement {
   achievementId: string;
   name: string;

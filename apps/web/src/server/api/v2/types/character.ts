@@ -2,7 +2,8 @@
 import { eq } from "drizzle-orm";
 import { type db as dbType } from "~/server/db";
 import { characters } from "~/server/db/schema";
-import { CharacterRef, RaidAttendanceRef, type CharacterRow } from "../refs";
+import { CharacterRef, EarnedAchievementRef, RaidAttendanceRef, type CharacterRow } from "../refs";
+import { getEarnedAchievements } from "~/server/services/achievement-queries";
 import { RaidZoneEnum } from "./enums";
 import { requireUser } from "../context";
 import {
@@ -113,6 +114,20 @@ CharacterRef.implement({
           to: args.to,
           db: ctx.db,
         });
+      },
+    }),
+    achievements: t.field({
+      type: [EarnedAchievementRef],
+      nullable: false,
+      description:
+        "Achievements earned by this character's family. Achievements are awarded to the primary " +
+        "character, so a secondary returns its primary's achievements.",
+      resolve: async (c, _args, ctx) => {
+        requireUser(ctx);
+        const primaryCharacterId = c.isPrimary
+          ? c.characterId
+          : (c.primaryCharacterId ?? c.characterId);
+        return getEarnedAchievements(ctx.db, primaryCharacterId);
       },
     }),
     attendedCount: t.field({

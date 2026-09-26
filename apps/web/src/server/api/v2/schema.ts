@@ -11,6 +11,7 @@ import "./types/raid";
 import "./types/character";
 import "./types/character-family";
 import "./types/recipe";
+import "./types/achievement";
 
 // User type defines and exports UserRef directly (not via refs.ts)
 import { UserRef, type UserData } from "./types/user";

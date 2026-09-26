@@ -6,6 +6,10 @@ import type {
   CharacterStatusData,
   FamilyStatusData,
 } from "./types/attendance-types";
+import type {
+  EarnedAchievement,
+  EarnedAchievementTier,
+} from "~/server/services/achievement-queries";
 
 type CharacterRow = typeof characters.$inferSelect;
 type RaidRow = typeof raids.$inferSelect;
@@ -30,3 +34,6 @@ export const CharacterStatusRef = builder.objectRef<CharacterStatusData>("Charac
 export const FamilyStatusRef = builder.objectRef<FamilyStatusData>("FamilyStatus");
 export const RecipeRef = builder.objectRef<RecipeRow>("Recipe");
 export const RecipeCrafterRef = builder.objectRef<RecipeCrafterData>("RecipeCrafter");
+export const EarnedAchievementRef = builder.objectRef<EarnedAchievement>("EarnedAchievement");
+export const EarnedAchievementTierRef =
+  builder.objectRef<EarnedAchievementTier>("EarnedAchievementTier");
