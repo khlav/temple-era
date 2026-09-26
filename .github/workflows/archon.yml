@@ -94,16 +94,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.archon_app_token.outputs.token || secrets.GITHUB_TOKEN }}
           # Serves every model below: pro primary, flash fallback and weak model.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # DeepSeek-only. deepseek-v4-pro is the primary on trial; flash is the
-          # fallback and the weak model. This replaces the TEMPLE-44 gpt-5.6-terra
-          # primary: the OpenAI account has no credits or usage, and billing shows
-          # only DeepSeek flash being charged, so terra appears to have been failing
-          # over to flash on every review - an untested fallback doing all the work. Pro is a deliberate step up in
-          # capability at a cost still measured in cents per PR (a week of flash
-          # reviews cost $0.49 in total). The OPENAI_KEY secret is no longer passed
-          # to the action; add it back only if an OpenAI model returns.
-          # If pro proves no better than flash on real PRs, or too slow, the
-          # cheap way back is config.model to flash.
           config.model: "deepseek/deepseek-v4-pro"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
           config.model_weak: "deepseek/deepseek-v4-flash"
