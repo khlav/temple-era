@@ -92,11 +92,10 @@ jobs:
           # Archon App token first, GITHUB_TOKEN as fallback - see the mint
           # step above for why the fallback exists.
           GITHUB_TOKEN: ${{ steps.archon_app_token.outputs.token || secrets.GITHUB_TOKEN }}
-          # Serves every model below: pro primary, flash fallback and weak model.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          config.model: "deepseek/deepseek-v4-pro"
-          config.fallback_models: '["deepseek/deepseek-v4-flash"]'
-          config.model_weak: "deepseek/deepseek-v4-flash"
+          config.model: "deepseek/deepseek-flash"
+          config.fallback_models: '[]'
+          config.model_weak: "deepseek/deepseek-flash"
           # Reverted from "high" back to PR-Agent's default of "medium":
           # cheap to reverse, as noted when "high" was tried, and the trial
           # didn't show a review-depth improvement that justified the extra
