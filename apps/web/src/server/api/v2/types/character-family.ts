@@ -1,7 +1,8 @@
 // src/server/api/v2/types/character-family.ts
 import { eq } from "drizzle-orm";
 import { characters } from "~/server/db/schema";
-import { CharacterFamilyRef, CharacterRef, RaidAttendanceRef } from "../refs";
+import { CharacterFamilyRef, CharacterRef, EarnedAchievementRef, RaidAttendanceRef } from "../refs";
+import { getEarnedAchievements } from "~/server/services/achievement-queries";
 import { RaidZoneEnum } from "./enums";
 import { requireUser } from "../context";
 import { computeAttendance } from "../helpers/attendance";
@@ -29,6 +30,15 @@ CharacterFamilyRef.implement({
           .select()
           .from(characters)
           .where(eq(characters.primaryCharacterId, family.primaryCharacterId));
+      },
+    }),
+    achievements: t.field({
+      type: [EarnedAchievementRef],
+      nullable: false,
+      description: "Achievements earned by this family.",
+      resolve: async (family, _args, ctx) => {
+        requireUser(ctx);
+        return getEarnedAchievements(ctx.db, family.primaryCharacterId);
       },
     }),
     attendance: t.field({

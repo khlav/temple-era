@@ -384,6 +384,27 @@ The website provides a versioned public REST API at `/api/v1/`:
   `pnpm db:deploy`; this covers the gap between deploys. Deliberately **not**
   registered in the OpenAPI spec, so the Templar contract is unchanged.
 
+### Discovery (TEMPLE-125)
+
+The OpenAPI document is ~150 KB, larger than a bot's response cap, so these give a caller a way to
+find routes without loading it. All three are additive and **deliberately not in the OpenAPI spec**, so
+the Templar contract is unchanged.
+
+- `GET /api/v1/endpoints` - compact index of every v1 route (method, path, summary, tags, auth, scopes),
+  derived from the spec so it cannot drift; also lists the routes left out of the spec (`POST /softres`,
+  `POST /admin/connections`) with `inSpec: false`. Filter with `?q=` (every term must match), `?tag=`,
+  `?method=`. No auth, like the spec.
+- `GET /api/v1/endpoints/spec?tag=<Tag>` - the OpenAPI document cut to one tag, with only the schemas it
+  references. 400/404 responses list the valid tags. No auth.
+- `GET /api/v1/capabilities` - which data domains Temple stores and which surfaces (REST, GraphQL, SQL)
+  can read each, with the calling token's scopes applied to the write routes. Separates "not stored"
+  (live-fetched, e.g. SoftRes) from "stored but not readable" (e.g. signup history). Needs a valid token.
+  The registry is `src/lib/api-capabilities.ts`; `api-capabilities.test.ts` checks it against the real
+  Drizzle tables, spec, GraphQL schema and the SQL grants in `drizzle/*.sql`, so **adding a table, a v1
+  route or a GraphQL/SQL read surface means updating it** or that test fails.
+- `src/lib/api-endpoint-index.ts` lists off-spec routes in `OFF_SPEC_ENDPOINTS`; a new v1 handler that is
+  in neither the spec nor that list fails `api-endpoint-index.test.ts`.
+
 **Auth:** Personal API tokens (`tera_<32-hex>`), generated from the profile page by raid managers and admins. Passed as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes in the DB.
 
 **Key files:**
@@ -407,7 +428,11 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 - `characters(type: CharacterType, search: String)` — list non-ignored characters with optional filter
 - `raids(zone: RaidZone, limit: Int, offset: Int)` — list raids newest-first with optional zone filter
 
-**Key types:** User, Character, CharacterFamily, Raid, RaidLog, AttendanceReport (with flexible zone + week params)
+**Key types:** User, Character, CharacterFamily, Raid, RaidLog, AttendanceReport (with flexible zone + week params), EarnedAchievement
+
+**Achievements (TEMPLE-124):** `Character.achievements` and `CharacterFamily.achievements` return the achievements a family has earned (name, resolved description, scope, season, highest tier, every tier with `awardedAt`/`source`). Awards are keyed on the primary character, so a secondary returns its primary's. Earned only — a hidden achievement shows up once earned, the same rule as the character page. Read-only; there is no REST read route for achievements.
+
+**Discovery:** `GET /api/v2/graphql/index?q=&type=` is a searchable one-line-per-field index of the schema (public, like `schema.graphql`). Field descriptions are what it searches, so give new fields a `description`.
 
 **Key files:**
 - `src/app/api/v2/graphql/route.ts` — Yoga route handler
@@ -415,6 +440,14 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 - `src/server/api/v2/types/` — Pothos type implementations
 - `src/server/api/v2/helpers/attendance.ts` — parameterized attendance computation
 - `src/server/api/v2/helpers/lockout-weeks.ts` — Tuesday-anchored WoW lockout week logic
+
+## Read-only SQL access
+
+The `templar` login role (member of `reports_readonly`, migrations `0029`/`0030`) can `SELECT` an explicit
+allow-list of tables — raids, attendance, recipes, raid plans, and (since `0051`) `achievement`,
+`achievement_tier`, `achievement_award` and `season`. There is deliberately no `ALTER DEFAULT PRIVILEGES`, so a
+new table is invisible to it until a migration grants it. The `auth_*` and access-control tables are never
+granted. Keep `CAPABILITY_DOMAINS` (`src/lib/api-capabilities.ts`) in step; its test parses these grants.
 
 ## Scheduled Jobs (QStash)
 
