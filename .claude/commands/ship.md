@@ -92,7 +92,7 @@ PR titles rule.
 - Omit empty sections
 - Do not restate the title
 
-**Closing additional tickets**: the branch's own Plane ticket (from its
+**Closing additional tickets**: the branch's own ticket (from its
 `{ticket-id}` slot) closes automatically on merge — no action needed. If
 `$ARGUMENTS` or the conversation makes clear this PR *also* resolves a
 different ticket (e.g. "this also closes TEMPLE-9"), add a `Closes TEMPLE-9`

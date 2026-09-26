@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Generic webhook notifier. Event-agnostic on purpose — knows nothing about
-# PRs, Plane, or any other system. Reads a JSON payload from stdin, POSTs it
+# PRs, ticket trackers, or any other system. Reads a JSON payload from stdin, POSTs it
 # to WEBHOOK_URL with bearer auth, and fails loudly on a non-2xx response.
 # Callers build whatever JSON shape they want (see pr-merged-webhook.yml for
 # an example) and pipe it in; this script only handles delivery.
