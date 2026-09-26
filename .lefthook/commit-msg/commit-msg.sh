@@ -25,7 +25,7 @@ fi
 commit_subject=$(printf '%s\n' "$commit_msg" | head -n 1)
 
 # Word boundaries are load-bearing. Without them "temp" matched "TEMPLE" — and
-# the branch convention requires a Plane TEMPLE ticket ID — so this warning
+# the branch convention requires a TEMPLE ticket ID — so this warning
 # fired on essentially every commit and taught everyone to ignore it. It also
 # matched "Templar", "template" and "attempt" (TEMPLE-45).
 #

@@ -182,7 +182,7 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
   fighting individual failures.
 - A new worktree has **no `node_modules`** — run `pnpm install` before any build or
   before the pre-push hook runs.
-- Verify a branch's ticket ID against Plane **before** branching — an ID typo forces the
+- Verify a branch's ticket ID against the ticket tracker **before** branching — an ID typo forces the
   PR to be closed and reopened under a new number once the mismatch is caught.
 
 ## Secrets — Doppler is the source of truth
@@ -209,7 +209,7 @@ back `pr-merged-webhook.yml` and `pr-opened-webhook.yml`'s shared delivery
 mechanism (`.github/scripts/notify-webhook.sh`), consumed by neither app at
 runtime, so they're plain GitHub repo secrets rather than Doppler entries.
 The `ISSUE_` prefix names what these two workflows actually feed today (the
-Plane ticket-sync automation) — `notify-webhook.sh` itself stays fully
+ticket-sync automation) — `notify-webhook.sh` itself stays fully
 generic, since each workflow maps the secret into its own local
 `WEBHOOK_URL`/`WEBHOOK_TOKEN` env vars before invoking it, so a future,
 unrelated event type can still reuse the same script under its own
@@ -296,15 +296,18 @@ These apply repo-wide; the app-level `AGENTS.md` files defer to this section.
 
 **Never commit directly to `main`.** Branch names: `{type}/{kebab-description}` where type is `feature`, `fix`, `chore`, `refactor`, `hotfix`, `dev`, or `claude`. Enforced by the lefthook pre-push hook.
 
-Include the corresponding Plane ticket's lowercased identifier (project `TEMPLE`) right after the type: `{type}/{ticket-id}-{kebab-description}`, e.g. `chore/temple-10-rename-ci-job-display-names`. For ad hoc work with no filed ticket, use the literal placeholder `noticket` in the ticket-id slot, e.g. `chore/noticket-quick-fix`, rather than dropping the slot. Enforced by the same lefthook pre-push `branch-name` check as the `{type}/` prefix.
+Include the corresponding ticket's lowercased identifier (project `TEMPLE`) right after the type: `{type}/{ticket-id}-{kebab-description}`, e.g. `chore/temple-10-rename-ci-job-display-names`. For ad hoc work with no filed ticket, use the literal placeholder `noticket` in the ticket-id slot, e.g. `chore/noticket-quick-fix`, rather than dropping the slot. Enforced by the same lefthook pre-push `branch-name` check as the `{type}/` prefix.
 
-#### Auto-closing Plane tickets on merge
+#### Ticket automation
 
 `.github/workflows/pr-merged-webhook.yml` relays every merged PR's metadata
 (title, body, branch name) to an external webhook that closes the
-corresponding Plane ticket — mirroring GitHub's "Closes #123" behavior, but
-for Plane. Nothing in this repo parses the payload; the contract below is
-what the receiving end implements, documented here so it stays discoverable:
+corresponding ticket — mirroring GitHub's "Closes #123" behavior.
+`.github/workflows/pr-opened-webhook.yml` relays the same metadata on `opened`
+and `edited` PR events (`edited` because a ticket ID can be added to the body
+after the PR already exists) so the ticket can be advanced when a PR opens.
+Nothing in this repo parses either payload; what the receiving end does with
+them lives outside this repo. The PR-body convention that drives closing:
 
 - **Single ticket** (the common case): nothing to do. The ticket ID already
   embedded in the branch name closes automatically on merge.
@@ -315,28 +318,6 @@ what the receiving end implements, documented here so it stays discoverable:
   **One `Closes TEMPLE-N` per ticket, each on its own line — never comma-joined**
   (`Closes TEMPLE-1, TEMPLE-2`). A comma-joined list has silently closed only the
   first ticket and left the rest open on a real PR.
-
-#### Auto-advancing Plane tickets to In Progress on PR open
-
-`.github/workflows/pr-opened-webhook.yml` (TEMPLE-23) relays the same
-branch-name/body metadata on `opened` and `edited` PR events (`edited` because
-a ticket ID can be added to the body after the PR already exists) to an
-external webhook that advances the referenced Plane ticket to "In Progress" —
-the open-side counterpart to the close-on-merge pipeline above. As with that
-pipeline, nothing in this repo parses the payload; the contract below is what
-the receiving end implements:
-
-- **Guard against regressing a ticket**: only advance a ticket that is
-  currently in an earlier stage. Determine this from Plane's `list_states`
-  data at call time, not hardcoded state IDs or names — each state carries a
-  numeric `sequence` field that is a single monotonic ordering across every
-  group in the project (confirmed in TEMPLE: Backlog 15000 < Todo 25000 <
-  In Progress 35000 < Done 45000 < Cancelled 55000). Find the destination
-  state (the one with `group == "started"`), then only transition a ticket
-  whose current state has a lower `sequence` than the destination's. A pure
-  `group` bucket check (e.g. "is it backlog or unstarted") is not enough if a
-  project ever has multiple states sharing the `started` group — raw sequence
-  comparison is the total order that still gets that right.
 
 Commits: `type(scope): description` — types `feat`, `fix`, `chore`, `refactor`, `hotfix`, `dev`. Enforced by `.lefthook/commit-msg/commit-msg.sh`.
 

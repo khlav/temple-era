@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Deploys hermes/skills/ to the Hermes host: fetch, validate, check out, and restart the gateway —
-# but only when the skills actually changed. Run by an n8n SSH node through an authorized_keys forced
+# but only when the skills actually changed. Run by the receiving workflow's SSH step through an authorized_keys forced
 # command (see hermes/deploy/README.md), so it takes NO input from the caller. The HERMES_* variables
 # below exist for the sandbox test (test-update-skills.sh); the forced-command path never sets them.
 #
