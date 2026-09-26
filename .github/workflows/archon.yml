@@ -32,7 +32,7 @@ jobs:
   pr_review:
     name: PR review
     # Bot-sender guard, plus a fork guard Archon's own review flagged: PRs
-    # from forks don't get repo secrets (OPENAI_KEY/DEEPSEEK_API_KEY come back
+    # from forks don't get repo secrets (DEEPSEEK_API_KEY comes back
     # empty) and GITHUB_TOKEN is read-only, so every external contribution
     # would show a failed/red check rather than just skipping cleanly. Restricting
     # to same-repo PRs avoids that instead of trying to handle it gracefully.
@@ -92,51 +92,21 @@ jobs:
           # Archon App token first, GITHUB_TOKEN as fallback - see the mint
           # step above for why the fallback exists.
           GITHUB_TOKEN: ${{ steps.archon_app_token.outputs.token || secrets.GITHUB_TOKEN }}
-          # Kept alongside OPENAI_KEY below so deepseek-v4-flash still works
-          # as a cross-provider fallback - unrelated to which model is primary.
+          # Serves every model below: pro primary, flash fallback and weak model.
           DEEPSEEK.KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # TEMPLE-44: GPT-5.6 Terra (OpenAI) as primary. This supersedes
-          # TEMPLE-38, which trialed GPT-5.6 Luna in the same slot to close the
-          # review-depth gap noted against Greptile in
-          # docs/followups/pr-review-quality-log.md. That trial was aimed at
-          # the wrong target: upstream's own configuration.toml lists
-          # gpt-5.6-luna as the commented-out example for `model_weak` - "a
-          # weaker model to use for some easier tasks" - so Luna was never a
-          # candidate for closing a DEPTH gap, and DeepSeek Pro -> Flash ->
-          # Luna was three consecutive moves along the cheap axis with none
-          # along the capable one. Luna keeps its intended job below via
-          # config.model_weak.
-          #
-          # Terra rather than full GPT-5.6, on cost. Terra is the middle tier -
-          # upstream ships it as the default fallback beside gpt-5.6 - so this
-          # is still a genuine move along the capable axis relative to Luna,
-          # which is the point of the change, just not all the way to the top.
-          # Archon runs on every opened and synchronize event, so the primary
-          # model's per-review cost is multiplied by pushes per PR, not by PR
-          # count. If review depth turns out to regress against the four valid
-          # findings Terra's predecessor produced on this PR, the escalation
-          # path is gpt-5.6 - not another step down.
-          # Requires the OPENAI_KEY repo secret (see AGENTS.md's Secrets
-          # section - this one deliberately lives outside Doppler, same as
-          # DEEPSEEK_API_KEY, since it's CI infra rather than app config).
-          # No provider prefix on the model id: unlike deepseek/..., OpenAI is
-          # litellm's default provider, and PR-Agent's own GitHub Action docs
-          # (docs.pr-agent.ai/installation/github) show config.model set to a
-          # bare "gpt-4o"-style string with OPENAI_KEY, not OPENAI.KEY.
-          # deepseek-v4-flash stays as fallback (existing, working, and
-          # orthogonal to this comparison) rather than an untested same-
-          # provider fallback - despite deepseek-v4-flash's own known
-          # reliability gap (four incorrect technical claims in a row during
-          # PR #32's own review cycle, the reason it was demoted from primary
-          # originally). Acceptable here since fallback only fires when the
-          # primary itself errors, not on every review.
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          config.model: "gpt-5.6-terra"
+          # DeepSeek-only. deepseek-v4-pro is the primary on trial; flash is the
+          # fallback and the weak model. This replaces the TEMPLE-44 gpt-5.6-terra
+          # primary: the OpenAI account has no credits or usage, and billing shows
+          # only DeepSeek flash being charged, so terra appears to have been failing
+          # over to flash on every review - an untested fallback doing all the work. Pro is a deliberate step up in
+          # capability at a cost still measured in cents per PR (a week of flash
+          # reviews cost $0.49 in total). The OPENAI_KEY secret is no longer passed
+          # to the action; add it back only if an OpenAI model returns.
+          # If pro proves no better than flash on real PRs, or too slow, the
+          # cheap way back is config.model to flash.
+          config.model: "deepseek/deepseek-v4-pro"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
-          # Previously unset, so PR-Agent used the primary model for the
-          # cheaper sub-tasks too. Luna is upstream's own example weak model,
-          # which is the role it should have had all along.
-          config.model_weak: "gpt-5.6-luna"
+          config.model_weak: "deepseek/deepseek-v4-flash"
           # Reverted from "high" back to PR-Agent's default of "medium":
           # cheap to reverse, as noted when "high" was tried, and the trial
           # didn't show a review-depth improvement that justified the extra
