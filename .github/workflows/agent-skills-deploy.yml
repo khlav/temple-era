@@ -36,10 +36,8 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
           TRIGGER: ${{ github.event_name }}
-          # The HERMES_* names are the previous secret names; drop the fallbacks once the
-          # AGENT_* secrets are set.
-          WEBHOOK_URL: ${{ secrets.AGENT_DEPLOY_WEBHOOK_URL || secrets.HERMES_DEPLOY_WEBHOOK_URL }}
-          WEBHOOK_TOKEN: ${{ secrets.AGENT_DEPLOY_WEBHOOK_TOKEN || secrets.HERMES_DEPLOY_WEBHOOK_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.AGENT_DEPLOY_WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.AGENT_DEPLOY_WEBHOOK_TOKEN }}
         run: |
           chmod +x .github/scripts/notify-webhook.sh
           jq -n \
