@@ -143,11 +143,23 @@ Fetches use `cache: false` option to prevent adding items to Discord.js cache.
 
 ## Environment Configuration
 
-Required variables:
+Required variables (`src/config/env.ts` exits at startup if any is missing):
 - `DISCORD_BOT_TOKEN` - Discord bot token
-- `DISCORD_RAID_LOGS_CHANNEL_ID` - Channel ID to monitor
-- `API_BASE_URL` - Temple Ashkandi website base URL
-- `TEMPLE_WEB_API_TOKEN` - API authentication token
+- `TEMPLE_WEB_API_TOKEN` - API authentication token (shared with the web app and Templar)
+- `API_BASE_URL` - Temple Ashkandi website base URL; must equal the web app's `NEXT_PUBLIC_APP_URL`
+- `DISCORD_RAID_LOGS_CHANNEL_ID` - Channel ID to monitor for Warcraft Logs links
+- `DISCORD_RAID_SR_CHANNEL_IDS` - Comma-separated Raid-Helper signup channels (an empty list also fails)
+- `DISCORD_RAID_HELPER_BOT_ID` - Raid-Helper's own user ID
+- `DISCORD_SOFTRES_TOKEN_THREAD_ID` - The SoftRes Token thread the weekly admin-token block lives in
+- `DISCORD_SERVER_ID` - The guild, for `/sr` registration and the zone emoji
+
+The Northflank service gets all of these from its own configuration, not from Doppler at
+runtime. Only `DISCORD_BOT_TOKEN` and `TEMPLE_WEB_API_TOKEN` are pushed there by
+`sync-bot-secrets.yml`; the rest are set by hand on the service. **Adding a required variable to
+`env.ts` therefore means adding it to Northflank too** — Doppler alone does not reach the bot, and
+a missing one shows up as a startup crash, not a build error. (Do not confuse this with
+`apps/web`'s env: the web app reads its own set from Vercel, e.g. `DISCORD_SOFTRES_TOKEN_THREAD_ID`
+is separately needed there for Templar's create-SR endpoint.)
 
 Optional variables:
 - `LOG_LEVEL` - Logging level (default: `info`)
@@ -155,7 +167,7 @@ Optional variables:
 - `DISCORD_LOG_THREAD_CLEANUP_DAYS` - Days before thread deletion (default: `3`)
 - `DISCORD_LOG_THREAD_CLEANUP_CRON` - Cron schedule for cleanup (default: `0 1 * * *`)
 
-Secrets live in Doppler (`temple-era-bot`). One-time setup:
+Secrets live in Doppler (project `temple-era`, shared with the web app). One-time setup:
 
 ```bash
 doppler login && cd apps/bot && doppler setup --no-interactive
