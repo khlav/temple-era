@@ -61,6 +61,23 @@ describe("sync-bot-secrets.yml covers the bot's environment", () => {
     expect(unmanaged).toEqual([]);
   });
 
+  it("lists every Actions secret the step receives, so none is silently never synced", () => {
+    // The reverse of the check below: a `secrets.X` line added to the step's env without
+    // listing X in REQUIRED_KEYS / OPTIONAL_KEYS would be passed in and then ignored.
+    const CI_INFRASTRUCTURE = ["NORTHFLANK_ACCESS_TOKEN"]; // authenticates the sync, never synced
+    const passedIn = [...workflow.matchAll(/^\s+([A-Z0-9_]+): \$\{\{ secrets\.\1 \}\}/gm)].map(
+      (m) => m[1]!,
+    );
+    const unlisted = passedIn.filter(
+      (k) =>
+        !CI_INFRASTRUCTURE.includes(k) &&
+        !managedRequired.includes(k) &&
+        !managedOptional.includes(k),
+    );
+    expect(passedIn.length).toBeGreaterThan(8);
+    expect(unlisted).toEqual([]);
+  });
+
   it("maps every managed key to the Actions secret of the same name", () => {
     for (const key of [...managedRequired, ...managedOptional]) {
       expect(workflow, `${key} is listed but not passed to the step`).toContain(
