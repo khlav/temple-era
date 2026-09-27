@@ -85,6 +85,11 @@ Imported raid dates are shifted forward so the newest lands today, because the d
 "active raider" badge are all windowed on recent lockout weeks. `--no-shift-dates` keeps the real
 historical dates.
 
+Re-running the seed is safe (log imports upsert, synthetic tables are cleared first), but **raising
+`--count` on an existing database leaves mixed dates** — the shift is computed from the newest raid,
+which is already "today" from the previous run, so the newly-imported older logs keep their real
+dates. Pair a bigger `--count` with `db:local:reset` for a coherent set.
+
 ### Cloning PROD to DEV (escape hatch — costs real money)
 
 `pnpm db:clone-prod` copies **all** application data from PROD to DEV (`public`, `views`, `drizzle`;
