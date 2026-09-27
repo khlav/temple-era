@@ -1,0 +1,49 @@
+# Local development database (TEMPLE-136).
+#
+# Dev used to point at Supabase, and refreshing dev data meant `db:clone-prod` — a full pg_dump of
+# every row in public + views + drizzle. Supabase bills data egress, so that became too expensive to
+# do routinely. This container replaces it: the schema comes from `db:deploy` (the real migration
+# path) and the data comes from `apps/web/scripts/seed/seed-local.ts`, which pulls only ~25 raid log
+# IDs out of prod and fetches the actual roster data from Warcraft Logs instead.
+#
+# Supabase is used as plain hosted Postgres — nothing in this app touches Supabase Auth, Storage,
+# RLS or PostgREST (no migration references auth.*/storage.*), so stock Postgres is a complete
+# substitute locally.
+#
+# Not for deployment. apps/bot/Dockerfile is the only production image in this repo.
+
+services:
+  postgres:
+    # Pinned to 17 to match production (see apps/web/docs/supabase-migration-runbook.md). This also
+    # means the container carries v17 pg_dump/pg_restore/psql, which is what the scripts/db/*.sh
+    # helpers require — so `db:local:psql` works without a matching client install on the host.
+    image: postgres:17
+    container_name: temple-era-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      # Local-only throwaway credential. Deliberately committed: it guards nothing, it is not a
+      # secret, and the alternative (a Doppler lookup) would make `db:local:up` need auth.
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: temple_era_dev
+    ports:
+      # 55432, not 5432: a native Postgres already listens on 5432 on at least one dev machine, and
+      # a port collision there surfaces as a confusing "works but wrong database" rather than a
+      # clean failure. The Doppler dev_personal DATABASE_URL matches this port.
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, only when the data directory is first initialised — see the file's own comment
+      # for why uuid-ossp is provisioned here rather than by a migration.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # `db:local:up` waits on this, so the very next command (db:deploy) can assume readiness
+      # instead of racing the server's startup.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d temple_era_dev"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  pgdata:
+    name: temple-era-pgdata

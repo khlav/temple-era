@@ -70,3 +70,7 @@ bfg-replacements.txt
 
 # Local database dumps — contain production user data, never commit
 /backups/
+
+# Cached list of raid log IDs harvested from prod for local seeding (TEMPLE-136). Derived data,
+# and it changes every time prod gets a new raid — re-fetch with `--refresh-ids` instead.
+/scripts/seed/.harvested-log-ids.json

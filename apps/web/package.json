@@ -9,6 +9,8 @@
     "db:clone-prod:doppler": "doppler run -- bash scripts/db/clone-prod.sh",
     "db:deploy": "drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs",
     "db:generate": "drizzle-kit generate",
+    "db:local:deploy": "doppler run --config dev_personal -- pnpm db:deploy",
+    "db:local:seed": "doppler run --config dev_personal -- tsx scripts/seed/seed-local.ts",
     "db:migrate": "drizzle-kit migrate",
     "db:migration:compare": "bash scripts/db/compare-row-counts.sh",
     "db:migration:dump:data": "bash scripts/db/dump.sh data-only",
@@ -107,6 +109,7 @@
     "pino-pretty": "^13.1.3",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"

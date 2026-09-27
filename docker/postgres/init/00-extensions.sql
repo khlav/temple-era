@@ -1,0 +1,11 @@
+-- Runs once, at data-directory initialisation, before any migration.
+--
+-- uuid-ossp is the one extension a migration-built database would otherwise be missing:
+-- scripts/db/clone-prod.sh creates it explicitly, but no migration in apps/web/drizzle does, so a
+-- database built by `db:deploy` would silently differ from one built by cloning prod. Provisioning
+-- it here keeps the two paths equivalent.
+--
+-- unaccent is deliberately NOT here — apps/web/drizzle/0008_add-unaccent-extension.sql creates it
+-- (along with the f_unaccent wrapper and its functional index), and duplicating that would put the
+-- same object in two places that could drift.
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
