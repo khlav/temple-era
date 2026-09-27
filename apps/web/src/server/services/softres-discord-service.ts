@@ -3,8 +3,10 @@ import {
   adminUrlRaidId,
   blockHasRaid,
   buildWeeklyBlockEmbed,
+  parsePublicSoftresEmbedLinks,
   weeklyBlockFooter,
   type EmbedData,
+  type SoftresEmbedLink,
   type WeeklyTokenEntry,
 } from "@temple-era/softres-blocks";
 import { env } from "~/env.js";
@@ -95,25 +97,43 @@ export async function getZoneEmojiMap(): Promise<Map<string, string>> {
 }
 
 /**
- * Whether the bot already posted an SR embed linking to this signup message — the same match the
- * bot's roster-forward uses (embed URL === the signup message link). Guards against creating a
- * second SR for a raid the automatic flow (or an earlier request) already covered. False if the
- * channel can't be read: the caller has other guards, and a lookup failure shouldn't block.
+ * The SoftRes links from the bot's own SR embed for this signup message, if one was posted —
+ * matched the same way the bot's roster-forward does (embed URL === the signup message link).
+ * Null if no matching post exists at all; a lookup failure (channel unreadable) also resolves to
+ * null rather than throwing, since callers generally have other guards. TEMPLE-134: this is the
+ * fallback path for a SoftRes link created via `/sr` or `POST /api/v1/softres`, neither of which
+ * sets Raid Helper's own `softresId` field on the event.
  */
-export async function hasSrPostForEvent(channelId: string, eventUrl: string): Promise<boolean> {
+export async function findSrLinksForEvent(
+  channelId: string,
+  eventUrl: string,
+): Promise<SoftresEmbedLink[] | null> {
   try {
     const [botId, recent] = await Promise.all([
       getBotUserId(),
       discord<DiscordMessage[]>(`/channels/${channelId}/messages?limit=100`),
     ]);
-    return recent.some((m) => m.author.id === botId && m.embeds?.some((e) => e.url === eventUrl));
+    const posted = recent.find(
+      (m) => m.author.id === botId && m.embeds?.some((e) => e.url === eventUrl),
+    );
+    if (!posted) return null;
+    const description = posted.embeds?.find((e) => e.url === eventUrl)?.description ?? "";
+    return parsePublicSoftresEmbedLinks(description);
   } catch (error) {
     logger.warn(
       { channelId, error: error instanceof Error ? error.message : String(error) },
       "Could not check for an existing SR post",
     );
-    return false;
+    return null;
   }
+}
+
+/**
+ * Whether the bot already posted an SR embed linking to this signup message. Guards against
+ * creating a second SR for a raid the automatic flow (or an earlier request) already covered.
+ */
+export async function hasSrPostForEvent(channelId: string, eventUrl: string): Promise<boolean> {
+  return (await findSrLinksForEvent(channelId, eventUrl)) !== null;
 }
 
 /** Posts an embed to a channel; returns the new message's id. */

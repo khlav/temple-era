@@ -248,6 +248,54 @@ describe("hasSrPostForEvent", () => {
   });
 });
 
+describe("findSrLinksForEvent", () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => vi.clearAllMocks());
+
+  it("recovers the zone links from the bot's own embed for that signup", async () => {
+    const url = "https://discord.com/channels/1/2/3";
+    stubDiscord({
+      "GET /users/@me": { id: BOT_ID },
+      "GET /channels/2/messages?limit=100": [
+        { id: "a", author: { id: "someone" }, embeds: [{ url }] },
+        {
+          id: "b",
+          author: { id: BOT_ID },
+          embeds: [
+            {
+              url,
+              description:
+                "Sun, Sep 13 at 7:00 PM Server Time\n\nMolten Core: https://softres.it/raid/mc1",
+            },
+          ],
+        },
+      ],
+    });
+    const { findSrLinksForEvent } = await import("../softres-discord-service");
+
+    expect(await findSrLinksForEvent("2", url)).toEqual([
+      { zone: "Molten Core", url: "https://softres.it/raid/mc1", emoji: undefined },
+    ]);
+  });
+
+  it("returns null when no matching post exists", async () => {
+    stubDiscord({
+      "GET /users/@me": { id: BOT_ID },
+      "GET /channels/2/messages?limit=100": [],
+    });
+    const { findSrLinksForEvent } = await import("../softres-discord-service");
+
+    expect(await findSrLinksForEvent("2", "https://discord.com/channels/1/2/3")).toBeNull();
+  });
+
+  it("returns null, not an error, when the channel can't be read", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 403, json: async () => ({}) });
+    const { findSrLinksForEvent } = await import("../softres-discord-service");
+
+    expect(await findSrLinksForEvent("2", "https://discord.com/channels/1/2/3")).toBeNull();
+  });
+});
+
 describe("getZoneEmojiMap", () => {
   beforeEach(() => vi.resetModules());
   afterEach(() => vi.clearAllMocks());

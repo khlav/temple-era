@@ -13,8 +13,13 @@ import {
   primaryRaidAttendeeAndBenchMap,
   trackedRaidsL6LockoutWk,
 } from "~/server/db/schema";
-import { getZoneForInstance, resolveSoftResZoneId } from "~/lib/raid-zones";
+import {
+  getInstanceIdForZoneName,
+  getZoneForInstance,
+  resolveSoftResZoneId,
+} from "~/lib/raid-zones";
 import { fetchSoftResRaidData } from "~/server/api/softres-client";
+import { findSrLinksForEvent } from "~/server/services/softres-discord-service";
 import { SCOPE } from "~/lib/scopes";
 import {
   type MatchStatus,
@@ -157,6 +162,26 @@ async function resolveSoftresLink(raidId: string): Promise<ScheduledEventSoftRes
   }
 }
 
+/**
+ * Fallback for an event with no Raid Helper `softresId`: the bot's `/sr` flow and
+ * `POST /api/v1/softres` post a standalone "SRs : ..." embed into the raid channel instead of
+ * setting that field (TEMPLE-134), so the link has to be read back off that post. Matched the
+ * same "embed URL === this event's own signup message link" rule `hasSrPostForEvent` uses to
+ * avoid double-posting an SR. The zone comes straight out of the embed's own text, so unlike
+ * `resolveSoftresLink` this needs no SoftRes API call at all.
+ */
+async function resolveSoftresLinksFromChannelScan(
+  event: Pick<PostedEvent, "id" | "channelId">,
+): Promise<ScheduledEventSoftResLink[]> {
+  const eventUrl = `https://discord.com/channels/${env.DISCORD_SERVER_ID}/${event.channelId}/${event.id}`;
+  const links = await findSrLinksForEvent(event.channelId, eventUrl);
+  if (!links) return [];
+  return links.map((link) => ({
+    url: link.url,
+    zoneId: getInstanceIdForZoneName(link.zone) ?? null,
+  }));
+}
+
 interface RaidPlanSlot {
   groupNumber: number;
   slotNumber: number;
@@ -250,12 +275,13 @@ export const raidHelperRouter = createTRPCRouter({
           let classCounts: Record<string, number> = {};
           let userSignupStatus: string | null = null;
 
-          // Only Raid Helper's own softresId field (embedded in its registration message) -
-          // a link posted separately in Discord isn't surfaced here; the dashboard falls back
-          // to a "check in Discord" affordance instead of scanning channel history for it.
-          const softresLinksPromise: Promise<ScheduledEventSoftResLink[]> = Promise.all(
-            (e.softresId ? [e.softresId] : []).map(resolveSoftresLink),
-          );
+          // Raid Helper's own softresId field is the fast path (embedded in its registration
+          // message). When it's unset, fall back to scanning the event's own channel for the
+          // "SRs : ..." embed `/sr`/`POST /api/v1/softres` post instead (TEMPLE-134) — those
+          // flows don't write softresId back onto the Raid Helper event.
+          const softresLinksPromise: Promise<ScheduledEventSoftResLink[]> = e.softresId
+            ? Promise.all([e.softresId].map(resolveSoftresLink))
+            : resolveSoftresLinksFromChannelScan(e);
 
           try {
             // Fetch event details to get signups
