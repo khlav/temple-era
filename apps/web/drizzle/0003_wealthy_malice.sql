@@ -1,1 +1,0 @@
-ALTER TABLE "auth_user" RENAME COLUMN "is_raid_lead" TO "is_raid_manager";

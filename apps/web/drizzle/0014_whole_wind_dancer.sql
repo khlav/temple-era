@@ -1,1 +1,0 @@
-ALTER TABLE "raid_plan_character" ADD COLUMN "write_in_class" varchar(32);

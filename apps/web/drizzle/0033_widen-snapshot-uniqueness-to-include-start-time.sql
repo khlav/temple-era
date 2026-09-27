@@ -1,2 +1,0 @@
-DROP INDEX "raid_helper_signup_snapshot__event_checkpoint_idx";--> statement-breakpoint
-CREATE UNIQUE INDEX "raid_helper_signup_snapshot__event_checkpoint_start_idx" ON "raid_helper_signup_snapshot" USING btree ("raid_helper_event_id","checkpoint","start_time");

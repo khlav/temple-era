@@ -434,7 +434,7 @@ export async function buildRuleEvaluationContext(
 // ─── Scoring: Weighted Attendance Threshold ────────────────────────────────────
 
 /** Real per-raid `attendanceWeight` credit, matching the dashboard's own
- *  `views.primary_raid_attendance_l6lockoutwk` formula (apps/web/drizzle/0001_init_6w_reporting_views.sql):
+ *  `views.primary_raid_attendance_l6lockoutwk` formula (apps/web/drizzle/0001_custom_objects.sql):
  *  per lockout week, per zone, take the best-weighted raid attended OR bench-credited that week in
  *  that zone (dedupes a same-zone re-log within one week rather than double-counting it, and a
  *  raid the family was both logged AND benched for isn't double-counted either — same underlying

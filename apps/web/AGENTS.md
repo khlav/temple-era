@@ -55,6 +55,28 @@ pnpm db:studio        # Open Drizzle Studio (database GUI)
 
 **`db:deploy` is not part of `build`.** Migrations used to run via `postbuild`; Phase 2 of the monorepo migration split them apart so builds never mutate a database. Any deploy pipeline must invoke `db:deploy` explicitly — see the root `AGENTS.md` for the required Vercel Build Command.
 
+### The two-file migration layout
+
+`drizzle/` holds exactly two migrations, and new work appends after them as normal:
+
+- **`0000_baseline.sql`** — pure `drizzle-kit generate` output: every table, column, enum, PK, FK and
+  index from `schema.ts`. Never hand-edit it.
+- **`0001_custom_objects.sql`** — everything `schema.ts` cannot express, at its final state: the
+  `views` schema and its 8 reporting views, the `unaccent` extension + `f_unaccent` + its functional
+  index, the database timezone, the `reports_readonly`/`templar` roles and their grants, the
+  raid-plan trigger functions and triggers, and the seed/reference rows (2 system roles, ~115
+  recipes). **Anything of that kind belongs here or in a later hand-written migration, never in a
+  generated one** — `schemaFilter: ["public"]` means a regenerate would silently drop it.
+
+This replaced a 52-file chain (TEMPLE-135) that had grown to 4.8MB, almost entirely from one
+full-schema snapshot per migration. That chain also could not be replayed from scratch, so
+`db:clone-prod` had been the only way to build a database.
+
+Drizzle decides what to apply from a **watermark** — the newest `created_at` in
+`drizzle.__drizzle_migrations` — and never re-checks historical hashes. Two consequences worth
+knowing: already-migrated databases skip both files (their watermark is newer than either `when` in
+`meta/_journal.json`), and editing an already-applied migration cannot disturb them.
+
 ### Local development database (the normal path)
 
 Dev runs against a **local Postgres container**, not Supabase. From the repo root:

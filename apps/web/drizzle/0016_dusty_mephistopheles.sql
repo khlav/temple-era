@@ -1,1 +1,0 @@
-ALTER TABLE "raid_plan" ADD COLUMN "start_at" timestamp;
