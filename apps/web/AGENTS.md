@@ -55,15 +55,51 @@ pnpm db:studio        # Open Drizzle Studio (database GUI)
 
 **`db:deploy` is not part of `build`.** Migrations used to run via `postbuild`; Phase 2 of the monorepo migration split them apart so builds never mutate a database. Any deploy pipeline must invoke `db:deploy` explicitly — see the root `AGENTS.md` for the required Vercel Build Command.
 
-### Cloning PROD to DEV
+### Local development database (the normal path)
 
-Copies all application data from PROD to DEV. Only app-owned schemas (`public`, `views`, `drizzle`) are dumped — Supabase-managed schemas are excluded entirely.
-
-**Prerequisites:** `pg_dump`, `pg_restore`, and `psql` must be v17 to match the server. Set `DATABASE_PROD_URL` in `.env`.
+Dev runs against a **local Postgres container**, not Supabase. From the repo root:
 
 ```bash
-pnpm db:clone-prod
+pnpm db:local:up        # start postgres:17 on localhost:55432 (waits for healthy)
+pnpm db:local:deploy    # apply migrations to it
+pnpm db:local:seed      # populate it (see below)
+pnpm db:local:psql      # a v17 psql shell inside the container
+pnpm db:local:reset     # destroy the volume and start clean
 ```
+
+Secrets come from the Doppler **`dev_personal`** config, whose `DATABASE_URL` /
+`DATABASE_MIGRATION_URL` point at that container; everything else it inherits from `dev`. The
+committed `doppler.yaml` still says `dev`, so the `db:local:*` scripts pass `--config dev_personal`
+explicitly. Run `doppler setup --config dev_personal` if you want it as your local default.
+
+**Seeding** (`apps/web/scripts/seed/seed-local.ts`) reads only the ~25 newest raid log **IDs** from
+prod — a few KB — and rebuilds everything else locally: the roster/fight data comes from the
+Warcraft Logs API, and the rest (families, recipe knowledge, bench credit, signup snapshots, raid
+plan templates, plans, world buffs, achievements) is synthetic. The ID list is cached, so re-seeding
+never touches prod at all; `--refresh-ids` re-queries it. It refuses to run against a non-local
+`DATABASE_URL`. Useful flags: `--count=N`, `--seed=N`, `--skip-harvest`, `--no-shift-dates`,
+`--no-achievements`.
+
+Imported raid dates are shifted forward so the newest lands today, because the dashboard, the
+`views.tracked_raids_*` / `views.primary_raid_attendance_l6lockoutwk` views, and the rare-recipes
+"active raider" badge are all windowed on recent lockout weeks. `--no-shift-dates` keeps the real
+historical dates.
+
+Re-running the seed is safe (log imports upsert, synthetic tables are cleared first), but **raising
+`--count` on an existing database leaves mixed dates** — the shift is computed from the newest raid,
+which is already "today" from the previous run, so the newly-imported older logs keep their real
+dates. Pair a bigger `--count` with `db:local:reset` for a coherent set.
+
+### Cloning PROD to DEV (escape hatch — costs real money)
+
+`pnpm db:clone-prod` copies **all** application data from PROD to DEV (`public`, `views`, `drizzle`;
+Supabase-managed schemas excluded). Supabase bills data egress and this moves every row, so it is no
+longer the routine way to get a dev database — prefer the local container above. Reach for it only
+when you specifically need real production data.
+
+**Prerequisites:** `pg_dump`, `pg_restore`, and `psql` must be v17 to match the server, and
+`DATABASE_PROD_URL` must be set. (`pnpm db:local:psql` gives you a v17 client without installing
+one.)
 
 ### Code Quality Commands
 

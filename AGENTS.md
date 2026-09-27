@@ -110,12 +110,20 @@ pnpm dev              # web dev server (the common case)
 pnpm dev:bot          # bot with hot reload
 pnpm dev:all          # both at once via Turborepo
 pnpm db:studio        # any db:* script — all forward to apps/web
-pnpm db:clone-prod
+pnpm db:local:up      # local Postgres container (the dev database)
+pnpm db:local:deploy  # migrate it
+pnpm db:local:seed    # populate it
 ```
 
 `db:*` scripts are web-only passthroughs: there is one database and `apps/web`
 owns it. `dev` deliberately means *web only* — `dev:all` starts both, which is
 rarely what you want.
+
+**Dev runs against a local Docker Postgres** (`docker-compose.yml`, port 55432), not
+Supabase — Supabase bills egress and `db:clone-prod` moves every row, so cloning is
+now an explicit escape hatch rather than the routine path. The seed reads only ~25 raid
+log IDs from prod and rebuilds the rest from the Warcraft Logs API. Full details in
+`apps/web/AGENTS.md` → "Local development database".
 
 For a script with no root alias, there are short prefixes rather than
 hand-typing the package name (note it is `temple-era-web`, singular "raid",
@@ -197,6 +205,7 @@ exist once, so they cannot drift. They previously lived in two projects and did.
 | Config | Feeds |
 |---|---|
 | `dev` | local development for both apps (`doppler run`) |
+| `dev_personal` | a branch config of `dev` for the **local Docker database** — overrides only `DATABASE_URL`/`DATABASE_MIGRATION_URL` (and your own `SUPERADMIN_DISCORD_IDS`), inheriting the rest. See `apps/web/AGENTS.md` → "Local development database". |
 | `stg` | Vercel **Preview** (native Doppler sync) |
 | `prd` | Vercel **Production** (native sync) **and** the Northflank secret group (via GitHub Action) |
 

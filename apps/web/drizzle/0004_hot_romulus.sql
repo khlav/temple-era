@@ -1,5 +1,5 @@
 DO $$ BEGIN
- CREATE TYPE "public"."profession" AS ENUM('Alchemy', 'Blacksmithing', 'Enchanting', 'Engineering', 'Tailoring', 'Leatherworking');
+ CREATE TYPE "public"."profession" AS ENUM('Alchemy', 'Blacksmithing', 'Enchanting', 'Engineering', 'Tailoring', 'Leatherworking', 'Cooking');
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
