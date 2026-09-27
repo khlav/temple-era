@@ -6,7 +6,16 @@
  * assumes this check has passed — it is the single reason the rest of the seed can be careless
  * about deleting rows.
  */
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal"]);
+// "[::1]" is bracketed because that is what URL.hostname returns for an IPv6 literal — the bare
+// "::1" form can never match. Both are listed so neither spelling surprises anyone reading this.
+const LOCAL_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  "::1",
+  "0.0.0.0",
+  "host.docker.internal",
+]);
 
 export function assertLocalDatabase(databaseUrl: string): void {
   let host: string;

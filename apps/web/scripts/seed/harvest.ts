@@ -35,7 +35,10 @@ export async function harvestLogIds(opts: {
 }): Promise<HarvestedLog[]> {
   if (!opts.refresh && existsSync(HARVEST_CACHE_PATH)) {
     const cached = JSON.parse(readFileSync(HARVEST_CACHE_PATH, "utf8")) as HarvestedLog[];
-    if (cached.length > 0) return cached;
+    // Sliced, so --count still means something on a re-seed. The cache is newest-first, so this
+    // takes the N most recent. Asking for more than the cache holds needs --refresh-ids; growing
+    // the list is the one case that genuinely has to go back to prod.
+    if (cached.length > 0) return cached.slice(0, opts.count);
   }
 
   const prodUrl = process.env.DATABASE_PROD_URL;

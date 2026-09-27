@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { RAID_ZONE_CONFIG } from "~/lib/raid-zones";
 import { db } from "~/server/db";
 import {
@@ -284,7 +284,9 @@ export async function seedRaidPlans(rng: Rng): Promise<{ plans: number; roster: 
   const recent = await db
     .select({ id: raids.raidId, name: raids.name, zone: raids.zone, date: raids.date })
     .from(raids)
-    .orderBy(asc(raids.date))
+    // Newest first: the seed shifts dates so the latest raid lands today, and plans attached to
+    // stale lockout weeks would defeat that.
+    .orderBy(desc(raids.date))
     .limit(3);
   if (recent.length === 0) return { plans: 0, roster: 0 };
 
