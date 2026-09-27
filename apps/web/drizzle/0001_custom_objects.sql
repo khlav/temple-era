@@ -424,6 +424,9 @@ COMMENT ON ROLE reports_readonly IS
   'Read-only service account for the Templar Discord bot''s ad hoc SQL query feature.';
 
 -- Keep a bad ad hoc query from tying up the Supavisor pooler.
+-- SUPERSEDED by 0002_templar_statement_timeout.sql: this line never took effect (a role-level GUC
+-- is not inherited through membership, and reports_readonly is NOLOGIN), so 0002 resets it here and
+-- sets 120s on `templar`, the login role, instead. Kept for replay fidelity — do not read it as live.
 ALTER ROLE reports_readonly SET statement_timeout = '30s';
 
 -- Postgres grants CREATE on public/views to the PUBLIC pseudo-role by default, and that's
