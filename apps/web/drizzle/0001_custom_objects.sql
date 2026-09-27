@@ -423,12 +423,6 @@ $$;
 COMMENT ON ROLE reports_readonly IS
   'Read-only service account for the Templar Discord bot''s ad hoc SQL query feature.';
 
--- Keep a bad ad hoc query from tying up the Supavisor pooler.
--- SUPERSEDED by 0002_templar_statement_timeout.sql: this line never took effect (a role-level GUC
--- is not inherited through membership, and reports_readonly is NOLOGIN), so 0002 resets it here and
--- sets 120s on `templar`, the login role, instead. Kept for replay fidelity — do not read it as live.
-ALTER ROLE reports_readonly SET statement_timeout = '30s';
-
 -- Postgres grants CREATE on public/views to the PUBLIC pseudo-role by default, and that's
 -- additive on top of any role-specific grants — without revoking it, "read-only" would be a lie:
 -- reports_readonly could still create objects in either schema via that implicit grant.
@@ -500,6 +494,14 @@ COMMENT ON ROLE templar IS
 
 -- Default INHERIT means templar automatically has reports_readonly's grants without SET ROLE.
 GRANT reports_readonly TO templar;
+
+-- Keep a bad ad hoc query from tying up the Supavisor pooler. Set on `templar` rather than on
+-- reports_readonly, because Postgres applies an `ALTER ROLE ... SET` GUC only to the role a session
+-- authenticates as: it is not inherited through role membership, and `SET ROLE` does not re-apply
+-- it. reports_readonly is NOLOGIN, so setting it there — which is what 0029 originally did — has no
+-- effect on any session that can exist (TEMPLE-137). A future LOGIN role granted reports_readonly
+-- needs its own line here; the group role cannot carry this for its members.
+ALTER ROLE templar SET statement_timeout = '120s';
 
 --> statement-breakpoint
 

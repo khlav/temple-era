@@ -1,22 +1,22 @@
--- TEMPLE-137: move the read-only query timeout onto the role that actually gets it, at 120s.
+-- TEMPLE-137: forward patch for databases that already ran the pre-squash 0029/0030 chain.
 --
--- 0001_custom_objects.sql (carried over from the old 0029) sets statement_timeout on
--- reports_readonly, and that setting has never once taken effect. Postgres applies an
--- `ALTER ROLE ... SET` GUC only when that role is the one the session *authenticated as*. It is
--- not inherited through role membership, and `SET ROLE` does not re-apply it either. Since 0030
--- split identity from privilege, reports_readonly is NOLOGIN — so nothing can ever authenticate
--- as it, and the setting is unreachable by construction rather than merely unused.
+-- 0001_custom_objects.sql now states the intended final shape directly — statement_timeout on
+-- `templar`, nothing on reports_readonly — so a database built from zero comes out correct and both
+-- statements below are no-ops for it.
 --
--- Templar connects as `templar`, which inherits reports_readonly's SELECT grants but none of its
--- role-level settings. Its ad hoc queries have therefore been running under the server default
--- (no statement timeout at all) for the whole life of that credential.
+-- Deployed databases cannot get it that way. Drizzle applies only migrations whose journal `when`
+-- exceeds the newest `created_at` in drizzle.__drizzle_migrations, and never re-reads or re-hashes
+-- an already-applied file. prod and stg sit far above 0001's `when`, so editing 0001 is invisible to
+-- them: they still carry the original inert `reports_readonly = 30s` and an unset `templar`. This
+-- file has a `when` above their watermark, which is what lets it reach them.
+--
+-- Why the original setting was inert: Postgres applies an `ALTER ROLE ... SET` GUC only to the role
+-- a session authenticates as. It is not inherited through role membership, and `SET ROLE` does not
+-- re-apply it. reports_readonly has been NOLOGIN since 0030 split identity from privilege, so
+-- nothing could ever authenticate as it. Templar connects as `templar`, inheriting the SELECT grants
+-- but none of the role-level settings — leaving its ad hoc queries with no statement timeout at all.
 ALTER ROLE templar SET statement_timeout = '120s';
 --> statement-breakpoint
 
--- Drop the inert setting instead of leaving two different numbers each appearing to govern the
--- same connections. It is unreachable (see above), so removing it changes no session's behaviour.
---
--- Note for later: a group role cannot carry statement_timeout for its members. Any future LOGIN
--- role granted reports_readonly needs its own `ALTER ROLE <role> SET statement_timeout` line, or
--- it silently gets no timeout — exactly the bug this migration fixes.
+-- Clears the real, inert value on prod and stg. No-op from zero, since 0001 no longer sets it.
 ALTER ROLE reports_readonly RESET statement_timeout;
