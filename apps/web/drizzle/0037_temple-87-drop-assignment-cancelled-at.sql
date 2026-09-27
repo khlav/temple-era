@@ -1,1 +1,0 @@
-ALTER TABLE "world_buff_assignment" DROP COLUMN "cancelled_at";

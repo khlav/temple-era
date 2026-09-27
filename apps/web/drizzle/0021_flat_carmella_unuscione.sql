@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX IF NOT EXISTS "user__api_token_idx" ON "auth_user" USING btree ("api_token");

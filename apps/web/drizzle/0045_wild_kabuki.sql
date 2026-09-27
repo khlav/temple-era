@@ -1,1 +1,0 @@
-ALTER TYPE "public"."achievement_rule_shape" ADD VALUE 'recipe_set_threshold';
