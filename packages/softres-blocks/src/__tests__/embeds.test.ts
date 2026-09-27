@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_EMBED_COLOR, buildPublicSoftresEmbedData } from "../embeds.js";
+import {
+  ADMIN_EMBED_COLOR,
+  buildPublicSoftresEmbedData,
+  parsePublicSoftresEmbedLinks,
+  publicUrlRaidId,
+} from "../embeds.js";
 
 describe("buildPublicSoftresEmbedData", () => {
   const links = [
@@ -58,5 +63,47 @@ describe("buildPublicSoftresEmbedData", () => {
     });
 
     expect(ADMIN_EMBED_COLOR).not.toBe(publicEmbed.color);
+  });
+});
+
+describe("publicUrlRaidId", () => {
+  it("extracts the raid id from a public softres.it link", () => {
+    expect(publicUrlRaidId("https://softres.it/raid/abc-123")).toBe("abc-123");
+  });
+
+  it("returns null for a link of an unexpected shape", () => {
+    expect(publicUrlRaidId("https://softres.it/raid/abc?adminToken=x")).toBeNull();
+    expect(publicUrlRaidId("https://example.com/raid/abc")).toBeNull();
+  });
+});
+
+describe("parsePublicSoftresEmbedLinks", () => {
+  it("recovers zone + url from a rendered public embed's description, round-tripping the builder", () => {
+    const embed = buildPublicSoftresEmbedData({
+      title: "SRs : Sunday BWL/MC @7PM",
+      dateLabel: "Sun, Sep 13 at 7:00 PM Server Time",
+      links: [
+        { zone: "Blackwing Lair", url: "https://softres.it/raid/bwl1", emoji: "<:bwl:111>" },
+        { zone: "Molten Core", url: "https://softres.it/raid/mc1" },
+      ],
+    });
+
+    expect(parsePublicSoftresEmbedLinks(embed.description)).toEqual([
+      { zone: "Blackwing Lair", url: "https://softres.it/raid/bwl1", emoji: "<:bwl:111>" },
+      { zone: "Molten Core", url: "https://softres.it/raid/mc1", emoji: undefined },
+    ]);
+  });
+
+  it("skips the date label and blank separator lines", () => {
+    const links = parsePublicSoftresEmbedLinks(
+      "Sunday 09/13/2026\n\nNaxxramas: https://softres.it/raid/nx1",
+    );
+    expect(links).toEqual([
+      { zone: "Naxxramas", url: "https://softres.it/raid/nx1", emoji: undefined },
+    ]);
+  });
+
+  it("returns an empty array for a description with no parseable links", () => {
+    expect(parsePublicSoftresEmbedLinks("just some unrelated text")).toEqual([]);
   });
 });

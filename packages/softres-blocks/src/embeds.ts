@@ -54,3 +54,32 @@ export function buildPublicSoftresEmbedData(options: SoftresEmbedOptions): Embed
   if (options.titleUrl) embed.url = options.titleUrl;
   return embed;
 }
+
+// One per-zone line as rendered above: an optional `<:name:id>`/`<a:name:id>` emoji prefix, the
+// zone name, then the public softres.it URL. Anchored to the exact "Zone: url" shape so the date
+// label line and the blank separator line (neither of which contain a softres.it URL) never match.
+const LINK_LINE_REGEX = /^(?:(<a?:\w+:\d+>) )?(.+?): (https:\/\/softres\.it\/raid\/[\w.-]+)$/;
+
+/** The raid id in a softres.it public (no-token) link, or null if the link has an unexpected
+ * shape. The admin-link counterpart, `adminUrlRaidId`, lives in weekly-token-block.ts. */
+export function publicUrlRaidId(url: string): string | null {
+  const match = /^https:\/\/softres\.it\/raid\/([\w.-]+)$/.exec(url);
+  return match ? match[1]! : null;
+}
+
+/**
+ * Recovers the per-zone links from an already-posted public embed's description — the read side
+ * of `buildPublicSoftresEmbedData`. Used when a SoftRes link needs to be read back off a message
+ * that was posted, not built from a caller's own `SoftresEmbedLink[]` (TEMPLE-134: the dashboard
+ * scanning a raid channel for a `/sr`/`POST /api/v1/softres` post that never set Raid Helper's own
+ * `softresId`). Lines that don't match the expected shape are skipped rather than throwing, so an
+ * unrelated line (or a future format tweak) degrades to "fewer links found", not a hard failure.
+ */
+export function parsePublicSoftresEmbedLinks(description: string): SoftresEmbedLink[] {
+  return description.split("\n").flatMap((line): SoftresEmbedLink[] => {
+    const match = LINK_LINE_REGEX.exec(line);
+    if (!match) return [];
+    const [, emoji, zone, url] = match;
+    return [{ zone: zone!.trim(), url: url!, emoji }];
+  });
+}
