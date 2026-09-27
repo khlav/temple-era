@@ -250,7 +250,7 @@ order by weighted_attendance_pct desc, character_name
 -- raid_plan.id became a nanoid); touch_raid_plan_from_direct_fk and the triggers themselves
 -- are unchanged from 0018_touch-raid-plan-updated-at.sql.
 -- ============================================================================
-CREATE FUNCTION touch_raid_plan_timestamp(target_plan_id varchar) RETURNS void
+CREATE OR REPLACE FUNCTION touch_raid_plan_timestamp(target_plan_id varchar) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
   IF target_plan_id IS NULL THEN
