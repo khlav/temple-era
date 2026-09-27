@@ -85,8 +85,8 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
   // Insert or update raid log with onConflictDoUpdate
   await db
     .insert(raidLogs)
-    // @ts-expect-error Ignore mapping issue
     .values({
+      // @ts-expect-error Ignore mapping issue
       raidLogId: input.raidLogId,
       name: input.name,
       raidId: input.raidId,
