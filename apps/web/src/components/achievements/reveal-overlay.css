@@ -1204,3 +1204,55 @@
 .ro-icon-xs .ro-frame.ro-arcanite .ro-embers {
   inset: 3px;
 }
+
+/* Bigger still (~1.27x .ro-icon-sm's 44px) — the RevealFab pill, sized up so the medal reads at
+   a glance instead of needing a second look. Same proportional scale-up as xs's own relationship
+   to sm (padding/border-width/inset all move together). */
+.ro-icon-md .ro-coin,
+.ro-icon-md .ro-frame {
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  padding: 5px;
+}
+.ro-icon-md .ro-coin::after {
+  inset: 5px;
+  border-width: 1px;
+}
+.ro-icon-md .ro-frame-border {
+  border-width: 4px;
+}
+.ro-icon-md .ro-frame::before,
+.ro-icon-md .ro-frame.ro-thorium.ro-fxsweep::after,
+.ro-icon-md .ro-frame.ro-arcanite .ro-embers {
+  inset: 5px;
+}
+
+/* RevealFab's periodic "notice me" nudge — a quick double-bounce near the start of an 8s cycle,
+   then holds still for the rest. Deliberately not a continuous pulse: motion that never stops
+   reads as background noise within a few seconds, but a nudge that recurs on an interval keeps
+   drawing the eye each time without being constantly distracting. Lives on the pill's outer
+   wrapper (a sibling of the glow span and the button), not the button itself, so it doesn't fight
+   the button's own one-shot mount animation (tw-animate-css's animate-in/zoom-in-50/fade-in) for
+   the `animation` shorthand property. */
+@keyframes ro-fab-attention {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  3% {
+    transform: scale(1.08);
+  }
+  6% {
+    transform: scale(0.97);
+  }
+  9% {
+    transform: scale(1.03);
+  }
+  12% {
+    transform: scale(1);
+  }
+}
+.ro-fab-attention {
+  animation: ro-fab-attention 8s ease-in-out infinite;
+}
