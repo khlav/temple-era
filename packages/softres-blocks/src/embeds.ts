@@ -80,6 +80,6 @@ export function parsePublicSoftresEmbedLinks(description: string): SoftresEmbedL
     const match = LINK_LINE_REGEX.exec(line);
     if (!match) return [];
     const [, emoji, zone, url] = match;
-    return [{ zone: zone!, url: url!, emoji }];
+    return [{ zone: zone!.trim(), url: url!, emoji }];
   });
 }

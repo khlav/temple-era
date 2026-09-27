@@ -96,36 +96,78 @@ export async function getZoneEmojiMap(): Promise<Map<string, string>> {
   return map;
 }
 
+type SrLinkFinder = (channelId: string, eventUrl: string) => Promise<SoftresEmbedLink[] | null>;
+
+/**
+ * A `findSrLinksForEvent`-shaped lookup, memoized per channel for the lifetime of the returned
+ * function. `getScheduledEvents` calls this once per request and reuses it across every event in
+ * the batch — several events routinely share one raid-night channel, and without this each would
+ * trigger its own `GET /channels/{channelId}/messages` (Archon, PR #157: fans out redundant
+ * fetches and can trip Discord rate limits). A single-lookup caller (`hasSrPostForEvent`, called
+ * once per request) has no need for this and uses `findSrLinksForEvent` directly instead.
+ */
+export function createSrLinkFinder(): SrLinkFinder {
+  const channelCache = new Map<
+    string,
+    Promise<{ botId: string; messages: DiscordMessage[] } | null>
+  >();
+
+  function fetchChannel(channelId: string) {
+    let entry = channelCache.get(channelId);
+    if (!entry) {
+      entry = Promise.all([
+        getBotUserId(),
+        discord<DiscordMessage[]>(`/channels/${channelId}/messages?limit=100`),
+      ])
+        .then(([botId, messages]) => ({ botId, messages }))
+        .catch((error: unknown) => {
+          logger.warn(
+            { channelId, error: error instanceof Error ? error.message : String(error) },
+            "Could not check for an existing SR post",
+          );
+          return null;
+        });
+      channelCache.set(channelId, entry);
+    }
+    return entry;
+  }
+
+  return async (channelId, eventUrl) => {
+    const channel = await fetchChannel(channelId);
+    if (!channel) return null;
+    const posted = channel.messages.find(
+      (m) => m.author.id === channel.botId && m.embeds?.some((e) => e.url === eventUrl),
+    );
+    if (!posted) return null;
+    const description = posted.embeds?.find((e) => e.url === eventUrl)?.description ?? "";
+    const links = parsePublicSoftresEmbedLinks(description);
+    if (links.length === 0) {
+      // A post matched but nothing parsed out of it - a format drift or a truncated/legacy
+      // description - so it's worth knowing about even though there's nothing to do here but
+      // return the empty result; `hasSrPostForEvent` still correctly reports true for this post.
+      logger.warn(
+        { channelId, eventUrl },
+        "Matched an SR post but parsed no SoftRes links from its embed",
+      );
+    }
+    return links;
+  };
+}
+
 /**
  * The SoftRes links from the bot's own SR embed for this signup message, if one was posted —
  * matched the same way the bot's roster-forward does (embed URL === the signup message link).
  * Null if no matching post exists at all; a lookup failure (channel unreadable) also resolves to
  * null rather than throwing, since callers generally have other guards. TEMPLE-134: this is the
  * fallback path for a SoftRes link created via `/sr` or `POST /api/v1/softres`, neither of which
- * sets Raid Helper's own `softresId` field on the event.
+ * sets Raid Helper's own `softresId` field on the event. A one-off convenience over
+ * `createSrLinkFinder` for a caller that only needs a single lookup.
  */
 export async function findSrLinksForEvent(
   channelId: string,
   eventUrl: string,
 ): Promise<SoftresEmbedLink[] | null> {
-  try {
-    const [botId, recent] = await Promise.all([
-      getBotUserId(),
-      discord<DiscordMessage[]>(`/channels/${channelId}/messages?limit=100`),
-    ]);
-    const posted = recent.find(
-      (m) => m.author.id === botId && m.embeds?.some((e) => e.url === eventUrl),
-    );
-    if (!posted) return null;
-    const description = posted.embeds?.find((e) => e.url === eventUrl)?.description ?? "";
-    return parsePublicSoftresEmbedLinks(description);
-  } catch (error) {
-    logger.warn(
-      { channelId, error: error instanceof Error ? error.message : String(error) },
-      "Could not check for an existing SR post",
-    );
-    return null;
-  }
+  return createSrLinkFinder()(channelId, eventUrl);
 }
 
 /**
