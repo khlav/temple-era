@@ -1256,3 +1256,8 @@
 .ro-fab-attention {
   animation: ro-fab-attention 8s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .ro-fab-attention {
+    animation: none;
+  }
+}

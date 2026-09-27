@@ -84,10 +84,16 @@ export function RevealFab(): React.JSX.Element | null {
   // long-term source of truth (also covers this same family's other tabs/sessions); the
   // optimistic setData is just what makes THIS click feel instant.
   const markSeen = api.achievement.markSeen.useMutation({
-    onMutate: async () => {
+    onMutate: async ({ achievementAwardIds }) => {
       await utils.achievement.getUnseenAwards.cancel();
       const previous = utils.achievement.getUnseenAwards.getData();
-      utils.achievement.getUnseenAwards.setData(undefined, []);
+      // Filter out only the ids being marked, rather than blanking the whole cache — a background
+      // refetch could have landed a newer unseen award between render and this click, and a blind
+      // `setData(undefined, [])` would optimistically hide that one too until onSettled's
+      // invalidate brings it back.
+      utils.achievement.getUnseenAwards.setData(undefined, (current) =>
+        (current ?? []).filter((award) => !achievementAwardIds.includes(award.achievementAwardId)),
+      );
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
