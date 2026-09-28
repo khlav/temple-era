@@ -57,7 +57,7 @@ pnpm db:studio        # Open Drizzle Studio (database GUI)
 
 ### The two-file migration layout
 
-`drizzle/` holds exactly two migrations, and new work appends after them as normal:
+`drizzle/` rests on a two-migration base, and new work appends after it as normal:
 
 - **`0000_baseline.sql`** — pure `drizzle-kit generate` output: every table, column, enum, PK, FK and
   index from `schema.ts`. Never hand-edit it.
@@ -76,6 +76,11 @@ Drizzle decides what to apply from a **watermark** — the newest `created_at` i
 `drizzle.__drizzle_migrations` — and never re-checks historical hashes. Two consequences worth
 knowing: already-migrated databases skip both files (their watermark is newer than either `when` in
 `meta/_journal.json`), and editing an already-applied migration cannot disturb them.
+
+Scaffold a hand-written migration with `pnpm db:generate --custom --name=<slug>` rather than adding
+the file and journal entry by hand. It stamps `when` with the current time, which is what puts the
+migration *above* prod's watermark so it actually runs — the two base files are deliberately below
+it. `0002_templar_statement_timeout.sql` is the worked example.
 
 ### Local development database (the normal path)
 
