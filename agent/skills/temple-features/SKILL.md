@@ -92,10 +92,13 @@ Every SR the bot or the site creates — `/sr`, the automatic flow, or one you c
 with the guild's hard reserves already set for that zone. Nobody has to add them by hand, and raiders
 cannot soft-reserve them.
 
-- **Molten Core:** Fiery Core, Lava Core, Sulfuron Ingot, both halves of Bindings of the Windseeker, Eye
-  of Sulfuras, Essence of the Firelord.
+- **Molten Core:** Fiery Core, Lava Core, both halves of Bindings of the Windseeker.
 - **Blackwing Lair:** Elementium Ore.
 - **Every other zone:** none.
+
+That list is exactly what's reserved — don't reason about what "should" be on it. Sulfuron Ingot, Eye of
+Sulfuras and Essence of the Firelord are **not** hard-reserved and can be soft-reserved normally, even
+though they're the same kind of item as the ones that are.
 
 "Why can't I SR \<item\>?" → if it's on that list, it's hard-reserved for the guild, which is intended
 and not a bug. Changing the list is a code change, so point a raid lead at a maintainer rather than

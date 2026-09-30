@@ -45,26 +45,34 @@ describe("HARD_RESERVE_ITEM_IDS", () => {
     }
   });
 
-  it("hard-reserves every legendary-quality drop in each configured zone", async () => {
-    for (const zone of configuredZones) {
-      const zoneItems = await getAllItemsForZone(zone);
-      const legendaryIds = Object.values(zoneItems)
-        .filter((item) => item.quality === "Legendary")
-        .map((item) => item.id);
+  // Deliberately no "every legendary drop is hard-reserved" assertion. An earlier revision had
+  // one, which made the list look derivable from item quality; it isn't. It's a guild policy
+  // list, and MC's Eye of Sulfuras and Essence of the Firelord are legendary but intentionally
+  // left off — a rule-shaped test would have to be deleted again the next time policy moves.
+  it("is a policy list, not one derived from item quality", async () => {
+    const mcItems = await getAllItemsForZone("Molten Core");
+    const mcLegendaryIds = Object.values(mcItems)
+      .filter((item) => item.quality === "Legendary")
+      .map((item) => item.id);
+    const reserved = getHardReserveItemIds("Molten Core");
 
-      for (const id of legendaryIds) {
-        expect(
-          getHardReserveItemIds(zone),
-          `legendary item ${id} in ${zone} is not hard-reserved`,
-        ).toContain(id);
-      }
-    }
+    // Some MC legendaries are reserved (the Bindings) and some are not, so quality alone
+    // predicts nothing.
+    expect(mcLegendaryIds.some((id) => reserved.includes(id))).toBe(true);
+    expect(mcLegendaryIds.some((id) => !reserved.includes(id))).toBe(true);
   });
 });
 
 describe("getHardReserveItemIds", () => {
   it("returns the configured list for a zone that has one", () => {
     expect(getHardReserveItemIds("Blackwing Lair")).toEqual([18562]);
+  });
+
+  // Exact, not arrayContaining: the point is that an item can't be added or dropped without
+  // this failing, so a policy change has to be deliberate — and paired with the list in
+  // agent/skills/temple-features/SKILL.md, which is what Templar tells raiders is reserved.
+  it("reserves exactly the four policy items in Molten Core", () => {
+    expect(getHardReserveItemIds("Molten Core")).toEqual([17010, 17011, 18563, 18564]);
   });
 
   it("returns an empty list for a zone with no hard reserves", () => {
