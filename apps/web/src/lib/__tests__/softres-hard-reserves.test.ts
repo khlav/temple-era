@@ -68,6 +68,13 @@ describe("getHardReserveItemIds", () => {
     expect(getHardReserveItemIds("Blackwing Lair")).toEqual([18562]);
   });
 
+  // Exact, not arrayContaining: the point is that an item can't be added or dropped without
+  // this failing, so a policy change has to be deliberate — and paired with the list in
+  // agent/skills/temple-features/SKILL.md, which is what Templar tells raiders is reserved.
+  it("reserves exactly the four policy items in Molten Core", () => {
+    expect(getHardReserveItemIds("Molten Core")).toEqual([17010, 17011, 18563, 18564]);
+  });
+
   it("returns an empty list for a zone with no hard reserves", () => {
     expect(getHardReserveItemIds("Naxxramas")).toEqual([]);
   });
