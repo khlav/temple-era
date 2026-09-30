@@ -440,6 +440,35 @@ The website provides a versioned public REST API at `/api/v1/`:
 - `POST /api/v1/softres` - Creates a SoftRes SR the way the bot's `/sr` does (public "SRs : ..." post in a raid signup channel + admin link filed in the weekly Token-thread block), for Templar to call through the proxy on a user's behalf. Requires `softres:access`. Body: `zone` plus at most one of `date` (Eastern `YYYY-MM-DD`; the site finds that day's Raid Helper event for the zone), `eventId`, or `timestamp`; `channelId` is required unless `date`/`eventId` is given and must be one of `DISCORD_RAID_SR_CHANNEL_IDS`. The response never carries the admin link. Like `admin/connections` it is deliberately **not** in the OpenAPI spec, so the external Templar contract is unchanged (TEMPLE-132).
 - Posts to Discord over REST (`src/server/services/softres-discord-service.ts`) using `@temple-era/softres-blocks` for what the embeds say. Needs `DISCORD_SOFTRES_TOKEN_THREAD_ID` (optional in the env schema; the endpoint answers 503 until it is set). Finding "the raid for this zone/day" is `src/server/services/softres-event-lookup.ts`, shared with `POST /api/discord/resolve-softres-event`.
 
+### Creating SoftRes SRs, and hard reserves
+
+All three creation paths — `POST /api/discord/ensure-softres` (automatic, off a Raid-Helper signup),
+`POST /api/discord/create-softres` (the bot's `/sr`) and `POST /api/v1/softres` (Templar) — go through
+the one `createSoftResRaid()` in `src/server/api/softres-client.ts`. Put anything that should be true of
+every new SR there, not at a call site.
+
+**Hard reserves** (TEMPLE-138) are a second POST, not part of the create. SoftRes's create form has no
+hard-reserve field, so `createSoftResRaid()` follows the create with
+`POST https://softres.it/raid/{id}/hardReserve`, body `{ items: [...] }`. Four things about that route
+were established live and are easy to get wrong:
+
+- **It replaces the whole set**, so always send the complete intended list — never a delta.
+- **The session that created a raid already manages it**, so no admin token is needed. A *different*
+  session gets 403 until it first does `GET /raid/{id}?adminToken=<token>`; that's the retry path if one
+  is ever wanted. `createSoftResRaid()` therefore keeps its session for one more request, re-reading
+  `Set-Cookie` off the create response in case the session cookie was reissued.
+- **An item that doesn't drop in the raid's instance fails the whole call with 422**, leaving the stored
+  set untouched. So one misfiled id disarms its entire zone rather than dropping one item —
+  `src/lib/__tests__/softres-hard-reserves.test.ts` validates every id against
+  `src/lib/item-mappings/*.json` for exactly that reason.
+- **It must never throw.** By the time it runs, the admin token has been parsed and exists only in that
+  function's locals; throwing would strand an SR nobody can administer. It reports
+  `hardReservesApplied: false` instead, and callers log it.
+
+The per-zone list is `src/lib/softres-hard-reserves.ts`, keyed by zone like `softres-create-instance-ids.ts`
+beside it. Adding an item is a one-line change there — plus
+`agent/skills/temple-features/SKILL.md`, which is what Templar tells raiders is hard-reserved.
+
 ### Admin
 
 - `POST /api/v1/admin/connections` - terminate idle Supavisor backends on demand.

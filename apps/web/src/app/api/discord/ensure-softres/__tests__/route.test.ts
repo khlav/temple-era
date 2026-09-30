@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
+import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 
 vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
 
@@ -86,6 +87,7 @@ describe("POST /api/discord/ensure-softres", () => {
       adminToken: "tok",
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
       publicUrl: "https://softres.it/raid/abc123",
+      hardReservesApplied: true,
     });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
@@ -94,7 +96,8 @@ describe("POST /api/discord/ensure-softres", () => {
 
     expect(response.status).toBe(200);
     expect(mockCreateSoftResRaid).toHaveBeenCalledTimes(1);
-    expect(mockCreateSoftResRaid).toHaveBeenCalledWith(1);
+    // Onyxia has no hard reserves.
+    expect(mockCreateSoftResRaid).toHaveBeenCalledWith(1, []);
     expect(body).toEqual({
       success: true,
       created: true,
@@ -125,12 +128,14 @@ describe("POST /api/discord/ensure-softres", () => {
         adminToken: "tokA",
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
         publicUrl: "https://softres.it/raid/bwl1",
+        hardReservesApplied: true,
       })
       .mockResolvedValueOnce({
         raidId: "mc1",
         adminToken: "tokB",
         adminUrl: "https://softres.it/raid/mc1?adminToken=tokB",
         publicUrl: "https://softres.it/raid/mc1",
+        hardReservesApplied: true,
       });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
@@ -139,8 +144,17 @@ describe("POST /api/discord/ensure-softres", () => {
 
     expect(response.status).toBe(200);
     expect(mockCreateSoftResRaid).toHaveBeenCalledTimes(2);
-    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(1, 3); // Blackwing Lair
-    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(2, 2); // Molten Core
+    // Each zone of a doubleheader gets its own SR, and its own zone's hard reserves.
+    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(
+      1,
+      3,
+      getHardReserveItemIds("Blackwing Lair"),
+    );
+    expect(mockCreateSoftResRaid).toHaveBeenNthCalledWith(
+      2,
+      2,
+      getHardReserveItemIds("Molten Core"),
+    );
     expect(body.success).toBe(true);
     expect(body.created).toBe(true);
     expect(body.eventTitle).toBe("Sunday BWL/MC @7PM");
@@ -230,6 +244,7 @@ describe("POST /api/discord/ensure-softres", () => {
         adminToken: "tokA",
         adminUrl: "https://softres.it/raid/bwl1?adminToken=tokA",
         publicUrl: "https://softres.it/raid/bwl1",
+        hardReservesApplied: true,
       })
       .mockRejectedValueOnce(new Error("Failed to establish a SoftRes session"));
 

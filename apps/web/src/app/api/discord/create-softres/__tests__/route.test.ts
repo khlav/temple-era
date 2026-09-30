@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
+import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 
 vi.mock("~/env.js", () => ({ env: { TEMPLE_WEB_API_TOKEN: "test-token" } }));
 
@@ -62,6 +63,7 @@ describe("POST /api/discord/create-softres", () => {
       adminToken: "tok",
       adminUrl: "https://softres.it/raid/abc123?adminToken=tok",
       publicUrl: "https://softres.it/raid/abc123",
+      hardReservesApplied: true,
     });
 
     const { POST } = await import("~/app/api/discord/create-softres/route");
@@ -70,7 +72,8 @@ describe("POST /api/discord/create-softres", () => {
 
     expect(response.status).toBe(200);
     expect(mockCreateSoftResRaid).toHaveBeenCalledTimes(1);
-    expect(mockCreateSoftResRaid).toHaveBeenCalledWith(instanceId);
+    // Each zone gets its own hard-reserve list — MC and BWL have one, the rest are empty.
+    expect(mockCreateSoftResRaid).toHaveBeenCalledWith(instanceId, getHardReserveItemIds(zoneName));
     expect(body).toEqual({
       success: true,
       zone: zoneName,
