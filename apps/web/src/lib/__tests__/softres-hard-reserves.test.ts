@@ -45,20 +45,21 @@ describe("HARD_RESERVE_ITEM_IDS", () => {
     }
   });
 
-  it("hard-reserves every legendary-quality drop in each configured zone", async () => {
-    for (const zone of configuredZones) {
-      const zoneItems = await getAllItemsForZone(zone);
-      const legendaryIds = Object.values(zoneItems)
-        .filter((item) => item.quality === "Legendary")
-        .map((item) => item.id);
+  // Deliberately no "every legendary drop is hard-reserved" assertion. An earlier revision had
+  // one, which made the list look derivable from item quality; it isn't. It's a guild policy
+  // list, and MC's Eye of Sulfuras and Essence of the Firelord are legendary but intentionally
+  // left off — a rule-shaped test would have to be deleted again the next time policy moves.
+  it("is a policy list, not one derived from item quality", async () => {
+    const mcItems = await getAllItemsForZone("Molten Core");
+    const mcLegendaryIds = Object.values(mcItems)
+      .filter((item) => item.quality === "Legendary")
+      .map((item) => item.id);
+    const reserved = getHardReserveItemIds("Molten Core");
 
-      for (const id of legendaryIds) {
-        expect(
-          getHardReserveItemIds(zone),
-          `legendary item ${id} in ${zone} is not hard-reserved`,
-        ).toContain(id);
-      }
-    }
+    // Some MC legendaries are reserved (the Bindings) and some are not, so quality alone
+    // predicts nothing.
+    expect(mcLegendaryIds.some((id) => reserved.includes(id))).toBe(true);
+    expect(mcLegendaryIds.some((id) => !reserved.includes(id))).toBe(true);
   });
 });
 

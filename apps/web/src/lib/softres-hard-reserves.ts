@@ -14,16 +14,18 @@ import type { RaidZone } from "~/lib/raid-zones";
  *
  * Zones with no entry get no hard reserves; there is no "all zones" list on purpose, since every
  * id has to be valid for the instance it's sent to.
+ *
+ * This is a guild policy list, not a derived one — it deliberately does **not** follow a rule like
+ * "every legendary drop". MC's other two legendaries, Eye of Sulfuras (17204) and Essence of the
+ * Firelord (19017), are intentionally absent, as is Sulfuron Ingot (17203). Add and remove entries
+ * only on a raid lead's say-so.
  */
 export const HARD_RESERVE_ITEM_IDS: Partial<Record<RaidZone, readonly number[]>> = {
   "Molten Core": [
     17010, // Fiery Core
     17011, // Lava Core
-    17203, // Sulfuron Ingot
     18563, // Bindings of the Windseeker (Baron Geddon) — the two halves share one name
     18564, // Bindings of the Windseeker (Garr)
-    17204, // Eye of Sulfuras
-    19017, // Essence of the Firelord
   ],
   "Blackwing Lair": [
     18562, // Elementium Ore
