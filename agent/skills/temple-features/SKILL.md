@@ -86,6 +86,25 @@ event already has a SoftRes attached.
   and nothing is posted. This is expected, not a fault.
 - If the zone can't be worked out from the title/channel, nothing is created — use `/sr`.
 
+## Hard reserves on new SRs
+
+Every SR the bot or the site creates — `/sr`, the automatic flow, or one you create for a user — comes
+with the guild's hard reserves already set for that zone. Nobody has to add them by hand, and raiders
+cannot soft-reserve them.
+
+- **Molten Core:** Fiery Core, Lava Core, Sulfuron Ingot, both halves of Bindings of the Windseeker, Eye
+  of Sulfuras, Essence of the Firelord.
+- **Blackwing Lair:** Elementium Ore.
+- **Every other zone:** none.
+
+"Why can't I SR \<item\>?" → if it's on that list, it's hard-reserved for the guild, which is intended
+and not a bug. Changing the list is a code change, so point a raid lead at a maintainer rather than
+offering to do it.
+
+Very rarely an SR is created but its hard reserves fail to apply; the SR is still fine to use. If a raid
+lead says a hard-reserved item is soft-reservable, they can set it themselves from the admin link in the
+Token thread, and it's worth reporting.
+
 ## Roster post: the SR gets forwarded
 
 Later, Raid-Helper posts the roster (the post with the **Confirm / Cancel** buttons). The bot then

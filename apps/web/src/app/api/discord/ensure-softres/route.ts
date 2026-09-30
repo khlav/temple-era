@@ -11,6 +11,7 @@ import { fetchEventDetail } from "~/server/services/raid-helper-client";
 import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 import { SOFTRES_CREATE_INSTANCE_IDS } from "~/lib/softres-create-instance-ids";
 import { createSoftResRaid } from "~/server/api/softres-client";
+import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 /**
@@ -106,7 +107,13 @@ export async function POST(request: Request) {
         continue;
       }
       try {
-        const created = await createSoftResRaid(instanceId);
+        const created = await createSoftResRaid(instanceId, getHardReserveItemIds(zone));
+        if (!created.hardReservesApplied) {
+          logger.error(
+            { eventId, zone, raidId: created.raidId },
+            "SR created without its hard reserves",
+          );
+        }
         links.push({
           zone,
           instanceId,

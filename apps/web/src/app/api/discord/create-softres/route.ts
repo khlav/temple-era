@@ -10,6 +10,7 @@ import { compressResponse } from "~/lib/compression";
 import { getZoneForInstance } from "~/lib/raid-zones";
 import { SOFTRES_CREATE_INSTANCE_IDS } from "~/lib/softres-create-instance-ids";
 import { createSoftResRaid } from "~/server/api/softres-client";
+import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 /**
@@ -69,7 +70,10 @@ export async function POST(request: Request) {
       return await compressResponse(result, request);
     }
 
-    const created = await createSoftResRaid(instanceId);
+    const created = await createSoftResRaid(instanceId, getHardReserveItemIds(zone));
+    if (!created.hardReservesApplied) {
+      logger.error({ zone, raidId: created.raidId }, "SR created without its hard reserves");
+    }
     // "Server Time" (not "zzz"/EDT-EST) since Discord members read this as WoW server time.
     const createdDate = formatEasternDateTime(new Date(), "EEE, MMM d 'at' h:mm a 'Server Time'");
 

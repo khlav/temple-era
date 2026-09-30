@@ -48,8 +48,14 @@ export type EquipSlot = (typeof EQUIP_SLOTS)[number];
 
 /**
  * Item quality types
+ *
+ * All five that actually occur in `item-mappings/*.json`. "Legendary" (6 items: MC's Eye of
+ * Sulfuras, Essence of the Firelord and the two Bindings halves) and "Common" (1) were missing
+ * here while present in the data, so `ItemMapping.quality` couldn't express them and any
+ * comparison against them was a type error — see `softres-hard-reserves.test.ts`, which filters
+ * on Legendary.
  */
-export const ITEM_QUALITIES = ["Epic", "Rare", "Uncommon"] as const;
+export const ITEM_QUALITIES = ["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const;
 
 export type ItemQuality = (typeof ITEM_QUALITIES)[number];
 

@@ -9,6 +9,7 @@ import { getZoneForInstance } from "~/lib/raid-zones";
 import { SOFTRES_CREATE_INSTANCE_IDS } from "~/lib/softres-create-instance-ids";
 import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 import { createSoftResRaid } from "~/server/api/softres-client";
+import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 import { validateApiToken } from "~/server/api/v1-auth";
 import { fetchEventDetail } from "~/server/services/raid-helper-client";
 import { findEventsForZone } from "~/server/services/softres-event-lookup";
@@ -169,7 +170,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await createSoftResRaid(instanceId);
+    const created = await createSoftResRaid(instanceId, getHardReserveItemIds(zone));
+    if (!created.hardReservesApplied) {
+      logger.error({ zone, raidId: created.raidId }, "SR created without its hard reserves");
+    }
     const emoji = (await getZoneEmojiMap()).get(zone);
 
     // Token first: without it the SR can't be managed, so don't announce an SR nobody can

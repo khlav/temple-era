@@ -71,6 +71,7 @@ describe("POST /api/v1/softres", () => {
       adminToken: SECRET,
       adminUrl: `https://softres.it/raid/abc123?adminToken=${SECRET}`,
       publicUrl: "https://softres.it/raid/abc123",
+      hardReservesApplied: true,
     });
     mockFetchEventDetail.mockResolvedValue({
       id: EVENT_ID,
@@ -135,7 +136,8 @@ describe("POST /api/v1/softres", () => {
     const body = JSON.parse(text);
 
     expect(response.status).toBe(200);
-    expect(mockCreate).toHaveBeenCalledWith(7);
+    // Naxxramas has no hard reserves.
+    expect(mockCreate).toHaveBeenCalledWith(7, []);
     expect(mockUpsert).toHaveBeenCalledWith([
       {
         zone: "Naxxramas",
