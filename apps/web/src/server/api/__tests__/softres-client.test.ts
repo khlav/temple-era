@@ -218,6 +218,47 @@ describe("createSoftResRaid hard reserves", () => {
     expect(result.raidId).toBe("1aKrV2Je");
   });
 
+  it("still returns the admin token when a reissued XSRF cookie makes the decode throw", async () => {
+    // "%" alone is an invalid percent-escape, so decodeURIComponent raises URIError. The session
+    // GET's own decode is guarded by nothing, but a throw there is harmless — no raid exists yet.
+    // This is the reachable harmful case: the *create* response reissues a malformed XSRF, so the
+    // throw lands in applyHardReserves, before its own try, with the admin token already parsed
+    // and held only in createSoftResRaid's locals.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
+      .mockResolvedValueOnce(
+        mockCreateResponse(302, "/raid/1aKrV2Je?adminToken=3ca599", ["XSRF-TOKEN=%; Path=/"]),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createSoftResRaid(2, [17010]);
+
+    expect(result.hardReservesApplied).toBe(false);
+    expect(result.adminUrl).toBe("https://softres.it/raid/1aKrV2Je?adminToken=3ca599");
+  });
+
+  it("still returns the admin token when reading the create response's cookies throws", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
+      .mockResolvedValueOnce({
+        status: 302,
+        headers: {
+          get: (name: string) => (name === "location" ? "/raid/1aKrV2Je?adminToken=3ca599" : null),
+          getSetCookie: () => {
+            throw new TypeError("getSetCookie is not a function");
+          },
+        },
+      } as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createSoftResRaid(2, [17010]);
+
+    expect(result.hardReservesApplied).toBe(false);
+    expect(result.adminToken).toBe("3ca599");
+  });
+
   it("skips the second request entirely when the list is empty", async () => {
     const fetchMock = mockCreateFlow(302);
     vi.stubGlobal("fetch", fetchMock);

@@ -189,10 +189,25 @@ export async function createSoftResRaid(
   // 3. Apply hard reserves. The session that created a raid is already its manager, so this
   // needs no admin token — but it does need the session, which may have been reissued by the
   // create POST, so re-read Set-Cookie off that response before falling back to the originals.
+  //
+  // The whole step is wrapped, not just the request: reading the cookies and decoding the XSRF
+  // token both happen before `applyHardReserves` reaches its own try, and `decodeURIComponent`
+  // throws `URIError` on a malformed percent-escape. Past this point `adminToken` exists only in
+  // these locals, so anything that escapes here strands an SR nobody can ever administer.
   let hardReservesApplied = true;
   if (hardReserveItemIds.length > 0) {
-    const refreshed = { ...cookies, ...parseSetCookieHeader(createRes.headers.getSetCookie()) };
-    hardReservesApplied = await applyHardReserves(raidId!, hardReserveItemIds, refreshed);
+    try {
+      const refreshed = { ...cookies, ...parseSetCookieHeader(createRes.headers.getSetCookie()) };
+      hardReservesApplied = await applyHardReserves(raidId!, hardReserveItemIds, refreshed);
+    } catch (error) {
+      // Only reachable for a throw *outside* applyHardReserves' own catch, which already
+      // reports its failures by returning false — the two paths can't both log.
+      logger.error(
+        { raidId, itemIds: hardReserveItemIds, err: error },
+        "Failed to apply SoftRes hard reserves; the SR was created without them",
+      );
+      hardReservesApplied = false;
+    }
   }
 
   return {
