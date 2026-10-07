@@ -201,7 +201,11 @@ export function AchievementLog(): React.JSX.Element {
         <div ref={sentinelRef} className="h-1" />
       </div>
       {replayAward && (
-        <RevealOverlay awards={[replayAward]} onDismiss={() => setReplayAwardId(null)} />
+        <RevealOverlay
+          awards={[replayAward]}
+          onDismiss={() => setReplayAwardId(null)}
+          source="replay"
+        />
       )}
     </TooltipProvider>
   );

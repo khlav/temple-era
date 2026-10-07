@@ -171,7 +171,10 @@ runs in `strict` env mode and would otherwise filter it out before the task sees
 - **Tailwind CSS + shadcn/ui**: Styling with Radix UI components
 - **TanStack Query**: React Query for data fetching and caching
 - **Zod**: Runtime validation and type safety
-- **PostHog**: Product analytics (optional, via URL rewrites)
+- **PostHog**: Product analytics (optional, via URL rewrites). Custom events go through
+  `posthogSafe.capture` (`src/utils/posthog.ts`) with a name from `ANALYTICS_EVENTS`
+  (`src/lib/analytics-events.ts`) — title-cased "Feature: Action", e.g. "Achievement Reveal: Opened";
+  property keys snake_case
 - **dnd-kit**: Drag and drop for raid planning
 - **date-fns**: Date manipulation and timezone handling
 
