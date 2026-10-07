@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Plus, Shuffle, Trash2, Pencil } from "lucide-react";
 import { api } from "~/trpc/react";
+import { compareCoreAchievements } from "~/lib/achievement-order";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
@@ -895,6 +896,8 @@ function groupCatalog(achievements: AdminAchievement[]) {
     else if (achievement.ruleShape === "class_attendance_threshold") classes.push(achievement);
     else core.push(achievement);
   }
+  // Same curated Core order as the public display, rather than the query's createdAt order.
+  core.sort(compareCoreAchievements);
   return { core, classes, tradeskill, secret };
 }
 
