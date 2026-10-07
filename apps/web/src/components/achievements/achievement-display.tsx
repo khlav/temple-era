@@ -13,6 +13,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 import { getSpellIconUrl } from "~/hooks/use-spell-icon";
+import { compareCoreAchievements } from "~/lib/achievement-order";
 import { PrettyPrintDate } from "~/lib/helpers";
 import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
 import { cn } from "~/lib/utils";
@@ -32,20 +33,6 @@ export function formatSeasonPeriod(
     ? `${season.name} runs from ${start} to ${PrettyPrintDate(season.endDate, false, EASTERN_TIMEZONE)}`
     : `${season.name} runs from ${start}`;
 }
-
-// Fixed display order for the Core section (For the Horde, then the 4 raid zones in release
-// order, then the 3 behavioral awards) — not alphabetical or DB order, a deliberate curated
-// sequence. Every other visible achievement (the 8 Classes) is ordered separately, alphabetically.
-const SEASON_ORDER = [
-  "For the Horde",
-  "Flameeater",
-  "Dragonslayer",
-  "Exterminator",
-  "Plaguebreaker",
-  "Steadfast",
-  "Flexible",
-  "On Deck",
-];
 
 /**
  * Same badge-then-name shape as the reveal overlay's "Also earned" strip chips — the medal icon
@@ -294,7 +281,7 @@ export function AchievementDisplay({
     .filter(
       (a) => a.ruleShape !== "class_attendance_threshold" && a.ruleShape !== "recipe_set_threshold",
     )
-    .sort((a, b) => SEASON_ORDER.indexOf(a.name) - SEASON_ORDER.indexOf(b.name));
+    .sort(compareCoreAchievements);
   const classes = data.visible
     .filter((a) => a.ruleShape === "class_attendance_threshold")
     .sort((a, b) => (a.wowClass ?? "").localeCompare(b.wowClass ?? ""));
