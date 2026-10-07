@@ -715,11 +715,17 @@ export function RevealOverlay({
 
   // Opened fires once per mounted reveal; the ref guards against Strict Mode's double effect run.
   // Dismissed reports how long the ceremony stayed up, which is what separates watching it from
-  // skipping it — any click or key dismisses, so autocapture alone can't tell the two apart.
-  const openedAtRef = React.useRef<number | null>(null);
+  // skipping it — any click or key dismisses, so autocapture alone can't tell the two apart. Its
+  // clock starts when `ready` flips and the cue sheet begins, not at mount, so the up-to-800ms
+  // icon preload isn't counted as watch time; a dismiss during preload reports null.
+  const openedRef = React.useRef(false);
+  const ceremonyStartedAtRef = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (openedAtRef.current !== null) return;
-    openedAtRef.current = Date.now();
+    if (ready && ceremonyStartedAtRef.current === null) ceremonyStartedAtRef.current = Date.now();
+  }, [ready]);
+  React.useEffect(() => {
+    if (openedRef.current) return;
+    openedRef.current = true;
     if (!trackAnalytics) return;
     posthogSafe.capture(ANALYTICS_EVENTS.achievementRevealOpened, {
       source,
@@ -740,10 +746,12 @@ export function RevealOverlay({
     posthogSafe.capture(ANALYTICS_EVENTS.achievementRevealDismissed, {
       source,
       dismiss_method: method,
-      duration_ms: openedAtRef.current === null ? null : Date.now() - openedAtRef.current,
+      duration_ms:
+        ceremonyStartedAtRef.current === null ? null : Date.now() - ceremonyStartedAtRef.current,
       award_count: awards.length,
       hero_tier: hero.tier,
       hero_achievement: hero.name,
+      hero_achievement_id: hero.achievementId,
     });
   };
   const captureDismissedRef = React.useRef(captureDismissed);
