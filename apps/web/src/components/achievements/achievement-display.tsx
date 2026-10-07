@@ -346,6 +346,7 @@ export function AchievementDisplay({
             awards={[replayAward]}
             onDismiss={() => setReplayAwardId(null)}
             hideViewLink
+            source="replay"
           />
         )}
       </div>

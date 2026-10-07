@@ -177,7 +177,12 @@ export function RevealFab(): React.JSX.Element | null {
         </div>
       )}
       {open && revealAwards.length > 0 && (
-        <RevealOverlay awards={revealAwards} onDismiss={() => setOpen(false)} />
+        <RevealOverlay
+          awards={revealAwards}
+          onDismiss={() => setOpen(false)}
+          source="fab"
+          trackAnalytics={!debugMode}
+        />
       )}
     </>
   );

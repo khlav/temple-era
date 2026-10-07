@@ -8,6 +8,8 @@ import { getSpellIconUrl } from "~/hooks/use-spell-icon";
 import { PrettyPrintDate } from "~/lib/helpers";
 import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
+import { ANALYTICS_EVENTS } from "~/lib/analytics-events";
+import { posthogSafe } from "~/utils/posthog";
 
 /*
  * Ported from docs/followups/mockups/reveal-overlay.html — see
@@ -676,12 +678,21 @@ export interface RevealOverlayProps {
    *  the Achievements page itself), so it's redundant there. Every other trigger (the FAB) still
    *  shows it, since the achievement list isn't already on screen in those cases. */
   hideViewLink?: boolean;
+  /** Which trigger opened this reveal, sent as `source` on its analytics events: the FAB's
+   *  first-time reveal of unseen awards, or a Replay of an award already seen. */
+  source: "fab" | "replay";
+  /** False for the FAB's `?revealDebug` mode, whose repeated replays would pollute the data. */
+  trackAnalytics?: boolean;
 }
+
+type DismissMethod = "click" | "view_link" | "escape" | "space";
 
 export function RevealOverlay({
   awards,
   onDismiss,
   hideViewLink,
+  source,
+  trackAnalytics = true,
 }: RevealOverlayProps): React.JSX.Element | null {
   const stageRef = React.useRef<HTMLDivElement>(null);
   const groupRef = React.useRef<HTMLDivElement>(null);
@@ -701,6 +712,42 @@ export function RevealOverlay({
 
   const dismissRef = React.useRef(onDismiss);
   dismissRef.current = onDismiss;
+
+  // Opened fires once per mounted reveal; the ref guards against Strict Mode's double effect run.
+  // Dismissed reports how long the ceremony stayed up, which is what separates watching it from
+  // skipping it — any click or key dismisses, so autocapture alone can't tell the two apart.
+  const openedAtRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (openedAtRef.current !== null) return;
+    openedAtRef.current = Date.now();
+    if (!trackAnalytics) return;
+    posthogSafe.capture(ANALYTICS_EVENTS.achievementRevealOpened, {
+      source,
+      award_count: awards.length,
+      hero_tier: hero.tier,
+      hero_achievement: hero.name,
+      hero_achievement_id: hero.achievementId,
+      achievement_ids: awards.map((a) => a.achievementId),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one event per reveal; props are stable for its life
+  }, []);
+
+  // A click and a key can both land before the parent's state update unmounts this; count one.
+  const dismissedRef = React.useRef(false);
+  const captureDismissed = (method: DismissMethod) => {
+    if (!trackAnalytics || dismissedRef.current) return;
+    dismissedRef.current = true;
+    posthogSafe.capture(ANALYTICS_EVENTS.achievementRevealDismissed, {
+      source,
+      dismiss_method: method,
+      duration_ms: openedAtRef.current === null ? null : Date.now() - openedAtRef.current,
+      award_count: awards.length,
+      hero_tier: hero.tier,
+      hero_achievement: hero.name,
+    });
+  };
+  const captureDismissedRef = React.useRef(captureDismissed);
+  captureDismissedRef.current = captureDismissed;
 
   React.useEffect(() => {
     // Real network images now (see file header) — preload the hero + visible strip icons so the
@@ -766,12 +813,15 @@ export function RevealOverlay({
   React.useEffect(() => {
     // Any click dismisses — the mockup's own listener excludes only its dev trigger bar, which
     // has no production equivalent here.
-    const handleClick = () => {
+    const handleClick = (e: MouseEvent) => {
+      const onViewLink = e.target instanceof Element && e.target.closest(".ro-view-link") !== null;
+      captureDismissedRef.current(onViewLink ? "view_link" : "click");
       dismissRef.current();
     };
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === " " || e.key === "Escape") {
         e.preventDefault();
+        captureDismissedRef.current(e.key === "Escape" ? "escape" : "space");
         dismissRef.current();
       }
     };
