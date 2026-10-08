@@ -48,6 +48,11 @@ export const authConfig = {
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      // Discord now returns an RFC 9207 `iss` on the OAuth callback. Without an issuer here,
+      // @auth/core validates it against its placeholder "https://authjs.dev" and every login
+      // fails with the generic "server configuration" error. Matches Discord's published
+      // /.well-known/openid-configuration.
+      issuer: "https://discord.com",
       authorization: "https://discord.com/api/oauth2/authorize?scope=identify",
       profile(profile: DiscordProfile) {
         if (profile.avatar === null) {
