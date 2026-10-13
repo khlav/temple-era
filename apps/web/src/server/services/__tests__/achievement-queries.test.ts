@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAchievementLogPage } from "~/server/services/achievement-queries";
+import { getAchievementLogPage, getDisplayCatalog } from "~/server/services/achievement-queries";
 
 // achievement-queries.ts takes `db` as an injected param (not a module-level import), so — per
 // this file's own convention (see withRarity's doc comment) — tests pass a lightweight fake
@@ -139,5 +139,56 @@ describe("getAchievementLogPage", () => {
 
     expect(entries).toEqual([]);
     expect(hasMore).toBe(false);
+  });
+});
+
+describe("getDisplayCatalog", () => {
+  it("previews the next tier of an earned hidden achievement", async () => {
+    const hiddenAchievement = {
+      id: "ach-grass",
+      name: "There's grass to touch in Azeroth",
+      icon: "inv_misc_herb_05",
+      description: "Raided {minRaidsInOneWeek} time{minRaidsInOneWeek:s} in a single lockout week.",
+      goalDescription: null,
+      scope: "season" as const,
+      ruleShape: "raid_marathon_density",
+      hidden: true,
+      tiers: [
+        {
+          tier: "silver",
+          ruleConfig: { shape: "raid_marathon_density", minRaidsInOneWeek: 3, lockoutWeeks: 1 },
+        },
+        {
+          tier: "gold",
+          ruleConfig: { shape: "raid_marathon_density", minRaidsInOneWeek: 5, lockoutWeeks: 1 },
+        },
+      ],
+    };
+    const db = {
+      query: {
+        achievementAwards: {
+          findMany: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "award-1", achievementTier: { achievementId: "ach-grass", tier: "silver" } },
+            ]),
+        },
+        achievements: {
+          findMany: vi
+            .fn()
+            .mockResolvedValueOnce([]) // visible catalog
+            .mockResolvedValueOnce([hiddenAchievement]), // hidden + earned
+        },
+      },
+    } as never;
+
+    const catalog = await getDisplayCatalog(db, 1);
+
+    expect(catalog.hiddenEarned).toHaveLength(1);
+    expect(catalog.hiddenEarned[0]).toMatchObject({
+      highestTierEarned: "silver",
+      nextTier: "gold",
+      nextTierDescription: "Raided 5 times in a single lockout week.",
+    });
   });
 });

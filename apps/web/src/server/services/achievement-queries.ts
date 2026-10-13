@@ -331,7 +331,7 @@ export interface DisplayAchievement {
   /** Resolved against the highest earned tier's ruleConfig (or "" if unearned/no template) — see
    *  resolveAchievementDescription. */
   description: string;
-  /** The tier one above `highestTierEarned`, when one exists — null when unearned, hidden, or
+  /** The tier one above `highestTierEarned`, when one exists — null when unearned or
    *  already at the achievement's max tier. Tooltip-only, paired with nextTierDescription. */
   nextTier: AchievementTierLevel | null;
   /** Resolved against nextTier's ruleConfig — null exactly when nextTier is null. Tooltip-only:
@@ -457,13 +457,15 @@ async function buildDisplayCatalog(
       : (achievement.goalDescription ?? achievement.description);
 
     // "For {tier}:" preview of the tier above the one currently earned — earned achievements only
-    // (an unearned achievement already shows its first-level description as the main line, and a
-    // still-hidden Legendary Feat has no "next" to tease). This is a plain template resolution
-    // against a tier config already in hand from the query above — not the live
-    // roster/signup-matching pass the comment above warns off from the display path.
+    // (an unearned achievement already shows its first-level description as the main line). Hidden
+    // achievements get it too: the only hidden ones that reach this point are already earned (see
+    // the hiddenEarned query above), so they're unhidden for this family and the next tier gives
+    // nothing away that the earned chip hasn't. This is a plain template resolution against a tier
+    // config already in hand from the query above — not the live roster/signup-matching pass the
+    // comment above warns off from the display path.
     let nextTier: AchievementTierLevel | null = null;
     let nextTierDescription: string | null = null;
-    if (highest && !achievement.hidden) {
+    if (highest) {
       const idx = sortedTiers.findIndex((t) => t.tier === highest.tier);
       const nextTierRow = idx >= 0 ? sortedTiers[idx + 1] : undefined;
       if (nextTierRow) {
