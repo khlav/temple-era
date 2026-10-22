@@ -94,15 +94,25 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
 
   const latestVersion = versionData ? new Date(versionData.version).getTime() : undefined;
   const loadedVersion = plan ? new Date(plan.lastModifiedAt).getTime() : undefined;
+  const lastSyncedVersionRef = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (
-      latestVersion !== undefined &&
-      loadedVersion !== undefined &&
-      latestVersion !== loadedVersion
-    ) {
+    if (loadedVersion === undefined) return;
+
+    // A freshly loaded plan (e.g. after this editor's own save invalidated it) is itself the newest
+    // version we know of — record it as the polled version too, or the still-older poll result
+    // would trigger a second, pointless full refetch.
+    if (loadedVersion !== lastSyncedVersionRef.current) {
+      lastSyncedVersionRef.current = loadedVersion;
+      utils.raidPlan.getVersion.setData({ planId }, { version: new Date(loadedVersion) });
+      return;
+    }
+
+    // `!==`, not `>`: versions come from both DB transaction-start and app-server clocks, so a
+    // newer edit isn't guaranteed a larger timestamp — any difference means the plan changed.
+    if (latestVersion !== undefined && latestVersion !== loadedVersion) {
       void refetch();
     }
-  }, [latestVersion, loadedVersion, refetch]);
+  }, [latestVersion, loadedVersion, planId, refetch, utils]);
 
   const { data: presence = [] } = api.raidPlan.getPresence.useQuery(
     { planId },

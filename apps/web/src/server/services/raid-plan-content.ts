@@ -25,9 +25,11 @@ const REVALIDATE_SECONDS = 60 * 60 * 24;
  * own characters, "view as" — are separate per-user queries on the client.
  *
  * Every value here must survive JSON, since unstable_cache stores it that way: no Date fields.
- * (raids.date is a `date` column, which Drizzle returns as a string.)
+ *
+ * Only data whose changes move the plan's version belongs here. The linked raid (name, date) is
+ * edited independently of the plan, so getRaidPlanContent reads it live instead.
  */
-async function loadRaidPlanContent(planId: string, eventId: number | null) {
+async function loadRaidPlanContent(planId: string) {
   const primaryCharacters = aliasedTable(characters, "primary_characters");
   const [aaDefaults, planCharacters, encounters, encounterGroups] = await Promise.all([
     db
@@ -105,7 +107,7 @@ async function loadRaidPlanContent(planId: string, eventId: number | null) {
     aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
   }
 
-  const [encounterNotes, eventResult, encounterAssignments, aaSlotAssignments] = await Promise.all([
+  const [encounterNotes, encounterAssignments, aaSlotAssignments] = await Promise.all([
     encounterIds.length > 0
       ? db
           .select({
@@ -118,13 +120,6 @@ async function loadRaidPlanContent(planId: string, eventId: number | null) {
           .from(raidPlanEncounterNotes)
           .where(inArray(raidPlanEncounterNotes.encounterId, encounterIds))
           .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
-      : Promise.resolve([]),
-    eventId
-      ? db
-          .select({ raidId: raids.raidId, name: raids.name, date: raids.date })
-          .from(raids)
-          .where(eq(raids.raidId, eventId))
-          .limit(1)
       : Promise.resolve([]),
     // Assignments only exist for encounters with custom groups
     customEncounterIds.length > 0
@@ -177,7 +172,6 @@ async function loadRaidPlanContent(planId: string, eventId: number | null) {
   return {
     defaultAATemplate: aaDefaults[0]?.defaultAATemplate ?? null,
     useDefaultAA: aaDefaults[0]?.useDefaultAA ?? false,
-    event: eventResult[0] ?? null,
     characters: planCharacters,
     encounterGroups,
     encounters: encounters.map((enc) => ({
@@ -192,11 +186,9 @@ async function loadRaidPlanContent(planId: string, eventId: number | null) {
 export type RaidPlanContent = Awaited<ReturnType<typeof loadRaidPlanContent>>;
 
 // unstable_cache folds the call's arguments into the key, so `version` (unused in the body)
-// is what makes each edit a fresh entry. eventId is also part of the key; changing it updates
-// raid_plan itself, so it moves the version too.
+// is what makes each edit a fresh entry.
 const getCachedRaidPlanContent = unstable_cache(
-  async (planId: string, eventId: number | null, _version: string) =>
-    loadRaidPlanContent(planId, eventId),
+  async (planId: string, _version: string) => loadRaidPlanContent(planId),
   ["raid-plan-content"],
   { revalidate: REVALIDATE_SECONDS },
 );
@@ -205,8 +197,20 @@ const getCachedRaidPlanContent = unstable_cache(
  * Plan content from Vercel's shared Data Cache, read from the database only when the plan has
  * changed since the last read (by any viewer). `planId` must be the canonical id and `version`
  * the plan's current COALESCE(updated_at, created_at) — read live by the caller, alongside the
- * visibility check, so neither is ever served from cache.
+ * visibility check, so neither is ever served from cache. The linked raid is one small row read
+ * live alongside it, since editing a raid doesn't move the plan's version.
  */
-export function getRaidPlanContent(planId: string, eventId: number | null, version: Date) {
-  return getCachedRaidPlanContent(planId, eventId, version.toISOString());
+export async function getRaidPlanContent(planId: string, eventId: number | null, version: Date) {
+  const [content, eventResult] = await Promise.all([
+    getCachedRaidPlanContent(planId, version.toISOString()),
+    eventId
+      ? db
+          .select({ raidId: raids.raidId, name: raids.name, date: raids.date })
+          .from(raids)
+          .where(eq(raids.raidId, eventId))
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
+
+  return { ...content, event: eventResult[0] ?? null };
 }
