@@ -22,6 +22,7 @@ import {
   isLegacyRaidPlanUuid,
 } from "~/lib/raid-plan-id";
 import { withRaidPlanIdRetry } from "~/server/services/raid-plan-id-retry";
+import { getRaidPlanContent } from "~/server/services/raid-plan-content";
 import {
   raidPlans,
   raidPlanCharacters,
@@ -35,7 +36,6 @@ import {
   raidPlanTemplateEncounters,
   raidPlanTemplateEncounterGroups,
   characters,
-  raids,
   users,
 } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -73,6 +73,11 @@ type RaidPlanDbClient = Pick<
   typeof database,
   "select" | "insert" | "update" | "delete" | "transaction"
 >;
+
+/** A plan's version: last write to it or any child row (via the touch triggers), else creation. */
+function raidPlanVersion(plan: { createdAt: Date; updatedAt: Date | null }) {
+  return plan.updatedAt ?? plan.createdAt;
+}
 
 function normalizeUserIdentity<
   T extends { id: string | null; name: string | null; image: string | null },
@@ -225,7 +230,8 @@ export const raidPlanRouter = createTRPCRouter({
   getById: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
     .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
-      // Fetch the plan
+      // Small per-request head: identity, version and editor names. The heavy, viewer-agnostic
+      // content comes from getRaidPlanContent, keyed on the version read here.
       const plan = await ctx.db
         .select({
           id: raidPlans.id,
@@ -234,11 +240,9 @@ export const raidPlanRouter = createTRPCRouter({
           raidHelperEventId: raidPlans.raidHelperEventId,
           eventId: raidPlans.eventId,
           createdAt: raidPlans.createdAt,
+          updatedAt: raidPlans.updatedAt,
           startAt: raidPlans.startAt,
-          defaultAATemplate: raidPlans.defaultAATemplate,
-          useDefaultAA: raidPlans.useDefaultAA,
           isPublic: raidPlans.isPublic,
-          lastModifiedAt: sql<Date>`COALESCE(${raidPlans.updatedAt}, ${raidPlans.createdAt})`,
           creator: {
             id: creatorUsers.id,
             name: creatorUsers.name,
@@ -264,184 +268,53 @@ export const raidPlanRouter = createTRPCRouter({
       }
 
       // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
-      // canonical nanoid) — use the resolved id for every query below.
-      const resolvedPlanId = plan[0]!.id;
-
-      // Fetch characters, encounters, encounter groups, and encounter notes in parallel
-      const primaryCharacters = aliasedTable(characters, "primary_characters");
-      const [planCharacters, encounters, encounterGroups] = await Promise.all([
-        ctx.db
-          .select({
-            id: raidPlanCharacters.id,
-            characterId: raidPlanCharacters.characterId,
-            // Resolve to effective primary: secondary.primaryCharacterId or primary's own characterId
-            primaryCharacterId: sql<
-              number | null
-            >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-            primaryCharacterName: primaryCharacters.name,
-            characterName: raidPlanCharacters.characterName,
-            defaultGroup: raidPlanCharacters.defaultGroup,
-            defaultPosition: raidPlanCharacters.defaultPosition,
-            // COALESCE: use joined character class, fall back to write-in class
-            class: sql<
-              string | null
-            >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
-            server: characters.server,
-          })
-          .from(raidPlanCharacters)
-          .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
-          .leftJoin(
-            primaryCharacters,
-            eq(
-              primaryCharacters.characterId,
-              sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-            ),
-          )
-          .where(eq(raidPlanCharacters.raidPlanId, resolvedPlanId))
-          .orderBy(
-            raidPlanCharacters.defaultGroup,
-            raidPlanCharacters.defaultPosition,
-            raidPlanCharacters.characterName,
-            raidPlanCharacters.id,
-          ),
-        ctx.db
-          .select({
-            id: raidPlanEncounters.id,
-            encounterKey: raidPlanEncounters.encounterKey,
-            encounterName: raidPlanEncounters.encounterName,
-            sortOrder: raidPlanEncounters.sortOrder,
-            groupId: raidPlanEncounters.groupId,
-            useDefaultGroups: raidPlanEncounters.useDefaultGroups,
-            aaTemplate: raidPlanEncounters.aaTemplate,
-            useCustomAA: raidPlanEncounters.useCustomAA,
-          })
-          .from(raidPlanEncounters)
-          .where(eq(raidPlanEncounters.raidPlanId, resolvedPlanId))
-          .orderBy(raidPlanEncounters.sortOrder),
-        ctx.db
-          .select({
-            id: raidPlanEncounterGroups.id,
-            groupName: raidPlanEncounterGroups.groupName,
-            sortOrder: raidPlanEncounterGroups.sortOrder,
-          })
-          .from(raidPlanEncounterGroups)
-          .where(eq(raidPlanEncounterGroups.raidPlanId, resolvedPlanId))
-          .orderBy(raidPlanEncounterGroups.sortOrder),
-      ]);
-
-      // Fetch encounter notes for all encounters
-      const allEncounterIds = encounters.map((e) => e.id);
-      const encounterNotes =
-        allEncounterIds.length > 0
-          ? await ctx.db
-              .select({
-                id: raidPlanEncounterNotes.id,
-                encounterId: raidPlanEncounterNotes.encounterId,
-                iconRef: raidPlanEncounterNotes.iconRef,
-                text: raidPlanEncounterNotes.text,
-                sortOrder: raidPlanEncounterNotes.sortOrder,
-              })
-              .from(raidPlanEncounterNotes)
-              .where(inArray(raidPlanEncounterNotes.encounterId, allEncounterIds))
-              .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
-          : [];
-
-      // Group notes by encounterId
-      const notesByEncounterId = new Map<
-        string,
-        { id: string; iconRef: string; text: string | null; sortOrder: number }[]
-      >();
-      for (const note of encounterNotes) {
-        const existing = notesByEncounterId.get(note.encounterId) ?? [];
-        existing.push({
-          id: note.id,
-          iconRef: note.iconRef,
-          text: note.text,
-          sortOrder: note.sortOrder,
-        });
-        notesByEncounterId.set(note.encounterId, existing);
-      }
-
-      // Attach notes to encounters
-      const encountersWithNotes = encounters.map((enc) => ({
-        ...enc,
-        notes: notesByEncounterId.get(enc.id) ?? [],
-      }));
-
-      // Fetch linked raid event if exists
-      let event: { raidId: number; name: string; date: string } | null = null;
-      if (plan[0]!.eventId) {
-        const eventResult = await ctx.db
-          .select({
-            raidId: raids.raidId,
-            name: raids.name,
-            date: raids.date,
-          })
-          .from(raids)
-          .where(eq(raids.raidId, plan[0]!.eventId))
-          .limit(1);
-        event = eventResult[0] ?? null;
-      }
-
-      // Fetch encounter assignments for encounters with custom groups
-      const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
-
-      let encounterAssignments: {
-        encounterId: string;
-        planCharacterId: string;
-        groupNumber: number | null;
-        position: number | null;
-      }[] = [];
-
-      if (customEncounterIds.length > 0) {
-        encounterAssignments = await ctx.db
-          .select({
-            encounterId: raidPlanEncounterAssignments.encounterId,
-            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
-            groupNumber: raidPlanEncounterAssignments.groupNumber,
-            position: raidPlanEncounterAssignments.position,
-          })
-          .from(raidPlanEncounterAssignments)
-          .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds))
-          .orderBy(
-            raidPlanEncounterAssignments.encounterId,
-            raidPlanEncounterAssignments.groupNumber,
-            raidPlanEncounterAssignments.position,
-            raidPlanEncounterAssignments.planCharacterId,
-          );
-      }
-
-      // Fetch all AA slot assignments in a single query (encounter-specific + default/trash)
-      const encounterIds = encounters.map((e) => e.id);
-      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, resolvedPlanId)];
-      if (encounterIds.length > 0) {
-        aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
-      }
-
-      const aaSlotAssignments = await ctx.db
-        .select({
-          id: raidPlanEncounterAASlots.id,
-          encounterId: raidPlanEncounterAASlots.encounterId,
-          raidPlanId: raidPlanEncounterAASlots.raidPlanId,
-          planCharacterId: raidPlanEncounterAASlots.planCharacterId,
-          slotName: raidPlanEncounterAASlots.slotName,
-          sortOrder: raidPlanEncounterAASlots.sortOrder,
-        })
-        .from(raidPlanEncounterAASlots)
-        .where(or(...aaSlotConditions))
-        .orderBy(raidPlanEncounterAASlots.sortOrder);
+      // canonical nanoid) — the content loader is always handed the resolved id.
+      const { updatedAt: _updatedAt, creator, lastEditor, ...head } = plan[0]!;
+      const lastModifiedAt = raidPlanVersion(plan[0]!);
+      const content = await getRaidPlanContent(head.id, head.eventId, lastModifiedAt);
 
       return {
-        ...plan[0]!,
-        creator: normalizeUserIdentity(plan[0]!.creator),
-        lastEditor: normalizeUserIdentity(plan[0]!.lastEditor),
-        event,
-        characters: planCharacters,
-        encounterGroups,
-        encounters: encountersWithNotes,
-        encounterAssignments,
-        aaSlotAssignments,
+        ...head,
+        ...content,
+        lastModifiedAt,
+        creator: normalizeUserIdentity(creator),
+        lastEditor: normalizeUserIdentity(lastEditor),
       };
+    }),
+
+  /**
+   * The plan's current version — raid_plan.updated_at, which the touch triggers bump on any
+   * change to the plan or its children. One small row, so pages poll this and refetch the full
+   * plan (getById/getPublicById) only when it moves. A public plan's version is readable by
+   * anyone, like getPublicById; a private one needs the same scope as getById.
+   */
+  getVersion: publicProcedure
+    .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
+    .query(async ({ ctx, input }) => {
+      const plan = await ctx.db
+        .select({
+          isPublic: raidPlans.isPublic,
+          createdAt: raidPlans.createdAt,
+          updatedAt: raidPlans.updatedAt,
+        })
+        .from(raidPlans)
+        .where(raidPlanIdCondition(input.planId))
+        .limit(1);
+
+      const row = plan[0];
+      if (!row) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Raid plan not found" });
+      }
+
+      if (!row.isPublic) {
+        const session = await ctx.getSession();
+        if (!session?.user?.scopes?.includes(SCOPE.RAIDPLAN_MANAGE)) {
+          // Same answer as getPublicById gives for a private plan, so this can't probe for one.
+          throw new TRPCError({ code: "NOT_FOUND", message: "Raid plan not found" });
+        }
+      }
+
+      return { version: raidPlanVersion(row) };
     }),
 
   getPresence: scopedProcedure(SCOPE.RAIDPLAN_MANAGE)
@@ -599,6 +472,8 @@ export const raidPlanRouter = createTRPCRouter({
   getPublicById: publicProcedure
     .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
+      // Visibility and version are read live on every call; the heavy content behind them is
+      // shared across every viewer via getRaidPlanContent (see that file for why).
       const plan = await ctx.db
         .select({
           id: raidPlans.id,
@@ -607,9 +482,8 @@ export const raidPlanRouter = createTRPCRouter({
           raidHelperEventId: raidPlans.raidHelperEventId,
           eventId: raidPlans.eventId,
           createdAt: raidPlans.createdAt,
+          updatedAt: raidPlans.updatedAt,
           startAt: raidPlans.startAt,
-          defaultAATemplate: raidPlans.defaultAATemplate,
-          useDefaultAA: raidPlans.useDefaultAA,
           isPublic: raidPlans.isPublic,
         })
         .from(raidPlans)
@@ -624,164 +498,12 @@ export const raidPlanRouter = createTRPCRouter({
       }
 
       // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
-      // canonical nanoid) — use the resolved id for every query below.
-      const resolvedPlanId = plan[0]!.id;
+      // canonical nanoid) — the content loader is always handed the resolved id.
+      const { updatedAt: _updatedAt, ...head } = plan[0]!;
+      const lastModifiedAt = raidPlanVersion(plan[0]!);
+      const content = await getRaidPlanContent(head.id, head.eventId, lastModifiedAt);
 
-      const primaryCharacters2 = aliasedTable(characters, "primary_characters2");
-      const [planCharacters, encounters, encounterGroups] = await Promise.all([
-        ctx.db
-          .select({
-            id: raidPlanCharacters.id,
-            characterId: raidPlanCharacters.characterId,
-            primaryCharacterId: sql<
-              number | null
-            >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-            primaryCharacterName: primaryCharacters2.name,
-            characterName: raidPlanCharacters.characterName,
-            defaultGroup: raidPlanCharacters.defaultGroup,
-            defaultPosition: raidPlanCharacters.defaultPosition,
-            class: sql<
-              string | null
-            >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
-            server: characters.server,
-          })
-          .from(raidPlanCharacters)
-          .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
-          .leftJoin(
-            primaryCharacters2,
-            eq(
-              primaryCharacters2.characterId,
-              sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-            ),
-          )
-          .where(eq(raidPlanCharacters.raidPlanId, resolvedPlanId)),
-        ctx.db
-          .select({
-            id: raidPlanEncounters.id,
-            encounterKey: raidPlanEncounters.encounterKey,
-            encounterName: raidPlanEncounters.encounterName,
-            sortOrder: raidPlanEncounters.sortOrder,
-            groupId: raidPlanEncounters.groupId,
-            useDefaultGroups: raidPlanEncounters.useDefaultGroups,
-            aaTemplate: raidPlanEncounters.aaTemplate,
-            useCustomAA: raidPlanEncounters.useCustomAA,
-          })
-          .from(raidPlanEncounters)
-          .where(eq(raidPlanEncounters.raidPlanId, resolvedPlanId))
-          .orderBy(raidPlanEncounters.sortOrder),
-        ctx.db
-          .select({
-            id: raidPlanEncounterGroups.id,
-            groupName: raidPlanEncounterGroups.groupName,
-            sortOrder: raidPlanEncounterGroups.sortOrder,
-          })
-          .from(raidPlanEncounterGroups)
-          .where(eq(raidPlanEncounterGroups.raidPlanId, resolvedPlanId))
-          .orderBy(raidPlanEncounterGroups.sortOrder),
-      ]);
-
-      let event: { raidId: number; name: string; date: string } | null = null;
-      if (plan[0]!.eventId) {
-        const eventResult = await ctx.db
-          .select({
-            raidId: raids.raidId,
-            name: raids.name,
-            date: raids.date,
-          })
-          .from(raids)
-          .where(eq(raids.raidId, plan[0]!.eventId))
-          .limit(1);
-        event = eventResult[0] ?? null;
-      }
-
-      // Fetch encounter notes for all encounters
-      const allEncounterIds = encounters.map((e) => e.id);
-      const encounterNotes =
-        allEncounterIds.length > 0
-          ? await ctx.db
-              .select({
-                id: raidPlanEncounterNotes.id,
-                encounterId: raidPlanEncounterNotes.encounterId,
-                iconRef: raidPlanEncounterNotes.iconRef,
-                text: raidPlanEncounterNotes.text,
-                sortOrder: raidPlanEncounterNotes.sortOrder,
-              })
-              .from(raidPlanEncounterNotes)
-              .where(inArray(raidPlanEncounterNotes.encounterId, allEncounterIds))
-              .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
-          : [];
-
-      // Group notes by encounterId
-      const notesByEncounterId = new Map<
-        string,
-        { id: string; iconRef: string; text: string | null; sortOrder: number }[]
-      >();
-      for (const note of encounterNotes) {
-        const existing = notesByEncounterId.get(note.encounterId) ?? [];
-        existing.push({
-          id: note.id,
-          iconRef: note.iconRef,
-          text: note.text,
-          sortOrder: note.sortOrder,
-        });
-        notesByEncounterId.set(note.encounterId, existing);
-      }
-
-      // Attach notes to encounters
-      const encountersWithNotes = encounters.map((enc) => ({
-        ...enc,
-        notes: notesByEncounterId.get(enc.id) ?? [],
-      }));
-
-      const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
-
-      let encounterAssignments: {
-        encounterId: string;
-        planCharacterId: string;
-        groupNumber: number | null;
-        position: number | null;
-      }[] = [];
-
-      if (customEncounterIds.length > 0) {
-        encounterAssignments = await ctx.db
-          .select({
-            encounterId: raidPlanEncounterAssignments.encounterId,
-            planCharacterId: raidPlanEncounterAssignments.planCharacterId,
-            groupNumber: raidPlanEncounterAssignments.groupNumber,
-            position: raidPlanEncounterAssignments.position,
-          })
-          .from(raidPlanEncounterAssignments)
-          .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds));
-      }
-
-      const encounterIds = encounters.map((e) => e.id);
-      const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, resolvedPlanId)];
-      if (encounterIds.length > 0) {
-        aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
-      }
-
-      const aaSlotAssignments = await ctx.db
-        .select({
-          id: raidPlanEncounterAASlots.id,
-          encounterId: raidPlanEncounterAASlots.encounterId,
-          raidPlanId: raidPlanEncounterAASlots.raidPlanId,
-          planCharacterId: raidPlanEncounterAASlots.planCharacterId,
-          slotName: raidPlanEncounterAASlots.slotName,
-          sortOrder: raidPlanEncounterAASlots.sortOrder,
-        })
-        .from(raidPlanEncounterAASlots)
-        .where(or(...aaSlotConditions))
-        .orderBy(raidPlanEncounterAASlots.sortOrder);
-
-      return {
-        ...plan[0]!,
-        event,
-        characters: planCharacters,
-        encounterGroups,
-        encounters: encountersWithNotes,
-        encounterAssignments,
-        aaSlotAssignments,
-      };
+      return { ...head, ...content, lastModifiedAt };
     }),
 
   /**

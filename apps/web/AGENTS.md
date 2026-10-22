@@ -252,6 +252,31 @@ See `src/` for the directory layout — organized by feature under `components/`
 - Advanced search syntax for recipes: supports OR, AND, profession filters, etc.
 - Search implementation in `src/server/api/routers/search.ts`
 
+#### Raid plan caching and live updates (TEMPLE-150)
+
+Raid plans are the site's biggest source of database egress: on raid night, raid leads edit a
+plan while most of the raid keeps it open and alt-tabs back to it constantly. So nothing re-reads
+a whole plan unless it has changed.
+
+- **Version = `raid_plan.updated_at`.** Touch triggers bump it on any change to the plan's
+  roster, groups, encounters, notes, assignments or AA slots (`0001_custom_objects.sql`, plus
+  `0004` for notes). **A new raid-plan child table needs the same trigger**, or edits to it will
+  be served stale.
+- **Server cache:** `getById` and `getPublicById` read a small header row (visibility, version,
+  editor names) live on every call. The heavy, viewer-agnostic content comes from
+  `getRaidPlanContent` (`src/server/services/raid-plan-content.ts`), an `unstable_cache` keyed on
+  `[planId, version]`. An edit lands on a new key, so there is no `revalidateTag` to call from
+  mutation sites. Cached values go through JSON: keep `Date` fields out of the content.
+- **Clients poll `raidPlan.getVersion`, not the plan.** It returns one timestamp; a private plan
+  needs `raidplan:manage`. The editor (`use-raid-plan-mutations.ts`) polls it every 5s, and the
+  public view checks it on focus and every 60s. Either one refetches the full plan only when the
+  version differs from the loaded plan's `lastModifiedAt`. Don't put `refetchInterval` or
+  refetch-on-focus back on the plan queries themselves.
+- Personal layers on the public view (the viewer's characters, "view as") are separate small
+  per-user queries, never part of the cached content.
+- Trade-off: a character's class or primary changed elsewhere shows in a cached plan only after
+  the plan's next edit, or the 24h cache expiry.
+
 ## Development Workflow
 
 ### Branch, commit, and PR rules
@@ -683,3 +708,13 @@ When adding tests:
 - Playwright for E2E, if and when an E2E layer is introduced — there is none today
 - Focus on critical paths: authentication and scope resolution, raid creation,
   attendance calculation
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
