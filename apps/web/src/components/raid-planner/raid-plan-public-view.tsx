@@ -67,7 +67,7 @@ export function RaidPlanPublicView({
 
   // Checked on focus (at most every 15s) and once a minute while visible, so a raid lead's
   // mid-raid edit still shows up within seconds of a raider looking at the page.
-  const { data: versionData } = api.raidPlan.getVersion.useQuery(
+  const { data: versionData, dataUpdatedAt: versionCheckedAt } = api.raidPlan.getVersion.useQuery(
     { planId },
     { staleTime: 15_000, refetchInterval: 60_000, refetchIntervalInBackground: false },
   );
@@ -80,9 +80,12 @@ export function RaidPlanPublicView({
       loadedVersion !== undefined &&
       latestVersion !== loadedVersion
     ) {
-      void refetchPlan();
+      // cancelRefetch: false keeps a still-running refetch instead of restarting it.
+      void refetchPlan({ cancelRefetch: false });
     }
-  }, [latestVersion, loadedVersion, refetchPlan]);
+    // versionCheckedAt: re-check on every poll result, so a refetch that failed past React
+    // Query's retries is tried again on the next check rather than only on the next edit.
+  }, [latestVersion, loadedVersion, versionCheckedAt, refetchPlan]);
 
   // The personal layer (whose characters to highlight) changes far less than the plan does.
   const { data: userProfile } = api.profile.getMyProfile.useQuery(undefined, {

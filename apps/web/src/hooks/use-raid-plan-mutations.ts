@@ -84,7 +84,7 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
 
   // Polling the full plan every 5s per open editor was the bulk of raid-night DB egress
   // (TEMPLE-150). The version is one timestamp; the plan is refetched only when it moves.
-  const { data: versionData } = api.raidPlan.getVersion.useQuery(
+  const { data: versionData, dataUpdatedAt: versionCheckedAt } = api.raidPlan.getVersion.useQuery(
     { planId },
     {
       refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
@@ -109,10 +109,13 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
 
     // `!==`, not `>`: versions come from both DB transaction-start and app-server clocks, so a
     // newer edit isn't guaranteed a larger timestamp — any difference means the plan changed.
+    // Re-evaluated on every poll result (versionCheckedAt), not only when the version value
+    // changes, so a refetch that failed past React Query's retries is tried again on the next poll.
+    // cancelRefetch: false keeps a still-running refetch instead of restarting it.
     if (latestVersion !== undefined && latestVersion !== loadedVersion) {
-      void refetch();
+      void refetch({ cancelRefetch: false });
     }
-  }, [latestVersion, loadedVersion, planId, refetch, utils]);
+  }, [latestVersion, loadedVersion, versionCheckedAt, planId, refetch, utils]);
 
   const { data: presence = [] } = api.raidPlan.getPresence.useQuery(
     { planId },
