@@ -75,10 +75,34 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
   } = api.raidPlan.getById.useQuery(
     { planId },
     {
+      // Not polled itself, and never stale on its own: the version poll below refetches it when
+      // someone else changes the plan, and this editor's own mutations invalidate it directly.
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  // Polling the full plan every 5s per open editor was the bulk of raid-night DB egress
+  // (TEMPLE-150). The version is one timestamp; the plan is refetched only when it moves.
+  const { data: versionData } = api.raidPlan.getVersion.useQuery(
+    { planId },
+    {
       refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
       refetchIntervalInBackground: false,
     },
   );
+
+  const latestVersion = versionData ? new Date(versionData.version).getTime() : undefined;
+  const loadedVersion = plan ? new Date(plan.lastModifiedAt).getTime() : undefined;
+  useEffect(() => {
+    if (
+      latestVersion !== undefined &&
+      loadedVersion !== undefined &&
+      latestVersion !== loadedVersion
+    ) {
+      void refetch();
+    }
+  }, [latestVersion, loadedVersion, refetch]);
 
   const { data: presence = [] } = api.raidPlan.getPresence.useQuery(
     { planId },

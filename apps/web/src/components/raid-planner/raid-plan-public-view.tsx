@@ -52,16 +52,43 @@ export function RaidPlanPublicView({
   const { updateBreadcrumbSegment } = useBreadcrumb();
   const utils = api.useUtils();
 
+  // Raiders keep this page open all raid and alt-tab back to it constantly. With the default
+  // 5s staleTime every alt-tab refetched the whole plan (TEMPLE-150), so the plan is never
+  // refetched on its own — only when the small version check below says it changed.
   const {
     data: plan,
     isLoading: isPlanLoading,
     error,
-  } = api.raidPlan.getPublicById.useQuery({
-    planId,
-  });
+    refetch: refetchPlan,
+  } = api.raidPlan.getPublicById.useQuery(
+    { planId },
+    { staleTime: Infinity, refetchOnWindowFocus: false },
+  );
 
+  // Checked on focus (at most every 15s) and once a minute while visible, so a raid lead's
+  // mid-raid edit still shows up within seconds of a raider looking at the page.
+  const { data: versionData } = api.raidPlan.getVersion.useQuery(
+    { planId },
+    { staleTime: 15_000, refetchInterval: 60_000, refetchIntervalInBackground: false },
+  );
+
+  const latestVersion = versionData ? new Date(versionData.version).getTime() : undefined;
+  const loadedVersion = plan ? new Date(plan.lastModifiedAt).getTime() : undefined;
+  useEffect(() => {
+    if (
+      latestVersion !== undefined &&
+      loadedVersion !== undefined &&
+      latestVersion !== loadedVersion
+    ) {
+      void refetchPlan();
+    }
+  }, [latestVersion, loadedVersion, refetchPlan]);
+
+  // The personal layer (whose characters to highlight) changes far less than the plan does.
   const { data: userProfile } = api.profile.getMyProfile.useQuery(undefined, {
     enabled: isLoggedIn,
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const saveProfileMutation = api.profile.saveMyProfile.useMutation({
@@ -77,7 +104,7 @@ export function RaidPlanPublicView({
   // Fetch the "view as" character and their secondaries (public procedure)
   const { data: viewAsCharacter } = api.character.getCharacterById.useQuery(
     viewAsCharacterId ?? 0,
-    { enabled: viewAsCharacterId !== null },
+    { enabled: viewAsCharacterId !== null, staleTime: 10 * 60_000, refetchOnWindowFocus: false },
   );
 
   // All character IDs belonging to the "view as" character (primary + alts)
