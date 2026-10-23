@@ -124,6 +124,72 @@ describe("resolveEvaluationWindow", () => {
   it("season-scoping: a season-scoped tier with no seasonStartDate throws rather than silently unbounding", () => {
     expect(() => resolveEvaluationWindow("season", null, null, 4, new Date())).toThrow();
   });
+
+  // TEMPLE-152: the current week must turn over at the Tuesday 11:00 ET reset, not at midnight UTC
+  // (Monday 8pm ET) — otherwise a Monday-night raid's own evaluation already sees the next week.
+  describe("lockout week boundary (server time, Tuesday 11:00 ET reset)", () => {
+    const floorAt = (iso: string) =>
+      resolveEvaluationWindow("all_time", null, null, 6, new Date(iso)).start!.toISOString();
+
+    it("Monday 11:30pm ET (already Tuesday in UTC) is still the old week", () => {
+      expect(floorAt("2026-10-13T03:30:00Z")).toBe("2026-09-01T00:00:00.000Z");
+    });
+
+    it("Tuesday 10:30am ET, before the reset, is still the old week", () => {
+      expect(floorAt("2026-10-13T14:30:00Z")).toBe("2026-09-01T00:00:00.000Z");
+    });
+
+    it("Tuesday 11:30am ET, after the reset, is the new week", () => {
+      expect(floorAt("2026-10-13T15:30:00Z")).toBe("2026-09-08T00:00:00.000Z");
+    });
+
+    it("holds across standard time too (EST, UTC-5)", () => {
+      // Mon 2026-11-09 11:30pm EST = Tue 04:30Z; Tue 11:30am EST = 16:30Z
+      expect(floorAt("2026-11-10T04:30:00Z")).toBe("2026-09-29T00:00:00.000Z");
+      expect(floorAt("2026-11-10T16:30:00Z")).toBe("2026-10-06T00:00:00.000Z");
+    });
+
+    it("a full 6-week window completed by a Monday-night raid scores 100% when evaluated that night", async () => {
+      const config: AchievementRuleConfig = {
+        shape: "weighted_attendance_threshold",
+        minPercent: 100,
+        lockoutWeeks: 6,
+      };
+      // Weeks of Sep 1 .. Oct 6: Naxx + BWL during the week, AQ40 on the following Monday.
+      const attendedRaids: RuleEvaluationContext["attendedRaids"] = [];
+      let raidId = 1;
+      for (let week = 0; week < 6; week++) {
+        const weekStart = new Date(Date.UTC(2026, 8, 1 + week * 7));
+        const raidOn = (dayOffset: number, zone: string) => {
+          const day = new Date(Date.UTC(2026, 8, 1 + week * 7 + dayOffset, 4));
+          attendedRaids.push({
+            raidId: raidId++,
+            characterId: 1,
+            zone,
+            class: "Warrior",
+            lockoutWeekStart: weekStart,
+            startTime: day,
+            attendanceWeight: 1,
+          });
+        };
+        raidOn(0, "Naxxramas"); // Tuesday
+        raidOn(3, "Blackwing Lair"); // Friday
+        raidOn(6, "Temple of Ahn'Qiraj"); // Monday
+      }
+      // Evaluated right after the last AQ40 (Mon 2026-10-12 11:30pm ET = Tue 03:30Z).
+      const asOf = new Date("2026-10-13T03:30:00Z");
+      const window = resolveEvaluationWindow(
+        "season",
+        new Date("2026-09-01T04:00:00Z"),
+        null,
+        config.lockoutWeeks,
+        asOf,
+      );
+      const result = await scoreByShape(NOOP_DB, 1, ctx({ attendedRaids }), config, window);
+      expect(result.progress).toEqual({ current: 100, target: 100 });
+      expect(result.crossed).toBe(true);
+    });
+  });
 });
 
 // ─── Per-shape scorers (via scoreByShape) ───────────────────────────────────────
