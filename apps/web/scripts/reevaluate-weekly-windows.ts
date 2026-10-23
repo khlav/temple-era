@@ -43,13 +43,16 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 function evaluationInstants(seasonStartDate: string, now: Date): Date[] {
   const instants: Date[] = [];
   const start = new Date(`${seasonStartDate}T00:00:00Z`);
-  for (let day = 7; ; day += 7) {
-    const monday = new Date(start);
-    monday.setUTCDate(start.getUTCDate() + day - 1);
+  // First Monday on or after the season start — the last server-time day of its first lockout
+  // week — rather than assuming the season itself starts on a Tuesday.
+  const monday = new Date(start);
+  monday.setUTCDate(start.getUTCDate() + ((8 - start.getUTCDay()) % 7));
+  for (;;) {
     const ymd = monday.toISOString().slice(0, 10);
     const weekEnd = fromZonedTime(`${ymd}T23:59:59`, EASTERN_TIMEZONE);
     if (weekEnd >= now) break;
     instants.push(weekEnd);
+    monday.setUTCDate(monday.getUTCDate() + 7);
   }
   instants.push(now);
   return instants;
@@ -90,6 +93,7 @@ async function main() {
           `(${APPLY ? "APPLY" : "dry run"})`,
       );
 
+      let totalFailures = 0;
       for (const asOf of instants) {
         const results = await evaluateAchievementsForFamilies(
           tx as unknown as typeof db,
@@ -101,8 +105,17 @@ async function main() {
           if ("error" in result) failures += 1;
           else for (const award of result.newAwards) awarded.push({ ...award, asOf });
         }
+        totalFailures += failures;
         console.log(
           `[reevaluate] as of ${asOf.toISOString()}: ${awarded.length} new so far, ${failures} failures`,
+        );
+      }
+
+      if (totalFailures > 0) {
+        // A partial backfill stamped with historical awardedAt values would be hard to spot and
+        // undo — roll the whole thing back instead.
+        throw new Error(
+          `${totalFailures} evaluation(s) failed — refusing to commit a partial backfill.`,
         );
       }
 
