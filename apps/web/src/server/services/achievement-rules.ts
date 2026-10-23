@@ -1,5 +1,5 @@
 import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
-import { fromZonedTime } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { type db as database } from "~/server/db";
 import {
   achievementAwards,
@@ -49,6 +49,29 @@ function raidDateToInstant(date: string): Date {
   return fromZonedTime(`${date}T00:00:00`, EASTERN_TIMEZONE);
 }
 
+/** Weekly raid lockouts reset Tuesday 11:00 server time (US: 8am Pacific = 11am Eastern year-round,
+ *  since both zones observe DST together). */
+const WEEKLY_RESET_HOUR_SERVER_TIME = 11;
+
+/**
+ * The lockout week `asOf` falls in, by server time (ET), turning over at the Tuesday reset — the
+ * same `getTuesdayAnchoredWeekStart` key raid dates get via `raidDateToInstant`.
+ *
+ * Passing `asOf` straight to `getTuesdayAnchoredWeekStart` read it in UTC, so the week turned over
+ * at Tuesday 00:00 UTC = Monday 8pm ET. Each week's last raid (AQ40, Monday night) is uploaded
+ * after that, so its evaluation saw a window whose current week was already the next, empty one —
+ * a family completing a full window was never evaluated at the moment it completed (TEMPLE-152).
+ * Shifting back by the reset hour first keeps Monday night and Tuesday morning in the old week.
+ */
+function currentLockoutWeekStart(asOf: Date): Date {
+  const serverDate = formatInTimeZone(
+    new Date(asOf.getTime() - WEEKLY_RESET_HOUR_SERVER_TIME * 60 * 60 * 1000),
+    EASTERN_TIMEZONE,
+    "yyyy-MM-dd",
+  );
+  return getTuesdayAnchoredWeekStart(raidDateToInstant(serverDate));
+}
+
 /**
  * ~/lib/lockout-weeks.ts's `getLockoutWeeks` is NOT `asOf`-parameterized — it always anchors on
  * real wall-clock time internally, which would break both testability and correctness for a
@@ -60,7 +83,7 @@ function raidDateToInstant(date: string): Date {
  * (partial) lockout week plus the 3 before it.
  */
 function lockoutFloorFor(lockoutWeeks: number, asOf: Date): Date {
-  const currentWeekStart = getTuesdayAnchoredWeekStart(asOf);
+  const currentWeekStart = currentLockoutWeekStart(asOf);
   const floor = new Date(currentWeekStart);
   floor.setUTCDate(floor.getUTCDate() - 7 * (lockoutWeeks - 1));
   return floor;
