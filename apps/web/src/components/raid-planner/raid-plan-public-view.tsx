@@ -69,7 +69,13 @@ export function RaidPlanPublicView({
   // mid-raid edit still shows up within seconds of a raider looking at the page.
   const { data: versionData, dataUpdatedAt: versionCheckedAt } = api.raidPlan.getVersion.useQuery(
     { planId },
-    { staleTime: 15_000, refetchInterval: 60_000, refetchIntervalInBackground: false },
+    {
+      staleTime: 15_000,
+      refetchInterval: 60_000,
+      refetchIntervalInBackground: false,
+      // Explicit: the global default is off, and this focus check is the point of the query.
+      refetchOnWindowFocus: true,
+    },
   );
 
   const latestVersion = versionData ? new Date(versionData.version).getTime() : undefined;

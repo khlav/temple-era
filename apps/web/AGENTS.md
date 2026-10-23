@@ -277,6 +277,20 @@ a whole plan unless it has changed.
 - Trade-off: a character's class or primary changed elsewhere shows in a cached plan only after
   the plan's next edit, or the 24h cache expiry.
 
+#### Achievements catalog cache (TEMPLE-151)
+
+The list of visible achievements and their tiers is the same for every viewer, so
+`getDisplayCatalog` / `getPublicCatalog` take it from `getVisibleAchievementDefs`
+(`src/server/services/achievement-catalog-cache.ts`, `unstable_cache`, tag `achievement-catalog`).
+Per-family data — earned tiers, earned hidden achievements — is still read live.
+
+- Only the app's own `db` goes through the cache; an injected client (tests, transactions) reads
+  directly, so `achievement-queries.ts` keeps its injected-db convention.
+- Any in-app write to `achievement` / `achievement_tier` calls
+  `invalidateAchievementCatalogCache()` (`achievement-service.ts` does). The bootstrap/seed script
+  runs outside Next and can't bust the cache, so after reseeding definitions the visible list can
+  lag by up to the 1h fallback.
+
 ## Development Workflow
 
 ### Branch, commit, and PR rules
@@ -367,6 +381,14 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Server Components by default, `"use client"` only when needed
 - Use React Query/tRPC hooks for data fetching
 - Follow existing component patterns
+- **Query freshness defaults** (`src/trpc/query-client.ts`, TEMPLE-151): `staleTime` is 5 minutes
+  and `refetchOnWindowFocus` is off. Raiders alt-tab constantly, and the old defaults (5s, refetch
+  on focus) re-ran every query on the open page each time. Mutations still `invalidate()` what
+  they change, and that refetches right away whatever the `staleTime`. What it delays is data
+  changed by someone else (another user, the bot): that shows up after a navigation once the
+  data is 5 minutes old, or a reload. A query that must stay live sets its own
+  `refetchOnWindowFocus` / `refetchInterval`, and should poll a cheap version check rather than
+  the data itself (see "Raid plan caching" above).
 
 #### Database
 

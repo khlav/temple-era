@@ -9,6 +9,7 @@ import {
   users,
 } from "~/server/db/schema";
 import { isValidIconName } from "~/server/services/wow-icon-catalog";
+import { invalidateAchievementCatalogCache } from "~/server/services/achievement-catalog-cache";
 
 /**
  * `achievement` router and this service are the only two places award rows get written outside
@@ -75,7 +76,7 @@ export async function createAchievement(input: CreateAchievementInput, actingUse
   // Transactional: a custom achievement always has exactly one tier (see this function's own doc
   // comment), so a tier-insert failure after the achievement insert already committed would leave
   // a tier-less row the admin panel can't render sensibly.
-  return db.transaction(async (tx) => {
+  const created = await db.transaction(async (tx) => {
     const [achievement] = await tx
       .insert(achievements)
       .values({
@@ -101,6 +102,11 @@ export async function createAchievement(input: CreateAchievementInput, actingUse
 
     return { achievementId: achievement!.id, achievementTierId: tier!.id };
   });
+
+  // Custom achievements are always hidden, so this can't change the cached visible list today —
+  // busted anyway so a future visible-achievement path can't forget it.
+  invalidateAchievementCatalogCache();
+  return created;
 }
 
 export interface UpdateAchievementInput {
@@ -175,6 +181,7 @@ export async function updateAchievement(achievementId: string, input: UpdateAchi
       .where(eq(achievementTiers.id, tierId!.id));
   });
 
+  invalidateAchievementCatalogCache();
   return { achievementId, achievementTierId: tierId!.id };
 }
 
@@ -351,6 +358,7 @@ export async function deleteAchievement(achievementId: string) {
     return deletedAwards.length;
   });
 
+  invalidateAchievementCatalogCache();
   return { deletedAwardCount };
 }
 
