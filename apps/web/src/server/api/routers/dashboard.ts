@@ -91,7 +91,7 @@ export const dashboard = createTRPCRouter({
         attendanceWeight: raidsTable.attendanceWeight,
         zone: raidsTable.zone,
         currentUserAttendance: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-        raidLogIds: sql<string[]>`array_agg
+        raidLogIds: sql<string[]>`json_agg
             (${raidLogs.raidLogId})`,
       })
       .from(raidsTable)
@@ -133,7 +133,7 @@ export const dashboard = createTRPCRouter({
         attendanceWeight: trackedRaidsCurrentLockout.attendanceWeight,
         zone: trackedRaidsCurrentLockout.zone,
         currentUserAttendance: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-        raidLogIds: sql<string[]>`array_agg
+        raidLogIds: sql<string[]>`json_agg
             (${raidLogs.raidLogId})`,
       })
       .from(trackedRaidsCurrentLockout)
@@ -169,7 +169,7 @@ export const dashboard = createTRPCRouter({
         attendanceWeight: allRaidsCurrentLockout.attendanceWeight,
         zone: allRaidsCurrentLockout.zone,
         currentUserAttendance: primaryRaidAttendeeAndBenchMap.attendeeOrBench,
-        raidLogIds: sql<string[]>`array_agg
+        raidLogIds: sql<string[]>`json_agg
             (${raidLogs.raidLogId})`,
       })
       .from(allRaidsCurrentLockout)

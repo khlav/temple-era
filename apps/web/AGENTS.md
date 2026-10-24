@@ -79,7 +79,7 @@ knowing: already-migrated databases skip both files (their watermark is newer th
 
 Scaffold a hand-written migration with `pnpm db:generate --custom --name=<slug>` rather than adding
 the file and journal entry by hand. It stamps `when` with the current time, which is what puts the
-migration *above* prod's watermark so it actually runs — the two base files are deliberately below
+migration _above_ prod's watermark so it actually runs — the two base files are deliberately below
 it. `0002_templar_statement_timeout.sql` is the worked example.
 
 ### Local development database (the normal path)
@@ -252,6 +252,45 @@ See `src/` for the directory layout — organized by feature under `components/`
 - Advanced search syntax for recipes: supports OR, AND, profession filters, etc.
 - Search implementation in `src/server/api/routers/search.ts`
 
+#### Raid plan caching and live updates (TEMPLE-150)
+
+Raid plans are the site's biggest source of database egress: on raid night, raid leads edit a
+plan while most of the raid keeps it open and alt-tabs back to it constantly. So nothing re-reads
+a whole plan unless it has changed.
+
+- **Version = `raid_plan.updated_at`.** Touch triggers bump it on any change to the plan's
+  roster, groups, encounters, notes, assignments or AA slots (`0001_custom_objects.sql`, plus
+  `0004` for notes). **A new raid-plan child table needs the same trigger**, or edits to it will
+  be served stale.
+- **Server cache:** `getById` and `getPublicById` read a small header row (visibility, version,
+  editor names) live on every call. The heavy, viewer-agnostic content comes from
+  `getRaidPlanContent` (`src/server/services/raid-plan-content.ts`), an `unstable_cache` keyed on
+  `[planId, version]`. An edit lands on a new key, so there is no `revalidateTag` to call from
+  mutation sites. Cached values go through JSON: keep `Date` fields out of the content.
+- **Clients poll `raidPlan.getVersion`, not the plan.** It returns one timestamp; a private plan
+  needs `raidplan:manage`. The editor (`use-raid-plan-mutations.ts`) polls it every 5s, and the
+  public view checks it on focus and every 60s. Either one refetches the full plan only when the
+  version differs from the loaded plan's `lastModifiedAt`. Don't put `refetchInterval` or
+  refetch-on-focus back on the plan queries themselves.
+- Personal layers on the public view (the viewer's characters, "view as") are separate small
+  per-user queries, never part of the cached content.
+- Trade-off: a character's class or primary changed elsewhere shows in a cached plan only after
+  the plan's next edit, or the 24h cache expiry.
+
+#### Achievements catalog cache (TEMPLE-151)
+
+The list of visible achievements and their tiers is the same for every viewer, so
+`getDisplayCatalog` / `getPublicCatalog` take it from `getVisibleAchievementDefs`
+(`src/server/services/achievement-catalog-cache.ts`, `unstable_cache`, tag `achievement-catalog`).
+Per-family data — earned tiers, earned hidden achievements — is still read live.
+
+- Only the app's own `db` goes through the cache; an injected client (tests, transactions) reads
+  directly, so `achievement-queries.ts` keeps its injected-db convention.
+- Any in-app write to `achievement` / `achievement_tier` calls
+  `invalidateAchievementCatalogCache()` (`achievement-service.ts` does). The bootstrap/seed script
+  runs outside Next and can't bust the cache, so after reseeding definitions the visible list can
+  lag by up to the 1h fallback.
+
 ## Development Workflow
 
 ### Branch, commit, and PR rules
@@ -342,6 +381,14 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Server Components by default, `"use client"` only when needed
 - Use React Query/tRPC hooks for data fetching
 - Follow existing component patterns
+- **Query freshness defaults** (`src/trpc/query-client.ts`, TEMPLE-151): `staleTime` is 5 minutes
+  and `refetchOnWindowFocus` is off. Raiders alt-tab constantly, and the old defaults (5s, refetch
+  on focus) re-ran every query on the open page each time. Mutations still `invalidate()` what
+  they change, and that refetches right away whatever the `staleTime`. What it delays is data
+  changed by someone else (another user, the bot): that shows up after a navigation once the
+  data is 5 minutes old, or a reload. A query that must stay live sets its own
+  `refetchOnWindowFocus` / `refetchInterval`, and should poll a cheap version check rather than
+  the data itself (see "Raid plan caching" above).
 
 #### Database
 
@@ -357,6 +404,10 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Production writes/imports go through Drizzle, never raw SQL that bypasses column
   defaults (e.g. `id` generation) — a prior import did this and had to be rolled back.
   Validate against a single row before running a bulk import.
+- The postgres-js client runs with `fetch_types: false` (TEMPLE-151 — its per-connection
+  `pg_type` lookup was the largest query by rows on prod). So Postgres arrays arrive as raw
+  strings like `"{1,2}"`. Typed Drizzle array columns still parse, but a raw `sql<T[]>`
+  aggregate must use `json_agg`, never `array_agg`.
 
 #### Styling
 
@@ -456,7 +507,7 @@ hard-reserve field, so `createSoftResRaid()` follows the create with
 were established live and are easy to get wrong:
 
 - **It replaces the whole set**, so always send the complete intended list — never a delta.
-- **The session that created a raid already manages it**, so no admin token is needed. A *different*
+- **The session that created a raid already manages it**, so no admin token is needed. A _different_
   session gets 403 until it first does `GET /raid/{id}?adminToken=<token>`; that's the retry path if one
   is ever wanted. `createSoftResRaid()` therefore keeps its session for one more request, re-reading
   `Set-Cookie` off the create response in case the session cookie was reissued.
@@ -517,6 +568,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 **GraphiQL:** Available at `/api/v2/graphql` in development.
 
 **Root queries:**
+
 - `users(discordIds: [String!]!)` — look up users by Discord user ID; traverses to linked characters + attendance
 - `character(id: Int!)` — single character; primary characters aggregate attendance across full family
 - `characterFamily(primaryCharacterId: Int!)` — primary + all secondaries with aggregated attendance
@@ -530,6 +582,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 **Discovery:** `GET /api/v2/graphql/index?q=&type=` is a searchable one-line-per-field index of the schema (public, like `schema.graphql`). Field descriptions are what it searches, so give new fields a `description`.
 
 **Key files:**
+
 - `src/app/api/v2/graphql/route.ts` — Yoga route handler
 - `src/server/api/v2/schema.ts` — schema assembly + root Query
 - `src/server/api/v2/types/` — Pothos type implementations
@@ -683,3 +736,13 @@ When adding tests:
 - Playwright for E2E, if and when an E2E layer is introduced — there is none today
 - Focus on critical paths: authentication and scope resolution, raid creation,
   attendance calculation
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

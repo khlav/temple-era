@@ -43,6 +43,11 @@ on:
 
 jobs:
   notify-webhook:
+    # Dependabot-triggered runs get no Actions secrets, so skip rather than
+    # fail on missing config (TEMPLE-155). Gate on the triggering actor, not the
+    # PR author: a human `edited` event on a Dependabot PR does have secrets and
+    # may be adding the ticket reference this workflow exists to relay.
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

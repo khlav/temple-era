@@ -75,10 +75,51 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
   } = api.raidPlan.getById.useQuery(
     { planId },
     {
-      refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
-      refetchIntervalInBackground: false,
+      // Not polled itself, and never stale on its own: the version poll below refetches it when
+      // someone else changes the plan, and this editor's own mutations invalidate it directly.
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
     },
   );
+
+  // Polling the full plan every 5s per open editor was the bulk of raid-night DB egress
+  // (TEMPLE-150). The version is one timestamp; the plan is refetched only when it moves.
+  const { data: versionData, dataUpdatedAt: versionCheckedAt } = api.raidPlan.getVersion.useQuery(
+    { planId },
+    {
+      refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
+      refetchIntervalInBackground: false,
+      // Opts back in to the focus check the global defaults turn off, so an editor who comes
+      // back after polling went idle sees others' changes straight away.
+      staleTime: POLLING_INTERVAL,
+      refetchOnWindowFocus: true,
+    },
+  );
+
+  const latestVersion = versionData ? new Date(versionData.version).getTime() : undefined;
+  const loadedVersion = plan ? new Date(plan.lastModifiedAt).getTime() : undefined;
+  const lastSyncedVersionRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (loadedVersion === undefined) return;
+
+    // A freshly loaded plan (e.g. after this editor's own save invalidated it) is itself the newest
+    // version we know of — record it as the polled version too, or the still-older poll result
+    // would trigger a second, pointless full refetch.
+    if (loadedVersion !== lastSyncedVersionRef.current) {
+      lastSyncedVersionRef.current = loadedVersion;
+      utils.raidPlan.getVersion.setData({ planId }, { version: new Date(loadedVersion) });
+      return;
+    }
+
+    // `!==`, not `>`: versions come from both DB transaction-start and app-server clocks, so a
+    // newer edit isn't guaranteed a larger timestamp — any difference means the plan changed.
+    // Re-evaluated on every poll result (versionCheckedAt), not only when the version value
+    // changes, so a refetch that failed past React Query's retries is tried again on the next poll.
+    // cancelRefetch: false keeps a still-running refetch instead of restarting it.
+    if (latestVersion !== undefined && latestVersion !== loadedVersion) {
+      void refetch({ cancelRefetch: false });
+    }
+  }, [latestVersion, loadedVersion, versionCheckedAt, planId, refetch, utils]);
 
   const { data: presence = [] } = api.raidPlan.getPresence.useQuery(
     { planId },
