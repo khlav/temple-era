@@ -26,6 +26,18 @@ async function getCharacterListVersion(): Promise<string> {
   return row?.version ?? "0";
 }
 
+/** WHERE clause for the filters other than "secondaryEligible", which has its own query. */
+export function characterFilterPredicate(filter: CharacterListFilter) {
+  switch (filter) {
+    case "primary":
+      return eq(characters.isPrimary, true);
+    case "secondary":
+      return eq(characters.isPrimary, false);
+    default:
+      return inArray(characters.isPrimary, [true, false]); // get all
+  }
+}
+
 async function loadCharacterList(filter: CharacterListFilter) {
   const primaryCharacters = aliasedTable(characters, "primary_character");
   const columns = {
@@ -65,22 +77,11 @@ async function loadCharacterList(filter: CharacterListFilter) {
       );
   }
 
-  const characterFilter = (() => {
-    switch (filter) {
-      case "primary":
-        return eq(characters.isPrimary, true);
-      case "secondary":
-        return eq(characters.isPrimary, true);
-      default:
-        return inArray(characters.isPrimary, [true, false]); // get all
-    }
-  })();
-
   return db
     .select(columns)
     .from(characters)
     .leftJoin(primaryCharacters, eq(characters.primaryCharacterId, primaryCharacters.characterId))
-    .where(characterFilter);
+    .where(characterFilterPredicate(filter));
 }
 
 const getCachedCharacterList = unstable_cache(
