@@ -854,11 +854,11 @@ export async function getAchievementLogPage(
       scope: achievements.scope,
       characterIds: sql<
         number[]
-      >`array_agg(${achievementAwards.primaryCharacterId} order by ${achievementAwards.primaryCharacterId})`,
+      >`json_agg(${achievementAwards.primaryCharacterId} order by ${achievementAwards.primaryCharacterId})`,
       // Earliest-awarded row in the group is the replay representative — arbitrary but stable.
       awardIds: sql<
         string[]
-      >`array_agg(${achievementAwards.id} order by ${achievementAwards.awardedAt} asc)`,
+      >`json_agg(${achievementAwards.id} order by ${achievementAwards.awardedAt} asc)`,
     })
     .from(achievementAwards)
     .innerJoin(achievementTiers, eq(achievementAwards.achievementTierId, achievementTiers.id))

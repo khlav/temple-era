@@ -79,7 +79,7 @@ knowing: already-migrated databases skip both files (their watermark is newer th
 
 Scaffold a hand-written migration with `pnpm db:generate --custom --name=<slug>` rather than adding
 the file and journal entry by hand. It stamps `when` with the current time, which is what puts the
-migration *above* prod's watermark so it actually runs — the two base files are deliberately below
+migration _above_ prod's watermark so it actually runs — the two base files are deliberately below
 it. `0002_templar_statement_timeout.sql` is the worked example.
 
 ### Local development database (the normal path)
@@ -404,6 +404,10 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Production writes/imports go through Drizzle, never raw SQL that bypasses column
   defaults (e.g. `id` generation) — a prior import did this and had to be rolled back.
   Validate against a single row before running a bulk import.
+- The postgres-js client runs with `fetch_types: false` (TEMPLE-151 — its per-connection
+  `pg_type` lookup was the largest query by rows on prod). So Postgres arrays arrive as raw
+  strings like `"{1,2}"`. Typed Drizzle array columns still parse, but a raw `sql<T[]>`
+  aggregate must use `json_agg`, never `array_agg`.
 
 #### Styling
 
@@ -503,7 +507,7 @@ hard-reserve field, so `createSoftResRaid()` follows the create with
 were established live and are easy to get wrong:
 
 - **It replaces the whole set**, so always send the complete intended list — never a delta.
-- **The session that created a raid already manages it**, so no admin token is needed. A *different*
+- **The session that created a raid already manages it**, so no admin token is needed. A _different_
   session gets 403 until it first does `GET /raid/{id}?adminToken=<token>`; that's the retry path if one
   is ever wanted. `createSoftResRaid()` therefore keeps its session for one more request, re-reading
   `Set-Cookie` off the create response in case the session cookie was reissued.
@@ -564,6 +568,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 **GraphiQL:** Available at `/api/v2/graphql` in development.
 
 **Root queries:**
+
 - `users(discordIds: [String!]!)` — look up users by Discord user ID; traverses to linked characters + attendance
 - `character(id: Int!)` — single character; primary characters aggregate attendance across full family
 - `characterFamily(primaryCharacterId: Int!)` — primary + all secondaries with aggregated attendance
@@ -577,6 +582,7 @@ A read-only GraphQL API at `GET|POST /api/v2/graphql`. Uses Pothos (code-first s
 **Discovery:** `GET /api/v2/graphql/index?q=&type=` is a searchable one-line-per-field index of the schema (public, like `schema.graphql`). Field descriptions are what it searches, so give new fields a `description`.
 
 **Key files:**
+
 - `src/app/api/v2/graphql/route.ts` — Yoga route handler
 - `src/server/api/v2/schema.ts` — schema assembly + root Query
 - `src/server/api/v2/types/` — Pothos type implementations

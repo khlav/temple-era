@@ -1,21 +1,6 @@
 import { z } from "zod";
 import { scopedProcedure, createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import {
-  aliasedTable,
-  and,
-  type BinaryOperator,
-  count,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  lte,
-  not,
-  or,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, not, sql } from "drizzle-orm";
 import {
   characters,
   primaryRaidAttendeeAndBenchMap,
@@ -30,6 +15,7 @@ import {
   getRaidAttendanceByZone,
   getRaidBenchByZone,
 } from "~/server/services/raid-attendance-by-zone";
+import { getCharacterList } from "~/server/services/character-list-cache";
 
 export const convertParticipantArrayToCollection = (participants: RaidParticipant[]) => {
   return participants.reduce((acc, rel) => {
@@ -54,164 +40,51 @@ export const characterCols = {
 export const character = createTRPCRouter({
   getCharacters: publicProcedure
     .input(z.optional(z.enum(["all", "primary", "secondary", "secondaryEligible"])))
-    .query(async ({ ctx, input }) => {
-      const primaryCharacters = aliasedTable(characters, "primary_character");
+    .query(async ({ input }) => {
+      const characterList = await getCharacterList(input ?? "all");
 
-      if (input === "secondaryEligible") {
-        // Assignable only -- e.g. only Secondary characters OR primary characters with no secondaries
-        const countSecondary = ctx.db.$with("countSecondary").as(
-          ctx.db
-            .select({
-              primaryCharacterId: characters.primaryCharacterId,
-              countSecondaryCharacters: count(characters.characterId).as(
-                "countSecondaryCharacters",
-              ),
-            })
-            .from(characters)
-            .groupBy(characters.primaryCharacterId),
-        );
+      // Get raid attendance counts by zone for each individual character (both attendee and bench)
+      const raidAttendanceByZone = await getRaidAttendanceByZone();
 
-        const characterList = await ctx.db
-          .with(countSecondary)
-          .select({
-            name: characters.name,
-            server: characters.server,
-            slug: characters.slug,
-            class: characters.class,
-            characterId: characters.characterId,
-            isPrimary: characters.isPrimary,
-            primaryCharacterId: characters.primaryCharacterId,
-            primaryCharacterName: primaryCharacters.name,
-          })
-          .from(characters)
-          .leftJoin(
-            primaryCharacters,
-            eq(characters.primaryCharacterId, primaryCharacters.characterId),
-          )
-          .leftJoin(countSecondary, eq(countSecondary.primaryCharacterId, characters.characterId))
-          .where(
-            or(
-              eq(countSecondary.countSecondaryCharacters, 0),
-              isNull(countSecondary.countSecondaryCharacters),
-            ),
+      // Get bench counts by zone for each individual character
+      const benchAttendanceByZone = await getRaidBenchByZone();
+
+      // Convert character list to collection and add raid attendance data
+      const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
+
+      // Add raid attendance by zone to each character
+      for (const attendance of raidAttendanceByZone) {
+        const characterId = attendance.characterId;
+        if (characterId && characterCollection[characterId] && attendance.zone) {
+          const character = characterCollection[characterId];
+          character.raidAttendanceByZone ??= {};
+          character.raidAttendanceByZone[attendance.zone] ??= {
+            attendee: 0,
+            bench: 0,
+          };
+
+          character.raidAttendanceByZone[attendance.zone]!.attendee = Number(
+            attendance.uniqueRaidCount,
           );
-
-        // Get raid attendance counts by zone for each individual character (both attendee and bench)
-        const raidAttendanceByZone = await getRaidAttendanceByZone();
-
-        // Get bench counts by zone for each individual character
-        const benchAttendanceByZone = await getRaidBenchByZone();
-
-        // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-
-        // Add raid attendance by zone to each character
-        for (const attendance of raidAttendanceByZone) {
-          const characterId = attendance.characterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
-            const character = characterCollection[characterId];
-            character.raidAttendanceByZone ??= {};
-            character.raidAttendanceByZone[attendance.zone] ??= {
-              attendee: 0,
-              bench: 0,
-            };
-
-            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(
-              attendance.uniqueRaidCount,
-            );
-          }
         }
-
-        // Add bench attendance by zone to each character
-        for (const bench of benchAttendanceByZone) {
-          const characterId = bench.characterId;
-          if (characterId && characterCollection[characterId] && bench.zone) {
-            const character = characterCollection[characterId];
-            character.raidAttendanceByZone ??= {};
-            character.raidAttendanceByZone[bench.zone] ??= {
-              attendee: 0,
-              bench: 0,
-            };
-
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
-          }
-        }
-
-        return characterCollection;
-      } else {
-        // Primary, Secondary, or All
-        const characterFilter: BinaryOperator | SQL = (() => {
-          switch (input) {
-            case "primary":
-              return eq(characters.isPrimary, true);
-            case "secondary":
-              return eq(characters.isPrimary, true);
-            default:
-              return inArray(characters.isPrimary, [true, false]); // get all
-          }
-        })();
-
-        const characterList = await ctx.db
-          .select({
-            name: characters.name,
-            server: characters.server,
-            slug: characters.slug,
-            class: characters.class,
-            characterId: characters.characterId,
-            isPrimary: characters.isPrimary,
-            primaryCharacterId: characters.primaryCharacterId,
-            primaryCharacterName: primaryCharacters.name,
-          })
-          .from(characters)
-          .leftJoin(
-            primaryCharacters,
-            eq(characters.primaryCharacterId, primaryCharacters.characterId),
-          )
-          .where(characterFilter);
-
-        // Get raid attendance counts by zone for each individual character (both attendee and bench)
-        const raidAttendanceByZone = await getRaidAttendanceByZone();
-
-        // Get bench counts by zone for each individual character
-        const benchAttendanceByZone = await getRaidBenchByZone();
-
-        // Convert character list to collection and add raid attendance data
-        const characterCollection = convertParticipantArrayToCollection(characterList) ?? {};
-
-        // Add raid attendance by zone to each character
-        for (const attendance of raidAttendanceByZone) {
-          const characterId = attendance.characterId;
-          if (characterId && characterCollection[characterId] && attendance.zone) {
-            const character = characterCollection[characterId];
-            character.raidAttendanceByZone ??= {};
-            character.raidAttendanceByZone[attendance.zone] ??= {
-              attendee: 0,
-              bench: 0,
-            };
-
-            character.raidAttendanceByZone[attendance.zone]!.attendee = Number(
-              attendance.uniqueRaidCount,
-            );
-          }
-        }
-
-        // Add bench attendance by zone to each character
-        for (const bench of benchAttendanceByZone) {
-          const characterId = bench.characterId;
-          if (characterId && characterCollection[characterId] && bench.zone) {
-            const character = characterCollection[characterId];
-            character.raidAttendanceByZone ??= {};
-            character.raidAttendanceByZone[bench.zone] ??= {
-              attendee: 0,
-              bench: 0,
-            };
-
-            character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
-          }
-        }
-
-        return characterCollection;
       }
+
+      // Add bench attendance by zone to each character
+      for (const bench of benchAttendanceByZone) {
+        const characterId = bench.characterId;
+        if (characterId && characterCollection[characterId] && bench.zone) {
+          const character = characterCollection[characterId];
+          character.raidAttendanceByZone ??= {};
+          character.raidAttendanceByZone[bench.zone] ??= {
+            attendee: 0,
+            bench: 0,
+          };
+
+          character.raidAttendanceByZone[bench.zone]!.bench = Number(bench.uniqueRaidCount);
+        }
+      }
+
+      return characterCollection;
     }),
 
   getCharacterById: publicProcedure.input(z.number()).query(async ({ ctx, input }) => {
