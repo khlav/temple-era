@@ -38,9 +38,10 @@ on:
 
 jobs:
   notify-webhook:
-    # Dependabot PRs never reference a ticket and run without Actions secrets
-    # on the opened event, so skip them rather than fail (TEMPLE-155).
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.user.login != 'dependabot[bot]')
+    # Dependabot-triggered runs get no Actions secrets, so skip rather than fail
+    # (TEMPLE-155). Gated on the actor, not the PR author, so a human merging a
+    # Dependabot PR that carries `Closes TEMPLE-N` still relays.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.actor != 'dependabot[bot]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
