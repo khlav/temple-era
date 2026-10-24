@@ -391,42 +391,70 @@ async function getHighestAwardPerAchievement(
 export async function getDisplayCatalog(
   db: DB,
   primaryCharacterId: number,
+  visibleDefs?: VisibleAchievementDefs,
 ): Promise<DisplayCatalog> {
   const highestAwards = await getHighestAwardPerAchievement(db, primaryCharacterId);
-  return buildDisplayCatalog(db, highestAwards);
+  return buildDisplayCatalog(db, highestAwards, visibleDefs);
 }
 
 /** Backs the Achievements page's logged-out state — same visible catalog, laid out the same way,
  *  just with an empty award map so every achievement resolves as unearned (see toDisplay below)
  *  and hiddenEarned always empty (there's no family to have earned a hidden one). Lets a visitor
  *  browse the full catalog before signing in rather than staring at a blank gate. */
-export async function getPublicCatalog(db: DB): Promise<DisplayCatalog> {
-  return buildDisplayCatalog(db, new Map());
+export async function getPublicCatalog(
+  db: DB,
+  visibleDefs?: VisibleAchievementDefs,
+): Promise<DisplayCatalog> {
+  return buildDisplayCatalog(db, new Map(), visibleDefs);
 }
+
+// Only the fields the display needs. Besides keeping the rows small, this keeps them free of
+// Date columns, so the visible list survives the JSON round trip of the server cache
+// (achievement-catalog-cache.ts) unchanged.
+const DISPLAY_ACHIEVEMENT_COLUMNS = {
+  id: true,
+  name: true,
+  icon: true,
+  description: true,
+  goalDescription: true,
+  scope: true,
+  ruleShape: true,
+} as const;
+const DISPLAY_TIER_COLUMNS = { tier: true, ruleConfig: true } as const;
+
+/** Every non-hidden achievement with its tiers — the same for every viewer, which is what lets
+ *  achievement-catalog-cache.ts cache it. Ordered by createdAt so a section's chip order is stable
+ *  across visits (matches seed insertion order) instead of drifting with whatever order Postgres
+ *  happens to return rows in — achievement-display.tsx relies on this to show unearned chips in
+ *  place, grayed, rather than sorting them to the end of their section. */
+export function loadVisibleAchievementDefs(db: DB) {
+  return db.query.achievements.findMany({
+    where: eq(achievements.hidden, false),
+    columns: DISPLAY_ACHIEVEMENT_COLUMNS,
+    with: { tiers: { columns: DISPLAY_TIER_COLUMNS } },
+    orderBy: (achievement, { asc }) => [asc(achievement.createdAt)],
+  });
+}
+
+export type VisibleAchievementDefs = Awaited<ReturnType<typeof loadVisibleAchievementDefs>>;
 
 async function buildDisplayCatalog(
   db: DB,
   highestAwards: Map<string, HighestAward>,
+  preloadedVisibleDefs?: VisibleAchievementDefs,
 ): Promise<DisplayCatalog> {
   const earnedAchievementIds = [...highestAwards.keys()];
 
-  // Ordered by createdAt so a section's chip order is stable across visits (matches seed
-  // insertion order) instead of drifting with whatever order Postgres happens to return rows in
-  // — achievement-display.tsx relies on this to show unearned chips in place, grayed, rather than
-  // sorting them to the end of their section.
   const [visibleDefs, hiddenEarned] = await Promise.all([
-    db.query.achievements.findMany({
-      where: eq(achievements.hidden, false),
-      with: { tiers: true },
-      orderBy: (achievement, { asc }) => [asc(achievement.createdAt)],
-    }),
+    preloadedVisibleDefs ?? loadVisibleAchievementDefs(db),
     // Filtered in the query itself (WHERE hidden = true AND id IN (this family's earned ids)) —
     // never fetches an unearned hidden achievement's name/icon into application code at all,
     // rather than fetching-then-discarding, so there's nothing to accidentally leak downstream.
     earnedAchievementIds.length > 0
       ? db.query.achievements.findMany({
           where: and(eq(achievements.hidden, true), inArray(achievements.id, earnedAchievementIds)),
-          with: { tiers: true },
+          columns: DISPLAY_ACHIEVEMENT_COLUMNS,
+          with: { tiers: { columns: DISPLAY_TIER_COLUMNS } },
           orderBy: (achievement, { asc }) => [asc(achievement.createdAt)],
         })
       : Promise.resolve([]),
@@ -826,11 +854,11 @@ export async function getAchievementLogPage(
       scope: achievements.scope,
       characterIds: sql<
         number[]
-      >`array_agg(${achievementAwards.primaryCharacterId} order by ${achievementAwards.primaryCharacterId})`,
+      >`json_agg(${achievementAwards.primaryCharacterId} order by ${achievementAwards.primaryCharacterId})`,
       // Earliest-awarded row in the group is the replay representative — arbitrary but stable.
       awardIds: sql<
         string[]
-      >`array_agg(${achievementAwards.id} order by ${achievementAwards.awardedAt} asc)`,
+      >`json_agg(${achievementAwards.id} order by ${achievementAwards.awardedAt} asc)`,
     })
     .from(achievementAwards)
     .innerJoin(achievementTiers, eq(achievementAwards.achievementTierId, achievementTiers.id))

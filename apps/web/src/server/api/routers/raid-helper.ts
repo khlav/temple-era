@@ -628,11 +628,11 @@ export const raidHelperRouter = createTRPCRouter({
           discordUserId: accounts.providerAccountId,
           attendedRaidIds: sql<
             number[]
-          >`array_agg(distinct ${primaryRaidAttendeeAndBenchMap.raidId})`,
+          >`json_agg(distinct ${primaryRaidAttendeeAndBenchMap.raidId})`,
           // Aggregate all unique name:class:spec combinations for the family (mains + alts)
           familyData: sql<
             string[]
-          >`array_agg(distinct ${family.name} || ':' || ${family.class} || ':' || COALESCE(${family.classDetail}, '')) filter (where ${family.class} is not null)`,
+          >`json_agg(distinct ${family.name} || ':' || ${family.class} || ':' || COALESCE(${family.classDetail}, '')) filter (where ${family.class} is not null)`,
         })
         .from(primaryRaidAttendeeAndBenchMap)
         .innerJoin(

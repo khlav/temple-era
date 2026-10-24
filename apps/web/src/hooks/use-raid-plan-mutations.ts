@@ -89,6 +89,10 @@ export function useRaidPlanMutations({ planId, onEncounterDeleted }: UseRaidPlan
     {
       refetchInterval: isPollingActive ? POLLING_INTERVAL : false,
       refetchIntervalInBackground: false,
+      // Opts back in to the focus check the global defaults turn off, so an editor who comes
+      // back after polling went idle sees others' changes straight away.
+      staleTime: POLLING_INTERVAL,
+      refetchOnWindowFocus: true,
     },
   );
 

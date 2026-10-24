@@ -31,6 +31,7 @@ import {
   getAchievementPopularity,
 } from "~/server/services/achievement-queries";
 import { getRandomIconNames, searchIconNames } from "~/server/services/wow-icon-catalog";
+import { getVisibleAchievementDefs } from "~/server/services/achievement-catalog-cache";
 
 const achievementTierLevelSchema = z.enum(["copper", "silver", "gold", "thorium", "arcanite"]);
 const achievementScopeSchema = z.enum(["season", "all_time"]);
@@ -217,12 +218,16 @@ export const achievementRouter = createTRPCRouter({
   // specific character in view, so it falls back to "everything unearned" instead.
   getDisplayCatalog: publicProcedure
     .input(z.object({ primaryCharacterId: z.number().int() }))
-    .query(({ ctx, input }) => getDisplayCatalog(ctx.db, input.primaryCharacterId)),
+    .query(async ({ ctx, input }) =>
+      getDisplayCatalog(ctx.db, input.primaryCharacterId, await getVisibleAchievementDefs(ctx.db)),
+    ),
 
   // Public (logged-out) equivalent of getDisplayCatalog — the same visible catalog with
   // everything unearned, so a signed-out visitor to /achievements sees the full board instead of
   // a blank gate. No award data for any real family is ever touched by this path.
-  getPublicCatalog: publicProcedure.query(({ ctx }) => getPublicCatalog(ctx.db)),
+  getPublicCatalog: publicProcedure.query(async ({ ctx }) =>
+    getPublicCatalog(ctx.db, await getVisibleAchievementDefs(ctx.db)),
+  ),
 
   // Backs both pages' chip-click replay (achievement-display.tsx's onReplay) — works regardless
   // of seenAt, unlike getUnseenAwards. Public, not protected, for the same reason as

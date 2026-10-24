@@ -35,7 +35,10 @@ export const primaryRaidAttendeeAndBenchMap = viewSchema
       .references(() => characters.characterId)
       .array(),
     attendeeOrBench: text("attendee_or_bench"),
-    allCharacters: json("all_characters").$type<
+    // json[] in Postgres, not json — declared as an array so Drizzle parses it. The postgres-js
+    // client runs with fetch_types: false (see src/server/db/index.ts), which leaves undeclared
+    // arrays as raw "{...}" strings.
+    allCharacters: json("all_characters").array().$type<
       Array<{
         name: string;
         characterId: number;
