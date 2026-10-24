@@ -38,7 +38,9 @@ on:
 
 jobs:
   notify-webhook:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    # Dependabot PRs never reference a ticket and run without Actions secrets
+    # on the opened event, so skip them rather than fail (TEMPLE-155).
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

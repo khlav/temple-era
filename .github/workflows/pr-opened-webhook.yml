@@ -43,6 +43,9 @@ on:
 
 jobs:
   notify-webhook:
+    # Dependabot-triggered runs get no Actions secrets, and its PRs never
+    # reference a ticket, so skip rather than fail on missing config (TEMPLE-155).
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
