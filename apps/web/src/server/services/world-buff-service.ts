@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, max, or, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import {
   accounts,
@@ -552,14 +552,19 @@ async function loadCharacterEnrichment(
   }
   const allMemberIds = [...new Set([...memberIdsByFamilyId.values()].flat())];
 
-  // Full (unbounded-by-date) history rather than a windowed query, since "has ever raided"
-  // needs it — but it's still bounded to `allMemberIds` (families already in this read's
-  // result set, not the whole roster), which keeps row counts small at this guild's scale.
+  // One row per character: its latest raid date. That answers all three questions this needs:
+  // "has ever raided" (has a row), "raided within the idle window" (latest date is on or after
+  // its start), and the last raid date itself. Aggregated in Postgres because the full history
+  // it replaced was ~22k rows per call, the largest query by rows left after the TEMPLE-153
+  // fixes (TEMPLE-156).
   const idleWindowStart = getLockoutWeeks(3, true)[0]!.start.toISOString().split("T")[0]!;
-  const attendanceRows =
+  const lastRaidRows =
     allMemberIds.length > 0
       ? await db
-          .select({ characterId: raidLogAttendeeMap.characterId, date: raids.date })
+          .select({
+            characterId: raidLogAttendeeMap.characterId,
+            lastRaidDate: max(raids.date),
+          })
           .from(raidLogAttendeeMap)
           .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
           .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
@@ -569,16 +574,18 @@ async function loadCharacterEnrichment(
               eq(raidLogAttendeeMap.isIgnored, false),
             ),
           )
+          .groupBy(raidLogAttendeeMap.characterId)
       : [];
-  const everAttendedIds = new Set(attendanceRows.map((r) => r.characterId));
-  const recentlyAttendedIds = new Set(
-    attendanceRows.filter((r) => r.date >= idleWindowStart).map((r) => r.characterId),
-  );
   const lastRaidDateByCharacterId = new Map<number, string>();
-  for (const row of attendanceRows) {
-    const prev = lastRaidDateByCharacterId.get(row.characterId);
-    if (!prev || row.date > prev) lastRaidDateByCharacterId.set(row.characterId, row.date);
+  for (const row of lastRaidRows) {
+    if (row.lastRaidDate) lastRaidDateByCharacterId.set(row.characterId, row.lastRaidDate);
   }
+  const everAttendedIds = new Set(lastRaidDateByCharacterId.keys());
+  const recentlyAttendedIds = new Set(
+    [...lastRaidDateByCharacterId]
+      .filter(([, date]) => date >= idleWindowStart)
+      .map(([characterId]) => characterId),
+  );
   const idleFamilyIds = new Set(
     [...memberIdsByFamilyId.entries()]
       .filter(
