@@ -259,6 +259,7 @@ export function SignupHistoryTable() {
                   <TableRow key={row.link.id}>
                     <TableCell>
                       <Link
+                        prefetch={false}
                         href={signupTimelineHref(row.link.raidHelperEventId, row.startTime)}
                         className="font-medium hover:text-primary hover:underline"
                       >
@@ -275,6 +276,7 @@ export function SignupHistoryTable() {
                     <TableCell>
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
+                          prefetch={false}
                           href={`/raids/${row.link.raidId}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -337,6 +339,7 @@ export function SignupHistoryTable() {
                   <TableRow key={`${row.occurrence.raidHelperEventId}:${row.startTime}`}>
                     <TableCell>
                       <Link
+                        prefetch={false}
                         href={signupTimelineHref(row.occurrence.raidHelperEventId, row.startTime)}
                         className="font-medium hover:text-primary hover:underline"
                       >

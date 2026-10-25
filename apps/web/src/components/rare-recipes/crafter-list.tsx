@@ -31,6 +31,7 @@ export function CrafterList({
     <div className="my-auto flex flex-wrap gap-1">
       {visibleCharacters.map((character) => (
         <Link
+          prefetch={false}
           key={character.characterId}
           href={`/characters/${character.characterId}`}
           className={`inline-flex items-center gap-1.5 rounded-md bg-secondary py-1 pl-1 pr-2 text-xs text-secondary-foreground transition-all duration-100 hover:text-primary ${

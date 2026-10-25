@@ -73,7 +73,7 @@ export const PrimaryCharacterAttendanceReport = ({
                       return (
                         <Tooltip key={`r_${r.raidId}`}>
                           <TooltipTrigger>
-                            <Link href={`/raids/${r.raidId}`}>
+                            <Link prefetch={false} href={`/raids/${r.raidId}`}>
                               <div
                                 key={`r_${r.raidId}`}
                                 className={clsx("h-3 w-3 rounded-sm", squareBgClass, borderClass)}

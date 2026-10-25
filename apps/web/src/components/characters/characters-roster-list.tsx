@@ -75,6 +75,7 @@ function MainRow({
   return (
     <div className={cn("grid items-center gap-3 border-b border-border/45 px-4 py-2.5", GRID_COLS)}>
       <Link
+        prefetch={false}
         href={`/characters/${main.characterId}`}
         className="group flex min-w-0 items-center gap-2"
       >
@@ -91,6 +92,7 @@ function MainRow({
       <AttendanceCell attendance={attendance} />
       {isManager ? (
         <Link
+          prefetch={false}
           href={`/raid-manager/characters?s=${main.name}`}
           className="justify-self-end text-muted-foreground transition-all hover:text-primary"
           aria-label={`Manage ${main.name}`}
@@ -114,6 +116,7 @@ function AltRow({ alts }: { alts: RaidParticipant[] }) {
         <span className="mb-1 h-3 w-3 shrink-0 rounded-bl border-b border-l border-border/80" />
         {alts.map((alt) => (
           <Link
+            prefetch={false}
             key={alt.characterId}
             href={`/characters/${alt.characterId}`}
             className="flex min-w-0 items-center gap-1.5 text-[13px] text-foreground transition-all hover:text-primary"
