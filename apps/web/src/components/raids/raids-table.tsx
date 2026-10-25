@@ -52,6 +52,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                         <RaidAttendenceWeightBadge attendanceWeight={r.attendanceWeight} />
                       </div>
                       <Link
+                        prefetch={false}
                         className="block text-base font-semibold text-secondary-foreground transition-all hover:text-primary"
                         target="_self"
                         href={`/raids/${r.raidId}`}
@@ -64,6 +65,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                     </div>
                     {isManager ? (
                       <Link
+                        prefetch={false}
                         href={`/raids/${r.raidId}/edit`}
                         className="shrink-0 rounded-md border border-border p-2 text-muted-foreground transition-all hover:text-primary"
                         aria-label={`Edit ${r.name}`}
@@ -86,6 +88,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                     </div>
                     {(r.raidLogIds ?? []).length > 0 ? (
                       <Link
+                        prefetch={false}
                         href={GenerateWCLReportUrl((r.raidLogIds ?? [])[0] ?? "")}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -137,6 +140,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
               >
                 {isManager ? (
                   <Link
+                    prefetch={false}
                     href={`/raids/${r.raidId}/edit`}
                     className="text-muted-foreground transition-all hover:text-primary"
                     aria-label={`Edit ${r.name}`}
@@ -145,6 +149,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                   </Link>
                 ) : null}
                 <Link
+                  prefetch={false}
                   href={`/raids/${r.raidId}`}
                   target="_self"
                   className="group block min-w-0 space-y-0.5"
@@ -175,6 +180,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                 <div>
                   {(r.raidLogIds ?? []).length > 0 ? (
                     <Link
+                      prefetch={false}
                       href={GenerateWCLReportUrl((r.raidLogIds ?? [])[0] ?? "")}
                       target="_blank"
                       rel="noopener noreferrer"

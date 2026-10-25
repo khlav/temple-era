@@ -195,7 +195,7 @@ export function RaidEditor({
                 Saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}
               </span>
             ) : null}
-            <Link href={cancelHref ?? "/raids"}>
+            <Link prefetch={false} href={cancelHref ?? "/raids"}>
               <Button variant="outline">Cancel</Button>
             </Link>
             <Button onClick={handleSubmitAction} disabled={isSendingData}>
@@ -248,6 +248,7 @@ export function RaidEditor({
                         className="flex items-center justify-between gap-3 border-b border-border/45 py-2 text-sm last:border-b-0"
                       >
                         <Link
+                          prefetch={false}
                           href={`/characters/${p.characterId}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -321,6 +322,7 @@ export function RaidEditor({
                 const reportUrl = GenerateWCLReportUrl(raidLogId);
                 return (
                   <Link
+                    prefetch={false}
                     key={raidLogId}
                     href={reportUrl}
                     target="_blank"

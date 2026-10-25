@@ -667,6 +667,7 @@ scheduling/messaging service), whose Schedules aren't gated by Vercel's plan tie
 2. Use Server Components for initial data loading
 3. Add to navigation in `src/components/nav/app-header.tsx`
 4. Update global search in `src/server/api/routers/search.ts` if needed
+5. Give `<Link>`s to dynamic pages `prefetch={false}`, lists especially (rosters, raid tables, attendee grids) and the nav. None of these routes has a `loading.tsx`, so a prefetch never made the click faster, but each one still hit the server: one person scrolling the roster cost ~200 renders and their DB queries (TEMPLE-153). Same reason the nav no longer calls `router.prefetch()` for every section on mount.
 
 ### Adding Database Columns
 

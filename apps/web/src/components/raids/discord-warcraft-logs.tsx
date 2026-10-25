@@ -129,7 +129,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
           >
             <div className="shrink-0">
               {log.raidId && log.raidName ? (
-                <Link href={`/raids/${log.raidId}`}>
+                <Link prefetch={false} href={`/raids/${log.raidId}`}>
                   <Button variant="outline" size="sm" className="w-24">
                     View
                   </Button>

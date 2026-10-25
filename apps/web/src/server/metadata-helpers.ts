@@ -10,7 +10,7 @@ import {
   recipes,
   characterRecipeMap,
 } from "~/server/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { siteConfig } from "~/lib/site-metadata";
 
 export async function getRaidMetadata(raidId: number) {
@@ -198,7 +198,9 @@ export async function getCharacterMetadataWithStats(characterId: number) {
       benchedRaids: Number(benchedRaidsResult[0]?.benchedRaids) || 0,
     };
 
-    // Get raid zones and recent activity - combine attended and benched raids
+    // Latest raid only: the description names just the most recent one (recentRaids[0]). Each
+    // query is capped at one row so a page render, and every link prefetch of it, no longer pulls
+    // the character's whole raid history (TEMPLE-153).
     const attendedRaids = await db
       .select({
         raidId: raids.raidId,
@@ -212,7 +214,9 @@ export async function getCharacterMetadataWithStats(characterId: number) {
       .from(raids)
       .leftJoin(raidLogs, eq(raids.raidId, raidLogs.raidId))
       .leftJoin(raidLogAttendeeMap, eq(raidLogs.raidLogId, raidLogAttendeeMap.raidLogId))
-      .where(eq(raidLogAttendeeMap.characterId, characterId));
+      .where(eq(raidLogAttendeeMap.characterId, characterId))
+      .orderBy(desc(raids.date))
+      .limit(1);
 
     const benchedRaids = await db
       .select({
@@ -226,28 +230,14 @@ export async function getCharacterMetadataWithStats(characterId: number) {
       })
       .from(raids)
       .leftJoin(raidBenchMap, eq(raids.raidId, raidBenchMap.raidId))
-      .where(eq(raidBenchMap.characterId, characterId));
+      .where(eq(raidBenchMap.characterId, characterId))
+      .orderBy(desc(raids.date))
+      .limit(1);
 
     // Combine and sort all raids
-    const allRaids = [...attendedRaids, ...benchedRaids]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 3);
-
-    // Get zones from combined raids
-    const raidZones = allRaids.reduce((acc: any, raid) => {
-      if (!acc[raid.zone]) {
-        acc[raid.zone] = {
-          zone: raid.zone,
-          raidCount: 0,
-          latestRaidDate: raid.date,
-        };
-      }
-      acc[raid.zone].raidCount++;
-      if (new Date(raid.date) > new Date(acc[raid.zone].latestRaidDate)) {
-        acc[raid.zone].latestRaidDate = raid.date;
-      }
-      return acc;
-    }, {});
+    const allRaids = [...attendedRaids, ...benchedRaids].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
     const recentRaids = allRaids;
 
@@ -277,7 +267,6 @@ export async function getCharacterMetadataWithStats(characterId: number) {
     return {
       ...character,
       attendanceStats: attendanceStats,
-      raidZones: Object.values(raidZones),
       recentRaids: recentRaids,
       secondaryCharacters: secondaryCharacters,
       characterRecipes: characterRecipes,

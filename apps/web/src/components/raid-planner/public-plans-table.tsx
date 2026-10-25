@@ -88,6 +88,7 @@ export function PublicPlansTable() {
             ) : null}
             <div className="group relative flex items-center gap-3 border-b border-border/45 px-4 py-2.5 text-sm transition-colors last:border-b-0 hover:bg-accent/35">
               <Link
+                prefetch={false}
                 href={`/raid-plans/${plan.id}`}
                 className="absolute inset-0"
                 aria-label={plan.name}
@@ -128,6 +129,7 @@ export function PublicPlansTable() {
                 </Tooltip>
                 {isRaidManager ? (
                   <Link
+                    prefetch={false}
                     href={`/raid-manager/raid-planner/${plan.id}`}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                     aria-label={`Edit ${plan.name}`}

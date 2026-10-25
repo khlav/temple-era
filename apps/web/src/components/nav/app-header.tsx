@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import {
   Menu,
@@ -116,7 +116,6 @@ function isActivePath(pathname: string, href: string) {
 
 export const AppHeader = () => {
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session } = useSession();
   const { setOpen } = useGlobalQuickLauncher();
 
@@ -158,21 +157,12 @@ export const AppHeader = () => {
     void signOut();
   };
 
-  useEffect(() => {
-    for (const item of visiblePrimaryNav) {
-      router.prefetch(item.href);
-    }
-
-    for (const item of utilityLinks) {
-      router.prefetch(item.href);
-    }
-  }, [router, visiblePrimaryNav, utilityLinks]);
-
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1360px] items-center gap-3 px-4 py-3 sm:px-5 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Link
+            prefetch={false}
             href="/"
             className="group flex items-center gap-3 rounded-xl px-1 py-1 transition-opacity hover:opacity-90"
           >
@@ -202,6 +192,7 @@ export const AppHeader = () => {
               const active = isActivePath(pathname, item.href);
               return (
                 <Link
+                  prefetch={false}
                   key={item.href}
                   href={item.href}
                   className={cn(
@@ -262,6 +253,7 @@ export const AppHeader = () => {
                         {visibleManagerNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
+                              prefetch={false}
                               href={item.href}
                               className="panel-subtle flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
                             >
@@ -283,6 +275,7 @@ export const AppHeader = () => {
                         {visibleAchievementsNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
+                              prefetch={false}
                               href={item.href}
                               className="panel-subtle flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
                             >
@@ -304,6 +297,7 @@ export const AppHeader = () => {
                         {visibleAdminNav.map((item) => (
                           <SheetClose asChild key={item.href}>
                             <Link
+                              prefetch={false}
                               href={item.href}
                               className="panel-subtle flex items-center gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
                             >
@@ -342,6 +336,7 @@ export const AppHeader = () => {
                     return (
                       <SheetClose asChild key={item.href}>
                         <Link
+                          prefetch={false}
                           href={item.href}
                           className={cn(
                             "rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
@@ -365,6 +360,7 @@ export const AppHeader = () => {
                       {utilityLinks.map((item) => (
                         <SheetClose asChild key={item.href}>
                           <Link
+                            prefetch={false}
                             href={item.href}
                             className="panel-subtle flex items-center gap-3 rounded-xl border border-border/70 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
                           >
@@ -410,7 +406,7 @@ export const AppHeader = () => {
                 {primaryCharacterId && primaryCharacterData?.name ? (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href={`/characters/${primaryCharacterId}`}>
+                      <Link prefetch={false} href={`/characters/${primaryCharacterId}`}>
                         {primaryCharacterData.class && (
                           <ClassIcon
                             characterClass={primaryCharacterData.class}
@@ -428,7 +424,7 @@ export const AppHeader = () => {
                   </>
                 ) : null}
                 <DropdownMenuItem asChild>
-                  <Link href="/profile">
+                  <Link prefetch={false} href="/profile">
                     <User className="h-4 w-4" />
                     Profile
                   </Link>

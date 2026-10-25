@@ -29,6 +29,7 @@ export function CharacterLink({
   // - primaryCharacterName (if exists) is shown in smaller muted text next to it (no parentheses)
   return (
     <Link
+      prefetch={false}
       className={`group flex w-full flex-row items-center transition-all hover:text-primary ${className ?? ""}`}
       target={target}
       href={`/characters/${characterId}`}
