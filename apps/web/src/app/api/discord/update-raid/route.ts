@@ -280,7 +280,7 @@ export async function POST(request: Request) {
       .where(eq(raidLogs.raidLogId, oldRaidLog.raidLogId));
 
     const baseUrl = getBaseUrl(request);
-    const raidUrl = `${baseUrl}${raidPath(oldRaidLog.raidId, currentRaid.name)}`;
+    const raidUrl = `${baseUrl}${raidPath(currentRaid.raidId, currentRaid.name)}`;
 
     const payload: UpdateRaidResult = {
       success: true,
