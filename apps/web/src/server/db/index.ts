@@ -53,9 +53,17 @@ if (env.NODE_ENV !== "production") globalForDb.conn = conn;
 // touching the client. Subscribed once per process: Next loads this module in more than one
 // bundle, and a second subscriber would log every connection twice. Remove once measured.
 const dbConnLog = globalThis as unknown as { dbConnLogInstalled?: boolean };
-if (env.NODE_ENV === "production" && !dbConnLog.dbConnLogInstalled) {
+// The build runs with a placeholder DATABASE_URL, so an unparseable URL skips the logging
+// rather than failing the module load.
+const dbPort = (() => {
+  try {
+    return Number(new URL(env.DATABASE_URL).port || 5432);
+  } catch {
+    return null;
+  }
+})();
+if (env.NODE_ENV === "production" && dbPort !== null && !dbConnLog.dbConnLogInstalled) {
   dbConnLog.dbConnLogInstalled = true;
-  const dbPort = Number(new URL(env.DATABASE_URL).port || 5432);
   const instance = randomUUID().slice(0, 8);
   let opened = 0;
   diagnosticsChannel.subscribe("net.client.socket", (message) => {
