@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { logger } from "~/lib/logger";
 import { db } from "~/server/db";
 import {
@@ -11,6 +12,8 @@ import {
   characterRecipeMap,
 } from "~/server/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
+import { RAID_METADATA_TAG } from "~/server/services/raid-attendance-by-zone";
+import { raidPath } from "~/lib/slug";
 import { siteConfig } from "~/lib/site-metadata";
 
 export async function getRaidMetadata(raidId: number) {
@@ -35,98 +38,120 @@ export async function getRaidMetadata(raidId: number) {
   }
 }
 
-export async function getRaidMetadataWithStats(raidId: number) {
-  try {
-    // Get basic raid info
-    const raidResult = await db
-      .select({
-        raidId: raids.raidId,
-        name: raids.name,
-        date: raids.date,
-        zone: raids.zone,
-        attendanceWeight: raids.attendanceWeight,
-        createdById: raids.createdById,
-      })
-      .from(raids)
-      .where(eq(raids.raidId, raidId))
-      .limit(1);
+async function loadRaidMetadataWithStats(raidId: number) {
+  // Get basic raid info
+  const raidResult = await db
+    .select({
+      raidId: raids.raidId,
+      name: raids.name,
+      date: raids.date,
+      zone: raids.zone,
+      attendanceWeight: raids.attendanceWeight,
+      createdById: raids.createdById,
+    })
+    .from(raids)
+    .where(eq(raids.raidId, raidId))
+    .limit(1);
 
-    if (!raidResult[0]) return null;
+  if (!raidResult[0]) return null;
 
-    const raid = raidResult[0];
+  const raid = raidResult[0];
 
-    // Get associated raid logs with participant counts and kills
-    const raidLogsResult = await db
-      .select({
-        raidLogId: raidLogs.raidLogId,
-        name: raidLogs.name,
-        kills: raidLogs.kills,
-        startTimeUTC: raidLogs.startTimeUTC,
-        endTimeUTC: raidLogs.endTimeUTC,
-        participantCount: sql<number>`count(${raidLogAttendeeMap.characterId})`,
-      })
-      .from(raidLogs)
-      .leftJoin(raidLogAttendeeMap, eq(raidLogs.raidLogId, raidLogAttendeeMap.raidLogId))
-      .where(eq(raidLogs.raidId, raidId))
-      .groupBy(
-        raidLogs.raidLogId,
-        raidLogs.name,
-        raidLogs.kills,
-        raidLogs.startTimeUTC,
-        raidLogs.endTimeUTC,
-      );
-
-    // Get bench count
-    const benchResult = await db
-      .select({
-        benchCount: sql<number>`count(${raidBenchMap.characterId})`,
-      })
-      .from(raidBenchMap)
-      .where(eq(raidBenchMap.raidId, raidId));
-
-    // Get participant class data for composition
-    const participantClassesResult = await db
-      .select({
-        class: characters.class,
-        classCount: sql<number>`count(${characters.characterId})`,
-      })
-      .from(raidLogs)
-      .leftJoin(raidLogAttendeeMap, eq(raidLogs.raidLogId, raidLogAttendeeMap.raidLogId))
-      .leftJoin(characters, eq(raidLogAttendeeMap.characterId, characters.characterId))
-      .where(eq(raidLogs.raidId, raidId))
-      .groupBy(characters.class);
-
-    // Get creator info
-    const creatorResult = raid.createdById
-      ? await db
-          .select({
-            name: users.name,
-          })
-          .from(users)
-          .where(eq(users.id, raid.createdById))
-          .limit(1)
-      : [];
-
-    // Aggregate data
-    const allKills = raidLogsResult.flatMap((log) => log.kills);
-    const uniqueKills = [...new Set(allKills)];
-    const totalParticipants = raidLogsResult.reduce(
-      (sum, log) => sum + Number(log.participantCount),
-      0,
+  // Get associated raid logs with participant counts and kills
+  const raidLogsResult = await db
+    .select({
+      raidLogId: raidLogs.raidLogId,
+      name: raidLogs.name,
+      kills: raidLogs.kills,
+      startTimeUTC: raidLogs.startTimeUTC,
+      endTimeUTC: raidLogs.endTimeUTC,
+      participantCount: sql<number>`count(${raidLogAttendeeMap.characterId})`,
+    })
+    .from(raidLogs)
+    .leftJoin(raidLogAttendeeMap, eq(raidLogs.raidLogId, raidLogAttendeeMap.raidLogId))
+    .where(eq(raidLogs.raidId, raidId))
+    .groupBy(
+      raidLogs.raidLogId,
+      raidLogs.name,
+      raidLogs.kills,
+      raidLogs.startTimeUTC,
+      raidLogs.endTimeUTC,
     );
-    const benchCount = Number(benchResult[0]?.benchCount) || 0;
 
-    return {
-      ...raid,
-      creator: creatorResult[0]?.name || null,
-      raidLogs: raidLogsResult,
-      totalParticipants,
-      benchCount,
-      totalKills: uniqueKills.length,
-      kills: uniqueKills,
-      raidLogCount: raidLogsResult.length,
-      participantClasses: participantClassesResult,
-    };
+  // Get bench count
+  const benchResult = await db
+    .select({
+      benchCount: sql<number>`count(${raidBenchMap.characterId})`,
+    })
+    .from(raidBenchMap)
+    .where(eq(raidBenchMap.raidId, raidId));
+
+  // Get participant class data for composition
+  const participantClassesResult = await db
+    .select({
+      class: characters.class,
+      classCount: sql<number>`count(${characters.characterId})`,
+    })
+    .from(raidLogs)
+    .leftJoin(raidLogAttendeeMap, eq(raidLogs.raidLogId, raidLogAttendeeMap.raidLogId))
+    .leftJoin(characters, eq(raidLogAttendeeMap.characterId, characters.characterId))
+    .where(eq(raidLogs.raidId, raidId))
+    .groupBy(characters.class);
+
+  // Get creator info
+  const creatorResult = raid.createdById
+    ? await db
+        .select({
+          name: users.name,
+        })
+        .from(users)
+        .where(eq(users.id, raid.createdById))
+        .limit(1)
+    : [];
+
+  // Aggregate data
+  const allKills = raidLogsResult.flatMap((log) => log.kills);
+  const uniqueKills = [...new Set(allKills)];
+  const totalParticipants = raidLogsResult.reduce(
+    (sum, log) => sum + Number(log.participantCount),
+    0,
+  );
+  const benchCount = Number(benchResult[0]?.benchCount) || 0;
+
+  return {
+    ...raid,
+    creator: creatorResult[0]?.name || null,
+    // ISO strings, not Dates: this result goes through unstable_cache, which stores JSON.
+    raidLogs: raidLogsResult.map((log) => ({
+      ...log,
+      startTimeUTC: log.startTimeUTC?.toISOString() ?? null,
+      endTimeUTC: log.endTimeUTC?.toISOString() ?? null,
+    })),
+    totalParticipants,
+    benchCount,
+    totalKills: uniqueKills.length,
+    kills: uniqueKills,
+    raidLogCount: raidLogsResult.length,
+    participantClasses: participantClassesResult,
+  };
+}
+
+// A raid page needs this for generateMetadata, and most raid page hits are crawlers (~80% on
+// Oct 25), so uncached it was the largest group of query calls left (TEMPLE-157). Cached per
+// raid: every write to a raid, its logs, attendees or bench calls invalidateAttendanceByZoneCache(),
+// which busts this tag too. The 24h expiry covers what that misses (a creator's renamed account,
+// a character's class change).
+const getCachedRaidMetadataWithStats = unstable_cache(
+  loadRaidMetadataWithStats,
+  ["raid-metadata-with-stats"],
+  { tags: [RAID_METADATA_TAG], revalidate: 60 * 60 * 24 },
+);
+
+export async function getRaidMetadataWithStats(raidId: number) {
+  // The loader throws instead of returning null on a database error, so a transient failure is
+  // never cached as "no such raid".
+  try {
+    return await getCachedRaidMetadataWithStats(raidId);
   } catch (error) {
     logger.error({ err: error }, "Error fetching raid metadata with stats");
     return null;
@@ -538,7 +563,7 @@ export function generateRaidMetadata(raidData: any, raidId: number) {
     title: `${siteConfig.name} | ${title}`,
     description,
     type: "website" as const,
-    url: `${baseUrl}/raids/${raidId}`,
+    url: `${baseUrl}${raidPath(raidId, raidData.name)}`,
     siteName: siteConfig.name,
   };
 

@@ -10,10 +10,7 @@ import { createTRPCContext } from "~/server/api/trpc";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SCOPE } from "~/lib/scopes";
-import { kebabCaseSlug } from "~/lib/slug";
-import { db } from "~/server/db";
-import { raids } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
+import { kebabCaseSlug, raidPath } from "~/lib/slug";
 // import { MetadataDebug } from "~/components/debug/metadata-debug"; // Uncomment to enable debug
 
 const NUMERIC_ID_PATTERN = /^\d+$/;
@@ -46,9 +43,7 @@ export async function generateMetadata({
   // The page itself now redirects the slug-less URL to /raids/<id>/<kebab-name> (see
   // RaidPage below) — advertising the slug-less form as canonical here would contradict
   // that redirect, so the canonical URL must include the same slug once one exists.
-  const canonicalPath = raidData?.name
-    ? `/raids/${raidId}/${encodeURIComponent(kebabCaseSlug(raidData.name))}`
-    : `/raids/${raidId}`;
+  const canonicalPath = raidPath(raidId, raidData?.name);
 
   return {
     title: metadata.title,
@@ -119,12 +114,8 @@ export default async function RaidPage({
   }
 
   const raidId = parseInt(raw);
-  const result = await db
-    .select({ name: raids.name })
-    .from(raids)
-    .where(eq(raids.raidId, raidId))
-    .limit(1);
-  const raidName = result[0]?.name;
+  // Same cached lookup generateMetadata just made, so the slug check costs no query of its own.
+  const raidName = (await getCachedRaidData(raidId))?.name;
 
   if (raidName) {
     // Canonical URL is /raids/<id>/<kebab-case-name> — innocuous but descriptive. A

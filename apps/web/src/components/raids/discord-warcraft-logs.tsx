@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useState } from "react";
 import UserAvatar from "~/components/ui/user-avatar";
+import { raidPath } from "~/lib/slug";
 
 interface DiscordWarcraftLogsProps {
   onImportUrl: (url: string) => void;
@@ -129,7 +130,7 @@ export function DiscordWarcraftLogs({ onImportUrl }: DiscordWarcraftLogsProps) {
           >
             <div className="shrink-0">
               {log.raidId && log.raidName ? (
-                <Link prefetch={false} href={`/raids/${log.raidId}`}>
+                <Link prefetch={false} href={raidPath(log.raidId, log.raidName)}>
                   <Button variant="outline" size="sm" className="w-24">
                     View
                   </Button>

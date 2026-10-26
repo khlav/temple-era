@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { RaidParticipant } from "~/server/api/interfaces/raid";
 import { cn } from "~/lib/utils";
+import { raidPath } from "~/lib/slug";
 
 const GRID_COLS = "grid-cols-[minmax(0,1fr)_72px_44px]";
 
@@ -139,7 +140,7 @@ export function PrimaryCharacterRaidsTable({
                       <Link
                         className="truncate text-secondary-foreground transition-all hover:text-primary"
                         target="_self"
-                        href={"/raids/" + r.raidId}
+                        href={raidPath(r.raidId, r.name)}
                       >
                         {r.name}
                       </Link>

@@ -5,6 +5,12 @@ import { raidLogAttendeeMap, raidLogs, raids, raidBenchMap } from "~/server/db/s
 
 const ATTENDEE_TAG = "raid-attendance-by-zone";
 const BENCH_TAG = "raid-bench-by-zone";
+/**
+ * Per-raid page metadata (getRaidMetadataWithStats in metadata-helpers.ts). It reads the same four
+ * tables as the two caches here, so it is busted by the same calls rather than needing its own
+ * invalidation at every write site (TEMPLE-157).
+ */
+export const RAID_METADATA_TAG = "raid-metadata";
 
 // 24h fallback, not the real freshness mechanism — invalidateAttendanceByZoneCache() below
 // busts these tags synchronously on every write, so this is only a safety net for a missed
@@ -63,7 +69,7 @@ export const getRaidBenchByZone = unstable_cache(
 );
 
 /**
- * The ONLY place that should call revalidateTag for these two caches — every write site that
+ * The ONLY place that should call revalidateTag for these two caches (and RAID_METADATA_TAG) — every write site that
  * touches raid_log_attendee_map, raid_bench_map, raids, or raid_logs.raid_id imports this
  * instead of calling revalidateTag directly, so there's exactly one place to audit what busts
  * the cache. Two tags (not one) so a bench-only write doesn't force-bust the attendee half and
@@ -83,6 +89,7 @@ export function invalidateAttendanceByZoneCache(opts: {
   try {
     if (opts.attendee) revalidateTag(ATTENDEE_TAG, "max");
     if (opts.bench) revalidateTag(BENCH_TAG, "max");
+    if (opts.attendee || opts.bench) revalidateTag(RAID_METADATA_TAG, "max");
   } catch {
     // Best-effort: the write this follows has already committed, so a cache-bust
     // failure must not turn a successful request (esp. the Templar-facing v1

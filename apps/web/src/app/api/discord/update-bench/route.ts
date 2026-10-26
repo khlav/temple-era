@@ -14,6 +14,7 @@ import { getBaseUrl } from "~/lib/get-base-url";
 import { compressResponse } from "~/lib/compression";
 import { resolveUserAccess } from "~/server/services/access-service";
 import { SCOPE } from "~/lib/scopes";
+import { raidPath } from "~/lib/slug";
 
 export async function POST(request: Request) {
   try {
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
       success: true,
       raidId: raidDetails.raidId,
       raidName: raidDetails.name,
-      raidUrl: `${getBaseUrl(request)}/raids/${raidDetails.raidId}`,
+      raidUrl: `${getBaseUrl(request)}${raidPath(raidDetails.raidId, raidDetails.name)}`,
       matchedCharacters: matchedCharacters,
       unmatchedNames,
       totalBenchCharacters: benchResult.length,

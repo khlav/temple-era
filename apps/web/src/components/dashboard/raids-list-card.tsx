@@ -24,6 +24,7 @@ import { RecentTrackedRaidsTableRowSkeleton } from "~/components/dashboard/skele
 import { getInstanceIdForZoneName } from "~/lib/raid-zones";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
+import { raidPath } from "~/lib/slug";
 
 type ListedRaid = RouterOutputs["dashboard"]["getTrackedRaidsL6LockoutWk"][number];
 
@@ -202,7 +203,7 @@ export function RaidsListCard({
                     <Link
                       className="group w-full transition-all hover:text-primary"
                       target="_self"
-                      href={"/raids/" + r.raidId}
+                      href={raidPath(r.raidId, r.name)}
                     >
                       <div className="flex items-center gap-2">
                         <span>{r.name}</span>

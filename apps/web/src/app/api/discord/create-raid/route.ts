@@ -16,6 +16,7 @@ import { getEasternDate } from "~/lib/raid-formatting";
 import { compressResponse } from "~/lib/compression";
 import { resolveUserAccess } from "~/server/services/access-service";
 import { SCOPE } from "~/lib/scopes";
+import { raidPath } from "~/lib/slug";
 
 export async function POST(request: Request) {
   try {
@@ -152,7 +153,7 @@ export async function POST(request: Request) {
         }
 
         const baseUrl = getBaseUrl(request);
-        const raidUrl = `${baseUrl}/raids/${raid.raidId}`;
+        const raidUrl = `${baseUrl}${raidPath(raid.raidId, raid.name)}`;
 
         // Get participant count from raidLogAttendeeMap for this specific raid log
         const participantCountResult = await db
@@ -231,7 +232,7 @@ export async function POST(request: Request) {
     const killCount = raidLog.kills?.length || 0;
 
     const baseUrl = getBaseUrl(request);
-    const raidUrl = `${baseUrl}/raids/${result.raid?.raidId}`;
+    const raidUrl = `${baseUrl}${raidPath(result.raid?.raidId, result.raid?.name)}`;
 
     const payload: CreateRaidResult = {
       success: true,
