@@ -1,7 +1,11 @@
+import { randomUUID } from "node:crypto";
+import diagnosticsChannel from "node:diagnostics_channel";
+import type { Socket } from "node:net";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { env } from "~/env";
+import { logger } from "~/lib/logger";
 import * as schema from "~/server/db/schema";
 
 /**
@@ -41,5 +45,27 @@ const conn =
     fetch_types: false,
   });
 if (env.NODE_ENV !== "production") globalForDb.conn = conn;
+
+// TEMPORARY (TEMPLE-160): log each new TCP connection to the database, to measure how many
+// connections Vercel opens per day. Each costs ~4 KB of egress, and pg_stat_statements can't
+// count them (pgbouncer.get_auth does not fire per client connection). Node's diagnostics
+// channel sees every socket, including postgres-js reconnects after idle_timeout, without
+// touching the client. Subscribed once per process: Next loads this module in more than one
+// bundle, and a second subscriber would log every connection twice. Remove once measured.
+const dbConnLog = globalThis as unknown as { dbConnLogInstalled?: boolean };
+if (env.NODE_ENV === "production" && !dbConnLog.dbConnLogInstalled) {
+  dbConnLog.dbConnLogInstalled = true;
+  const dbPort = Number(new URL(env.DATABASE_URL).port || 5432);
+  const instance = randomUUID().slice(0, 8);
+  let opened = 0;
+  diagnosticsChannel.subscribe("net.client.socket", (message) => {
+    const { socket } = message as { socket: Socket };
+    socket.once("connect", () => {
+      if (socket.remotePort !== dbPort) return;
+      opened += 1;
+      logger.info({ instance, opened, uptimeS: Math.round(process.uptime()) }, "db-conn opened");
+    });
+  });
+}
 
 export const db = drizzle(conn, { schema });
