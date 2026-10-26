@@ -1,0 +1,37 @@
+name: Dependabot auto-merge
+
+# Turns on squash auto-merge for Dependabot PRs whose highest bump is patch or minor
+# (TEMPLE-159). This only *enables* auto-merge: branch protection still holds the merge
+# until the required checks ("Review and finalize", "Semgrep OSS") pass, and its strict
+# up-to-date rule is satisfied by Dependabot rebasing its own PRs. Major bumps are left
+# open for a human to review.
+#
+# Requires the repo setting "Allow auto-merge". A merge made with GITHUB_TOKEN does not
+# trigger other workflows, so the main-branch CI run is skipped for these merges; Vercel
+# deploys from its own GitHub integration and is unaffected.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    # Both checks: the PR is Dependabot's, and so is the push that triggered this run,
+    # so a human commit pushed onto a Dependabot branch does not get auto-merged.
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read the update type
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for patch and minor bumps
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

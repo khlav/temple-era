@@ -299,6 +299,8 @@ A final `ci` job aggregates both and is the intended **required status check** f
 
 `.github/workflows/discord-pr-notification.yml` announces merged PRs carrying the `user-facing` label. It derives a title prefix from the changed paths (`Website` / `Bot` / `Website + Bot` / `Repo`) so a bot PR is not announced as a website change.
 
+`.github/workflows/dependabot-automerge.yml` turns on squash auto-merge for Dependabot PRs whose highest bump is patch or minor; branch protection still holds the merge until the required checks pass. Major bumps stay open for a human. It needs the repo's **Allow auto-merge** setting, and because a `GITHUB_TOKEN` merge triggers no other workflows, the post-merge CI run on `main` does not happen for these.
+
 ## Git conventions
 
 These apply repo-wide; the app-level `AGENTS.md` files defer to this section.
