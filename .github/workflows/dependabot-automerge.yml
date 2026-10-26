@@ -18,20 +18,30 @@ permissions:
 
 jobs:
   automerge:
-    # Both checks: the PR is Dependabot's, and so is the push that triggered this run,
-    # so a human commit pushed onto a Dependabot branch does not get auto-merged.
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    # Runs for every push to a Dependabot PR. Dependabot's own pushes enable auto-merge; a
+    # human commit pushed onto the branch disables it, since auto-merge stays on once set.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Read the update type
         id: metadata
+        if: github.actor == 'dependabot[bot]'
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable auto-merge for patch and minor bumps
-        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        if: github.actor == 'dependabot[bot]' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Disable auto-merge after a human push
+        if: github.actor != 'dependabot[bot]'
+        # Fails harmlessly when auto-merge was never enabled.
+        continue-on-error: true
+        run: gh pr merge --disable-auto "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
