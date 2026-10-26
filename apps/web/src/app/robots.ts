@@ -21,8 +21,13 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/raids", "/raids/*", "/rare-recipes"],
+      allow: ["/", "/raids", "/rare-recipes"],
       disallow: [
+        // Individual raid pages. About 80% of their renders were crawlers (AI-training and
+        // search bots alike), the largest source of database egress (TEMPLE-158). "/raids/"
+        // leaves the /raids list itself crawlable. Never add "/raids/*" to allow: the longer
+        // rule wins, so it would override this.
+        "/raids/",
         "/characters",
         "/characters/*",
         "/admin/",
