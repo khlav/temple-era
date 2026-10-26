@@ -12,6 +12,7 @@ import { ClassIcon } from "~/components/ui/class-icon";
 import { TableAddCharacterHeader } from "./table-add-character-header";
 import { toEasternTime } from "~/lib/raid-formatting";
 import { RaidAttendenceWeightBadge } from "~/components/raids/raid-attendance-weight-badge";
+import { raidPath } from "~/lib/slug";
 
 // Calculate lockout week (Tuesday to Monday) for a given date in Eastern Time
 // SQL: date_trunc('week', date - 1) + INTERVAL '1 day'
@@ -253,7 +254,7 @@ export function AttendanceReportTable({
                           <Link
                             className="group w-full transition-all hover:text-primary"
                             target="_self"
-                            href={"/raids/" + raid.raidId}
+                            href={raidPath(raid.raidId, raid.name)}
                           >
                             <div>{raid.name}</div>
                             <div className="flex items-center gap-1.5 text-xs tracking-tight text-muted-foreground">

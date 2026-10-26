@@ -13,3 +13,14 @@ export function kebabCaseSlug(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+/**
+ * Canonical path of a raid page: `/raids/<id>/<slug-of-name>`. The page redirects any other
+ * form to this one, so a link built without the slug costs a second full render (and its
+ * metadata queries) on every visit — link here instead whenever the name is at hand
+ * (TEMPLE-157). Falls back to `/raids/<id>` when there is no usable name.
+ */
+export function raidPath(raidId: number | string | null | undefined, name?: string | null): string {
+  const slug = name ? kebabCaseSlug(name) : "";
+  return slug ? `/raids/${raidId}/${encodeURIComponent(slug)}` : `/raids/${raidId}`;
+}

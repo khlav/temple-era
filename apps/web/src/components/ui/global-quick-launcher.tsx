@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { api } from "~/trpc/react";
 import { formatRaidDate, formatRaidCompletion } from "~/lib/raid-formatting";
 import { getVisiblePages } from "~/lib/app-pages";
+import { raidPath } from "~/lib/slug";
 
 export function GlobalQuickLauncher() {
   const { open, setOpen } = useGlobalQuickLauncher();
@@ -101,7 +102,7 @@ export function GlobalQuickLauncher() {
             selectedResult.type === "page"
               ? selectedResult.path
               : selectedResult.type === "raid"
-                ? `/raids/${selectedResult.raidId}`
+                ? raidPath(selectedResult.raidId, selectedResult.name)
                 : `/characters/${selectedResult.characterId}`;
           handleSelect(url);
         }
@@ -270,7 +271,7 @@ export function GlobalQuickLauncher() {
                               result.type === "page"
                                 ? result.path
                                 : result.type === "raid"
-                                  ? `/raids/${result.raidId}`
+                                  ? raidPath(result.raidId, result.name)
                                   : `/characters/${result.characterId}`,
                             )
                           }

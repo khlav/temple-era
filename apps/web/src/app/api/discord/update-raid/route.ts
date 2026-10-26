@@ -15,6 +15,7 @@ import { getEasternDate } from "~/lib/raid-formatting";
 import { compressResponse } from "~/lib/compression";
 import { resolveUserAccess } from "~/server/services/access-service";
 import { SCOPE } from "~/lib/scopes";
+import { raidPath } from "~/lib/slug";
 
 export async function POST(request: Request) {
   try {
@@ -279,7 +280,7 @@ export async function POST(request: Request) {
       .where(eq(raidLogs.raidLogId, oldRaidLog.raidLogId));
 
     const baseUrl = getBaseUrl(request);
-    const raidUrl = `${baseUrl}/raids/${oldRaidLog.raidId}`;
+    const raidUrl = `${baseUrl}${raidPath(oldRaidLog.raidId, currentRaid.name)}`;
 
     const payload: UpdateRaidResult = {
       success: true,

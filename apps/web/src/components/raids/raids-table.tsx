@@ -14,6 +14,7 @@ import { useIsMobile } from "~/hooks/use-mobile";
 import { VirtualizedList } from "~/components/ui/virtualized-list";
 import { cn } from "~/lib/utils";
 import { SCOPE } from "~/lib/scopes";
+import { raidPath } from "~/lib/slug";
 
 export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; session?: Session }) {
   const isMobile = useIsMobile();
@@ -55,7 +56,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                         prefetch={false}
                         className="block text-base font-semibold text-secondary-foreground transition-all hover:text-primary"
                         target="_self"
-                        href={`/raids/${r.raidId}`}
+                        href={raidPath(r.raidId, r.name)}
                       >
                         <span className="line-clamp-2">{r.name}</span>
                       </Link>
@@ -150,7 +151,7 @@ export function RaidsTable({ raids, session }: { raids: Raid[] | undefined; sess
                 ) : null}
                 <Link
                   prefetch={false}
-                  href={`/raids/${r.raidId}`}
+                  href={raidPath(r.raidId, r.name)}
                   target="_self"
                   className="group block min-w-0 space-y-0.5"
                 >

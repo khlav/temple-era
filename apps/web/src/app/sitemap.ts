@@ -1,14 +1,17 @@
 import { type MetadataRoute } from "next";
 import { db } from "~/server/db";
 import { raids } from "~/server/db/schema";
+import { raidPath } from "~/lib/slug";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.temple-era.com";
 
   // Fetch all raids for dynamic sitemap
-  let recentRaids: { id: number; date: string | null }[] = [];
+  let recentRaids: { id: number; name: string; date: string | null }[] = [];
   try {
-    const allRaids = await db.select({ id: raids.raidId, date: raids.date }).from(raids);
+    const allRaids = await db
+      .select({ id: raids.raidId, name: raids.name, date: raids.date })
+      .from(raids);
     const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
     recentRaids = allRaids.filter((raid) => raid.date && new Date(raid.date) > sixMonthsAgo);
   } catch {
@@ -37,7 +40,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const raidPages = recentRaids.map((raid) => ({
-    url: `${baseUrl}/raids/${raid.id}`,
+    // The canonical slug URL, not /raids/<id>: the page redirects that form, so listing it made
+    // every crawler visit cost two renders (TEMPLE-157).
+    url: `${baseUrl}${raidPath(raid.id, raid.name)}`,
     lastModified: raid.date ? new Date(raid.date) : new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.6,

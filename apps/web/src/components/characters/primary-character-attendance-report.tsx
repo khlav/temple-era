@@ -11,6 +11,7 @@ import clsx from "clsx";
 import { PrettyPrintDate } from "~/lib/helpers";
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
+import { raidPath } from "~/lib/slug";
 
 // import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
@@ -73,7 +74,7 @@ export const PrimaryCharacterAttendanceReport = ({
                       return (
                         <Tooltip key={`r_${r.raidId}`}>
                           <TooltipTrigger>
-                            <Link prefetch={false} href={`/raids/${r.raidId}`}>
+                            <Link prefetch={false} href={raidPath(r.raidId, r.name)}>
                               <div
                                 key={`r_${r.raidId}`}
                                 className={clsx("h-3 w-3 rounded-sm", squareBgClass, borderClass)}

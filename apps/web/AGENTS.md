@@ -408,6 +408,9 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
   `pg_type` lookup was the largest query by rows on prod). So Postgres arrays arrive as raw
   strings like `"{1,2}"`. Typed Drizzle array columns still parse, but a raw `sql<T[]>`
   aggregate must use `json_agg`, never `array_agg`.
+- Each new database connection costs ~4 KB of egress in TLS and startup before its first query, so
+  the client keeps connections for 2 minutes idle and 30 minutes total (`src/server/db/index.ts`).
+  Shortening either brings back one new connection per request (TEMPLE-157).
 
 #### Styling
 
@@ -668,6 +671,7 @@ scheduling/messaging service), whose Schedules aren't gated by Vercel's plan tie
 3. Add to navigation in `src/components/nav/app-header.tsx`
 4. Update global search in `src/server/api/routers/search.ts` if needed
 5. Give `<Link>`s to dynamic pages `prefetch={false}`, lists especially (rosters, raid tables, attendee grids) and the nav. None of these routes has a `loading.tsx`, so a prefetch never made the click faster, but each one still hit the server: one person scrolling the roster cost ~200 renders and their DB queries (TEMPLE-153). Same reason the nav no longer calls `router.prefetch()` for every section on mount.
+6. Link a raid page with `raidPath(raidId, name)` (`src/lib/slug.ts`), never a bare `/raids/<id>`. The page redirects every other form to `/raids/<id>/<slug>`, so a bare link costs a second render on every visit, crawlers included (TEMPLE-157).
 
 ### Adding Database Columns
 

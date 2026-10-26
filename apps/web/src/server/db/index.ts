@@ -19,14 +19,19 @@ const conn =
     prepare: false,
     max: 10,
     connect_timeout: 10,
-    max_lifetime: 60 * 5,
-    // Close a pooled connection after 20s idle. This was 0 — meaning "never close" —
-    // which is the root cause of idle Supavisor backends accumulating: on Vercel each
-    // serverless instance holds up to `max` connections, and when the instance is
-    // frozen or reclaimed those sockets are not closed cleanly, so the backend lingers
-    // server-side until something reaps it. Closing them client-side while the instance
-    // is still alive means far fewer are ever orphaned.
-    idle_timeout: 20,
+    // Every new connection costs ~4 KB of egress before its first query (TLS handshake measured
+    // at 3.5 KB on the pooler, plus Postgres startup and auth). With a 20s idle timeout and
+    // 5-minute lifetime, the app opened ~5,000 a day, about one per request: ~20 MB/day, ~18%
+    // of all egress (TEMPLE-157). So connections now live longer and survive gaps between
+    // requests.
+    max_lifetime: 60 * 30,
+    // Close a pooled connection after 2 minutes idle. This was once 0 — meaning "never close" —
+    // which let idle Supavisor backends accumulate: on Vercel each serverless instance holds
+    // up to `max` connections, and when the instance is frozen or reclaimed those sockets are
+    // not closed cleanly, so the backend lingers server-side until something reaps it. A
+    // bounded timeout still closes them while the instance is alive. It was then 20s, which
+    // also closed connections between ordinary requests; see max_lifetime above.
+    idle_timeout: 120,
     // Skip postgres-js's pg_type lookup on every new connection. Connections churn constantly
     // here (serverless instances + idle_timeout above), and that lookup returns ~400 rows each
     // time — it was the single largest query by rows in pg_stat_statements, ~60% of everything
