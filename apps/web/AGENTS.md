@@ -306,8 +306,8 @@ The session callback resolves a user's scopes on every signed-in request, so `re
 `SUPERADMIN_DISCORD_IDS` on every call, so the break-glass path is never cached.
 
 - **Every write to `role` or `user_role` must call `invalidateUserAccessCache()`**, or a revoked
-  permission keeps working until the fallback. The user router's role and grant mutations, the
-  Discord role sync and pending-grant materialization already do.
+  permission keeps working until the fallback. `user-access-cache-guard.test.ts` fails on a
+  function or procedure that writes either table without calling it.
 - It expires with `revalidateTag(tag, { expire: 0 })`, not the `"max"` profile the other caches
   use: `"max"` serves the stale value once more while it refreshes.
 

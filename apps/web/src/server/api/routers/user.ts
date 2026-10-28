@@ -119,6 +119,7 @@ export const user = createTRPCRouter({
           createdById: ctx.session.user.id,
         })
         .returning();
+      invalidateUserAccessCache();
       return created;
     }),
 
