@@ -1,6 +1,6 @@
 {
-  "id": "efef1836-d076-4d84-877f-f7e3f7f0f2a3",
-  "prevId": "b4682660-93a6-492a-a978-50363cc97769",
+  "id": "eb5ffe06-7d05-4c60-a078-825bc22992e3",
+  "prevId": "533d5f46-8410-456d-b71e-d37748bddb94",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2287,13 +2287,6 @@
           "notNull": true,
           "default": false
         },
-        "content_updated_at": {
-          "name": "content_updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2927,6 +2920,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "encounter_content_versions": {
+          "name": "encounter_content_versions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         },
         "created_by": {
           "name": "created_by",

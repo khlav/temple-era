@@ -267,7 +267,9 @@ a whole plan unless it has changed.
   parts, each keyed on its own version column so an edit re-reads only its own part: the roster
   (`raid_plan.roster_updated_at`), the layout, meaning the encounter rows and groups
   (`layout_updated_at`), the default/trash AA template and slots (`default_aa_updated_at`), and
-  each encounter's assignments, AA slots and notes (`raid_plan_encounter.content_updated_at`).
+  each encounter's assignments, AA slots and notes (that encounter's entry in
+  `raid_plan.encounter_content_versions`). Every version lives on the plan row, so a trigger only
+  ever locks that row: putting encounter versions on encounter rows let bulk edits deadlock.
   Before the split, every raid-night edit re-read the whole plan, ~190 times an hour. The triggers
   move the versions, so there is no `revalidateTag` to call from mutation sites. The client still
   gets one whole plan, so nothing client-side knows about the parts. Cached values go through JSON:

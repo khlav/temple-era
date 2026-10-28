@@ -6,21 +6,26 @@
 -- edit re-read the whole plan, about 150 AA-slot rows included. On raid night that was one full
 -- read per edit, ~190 an hour. Now each part has its own version and an edit re-reads only its part:
 --
---   raid_plan.roster_updated_at              raid_plan_character
---   raid_plan.layout_updated_at              raid_plan_encounter rows, raid_plan_encounter_group
---   raid_plan.default_aa_updated_at          default/trash AA: the plan's default_aa_template and
---                                            use_default_aa, and AA slots with raid_plan_id set
---   raid_plan_encounter.content_updated_at   that encounter's assignments, notes and AA slots
+--   raid_plan.roster_updated_at                 raid_plan_character
+--   raid_plan.layout_updated_at                 raid_plan_encounter rows, raid_plan_encounter_group
+--   raid_plan.default_aa_updated_at             default/trash AA: the plan's default_aa_template and
+--                                               use_default_aa, and AA slots with raid_plan_id set
+--   raid_plan.encounter_content_versions ->> id that encounter's assignments, notes and AA slots
+--
+-- Every version lives on the raid_plan row, so each trigger writes that one row and nothing else,
+-- the same lock a child edit always took. Keeping encounter versions on the encounter rows would
+-- lock encounter-then-plan, and a bulk edit across encounters could then deadlock with an edit to
+-- a single encounter.
 --
 -- A new raid-plan child table needs a trigger here too, or edits to it are served stale.
---
--- Deleting an encounter cascades to its children, whose triggers then touch an encounter row the
--- same statement already deleted. Those UPDATEs find no row and do nothing; the encounter's own
--- delete trigger moves layout_updated_at, which is what drops it from the plan.
 
--- Bump the plan's overall version and, when `part` names one, that part's version too. One UPDATE,
--- so a child change costs the same single row write it did before.
-CREATE OR REPLACE FUNCTION touch_raid_plan_part(target_plan_id varchar, part text) RETURNS void
+-- Bump the plan's overall version and, when `part` names one, that part's version too. For
+-- part = 'encounter', `encounter_id` names the encounter whose version moves.
+CREATE OR REPLACE FUNCTION touch_raid_plan_part(
+  target_plan_id varchar,
+  part text,
+  encounter_id uuid DEFAULT NULL
+) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
   IF target_plan_id IS NULL THEN
@@ -32,16 +37,21 @@ BEGIN
       roster_updated_at = CASE WHEN part = 'roster' THEN CURRENT_TIMESTAMP ELSE roster_updated_at END,
       layout_updated_at = CASE WHEN part = 'layout' THEN CURRENT_TIMESTAMP ELSE layout_updated_at END,
       default_aa_updated_at =
-        CASE WHEN part = 'default_aa' THEN CURRENT_TIMESTAMP ELSE default_aa_updated_at END
+        CASE WHEN part = 'default_aa' THEN CURRENT_TIMESTAMP ELSE default_aa_updated_at END,
+      encounter_content_versions = CASE
+        WHEN part = 'encounter' AND encounter_id IS NOT NULL
+          THEN encounter_content_versions
+            || jsonb_build_object(encounter_id::text, to_jsonb(CURRENT_TIMESTAMP))
+        ELSE encounter_content_versions
+      END
   WHERE id = target_plan_id;
 END;
 $$;
 --> statement-breakpoint
 
--- Bump one encounter's content version, then the plan's overall version. The UPDATE is skipped
--- when the value is already this transaction's timestamp: raid_plan_encounter's own layout trigger
--- treats an update that leaves content_updated_at unchanged as a layout edit, so a second touch in
--- the same transaction must not reach it as a no-op write.
+-- An encounter's children changed. A plain SELECT finds the plan, so no encounter row is locked.
+-- During a cascade from deleting the encounter it finds nothing and does nothing; the encounter's
+-- own delete trigger moves the layout version.
 CREATE OR REPLACE FUNCTION touch_raid_plan_encounter_content(target_encounter_id uuid) RETURNS void
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -51,13 +61,8 @@ BEGIN
     RETURN;
   END IF;
 
-  UPDATE raid_plan_encounter
-  SET content_updated_at = CURRENT_TIMESTAMP
-  WHERE id = target_encounter_id
-    AND content_updated_at IS DISTINCT FROM CURRENT_TIMESTAMP;
-
   SELECT raid_plan_id INTO plan_id FROM raid_plan_encounter WHERE id = target_encounter_id;
-  PERFORM touch_raid_plan_part(plan_id, NULL);
+  PERFORM touch_raid_plan_part(plan_id, 'encounter', target_encounter_id);
 END;
 $$;
 --> statement-breakpoint
@@ -181,22 +186,12 @@ FOR EACH ROW
 EXECUTE FUNCTION touch_raid_plan_part_from_direct_fk('layout');
 --> statement-breakpoint
 
--- The encounter row is layout (name, order, group, template, custom-groups flag). An update that
--- moves only content_updated_at is touch_raid_plan_encounter_content() recording a child change,
--- not a layout edit, so the UPDATE trigger skips it. WHEN can't read OLD on INSERT, hence two.
+-- The encounter row is layout: name, order, group, template, custom-groups flag.
 DROP TRIGGER IF EXISTS raid_plan_encounter_touch_parent ON raid_plan_encounter;
 --> statement-breakpoint
 CREATE TRIGGER raid_plan_encounter_touch_parent
-AFTER INSERT OR DELETE ON raid_plan_encounter
+AFTER INSERT OR UPDATE OR DELETE ON raid_plan_encounter
 FOR EACH ROW
-EXECUTE FUNCTION touch_raid_plan_part_from_direct_fk('layout');
---> statement-breakpoint
-DROP TRIGGER IF EXISTS raid_plan_encounter_update_touch_parent ON raid_plan_encounter;
---> statement-breakpoint
-CREATE TRIGGER raid_plan_encounter_update_touch_parent
-AFTER UPDATE ON raid_plan_encounter
-FOR EACH ROW
-WHEN (OLD.content_updated_at IS NOT DISTINCT FROM NEW.content_updated_at)
 EXECUTE FUNCTION touch_raid_plan_part_from_direct_fk('layout');
 --> statement-breakpoint
 

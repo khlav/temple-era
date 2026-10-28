@@ -28,7 +28,7 @@ const REVALIDATE_SECONDS = 60 * 60 * 24;
  *   roster      raid_plan_character                     raid_plan.roster_updated_at
  *   layout      encounters (the rows) and their groups  raid_plan.layout_updated_at
  *   default AA  the default/trash AA template and slots raid_plan.default_aa_updated_at
- *   encounter   one encounter's assignments, AA slots   raid_plan_encounter.content_updated_at
+ *   encounter   one encounter's assignments, AA slots   raid_plan.encounter_content_versions ->> id
  *               and notes
  *
  * The versions are read live alongside the plan's visibility (planPartVersionColumns), so no
@@ -210,29 +210,22 @@ const getCachedEncounterContent = unstable_cache(
 );
 
 /**
- * The part versions, to spread into the select that reads the plan's head row (which must be FROM
- * raid_plan). Read live on every call, in the same statement as the visibility check, so the
- * versions and the encounter list they cover come from one snapshot. Encounter versions come back as
- * Postgres's own timestamp text, keeping the microseconds a JS Date would drop.
+ * The part versions, to spread into the select that reads the plan's head row. Read live on every
+ * call, from the same row as the visibility check. Encounter versions are Postgres's own timestamp
+ * text, keeping the microseconds a JS Date would drop.
  */
 export const planPartVersionColumns = {
   rosterUpdatedAt: raidPlans.rosterUpdatedAt,
   layoutUpdatedAt: raidPlans.layoutUpdatedAt,
   defaultAAUpdatedAt: raidPlans.defaultAAUpdatedAt,
-  // Spelled out with an alias: in a single-table select Drizzle renders columns unqualified, which
-  // would make the correlation compare raid_plan_encounter's own columns with each other.
-  encounterVersions: sql<Record<string, string> | null>`(
-    SELECT json_object_agg(rpe.id, rpe.content_updated_at)
-    FROM raid_plan_encounter rpe
-    WHERE rpe.raid_plan_id = "raid_plan"."id"
-  )`,
+  encounterVersions: raidPlans.encounterContentVersions,
 };
 
 export interface RaidPlanPartVersions {
   rosterUpdatedAt: Date;
   layoutUpdatedAt: Date;
   defaultAAUpdatedAt: Date;
-  encounterVersions: Record<string, string> | null;
+  encounterVersions: Record<string, string>;
 }
 
 /**
@@ -259,16 +252,15 @@ export async function getRaidPlanContent(
       : Promise.resolve([]),
   ]);
 
-  // The layout entry is keyed on the layout version read with the map, so its encounter list matches
-  // the map's. The one exception is a layout loaded just after an encounter was added, which can list
-  // an encounter the map lacks; that one is keyed on the layout version, which moves again on the
-  // next layout edit.
+  // An encounter gets an entry in the map on its first child edit. Until then (a new encounter, or
+  // one untouched since this was deployed) its content is keyed on the layout version, which also
+  // moves when the encounter is added. Entries for deleted encounters stay in the map, unread.
   const encounterContents = await Promise.all(
     layout.encounters.map((enc) =>
       getCachedEncounterContent(
         enc.id,
         !enc.useDefaultGroups,
-        versions.encounterVersions?.[enc.id] ?? `layout:${versions.layoutUpdatedAt.toISOString()}`,
+        versions.encounterVersions[enc.id] ?? `layout:${versions.layoutUpdatedAt.toISOString()}`,
       ),
     ),
   );

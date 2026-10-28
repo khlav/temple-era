@@ -7,6 +7,7 @@ import {
   boolean,
   uuid,
   text,
+  jsonb,
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -164,6 +165,14 @@ export const raidPlans = tableCreator(
     defaultAAUpdatedAt: timestamp("default_aa_updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    // Encounter id -> version of that encounter's assignments, AA slots and notes. Kept on the
+    // plan row, not the encounter's, so a child edit still locks only this row, as it did before
+    // the split. Locking the encounter too let a bulk edit across encounters deadlock with a
+    // single-encounter edit. An encounter with no entry yet uses the layout version.
+    encounterContentVersions: jsonb("encounter_content_versions")
+      .$type<Record<string, string>>()
+      .default({})
+      .notNull(),
     ...CreatedBy,
     ...UpdatedBy,
     ...DefaultTimestamps,
@@ -284,12 +293,6 @@ export const raidPlanEncounters = tableCreator(
     useDefaultGroups: boolean("use_default_groups").notNull().default(true),
     aaTemplate: text("aa_template"), // AngryAssignments template (copied from template, editable)
     useCustomAA: boolean("use_custom_aa").notNull().default(false), // Whether to show AA UI
-    // Version of this encounter's assignments, AA slots and notes (TEMPLE-161), bumped by
-    // triggers on those tables (drizzle/0006). Changes to the encounter row itself move the
-    // plan's layout_updated_at instead.
-    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
     ...DefaultTimestamps,
   },
   (table) => ({
