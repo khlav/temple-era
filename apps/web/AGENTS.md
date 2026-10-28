@@ -310,6 +310,8 @@ The session callback resolves a user's scopes on every signed-in request, so `re
   function or procedure that writes either table without calling it.
 - It expires with `revalidateTag(tag, { expire: 0 })`, not the `"max"` profile the other caches
   use: `"max"` serves the stale value once more while it refreshes.
+- Signing in expires that user's entry (`invalidateUserAccessCacheForUser`), so logging out and back
+  in always picks up a role change.
 
 #### World-buff enrichment cache and achievement recalcs (TEMPLE-163, TEMPLE-164)
 

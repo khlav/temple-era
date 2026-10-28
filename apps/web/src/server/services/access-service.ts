@@ -59,43 +59,58 @@ const USER_ACCESS_REVALIDATE_SECONDS = 15 * 60;
  * nothing in the app unlinks it. Whether that id is a superadmin is decided against the env on
  * every call, so the break-glass path still works the moment SUPERADMIN_DISCORD_IDS changes.
  */
-const getCachedUserAccessFacts = unstable_cache(
-  async (userId: string) => {
-    const [rows, account] = await Promise.all([
-      db
-        .select({ scopes: roles.scopes })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .where(eq(userRoles.userId, userId)),
-      db
-        .select({ discordId: accounts.providerAccountId })
-        .from(accounts)
-        .where(and(eq(accounts.userId, userId), eq(accounts.provider, "discord")))
-        .limit(1),
-    ]);
-    return {
-      roleScopes: [...new Set(rows.flatMap((row) => row.scopes))],
-      discordId: account[0]?.discordId ?? null,
-    };
-  },
-  ["user-access"],
-  { tags: [USER_ACCESS_TAG], revalidate: USER_ACCESS_REVALIDATE_SECONDS },
-);
+async function loadUserAccessFacts(userId: string) {
+  const [rows, account] = await Promise.all([
+    db
+      .select({ scopes: roles.scopes })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(userRoles.userId, userId)),
+    db
+      .select({ discordId: accounts.providerAccountId })
+      .from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.provider, "discord")))
+      .limit(1),
+  ]);
+  return {
+    roleScopes: [...new Set(rows.flatMap((row) => row.scopes))],
+    discordId: account[0]?.discordId ?? null,
+  };
+}
 
-/**
- * Expires every user's cached access immediately. Call it after any write to role or user_role.
- * `{ expire: 0 }` rather than the "max" profile used for other caches here: "max" serves the stale
- * value once more while it refreshes, which would let a revoked permission through on the next
- * request.
- */
-export function invalidateUserAccessCache(): void {
+const userAccessTagFor = (userId: string) => `${USER_ACCESS_TAG}:${userId}`;
+
+// Two tags: the shared one, expired by role writes (which can touch many users), and a per-user
+// one, expired when that user signs in.
+function getCachedUserAccessFacts(userId: string) {
+  return unstable_cache(() => loadUserAccessFacts(userId), ["user-access", userId], {
+    tags: [USER_ACCESS_TAG, userAccessTagFor(userId)],
+    revalidate: USER_ACCESS_REVALIDATE_SECONDS,
+  })();
+}
+
+// `{ expire: 0 }` rather than the "max" profile used for other caches here: "max" serves the stale
+// value once more while it refreshes, which would let a revoked permission through on the next
+// request.
+function expireUserAccessTag(tag: string): void {
   try {
-    revalidateTag(USER_ACCESS_TAG, { expire: 0 });
+    revalidateTag(tag, { expire: 0 });
   } catch (err) {
     // Expected outside a Next request (scripts, tests), where there is no cache to expire. Inside
     // one it would leave a revoked permission working until the fallback, so leave a trace.
-    logger.warn({ err }, "Failed to expire the user-access cache");
+    logger.warn({ err, tag }, "Failed to expire the user-access cache");
   }
+}
+
+/** Expires every user's cached access immediately. Call it after any write to role or user_role. */
+export function invalidateUserAccessCache(): void {
+  expireUserAccessTag(USER_ACCESS_TAG);
+}
+
+/** Expires one user's cached access. Signing in calls it, so logging out and back in always
+ *  re-reads that user's roles. */
+export function invalidateUserAccessCacheForUser(userId: string): void {
+  expireUserAccessTag(userAccessTagFor(userId));
 }
 
 /**

@@ -24,7 +24,7 @@ vi.mock("~/server/db", () => ({
   },
 }));
 
-const { resolveUserAccess, invalidateUserAccessCache } =
+const { resolveUserAccess, invalidateUserAccessCache, invalidateUserAccessCacheForUser } =
   await import("~/server/services/access-service");
 const { SCOPES } = await import("~/lib/scopes");
 
@@ -63,5 +63,10 @@ describe("invalidateUserAccessCache", () => {
   it("expires immediately rather than serving the stale value once more", () => {
     invalidateUserAccessCache();
     expect(mockRevalidateTag).toHaveBeenCalledWith("user-access", { expire: 0 });
+  });
+
+  it("can expire a single user, as signing in does", () => {
+    invalidateUserAccessCacheForUser("u1");
+    expect(mockRevalidateTag).toHaveBeenCalledWith("user-access:u1", { expire: 0 });
   });
 });
