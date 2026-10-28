@@ -198,10 +198,42 @@ export async function fetchCharacterRosterForMatching(
     .where(eq(characters.isIgnored, false));
 }
 
+/** Discord accounts linked to a character, for the given Discord user ids. Extracted for the same
+ *  reason as `fetchCharacterRosterForMatching`: achievement-rules.ts matches every snapshot in a
+ *  raid's signup history, and one lookup per snapshot was the largest query on a raid-import day
+ *  (TEMPLE-161). It fetches once for every user id in the batch and passes the rows in via
+ *  `preloadedLinkedDiscordRows`. */
+export async function fetchLinkedDiscordRows(db: DbClient, userIds: string[]) {
+  if (userIds.length === 0) return [];
+  return db
+    .select({
+      discordUserId: accounts.providerAccountId,
+      characterId: users.characterId,
+      anchorCharacterId: characters.characterId,
+      anchorCharacterName: characters.name,
+      primaryCharacterId: characters.primaryCharacterId,
+    })
+    .from(accounts)
+    .innerJoin(users, eq(accounts.userId, users.id))
+    .leftJoin(characters, eq(users.characterId, characters.characterId))
+    .where(
+      and(
+        eq(accounts.provider, "discord"),
+        inArray(accounts.providerAccountId, userIds),
+        isNotNull(users.characterId),
+      ),
+    );
+}
+
+export type LinkedDiscordRow = Awaited<ReturnType<typeof fetchLinkedDiscordRows>>[number];
+
+/** `preloadedLinkedDiscordRows` may cover more users than `signups` does: rows for anyone else are
+ *  never looked up. */
 export async function matchSignupsToCharacters(
   db: DbClient,
   signups: SignupInput[],
   preloadedCharacters?: CharacterRosterEntry[],
+  preloadedLinkedDiscordRows?: LinkedDiscordRow[],
 ): Promise<SignupMatchResult[]> {
   const signupsWithResolved = signups.map((signup) => {
     const cleanedSpecName = signup.specName?.replace(/[0-9]/g, "") ?? "";
@@ -230,26 +262,7 @@ export async function matchSignupsToCharacters(
   const userIds = [...new Set(signupsWithResolved.map((s) => s.userId).filter(Boolean))];
 
   const linkedDiscordRows =
-    userIds.length === 0
-      ? []
-      : await db
-          .select({
-            discordUserId: accounts.providerAccountId,
-            characterId: users.characterId,
-            anchorCharacterId: characters.characterId,
-            anchorCharacterName: characters.name,
-            primaryCharacterId: characters.primaryCharacterId,
-          })
-          .from(accounts)
-          .innerJoin(users, eq(accounts.userId, users.id))
-          .leftJoin(characters, eq(users.characterId, characters.characterId))
-          .where(
-            and(
-              eq(accounts.provider, "discord"),
-              inArray(accounts.providerAccountId, userIds),
-              isNotNull(users.characterId),
-            ),
-          );
+    preloadedLinkedDiscordRows ?? (await fetchLinkedDiscordRows(db, userIds));
 
   const linkedFamiliesByUserId = new Map<string, LinkedDiscordFamily[]>();
   for (const row of linkedDiscordRows) {

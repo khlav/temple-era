@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raidHelperSignupSnapshots } from "~/server/db/schema";
 
@@ -77,6 +77,71 @@ export async function getLatestSignupSnapshotForOccurrence(
  * the latest-only helpers above. Backs the Signup Timeline tab (TEMPLE-97), which needs
  * the full checkpoint history rather than a single "current" snapshot.
  */
+/** One signup inside a snapshot, cut to the fields signup matching reads. */
+export interface SignupForMatching {
+  userId: string;
+  name: string;
+  className: string;
+  specName: string;
+}
+
+export interface SignupHistoryForMatchingRow {
+  raidHelperEventId: string;
+  startTime: Date;
+  checkpoint: LatestSignupSnapshot["checkpoint"];
+  signups: SignupForMatching[];
+}
+
+/**
+ * Every snapshot of several occurrences in one query, oldest capture first, carrying only what
+ * signup matching reads. Achievement evaluation matches a whole signup history on every run; one
+ * query per occurrence, each returning every column, made the snapshot table its largest read by
+ * bytes (TEMPLE-161). A full `signups` entry also carries role, status, position and entry time,
+ * about 45% of each row on the wire, so they're dropped in SQL.
+ */
+export async function getSignupHistoryForMatching(
+  occurrences: { raidHelperEventId: string; startTime: Date }[],
+): Promise<SignupHistoryForMatchingRow[]> {
+  if (occurrences.length === 0) return [];
+  const rows = await db
+    .select({
+      raidHelperEventId: raidHelperSignupSnapshots.raidHelperEventId,
+      startTime: raidHelperSignupSnapshots.startTime,
+      checkpoint: raidHelperSignupSnapshots.checkpoint,
+      signups: sql<SignupForMatching[] | string>`(
+        SELECT coalesce(
+          jsonb_agg(
+            jsonb_build_object(
+              'userId', e -> 'userId',
+              'name', e -> 'name',
+              'className', e -> 'className',
+              'specName', e -> 'specName'
+            ) ORDER BY ord
+          ),
+          '[]'::jsonb
+        )
+        FROM jsonb_array_elements(${raidHelperSignupSnapshots.signups}) WITH ORDINALITY AS entry(e, ord)
+      )`,
+    })
+    .from(raidHelperSignupSnapshots)
+    .where(
+      or(
+        ...occurrences.map((o) =>
+          and(
+            eq(raidHelperSignupSnapshots.raidHelperEventId, o.raidHelperEventId),
+            eq(raidHelperSignupSnapshots.startTime, o.startTime),
+          ),
+        ),
+      ),
+    )
+    .orderBy(asc(raidHelperSignupSnapshots.capturedAt));
+
+  return rows.map((row) => ({
+    ...row,
+    signups: typeof row.signups === "string" ? JSON.parse(row.signups) : row.signups,
+  }));
+}
+
 export async function getSignupSnapshotHistoryForOccurrence(
   raidHelperEventId: string,
   startTime: Date,

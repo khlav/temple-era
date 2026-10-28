@@ -15,8 +15,9 @@ import {
 } from "~/server/db/schema";
 import { getTuesdayAnchoredWeekStart } from "~/lib/lockout-weeks";
 import { EASTERN_TIMEZONE } from "~/lib/raid-formatting";
-import { getSignupSnapshotHistoryForOccurrence } from "~/server/services/raid-helper-snapshot-queries";
+import { getSignupHistoryForMatching } from "~/server/services/raid-helper-snapshot-queries";
 import {
+  fetchLinkedDiscordRows,
   matchSignupsToCharacters,
   type CharacterRosterEntry,
   type SignupInput,
@@ -248,15 +249,16 @@ export async function buildRuleEvaluationContextsForFamilies(
   const asOfStr = asOf.toISOString().split("T")[0]!;
 
   const allFamilyCharacterIds = [...familyCharacterIdsByPrimary.values()].flat();
+  // Attendance and bench rows carry only (raid, character): the raid's zone, date and weight come
+  // from allRaidsInRangeRows below, which covers every raid these can return (same date window).
+  // Repeating them on every attendee row was about half the bytes of the run's two largest reads
+  // (TEMPLE-161).
   const attendanceRows =
     allFamilyCharacterIds.length > 0
       ? await db
           .select({
             raidId: raids.raidId,
-            zone: raids.zone,
-            date: raids.date,
             characterId: raidLogAttendeeMap.characterId,
-            attendanceWeight: raids.attendanceWeight,
           })
           .from(raidLogAttendeeMap)
           .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
@@ -271,22 +273,6 @@ export async function buildRuleEvaluationContextsForFamilies(
           )
       : [];
 
-  const attendedRaidsByCharacterId = new Map<number, AttendedRaid[]>();
-  for (const r of attendanceRows) {
-    const entry: AttendedRaid = {
-      raidId: r.raidId,
-      characterId: r.characterId,
-      zone: r.zone,
-      class: classByCharacterId.get(r.characterId) ?? "Unknown",
-      lockoutWeekStart: getTuesdayAnchoredWeekStart(raidDateToInstant(r.date)),
-      startTime: raidDateToInstant(r.date),
-      attendanceWeight: r.attendanceWeight,
-    };
-    const list = attendedRaidsByCharacterId.get(r.characterId) ?? [];
-    list.push(entry);
-    attendedRaidsByCharacterId.set(r.characterId, list);
-  }
-
   // raid_bench_map joins straight to raids (no raid_log hop needed — an officer sets this
   // directly on the raid, independent of whether a log was ever attached). This is the real bench
   // credit source; see RuleEvaluationContext.benchedRaids.
@@ -295,10 +281,7 @@ export async function buildRuleEvaluationContextsForFamilies(
       ? await db
           .select({
             raidId: raids.raidId,
-            zone: raids.zone,
-            date: raids.date,
             characterId: raidBenchMap.characterId,
-            attendanceWeight: raids.attendanceWeight,
           })
           .from(raidBenchMap)
           .innerJoin(raids, eq(raidBenchMap.raidId, raids.raidId))
@@ -311,33 +294,47 @@ export async function buildRuleEvaluationContextsForFamilies(
           )
       : [];
 
-  const benchedRaidsByCharacterId = new Map<number, AttendedRaid[]>();
-  for (const r of benchRows) {
-    const entry: AttendedRaid = {
-      raidId: r.raidId,
-      characterId: r.characterId,
-      zone: r.zone,
-      class: classByCharacterId.get(r.characterId) ?? "Unknown",
-      lockoutWeekStart: getTuesdayAnchoredWeekStart(raidDateToInstant(r.date)),
-      startTime: raidDateToInstant(r.date),
-      attendanceWeight: r.attendanceWeight,
-    };
-    const list = benchedRaidsByCharacterId.get(r.characterId) ?? [];
-    list.push(entry);
-    benchedRaidsByCharacterId.set(r.characterId, list);
-  }
-
   // Every raid in range, regardless of attendance — the denominator Attendance Threshold needs
   // to stay a pure, context-only computation (see implementation-notes-phase-2.html) instead of
-  // its own separate call to computeAttendance.
+  // its own separate call to computeAttendance. Also the source of each attended/benched raid's
+  // zone, date and weight (see attendanceRows).
   const allRaidsInRangeRows = await db
-    .select({ raidId: raids.raidId, date: raids.date })
+    .select({
+      raidId: raids.raidId,
+      date: raids.date,
+      zone: raids.zone,
+      attendanceWeight: raids.attendanceWeight,
+    })
     .from(raids)
     .where(and(floorStr ? gte(raids.date, floorStr) : undefined, lte(raids.date, asOfStr)));
   const raidsInWindow = allRaidsInRangeRows.map((r) => ({
     raidId: r.raidId,
     startTime: raidDateToInstant(r.date),
   }));
+  const raidById = new Map(allRaidsInRangeRows.map((r) => [r.raidId, r]));
+
+  const groupByCharacter = (rows: { raidId: number; characterId: number }[]) => {
+    const byCharacterId = new Map<number, AttendedRaid[]>();
+    for (const r of rows) {
+      const raid = raidById.get(r.raidId);
+      if (!raid) continue; // Unreachable: both reads apply the same date window to raids.
+      const startTime = raidDateToInstant(raid.date);
+      const list = byCharacterId.get(r.characterId) ?? [];
+      list.push({
+        raidId: r.raidId,
+        characterId: r.characterId,
+        zone: raid.zone,
+        class: classByCharacterId.get(r.characterId) ?? "Unknown",
+        lockoutWeekStart: getTuesdayAnchoredWeekStart(startTime),
+        startTime,
+        attendanceWeight: raid.attendanceWeight,
+      });
+      byCharacterId.set(r.characterId, list);
+    }
+    return byCharacterId;
+  };
+  const attendedRaidsByCharacterId = groupByCharacter(attendanceRows);
+  const benchedRaidsByCharacterId = groupByCharacter(benchRows);
 
   // Scoped by the link's own startTime, NOT by attendedRaids — Consistency/Flexibility need
   // signups for raids the family did (or didn't) attend and check that by cross-referencing this
@@ -361,13 +358,27 @@ export async function buildRuleEvaluationContextsForFamilies(
     ),
   });
 
+  // The whole history is read in one query, and Discord accounts looked up once for every user in
+  // it, then passed to each matchSignupsToCharacters call. That used to be one history query per
+  // link and one account lookup per snapshot row, together most of a raid-import day's egress
+  // (TEMPLE-161).
+  const history = await getSignupHistoryForMatching(links);
+  const historyByOccurrence = new Map<string, typeof history>();
+  for (const row of history) {
+    const key = `${row.raidHelperEventId}|${row.startTime.getTime()}`;
+    const rows = historyByOccurrence.get(key) ?? [];
+    rows.push(row);
+    historyByOccurrence.set(key, rows);
+  }
+  const linkedDiscordRows = await fetchLinkedDiscordRows(db, [
+    ...new Set(history.flatMap((row) => row.signups.map((s) => s.userId)).filter(Boolean)),
+  ]);
+
   const signupsByPrimaryCharacterId = new Map<number, MatchedSignup[]>();
   for (const link of links) {
-    const history = await getSignupSnapshotHistoryForOccurrence(
-      link.raidHelperEventId,
-      link.startTime,
-    );
-    for (const snapshotRow of history) {
+    const linkHistory =
+      historyByOccurrence.get(`${link.raidHelperEventId}|${link.startTime.getTime()}`) ?? [];
+    for (const snapshotRow of linkHistory) {
       const hours = checkpointToHours(snapshotRow.checkpoint);
       const signupInputs: SignupInput[] = snapshotRow.signups.map((s) => ({
         userId: s.userId,
@@ -375,7 +386,12 @@ export async function buildRuleEvaluationContextsForFamilies(
         className: s.className,
         specName: s.specName,
       }));
-      const matchResults = await matchSignupsToCharacters(db, signupInputs, allCharacters);
+      const matchResults = await matchSignupsToCharacters(
+        db,
+        signupInputs,
+        allCharacters,
+        linkedDiscordRows,
+      );
       for (const result of matchResults) {
         if (result.matchedPrimaryCharacterId == null) continue;
         const bucket = classifyBucket(result);

@@ -19,21 +19,26 @@ const { mockDb } = vi.hoisted(() => {
 });
 vi.mock("~/server/db", () => ({ db: mockDb }));
 
-const { mockGetSignupSnapshotHistoryForOccurrence } = vi.hoisted(() => ({
-  mockGetSignupSnapshotHistoryForOccurrence: vi.fn(),
+const { mockGetSignupHistoryForMatching } = vi.hoisted(() => ({
+  mockGetSignupHistoryForMatching: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("~/server/services/raid-helper-snapshot-queries", () => ({
-  getSignupSnapshotHistoryForOccurrence: mockGetSignupSnapshotHistoryForOccurrence,
+  getSignupHistoryForMatching: mockGetSignupHistoryForMatching,
 }));
 
-const { mockMatchSignupsToCharacters } = vi.hoisted(() => ({
+const { mockMatchSignupsToCharacters, mockFetchLinkedDiscordRows } = vi.hoisted(() => ({
   mockMatchSignupsToCharacters: vi.fn(),
+  mockFetchLinkedDiscordRows: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("~/server/api/helpers/match-signups", async () => {
   const actual = await vi.importActual<typeof MatchSignupsModule>(
     "~/server/api/helpers/match-signups",
   );
-  return { ...actual, matchSignupsToCharacters: mockMatchSignupsToCharacters };
+  return {
+    ...actual,
+    matchSignupsToCharacters: mockMatchSignupsToCharacters,
+    fetchLinkedDiscordRows: mockFetchLinkedDiscordRows,
+  };
 });
 
 import {
@@ -1030,11 +1035,11 @@ describe("buildRuleEvaluationContext", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-10", zone: "Molten Core", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]); // no link for raid 1
 
     const context = await buildRuleEvaluationContext(mockDb as never, 1, null, new Date());
@@ -1047,11 +1052,11 @@ describe("buildRuleEvaluationContext", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Naxxramas", date: "2026-09-01", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-01" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-01", zone: "Naxxramas", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
 
     const context = await buildRuleEvaluationContext(
@@ -1075,8 +1080,10 @@ describe("buildRuleEvaluationContext", () => {
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([
       { raidId: 1, raidHelperEventId: "evt-1", startTime: new Date("2026-09-10") },
     ]);
-    mockGetSignupSnapshotHistoryForOccurrence.mockResolvedValue([
+    mockGetSignupHistoryForMatching.mockResolvedValue([
       {
+        raidHelperEventId: "evt-1",
+        startTime: new Date("2026-09-10"),
         checkpoint: "96h",
         signups: [
           { userId: "u1", name: "Alice", className: "Warrior", specName: "Fury" },
@@ -1163,6 +1170,11 @@ describe("buildRuleEvaluationContext", () => {
       new Date("2026-09-15"),
     );
 
+    // One Discord-account lookup for every user in the history, handed to each match (TEMPLE-161).
+    expect(mockFetchLinkedDiscordRows).toHaveBeenCalledTimes(1);
+    expect(mockFetchLinkedDiscordRows.mock.calls[0]![1]).toEqual(["u1", "u2", "u3", "u4"]);
+    expect(mockMatchSignupsToCharacters.mock.calls[0]![3]).toEqual([]);
+
     expect(context.matchedSignups).toEqual([
       {
         raidId: 1,
@@ -1192,8 +1204,10 @@ describe("buildRuleEvaluationContext", () => {
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([
       { raidId: 1, raidHelperEventId: "evt-1", startTime: new Date("2026-09-11") },
     ]);
-    mockGetSignupSnapshotHistoryForOccurrence.mockResolvedValue([
+    mockGetSignupHistoryForMatching.mockResolvedValue([
       {
+        raidHelperEventId: "evt-1",
+        startTime: new Date("2026-09-11"),
         checkpoint: "24h",
         signups: [{ userId: "u1", name: "Asham", className: "Paladin", specName: "Retribution" }],
       },
@@ -1252,11 +1266,11 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-10", zone: "Molten Core", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
     mockDb.query.achievementAwards.findMany.mockResolvedValueOnce([]); // pre-fetch: none held yet
     mockDb.insert.mockReturnValueOnce(insertChain([{ id: "award-1" }])); // first run: inserted
@@ -1269,11 +1283,11 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-10", zone: "Molten Core", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
     // The pre-fetch now reports tier-copper as already held (as it would be for real, after the
     // first run's insert committed) — the in-memory skip should short-circuit before ever
@@ -1310,11 +1324,11 @@ describe("evaluateAchievementsForFamily", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-10", zone: "Molten Core", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
     mockDb.query.achievementAwards.findMany.mockResolvedValueOnce([]);
     mockDb.insert.mockReturnValueOnce(insertChain([{ id: "award-2" }]));
@@ -1340,11 +1354,11 @@ describe("getNextTierProgress", () => {
       .mockReturnValueOnce(
         chainable([{ characterId: 1, class: "Warrior", primaryCharacterId: null }]),
       )
-      .mockReturnValueOnce(
-        chainable([{ raidId: 1, zone: "Molten Core", date: "2026-09-10", characterId: 1 }]),
-      )
+      .mockReturnValueOnce(chainable([{ raidId: 1, characterId: 1 }]))
       .mockReturnValueOnce(chainable([])) // benchRows
-      .mockReturnValueOnce(chainable([{ raidId: 1, date: "2026-09-10" }]));
+      .mockReturnValueOnce(
+        chainable([{ raidId: 1, date: "2026-09-10", zone: "Molten Core", attendanceWeight: 1 }]),
+      );
     mockDb.query.raidSignupSnapshotLinks.findMany.mockResolvedValue([]);
 
     const result = await getNextTierProgress(mockDb as never, 1, "ach-1", new Date("2026-09-15"));
