@@ -7,7 +7,7 @@ import {
   userRoles,
 } from "~/server/db/models/access-schema";
 import { getGuildMembers, getGuildRoles } from "~/server/api/discord-guild-helpers";
-import { getUserIdForDiscordId } from "~/server/services/access-service";
+import { getUserIdForDiscordId, invalidateUserAccessCache } from "~/server/services/access-service";
 import { logger } from "~/lib/logger";
 
 export interface DiscordSyncSummary {
@@ -24,6 +24,15 @@ export interface DiscordSyncSummary {
  * filters on source = 'discord-sync').
  */
 export async function syncDiscordRoles(): Promise<DiscordSyncSummary> {
+  try {
+    return await applyDiscordRoleBindings();
+  } finally {
+    // Even after a partial run: any user_role row it wrote must not be served from cache.
+    invalidateUserAccessCache();
+  }
+}
+
+async function applyDiscordRoleBindings(): Promise<DiscordSyncSummary> {
   const bindings = await db.select().from(discordRoleBindings);
 
   const summary: DiscordSyncSummary = { granted: 0, revoked: 0, pendingCreated: 0 };

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { and, eq, inArray, lt, max, or, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import {
@@ -11,6 +12,7 @@ import {
   worldBuffCharacterStatus,
 } from "~/server/db/schema";
 import { getLockoutWeeks } from "~/server/api/v2/helpers/lockout-weeks";
+import { ATTENDEE_TAG } from "~/server/services/raid-attendance-by-zone";
 import { WORLD_BUFF_BY_ITEM, WORLD_BUFF_ITEM_LABELS, type WorldBuffItem } from "~/lib/world-buffs";
 
 type WorldBuffState = "ready_to_drop" | "dropped";
@@ -484,6 +486,101 @@ const NO_ENRICHMENT: CharacterEnrichment = {
   idleLastRaidAt: null,
 };
 
+// 1h fallback. Raid writes refresh this through ATTENDEE_TAG, since a new raid is what moves a
+// family's last raid date. Edits to characters or account links (a rename, a new primary, someone
+// linking their character) show up within the hour.
+const ENRICHMENT_REVALIDATE_SECONDS = 60 * 60;
+
+/**
+ * The database half of `loadCharacterEnrichment`, in the shared Data Cache. Every load of the
+ * world-buff page asked for nearly the same characters and re-read about 1,000 rows of characters,
+ * families, Discord links and last raid dates to do it (TEMPLE-163). `uniqueIds` must be sorted,
+ * since it is the cache key. Everything returned is plain JSON: no Date fields.
+ */
+const getEnrichmentData = unstable_cache(
+  async (uniqueIds: number[]) => {
+    const linkedCharacters =
+      uniqueIds.length > 0
+        ? await db.query.characters.findMany({
+            where: inArray(characters.characterId, uniqueIds),
+            columns: { characterId: true, class: true, primaryCharacterId: true },
+            with: { primaryCharacter: { columns: { name: true } } },
+          })
+        : [];
+
+    // A Discord identity is only resolvable when some Temple account has linked the FAMILY's
+    // primary character as their own `/profile` character — same simplification `raid-helper.ts`'s
+    // find-gamers query makes (an account linked to an alt, not the primary, won't resolve). Most
+    // world-buff rows are free-text submissions with no `characterId` at all, so this is always a
+    // best-effort lookup, never a guarantee.
+    const familyPrimaryIds = [
+      ...new Set(linkedCharacters.map((c) => c.primaryCharacterId ?? c.characterId)),
+    ];
+    const discordLinks =
+      familyPrimaryIds.length > 0
+        ? await db
+            .select({
+              characterId: users.characterId,
+              discordUserId: accounts.providerAccountId,
+              discordUsername: users.name,
+            })
+            .from(users)
+            .innerJoin(
+              accounts,
+              and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")),
+            )
+            .where(inArray(users.characterId, familyPrimaryIds))
+        : [];
+
+    const familyMembers =
+      familyPrimaryIds.length > 0
+        ? await db
+            .select({
+              characterId: characters.characterId,
+              primaryCharacterId: characters.primaryCharacterId,
+            })
+            .from(characters)
+            .where(
+              or(
+                inArray(characters.characterId, familyPrimaryIds),
+                inArray(characters.primaryCharacterId, familyPrimaryIds),
+              ),
+            )
+        : [];
+
+    // One row per character: its latest raid date. That answers all three questions the idle
+    // check needs: "has ever raided" (has a row), "raided within the idle window" (latest date is
+    // on or after its start), and the last raid date itself. Aggregated in Postgres because the
+    // full history it replaced was ~22k rows per call, the largest query by rows left after the
+    // TEMPLE-153 fixes (TEMPLE-156).
+    const memberIds = [
+      ...new Set([...familyPrimaryIds, ...familyMembers.map((m) => m.characterId)]),
+    ];
+    const lastRaidRows =
+      memberIds.length > 0
+        ? await db
+            .select({
+              characterId: raidLogAttendeeMap.characterId,
+              lastRaidDate: max(raids.date),
+            })
+            .from(raidLogAttendeeMap)
+            .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
+            .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
+            .where(
+              and(
+                inArray(raidLogAttendeeMap.characterId, memberIds),
+                eq(raidLogAttendeeMap.isIgnored, false),
+              ),
+            )
+            .groupBy(raidLogAttendeeMap.characterId)
+        : [];
+
+    return { linkedCharacters, familyPrimaryIds, discordLinks, familyMembers, lastRaidRows };
+  },
+  ["world-buff-enrichment"],
+  { tags: [ATTENDEE_TAG], revalidate: ENRICHMENT_REVALIDATE_SECONDS },
+);
+
 /**
  * Batches the character lookups for a set of characterIds and returns a lookup function, so
  * `getMatrix()` and the assignment list functions can enrich rows the same way without each
@@ -492,90 +589,25 @@ const NO_ENRICHMENT: CharacterEnrichment = {
 async function loadCharacterEnrichment(
   characterIds: number[],
 ): Promise<(characterId: number | null) => CharacterEnrichment> {
-  const uniqueIds = [...new Set(characterIds)];
-
-  const linkedCharacters =
-    uniqueIds.length > 0
-      ? await db.query.characters.findMany({
-          where: inArray(characters.characterId, uniqueIds),
-          with: { primaryCharacter: { columns: { name: true } } },
-        })
-      : [];
+  const uniqueIds = [...new Set(characterIds)].sort((a, b) => a - b);
+  const { linkedCharacters, familyPrimaryIds, discordLinks, familyMembers, lastRaidRows } =
+    await getEnrichmentData(uniqueIds);
 
   const characterMap = new Map(linkedCharacters.map((c) => [c.characterId, c]));
 
-  // A Discord identity is only resolvable when some Temple account has linked the FAMILY's
-  // primary character as their own `/profile` character — same simplification `raid-helper.ts`'s
-  // find-gamers query makes (an account linked to an alt, not the primary, won't resolve). Most
-  // world-buff rows are free-text submissions with no `characterId` at all, so this is always a
-  // best-effort lookup, never a guarantee.
-  const familyPrimaryIds = [
-    ...new Set(linkedCharacters.map((c) => c.primaryCharacterId ?? c.characterId)),
-  ];
-  const discordLinks =
-    familyPrimaryIds.length > 0
-      ? await db
-          .select({
-            characterId: users.characterId,
-            discordUserId: accounts.providerAccountId,
-            discordUsername: users.name,
-          })
-          .from(users)
-          .innerJoin(accounts, and(eq(users.id, accounts.userId), eq(accounts.provider, "discord")))
-          .where(inArray(users.characterId, familyPrimaryIds))
-      : [];
   const discordByFamilyId = new Map(discordLinks.map((d) => [d.characterId, d]));
 
   // "Idle raider": a linked family that has raided at some point in its history, but not within
   // the last 4 lockout weeks (3 complete + the current, in-progress one). Computed fresh on every
   // read rather than stored — unlike `markedInactiveAt`, this is a signal, not a manager decision.
-  const familyMembers =
-    familyPrimaryIds.length > 0
-      ? await db
-          .select({
-            characterId: characters.characterId,
-            primaryCharacterId: characters.primaryCharacterId,
-          })
-          .from(characters)
-          .where(
-            or(
-              inArray(characters.characterId, familyPrimaryIds),
-              inArray(characters.primaryCharacterId, familyPrimaryIds),
-            ),
-          )
-      : [];
   const memberIdsByFamilyId = new Map<number, number[]>(familyPrimaryIds.map((id) => [id, [id]]));
   for (const member of familyMembers) {
     const familyId = member.primaryCharacterId ?? member.characterId;
     if (member.characterId === familyId) continue;
     memberIdsByFamilyId.get(familyId)?.push(member.characterId);
   }
-  const allMemberIds = [...new Set([...memberIdsByFamilyId.values()].flat())];
 
-  // One row per character: its latest raid date. That answers all three questions this needs:
-  // "has ever raided" (has a row), "raided within the idle window" (latest date is on or after
-  // its start), and the last raid date itself. Aggregated in Postgres because the full history
-  // it replaced was ~22k rows per call, the largest query by rows left after the TEMPLE-153
-  // fixes (TEMPLE-156).
   const idleWindowStart = getLockoutWeeks(3, true)[0]!.start.toISOString().split("T")[0]!;
-  const lastRaidRows =
-    allMemberIds.length > 0
-      ? await db
-          .select({
-            characterId: raidLogAttendeeMap.characterId,
-            lastRaidDate: max(raids.date),
-          })
-          .from(raidLogAttendeeMap)
-          .innerJoin(raidLogs, eq(raidLogAttendeeMap.raidLogId, raidLogs.raidLogId))
-          .innerJoin(raids, eq(raidLogs.raidId, raids.raidId))
-          .where(
-            and(
-              inArray(raidLogAttendeeMap.characterId, allMemberIds),
-              eq(raidLogAttendeeMap.isIgnored, false),
-            ),
-          )
-          .groupBy(raidLogAttendeeMap.characterId)
-      : [];
   const lastRaidDateByCharacterId = new Map<number, string>();
   for (const row of lastRaidRows) {
     if (row.lastRaidDate) lastRaidDateByCharacterId.set(row.characterId, row.lastRaidDate);

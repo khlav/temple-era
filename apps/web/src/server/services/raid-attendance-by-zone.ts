@@ -3,7 +3,8 @@ import { count, eq } from "drizzle-orm";
 import { db } from "~/server/db";
 import { raidLogAttendeeMap, raidLogs, raids, raidBenchMap } from "~/server/db/schema";
 
-const ATTENDEE_TAG = "raid-attendance-by-zone";
+/** Moved by every write to raid attendance; see invalidateAttendanceByZoneCache. */
+export const ATTENDEE_TAG = "raid-attendance-by-zone";
 const BENCH_TAG = "raid-bench-by-zone";
 /**
  * Per-raid page metadata (getRaidMetadataWithStats in metadata-helpers.ts). It reads the same four

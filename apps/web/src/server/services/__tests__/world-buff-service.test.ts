@@ -7,6 +7,9 @@ const mockUpdateCall = vi.fn();
 const mockUpdateReturning = vi.fn();
 const mockDeleteReturning = vi.fn();
 
+// getAssignmentById reads through the enrichment cache; outside Next it is a plain call.
+vi.mock("next/cache", () => ({ unstable_cache: <T>(fn: T) => fn, revalidateTag: vi.fn() }));
+
 vi.mock("~/server/db", () => ({
   db: {
     query: {

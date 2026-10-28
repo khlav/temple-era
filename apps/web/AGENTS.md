@@ -298,6 +298,30 @@ Per-family data — earned tiers, earned hidden achievements — is still read l
   runs outside Next and can't bust the cache, so after reseeding definitions the visible list can
   lag by up to the 1h fallback.
 
+#### User access cache (TEMPLE-165)
+
+The session callback resolves a user's scopes on every signed-in request, so `resolveUserAccess`
+(`src/server/services/access-service.ts`) reads role scopes and the Discord account id through
+`unstable_cache` (tag `user-access`, 15-minute fallback). Superadmin is still decided against
+`SUPERADMIN_DISCORD_IDS` on every call, so the break-glass path is never cached.
+
+- **Every write to `role` or `user_role` must call `invalidateUserAccessCache()`**, or a revoked
+  permission keeps working until the fallback. `user-access-cache-guard.test.ts` fails on a
+  function or procedure that writes either table without calling it.
+- It expires with `revalidateTag(tag, { expire: 0 })`, not the `"max"` profile the other caches
+  use: `"max"` serves the stale value once more while it refreshes.
+- Signing in expires that user's entry (`invalidateUserAccessCacheForUser`), so logging out and back
+  in always picks up a role change.
+
+#### World-buff enrichment cache and achievement recalcs (TEMPLE-163, TEMPLE-164)
+
+- The world-buff page's character, family, Discord-link and last-raid lookups are cached
+  (`getEnrichmentData` in `world-buff-service.ts`, refreshed by raid writes via `ATTENDEE_TAG`,
+  1h fallback). A character rename, new primary or account link shows there within the hour.
+- `publishAchievementEvaluate` collapses every trigger for a raid within one half-hour clock
+  window into a single QStash message, delivered just after the window ends. Awards land 2 to 32
+  minutes after an import, not seconds.
+
 ## Development Workflow
 
 ### Branch, commit, and PR rules

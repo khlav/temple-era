@@ -9,6 +9,7 @@ import type { Scope } from "~/server/db/models/access-schema";
 import {
   resolveUserAccess,
   materializePendingGrantsForDiscordId,
+  invalidateUserAccessCacheForUser,
 } from "~/server/services/access-service";
 
 /**
@@ -116,6 +117,10 @@ export const authConfig = {
       if (user.id && profile?.id) {
         await materializePendingGrantsForDiscordId(String(profile.id), user.id);
       }
+
+      // Signing in re-reads the user's roles rather than trusting the cached copy, so logging
+      // out and back in is always enough to pick up a role change.
+      if (user.id) invalidateUserAccessCacheForUser(user.id);
 
       // Allow login
       return true;
