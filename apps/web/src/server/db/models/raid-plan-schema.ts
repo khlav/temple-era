@@ -156,6 +156,14 @@ export const raidPlans = tableCreator(
     useDefaultAA: boolean("use_default_aa").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(false),
     startAt: timestamp("start_at"),
+    // Per-part versions for the plan content cache (TEMPLE-161), bumped by triggers
+    // (drizzle/0006). updated_at still moves on every change; these move only when their own
+    // part does, so an edit re-reads that part alone. See raid-plan-content.ts.
+    rosterUpdatedAt: timestamp("roster_updated_at", { withTimezone: true }).defaultNow().notNull(),
+    layoutUpdatedAt: timestamp("layout_updated_at", { withTimezone: true }).defaultNow().notNull(),
+    defaultAAUpdatedAt: timestamp("default_aa_updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     ...CreatedBy,
     ...UpdatedBy,
     ...DefaultTimestamps,
@@ -276,6 +284,12 @@ export const raidPlanEncounters = tableCreator(
     useDefaultGroups: boolean("use_default_groups").notNull().default(true),
     aaTemplate: text("aa_template"), // AngryAssignments template (copied from template, editable)
     useCustomAA: boolean("use_custom_aa").notNull().default(false), // Whether to show AA UI
+    // Version of this encounter's assignments, AA slots and notes (TEMPLE-161), bumped by
+    // triggers on those tables (drizzle/0006). Changes to the encounter row itself move the
+    // plan's layout_updated_at instead.
+    contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     ...DefaultTimestamps,
   },
   (table) => ({
