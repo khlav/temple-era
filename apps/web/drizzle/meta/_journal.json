@@ -36,6 +36,20 @@
       "when": 1792673398551,
       "tag": "0004_raid_plan_note_touch_parent",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793191031693,
+      "tag": "0005_raid_plan_part_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793191033160,
+      "tag": "0006_raid_plan_part_version_triggers",
+      "breakpoints": true
     }
   ]
 }

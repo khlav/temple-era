@@ -259,14 +259,21 @@ plan while most of the raid keeps it open and alt-tabs back to it constantly. So
 a whole plan unless it has changed.
 
 - **Version = `raid_plan.updated_at`.** Touch triggers bump it on any change to the plan's
-  roster, groups, encounters, notes, assignments or AA slots (`0001_custom_objects.sql`, plus
-  `0004` for notes). **A new raid-plan child table needs the same trigger**, or edits to it will
-  be served stale.
-- **Server cache:** `getById` and `getPublicById` read a small header row (visibility, version,
-  editor names) live on every call. The heavy, viewer-agnostic content comes from
-  `getRaidPlanContent` (`src/server/services/raid-plan-content.ts`), an `unstable_cache` keyed on
-  `[planId, version]`. An edit lands on a new key, so there is no `revalidateTag` to call from
-  mutation sites. Cached values go through JSON: keep `Date` fields out of the content.
+  roster, groups, encounters, notes, assignments or AA slots (`drizzle/0006`). **A new raid-plan
+  child table needs a trigger there too**, or edits to it will be served stale.
+- **Server cache, one entry per part (TEMPLE-161):** `getById` and `getPublicById` read a small
+  header row (visibility, versions, editor names) live on every call. The heavy, viewer-agnostic
+  content comes from `getRaidPlanContent` (`src/server/services/raid-plan-content.ts`), cached in
+  parts, each keyed on its own version column so an edit re-reads only its own part: the roster
+  (`raid_plan.roster_updated_at`), the layout, meaning the encounter rows and groups
+  (`layout_updated_at`), the default/trash AA template and slots (`default_aa_updated_at`), and
+  each encounter's assignments, AA slots and notes (that encounter's entry in
+  `raid_plan.encounter_content_versions`). Every version lives on the plan row, so a trigger only
+  ever locks that row: putting encounter versions on encounter rows let bulk edits deadlock.
+  Before the split, every raid-night edit re-read the whole plan, ~190 times an hour. The triggers
+  move the versions, so there is no `revalidateTag` to call from mutation sites. The client still
+  gets one whole plan, so nothing client-side knows about the parts. Cached values go through JSON:
+  keep `Date` fields out of the content.
 - **Clients poll `raidPlan.getVersion`, not the plan.** It returns one timestamp; a private plan
   needs `raidplan:manage`. The editor (`use-raid-plan-mutations.ts`) polls it every 5s, and the
   public view checks it on focus and every 60s. Either one refetches the full plan only when the
@@ -275,7 +282,7 @@ a whole plan unless it has changed.
 - Personal layers on the public view (the viewer's characters, "view as") are separate small
   per-user queries, never part of the cached content.
 - Trade-off: a character's class or primary changed elsewhere shows in a cached plan only after
-  the plan's next edit, or the 24h cache expiry.
+  the plan's next roster edit, or the 24h cache expiry.
 
 #### Achievements catalog cache (TEMPLE-151)
 

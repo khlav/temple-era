@@ -7,6 +7,7 @@ import {
   boolean,
   uuid,
   text,
+  jsonb,
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -156,6 +157,22 @@ export const raidPlans = tableCreator(
     useDefaultAA: boolean("use_default_aa").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(false),
     startAt: timestamp("start_at"),
+    // Per-part versions for the plan content cache (TEMPLE-161), bumped by triggers
+    // (drizzle/0006). updated_at still moves on every change; these move only when their own
+    // part does, so an edit re-reads that part alone. See raid-plan-content.ts.
+    rosterUpdatedAt: timestamp("roster_updated_at", { withTimezone: true }).defaultNow().notNull(),
+    layoutUpdatedAt: timestamp("layout_updated_at", { withTimezone: true }).defaultNow().notNull(),
+    defaultAAUpdatedAt: timestamp("default_aa_updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    // Encounter id -> version of that encounter's assignments, AA slots and notes. Kept on the
+    // plan row, not the encounter's, so a child edit still locks only this row, as it did before
+    // the split. Locking the encounter too let a bulk edit across encounters deadlock with a
+    // single-encounter edit. An encounter with no entry yet uses the layout version.
+    encounterContentVersions: jsonb("encounter_content_versions")
+      .$type<Record<string, string>>()
+      .default({})
+      .notNull(),
     ...CreatedBy,
     ...UpdatedBy,
     ...DefaultTimestamps,

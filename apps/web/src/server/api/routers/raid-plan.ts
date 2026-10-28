@@ -22,7 +22,7 @@ import {
   isLegacyRaidPlanUuid,
 } from "~/lib/raid-plan-id";
 import { withRaidPlanIdRetry } from "~/server/services/raid-plan-id-retry";
-import { getRaidPlanContent } from "~/server/services/raid-plan-content";
+import { getRaidPlanContent, planPartVersionColumns } from "~/server/services/raid-plan-content";
 import {
   raidPlans,
   raidPlanCharacters,
@@ -231,7 +231,7 @@ export const raidPlanRouter = createTRPCRouter({
     .input(z.object({ planId: raidPlanIdOrLegacyUuidSchema }))
     .query(async ({ ctx, input }) => {
       // Small per-request head: identity, version and editor names. The heavy, viewer-agnostic
-      // content comes from getRaidPlanContent, keyed on the version read here.
+      // content comes from getRaidPlanContent, keyed on the part versions read here.
       const plan = await ctx.db
         .select({
           id: raidPlans.id,
@@ -243,6 +243,7 @@ export const raidPlanRouter = createTRPCRouter({
           updatedAt: raidPlans.updatedAt,
           startAt: raidPlans.startAt,
           isPublic: raidPlans.isPublic,
+          ...planPartVersionColumns,
           creator: {
             id: creatorUsers.id,
             name: creatorUsers.name,
@@ -269,9 +270,23 @@ export const raidPlanRouter = createTRPCRouter({
 
       // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
       // canonical nanoid) — the content loader is always handed the resolved id.
-      const { updatedAt: _updatedAt, creator, lastEditor, ...head } = plan[0]!;
+      const {
+        updatedAt: _updatedAt,
+        rosterUpdatedAt,
+        layoutUpdatedAt,
+        defaultAAUpdatedAt,
+        encounterVersions,
+        creator,
+        lastEditor,
+        ...head
+      } = plan[0]!;
       const lastModifiedAt = raidPlanVersion(plan[0]!);
-      const content = await getRaidPlanContent(head.id, head.eventId, lastModifiedAt);
+      const content = await getRaidPlanContent(head.id, head.eventId, {
+        rosterUpdatedAt,
+        layoutUpdatedAt,
+        defaultAAUpdatedAt,
+        encounterVersions,
+      });
 
       return {
         ...head,
@@ -485,6 +500,7 @@ export const raidPlanRouter = createTRPCRouter({
           updatedAt: raidPlans.updatedAt,
           startAt: raidPlans.startAt,
           isPublic: raidPlans.isPublic,
+          ...planPartVersionColumns,
         })
         .from(raidPlans)
         .where(and(raidPlanIdCondition(input.planId), eq(raidPlans.isPublic, true)))
@@ -499,9 +515,21 @@ export const raidPlanRouter = createTRPCRouter({
 
       // A legacy-UUID input.planId won't match child rows' raid_plan_id (migrated to the
       // canonical nanoid) — the content loader is always handed the resolved id.
-      const { updatedAt: _updatedAt, ...head } = plan[0]!;
+      const {
+        updatedAt: _updatedAt,
+        rosterUpdatedAt,
+        layoutUpdatedAt,
+        defaultAAUpdatedAt,
+        encounterVersions,
+        ...head
+      } = plan[0]!;
       const lastModifiedAt = raidPlanVersion(plan[0]!);
-      const content = await getRaidPlanContent(head.id, head.eventId, lastModifiedAt);
+      const content = await getRaidPlanContent(head.id, head.eventId, {
+        rosterUpdatedAt,
+        layoutUpdatedAt,
+        defaultAAUpdatedAt,
+        encounterVersions,
+      });
 
       return { ...head, ...content, lastModifiedAt };
     }),

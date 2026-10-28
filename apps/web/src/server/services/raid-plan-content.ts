@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { aliasedTable, eq, inArray, or, sql } from "drizzle-orm";
+import { aliasedTable, and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import {
   characters,
@@ -13,67 +13,71 @@ import {
   raids,
 } from "~/server/db/schema";
 
-// 24h fallback only. Freshness comes from the cache key: `version` is raid_plan.updated_at, which
-// the touch triggers in drizzle/0001_custom_objects.sql (+ 0004 for notes) bump on any change to
-// the plan's roster, groups, encounters, notes, assignments or AA slots. An edit therefore lands
-// on a new key instead of needing a revalidateTag call at each of the router's mutation sites.
+// 24h fallback only. Freshness comes from the cache keys: each part below is keyed on its own
+// version column, which the touch triggers in drizzle/0006 move whenever that part changes. An edit
+// therefore lands on a new key for its part alone, with no revalidateTag call at the router's
+// mutation sites.
 const REVALIDATE_SECONDS = 60 * 60 * 24;
 
-/**
- * Everything a raid plan page renders that is the same for every viewer: the plan's AA template,
- * roster, encounters (+ notes), groups, assignments and AA slots. Personal layers — the viewer's
- * own characters, "view as" — are separate per-user queries on the client.
+/*
+ * A raid plan's viewer-agnostic content, cached in four kinds of part (TEMPLE-161). It used to be
+ * one entry keyed on raid_plan.updated_at, so every edit re-read the whole plan, ~150 AA-slot rows
+ * included: on raid night, one full read per edit, about 190 an hour. Now an edit re-reads only its
+ * own part:
  *
- * Every value here must survive JSON, since unstable_cache stores it that way: no Date fields.
+ *   roster      raid_plan_character                     raid_plan.roster_updated_at
+ *   layout      encounters (the rows) and their groups  raid_plan.layout_updated_at
+ *   default AA  the default/trash AA template and slots raid_plan.default_aa_updated_at
+ *   encounter   one encounter's assignments, AA slots   raid_plan.encounter_content_versions ->> id
+ *               and notes
  *
- * Only data whose changes move the plan's version belongs here. The linked raid (name, date) is
- * edited independently of the plan, so getRaidPlanContent reads it live instead.
+ * The versions are read live alongside the plan's visibility (planPartVersionColumns), so no
+ * version is ever served from cache. Clients are unaffected: they still poll raid_plan.updated_at
+ * and get the whole plan back, assembled from the parts.
+ *
+ * Every cached value goes through JSON: no Date fields. Only data whose changes move a part's
+ * version belongs here. The linked raid (name, date) is edited independently of the plan, so
+ * getRaidPlanContent reads it live instead.
  */
-async function loadRaidPlanContent(planId: string) {
+
+async function loadRoster(planId: string) {
   const primaryCharacters = aliasedTable(characters, "primary_characters");
-  const [aaDefaults, planCharacters, encounters, encounterGroups] = await Promise.all([
-    db
-      .select({
-        defaultAATemplate: raidPlans.defaultAATemplate,
-        useDefaultAA: raidPlans.useDefaultAA,
-      })
-      .from(raidPlans)
-      .where(eq(raidPlans.id, planId))
-      .limit(1),
-    db
-      .select({
-        id: raidPlanCharacters.id,
-        characterId: raidPlanCharacters.characterId,
-        // Resolve to effective primary: secondary.primaryCharacterId or primary's own characterId
-        primaryCharacterId: sql<
-          number | null
-        >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-        primaryCharacterName: primaryCharacters.name,
-        characterName: raidPlanCharacters.characterName,
-        defaultGroup: raidPlanCharacters.defaultGroup,
-        defaultPosition: raidPlanCharacters.defaultPosition,
-        // COALESCE: use joined character class, fall back to write-in class
-        class: sql<
-          string | null
-        >`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
-        server: characters.server,
-      })
-      .from(raidPlanCharacters)
-      .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
-      .leftJoin(
-        primaryCharacters,
-        eq(
-          primaryCharacters.characterId,
-          sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
-        ),
-      )
-      .where(eq(raidPlanCharacters.raidPlanId, planId))
-      .orderBy(
-        raidPlanCharacters.defaultGroup,
-        raidPlanCharacters.defaultPosition,
-        raidPlanCharacters.characterName,
-        raidPlanCharacters.id,
+  return db
+    .select({
+      id: raidPlanCharacters.id,
+      characterId: raidPlanCharacters.characterId,
+      // Resolve to effective primary: secondary.primaryCharacterId or primary's own characterId
+      primaryCharacterId: sql<
+        number | null
+      >`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
+      primaryCharacterName: primaryCharacters.name,
+      characterName: raidPlanCharacters.characterName,
+      defaultGroup: raidPlanCharacters.defaultGroup,
+      defaultPosition: raidPlanCharacters.defaultPosition,
+      // COALESCE: use joined character class, fall back to write-in class
+      class: sql<string | null>`COALESCE(${characters.class}, ${raidPlanCharacters.writeInClass})`,
+      server: characters.server,
+    })
+    .from(raidPlanCharacters)
+    .leftJoin(characters, eq(raidPlanCharacters.characterId, characters.characterId))
+    .leftJoin(
+      primaryCharacters,
+      eq(
+        primaryCharacters.characterId,
+        sql`COALESCE(${characters.primaryCharacterId}, ${characters.characterId})`,
       ),
+    )
+    .where(eq(raidPlanCharacters.raidPlanId, planId))
+    .orderBy(
+      raidPlanCharacters.defaultGroup,
+      raidPlanCharacters.defaultPosition,
+      raidPlanCharacters.characterName,
+      raidPlanCharacters.id,
+    );
+}
+
+async function loadLayout(planId: string) {
+  const [encounters, encounterGroups] = await Promise.all([
     db
       .select({
         id: raidPlanEncounters.id,
@@ -98,31 +102,62 @@ async function loadRaidPlanContent(planId: string) {
       .where(eq(raidPlanEncounterGroups.raidPlanId, planId))
       .orderBy(raidPlanEncounterGroups.sortOrder),
   ]);
+  return { encounters, encounterGroups };
+}
 
-  const encounterIds = encounters.map((e) => e.id);
-  const customEncounterIds = encounters.filter((e) => !e.useDefaultGroups).map((e) => e.id);
+const aaSlotColumns = {
+  id: raidPlanEncounterAASlots.id,
+  encounterId: raidPlanEncounterAASlots.encounterId,
+  raidPlanId: raidPlanEncounterAASlots.raidPlanId,
+  planCharacterId: raidPlanEncounterAASlots.planCharacterId,
+  slotName: raidPlanEncounterAASlots.slotName,
+  sortOrder: raidPlanEncounterAASlots.sortOrder,
+};
 
-  const aaSlotConditions = [eq(raidPlanEncounterAASlots.raidPlanId, planId)];
-  if (encounterIds.length > 0) {
-    aaSlotConditions.push(inArray(raidPlanEncounterAASlots.encounterId, encounterIds));
-  }
+async function loadDefaultAA(planId: string) {
+  const [defaults, slots] = await Promise.all([
+    db
+      .select({
+        defaultAATemplate: raidPlans.defaultAATemplate,
+        useDefaultAA: raidPlans.useDefaultAA,
+      })
+      .from(raidPlans)
+      .where(eq(raidPlans.id, planId))
+      .limit(1),
+    // A slot with encounter_id set belongs to that encounter, whatever its raid_plan_id says; the
+    // aa-slot trigger files it the same way.
+    db
+      .select(aaSlotColumns)
+      .from(raidPlanEncounterAASlots)
+      .where(
+        and(
+          eq(raidPlanEncounterAASlots.raidPlanId, planId),
+          isNull(raidPlanEncounterAASlots.encounterId),
+        ),
+      )
+      .orderBy(raidPlanEncounterAASlots.sortOrder),
+  ]);
+  return {
+    defaultAATemplate: defaults[0]?.defaultAATemplate ?? null,
+    useDefaultAA: defaults[0]?.useDefaultAA ?? false,
+    slots,
+  };
+}
 
-  const [encounterNotes, encounterAssignments, aaSlotAssignments] = await Promise.all([
-    encounterIds.length > 0
-      ? db
-          .select({
-            id: raidPlanEncounterNotes.id,
-            encounterId: raidPlanEncounterNotes.encounterId,
-            iconRef: raidPlanEncounterNotes.iconRef,
-            text: raidPlanEncounterNotes.text,
-            sortOrder: raidPlanEncounterNotes.sortOrder,
-          })
-          .from(raidPlanEncounterNotes)
-          .where(inArray(raidPlanEncounterNotes.encounterId, encounterIds))
-          .orderBy(raidPlanEncounterNotes.encounterId, raidPlanEncounterNotes.sortOrder)
-      : Promise.resolve([]),
-    // Assignments only exist for encounters with custom groups
-    customEncounterIds.length > 0
+async function loadEncounterContent(encounterId: string, includeAssignments: boolean) {
+  const [notes, assignments, aaSlots] = await Promise.all([
+    db
+      .select({
+        id: raidPlanEncounterNotes.id,
+        iconRef: raidPlanEncounterNotes.iconRef,
+        text: raidPlanEncounterNotes.text,
+        sortOrder: raidPlanEncounterNotes.sortOrder,
+      })
+      .from(raidPlanEncounterNotes)
+      .where(eq(raidPlanEncounterNotes.encounterId, encounterId))
+      .orderBy(raidPlanEncounterNotes.sortOrder),
+    // Assignments only apply to encounters with custom groups
+    includeAssignments
       ? db
           .select({
             encounterId: raidPlanEncounterAssignments.encounterId,
@@ -131,78 +166,84 @@ async function loadRaidPlanContent(planId: string) {
             position: raidPlanEncounterAssignments.position,
           })
           .from(raidPlanEncounterAssignments)
-          .where(inArray(raidPlanEncounterAssignments.encounterId, customEncounterIds))
+          .where(eq(raidPlanEncounterAssignments.encounterId, encounterId))
           .orderBy(
-            raidPlanEncounterAssignments.encounterId,
             raidPlanEncounterAssignments.groupNumber,
             raidPlanEncounterAssignments.position,
             raidPlanEncounterAssignments.planCharacterId,
           )
       : Promise.resolve([]),
-    // All AA slot assignments in one query (encounter-specific + default/trash)
     db
-      .select({
-        id: raidPlanEncounterAASlots.id,
-        encounterId: raidPlanEncounterAASlots.encounterId,
-        raidPlanId: raidPlanEncounterAASlots.raidPlanId,
-        planCharacterId: raidPlanEncounterAASlots.planCharacterId,
-        slotName: raidPlanEncounterAASlots.slotName,
-        sortOrder: raidPlanEncounterAASlots.sortOrder,
-      })
+      .select(aaSlotColumns)
       .from(raidPlanEncounterAASlots)
-      .where(or(...aaSlotConditions))
+      .where(eq(raidPlanEncounterAASlots.encounterId, encounterId))
       .orderBy(raidPlanEncounterAASlots.sortOrder),
   ]);
-
-  const notesByEncounterId = new Map<
-    string,
-    { id: string; iconRef: string; text: string | null; sortOrder: number }[]
-  >();
-  for (const note of encounterNotes) {
-    const existing = notesByEncounterId.get(note.encounterId) ?? [];
-    existing.push({
-      id: note.id,
-      iconRef: note.iconRef,
-      text: note.text,
-      sortOrder: note.sortOrder,
-    });
-    notesByEncounterId.set(note.encounterId, existing);
-  }
-
-  return {
-    defaultAATemplate: aaDefaults[0]?.defaultAATemplate ?? null,
-    useDefaultAA: aaDefaults[0]?.useDefaultAA ?? false,
-    characters: planCharacters,
-    encounterGroups,
-    encounters: encounters.map((enc) => ({
-      ...enc,
-      notes: notesByEncounterId.get(enc.id) ?? [],
-    })),
-    encounterAssignments,
-    aaSlotAssignments,
-  };
+  return { notes, assignments, aaSlots };
 }
 
-export type RaidPlanContent = Awaited<ReturnType<typeof loadRaidPlanContent>>;
-
-// unstable_cache folds the call's arguments into the key, so `version` (unused in the body)
-// is what makes each edit a fresh entry.
-const getCachedRaidPlanContent = unstable_cache(
-  async (planId: string, _version: string) => loadRaidPlanContent(planId),
-  ["raid-plan-content"],
+// unstable_cache folds the call's arguments into the key, so each version argument (unused in the
+// body) is what makes an edit to that part a fresh entry.
+const getCachedRoster = unstable_cache(
+  async (planId: string, _version: string) => loadRoster(planId),
+  ["raid-plan-roster"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+const getCachedLayout = unstable_cache(
+  async (planId: string, _version: string) => loadLayout(planId),
+  ["raid-plan-layout"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+const getCachedDefaultAA = unstable_cache(
+  async (planId: string, _version: string) => loadDefaultAA(planId),
+  ["raid-plan-default-aa"],
+  { revalidate: REVALIDATE_SECONDS },
+);
+// useDefaultGroups decides whether assignments load at all. It's a layout field, so flipping it
+// moves layout_updated_at rather than this encounter's version; passing it here gives the flip a
+// new key too.
+const getCachedEncounterContent = unstable_cache(
+  async (encounterId: string, includeAssignments: boolean, _version: string) =>
+    loadEncounterContent(encounterId, includeAssignments),
+  ["raid-plan-encounter-content"],
   { revalidate: REVALIDATE_SECONDS },
 );
 
 /**
- * Plan content from Vercel's shared Data Cache, read from the database only when the plan has
- * changed since the last read (by any viewer). `planId` must be the canonical id and `version`
- * the plan's current COALESCE(updated_at, created_at) — read live by the caller, alongside the
- * visibility check, so neither is ever served from cache. The linked raid is one small row read
- * live alongside it, since editing a raid doesn't move the plan's version.
+ * The part versions, to spread into the select that reads the plan's head row. Read live on every
+ * call, from the same row as the visibility check. All of them are Postgres's own timestamp text:
+ * a JS Date keeps only milliseconds, so two writes to one part within a millisecond would share a
+ * key, and a read between them could cache the first write's content under the second's version.
  */
-export async function getRaidPlanContent(planId: string, eventId: number | null, version: Date) {
-  const [content, eventResult] = await Promise.all([
-    getCachedRaidPlanContent(planId, version.toISOString()),
+export const planPartVersionColumns = {
+  rosterUpdatedAt: sql<string>`${raidPlans.rosterUpdatedAt}::text`,
+  layoutUpdatedAt: sql<string>`${raidPlans.layoutUpdatedAt}::text`,
+  defaultAAUpdatedAt: sql<string>`${raidPlans.defaultAAUpdatedAt}::text`,
+  encounterVersions: raidPlans.encounterContentVersions,
+};
+
+export interface RaidPlanPartVersions {
+  rosterUpdatedAt: string;
+  layoutUpdatedAt: string;
+  defaultAAUpdatedAt: string;
+  encounterVersions: Record<string, string>;
+}
+
+/**
+ * Plan content from Vercel's shared Data Cache, each part read from the database only when it has
+ * changed since the last read (by any viewer). `planId` must be the canonical id and `versions` the
+ * row read live by the caller via planPartVersionColumns. The linked raid is one small row read live
+ * alongside it, since editing a raid doesn't move any plan version.
+ */
+export async function getRaidPlanContent(
+  planId: string,
+  eventId: number | null,
+  versions: RaidPlanPartVersions,
+) {
+  const [roster, layout, defaultAA, eventResult] = await Promise.all([
+    getCachedRoster(planId, versions.rosterUpdatedAt),
+    getCachedLayout(planId, versions.layoutUpdatedAt),
+    getCachedDefaultAA(planId, versions.defaultAAUpdatedAt),
     eventId
       ? db
           .select({ raidId: raids.raidId, name: raids.name, date: raids.date })
@@ -212,5 +253,41 @@ export async function getRaidPlanContent(planId: string, eventId: number | null,
       : Promise.resolve([]),
   ]);
 
-  return { ...content, event: eventResult[0] ?? null };
+  // An encounter gets an entry in the map on its first child edit. Until then (a new encounter, or
+  // one untouched since this was deployed) its content is keyed on the layout version, which also
+  // moves when the encounter is added. Entries for deleted encounters stay in the map, unread.
+  const encounterContents = await Promise.all(
+    layout.encounters.map((enc) =>
+      getCachedEncounterContent(
+        enc.id,
+        !enc.useDefaultGroups,
+        versions.encounterVersions[enc.id] ?? `layout:${versions.layoutUpdatedAt}`,
+      ),
+    ),
+  );
+
+  // Reassemble the single-entry shape this replaced: assignments ordered by encounter, then group
+  // and position; AA slots by sortOrder across the default set and every encounter.
+  const encounterAssignments = layout.encounters
+    .map((enc, i) => ({ id: enc.id, assignments: encounterContents[i]!.assignments }))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .flatMap((enc) => enc.assignments);
+  const aaSlotAssignments = [
+    ...defaultAA.slots,
+    ...encounterContents.flatMap((content) => content.aaSlots),
+  ].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  return {
+    defaultAATemplate: defaultAA.defaultAATemplate,
+    useDefaultAA: defaultAA.useDefaultAA,
+    characters: roster,
+    encounterGroups: layout.encounterGroups,
+    encounters: layout.encounters.map((enc, i) => ({
+      ...enc,
+      notes: encounterContents[i]!.notes,
+    })),
+    encounterAssignments,
+    aaSlotAssignments,
+    event: eventResult[0] ?? null,
+  };
 }
