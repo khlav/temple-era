@@ -211,20 +211,21 @@ const getCachedEncounterContent = unstable_cache(
 
 /**
  * The part versions, to spread into the select that reads the plan's head row. Read live on every
- * call, from the same row as the visibility check. Encounter versions are Postgres's own timestamp
- * text, keeping the microseconds a JS Date would drop.
+ * call, from the same row as the visibility check. All of them are Postgres's own timestamp text:
+ * a JS Date keeps only milliseconds, so two writes to one part within a millisecond would share a
+ * key, and a read between them could cache the first write's content under the second's version.
  */
 export const planPartVersionColumns = {
-  rosterUpdatedAt: raidPlans.rosterUpdatedAt,
-  layoutUpdatedAt: raidPlans.layoutUpdatedAt,
-  defaultAAUpdatedAt: raidPlans.defaultAAUpdatedAt,
+  rosterUpdatedAt: sql<string>`${raidPlans.rosterUpdatedAt}::text`,
+  layoutUpdatedAt: sql<string>`${raidPlans.layoutUpdatedAt}::text`,
+  defaultAAUpdatedAt: sql<string>`${raidPlans.defaultAAUpdatedAt}::text`,
   encounterVersions: raidPlans.encounterContentVersions,
 };
 
 export interface RaidPlanPartVersions {
-  rosterUpdatedAt: Date;
-  layoutUpdatedAt: Date;
-  defaultAAUpdatedAt: Date;
+  rosterUpdatedAt: string;
+  layoutUpdatedAt: string;
+  defaultAAUpdatedAt: string;
   encounterVersions: Record<string, string>;
 }
 
@@ -240,9 +241,9 @@ export async function getRaidPlanContent(
   versions: RaidPlanPartVersions,
 ) {
   const [roster, layout, defaultAA, eventResult] = await Promise.all([
-    getCachedRoster(planId, versions.rosterUpdatedAt.toISOString()),
-    getCachedLayout(planId, versions.layoutUpdatedAt.toISOString()),
-    getCachedDefaultAA(planId, versions.defaultAAUpdatedAt.toISOString()),
+    getCachedRoster(planId, versions.rosterUpdatedAt),
+    getCachedLayout(planId, versions.layoutUpdatedAt),
+    getCachedDefaultAA(planId, versions.defaultAAUpdatedAt),
     eventId
       ? db
           .select({ raidId: raids.raidId, name: raids.name, date: raids.date })
@@ -260,7 +261,7 @@ export async function getRaidPlanContent(
       getCachedEncounterContent(
         enc.id,
         !enc.useDefaultGroups,
-        versions.encounterVersions[enc.id] ?? `layout:${versions.layoutUpdatedAt.toISOString()}`,
+        versions.encounterVersions[enc.id] ?? `layout:${versions.layoutUpdatedAt}`,
       ),
     ),
   );
