@@ -2,6 +2,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { env } from "~/env";
+import { logger } from "~/lib/logger";
 import { SCOPE, SCOPES } from "~/lib/scopes";
 import { accounts, users } from "~/server/db/models/auth-schema";
 import {
@@ -52,9 +53,11 @@ const USER_ACCESS_REVALIDATE_SECONDS = 15 * 60;
 /**
  * The database half of resolveUserAccess, cached per user in the shared Data Cache. The session
  * callback resolves access on every signed-in request, which was ~5,800 role reads and as many
- * Discord-account lookups a day (TEMPLE-165). Only facts that change through the app are cached:
- * whether the Discord id is a superadmin is decided against the env on every call, so the
- * break-glass path still works the moment SUPERADMIN_DISCORD_IDS changes.
+ * Discord-account lookups a day (TEMPLE-165). The role scopes change only through the app, which
+ * expires this on every such write. The Discord id never changes for a user: Discord is the only
+ * provider, NextAuth links it once at first sign-in, before any session exists to cache, and
+ * nothing in the app unlinks it. Whether that id is a superadmin is decided against the env on
+ * every call, so the break-glass path still works the moment SUPERADMIN_DISCORD_IDS changes.
  */
 const getCachedUserAccessFacts = unstable_cache(
   async (userId: string) => {
@@ -80,16 +83,18 @@ const getCachedUserAccessFacts = unstable_cache(
 );
 
 /**
- * Expires every user's cached access immediately. Call it after any write to role, user_role or
- * discord_role_binding. `{ expire: 0 }` rather than the "max" profile used for other caches here:
- * "max" serves the stale value once more while it refreshes, which would let a revoked permission
- * through on the next request.
+ * Expires every user's cached access immediately. Call it after any write to role or user_role.
+ * `{ expire: 0 }` rather than the "max" profile used for other caches here: "max" serves the stale
+ * value once more while it refreshes, which would let a revoked permission through on the next
+ * request.
  */
 export function invalidateUserAccessCache(): void {
   try {
     revalidateTag(USER_ACCESS_TAG, { expire: 0 });
-  } catch {
-    // Outside a Next request (scripts, tests) there is no cache to expire.
+  } catch (err) {
+    // Expected outside a Next request (scripts, tests), where there is no cache to expire. Inside
+    // one it would leave a revoked permission working until the fallback, so leave a trace.
+    logger.warn({ err }, "Failed to expire the user-access cache");
   }
 }
 
