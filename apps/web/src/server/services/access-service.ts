@@ -1,3 +1,4 @@
+import { revalidateTag, unstable_cache } from "next/cache";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "~/server/db";
 import { env } from "~/env";
@@ -43,28 +44,69 @@ function deriveLegacyFlags(scopeSet: Set<Scope>): { isRaidManager: boolean; isAd
   };
 }
 
+const USER_ACCESS_TAG = "user-access";
+// Fallback only, for edits made outside the app (hand-run SQL). Every in-app write to role,
+// user_role or a Discord role binding expires the cache at once via invalidateUserAccessCache().
+const USER_ACCESS_REVALIDATE_SECONDS = 15 * 60;
+
+/**
+ * The database half of resolveUserAccess, cached per user in the shared Data Cache. The session
+ * callback resolves access on every signed-in request, which was ~5,800 role reads and as many
+ * Discord-account lookups a day (TEMPLE-165). Only facts that change through the app are cached:
+ * whether the Discord id is a superadmin is decided against the env on every call, so the
+ * break-glass path still works the moment SUPERADMIN_DISCORD_IDS changes.
+ */
+const getCachedUserAccessFacts = unstable_cache(
+  async (userId: string) => {
+    const [rows, account] = await Promise.all([
+      db
+        .select({ scopes: roles.scopes })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(eq(userRoles.userId, userId)),
+      db
+        .select({ discordId: accounts.providerAccountId })
+        .from(accounts)
+        .where(and(eq(accounts.userId, userId), eq(accounts.provider, "discord")))
+        .limit(1),
+    ]);
+    return {
+      roleScopes: [...new Set(rows.flatMap((row) => row.scopes))],
+      discordId: account[0]?.discordId ?? null,
+    };
+  },
+  ["user-access"],
+  { tags: [USER_ACCESS_TAG], revalidate: USER_ACCESS_REVALIDATE_SECONDS },
+);
+
+/**
+ * Expires every user's cached access immediately. Call it after any write to role, user_role or
+ * discord_role_binding. `{ expire: 0 }` rather than the "max" profile used for other caches here:
+ * "max" serves the stale value once more while it refreshes, which would let a revoked permission
+ * through on the next request.
+ */
+export function invalidateUserAccessCache(): void {
+  try {
+    revalidateTag(USER_ACCESS_TAG, { expire: 0 });
+  } catch {
+    // Outside a Next request (scripts, tests) there is no cache to expire.
+  }
+}
+
 /**
  * Resolves a user's effective scopes (role-derived + default) and the backward-compatible
  * isRaidManager/isAdmin booleans derived from them. Single chokepoint for every consumer that
  * used to read isRaidManager/isAdmin directly off the auth_user row.
  */
 export async function resolveUserAccess(userId: string): Promise<UserAccess> {
-  const [rows, isSuperadmin] = await Promise.all([
-    db
-      .select({ scopes: roles.scopes })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(eq(userRoles.userId, userId)),
-    isSuperadminUserId(userId),
-  ]);
+  const { roleScopes, discordId } = await getCachedUserAccessFacts(userId);
+  const isSuperadmin = discordId !== null && env.SUPERADMIN_DISCORD_IDS.includes(discordId);
 
   // Superadmins hold every scope by definition, so future scopes are covered without config
   // changes. Deliberately additive to (not a replacement for) role-derived scopes.
   const scopeSet = new Set<Scope>(isSuperadmin ? SCOPES : DEFAULT_MEMBER_SCOPES);
-  for (const row of rows) {
-    for (const scope of row.scopes) {
-      scopeSet.add(scope as Scope);
-    }
+  for (const scope of roleScopes) {
+    scopeSet.add(scope as Scope);
   }
 
   return {
@@ -157,6 +199,7 @@ export async function materializePendingGrantsForDiscordId(
   await db
     .delete(discordPendingRoleGrants)
     .where(eq(discordPendingRoleGrants.discordUserId, discordUserId));
+  invalidateUserAccessCache();
 }
 
 /**

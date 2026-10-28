@@ -13,7 +13,7 @@ import {
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getGuildRoles } from "~/server/api/discord-guild-helpers";
 import { getDiscordSyncState, syncDiscordRoles } from "~/server/services/discord-role-sync";
-import { getSuperadminUserIds } from "~/server/services/access-service";
+import { getSuperadminUserIds, invalidateUserAccessCache } from "~/server/services/access-service";
 import { SUPERADMIN_ROLE_ID, SUPERADMIN_ROLE_NAME } from "~/lib/scopes";
 
 // Superadmin is a synthetic, env-derived role with no `role` row, so its sentinel id must never
@@ -146,6 +146,7 @@ export const user = createTRPCRouter({
         })
         .where(eq(roles.id, input.id))
         .returning();
+      invalidateUserAccessCache();
       return updated;
     }),
 
@@ -159,6 +160,7 @@ export const user = createTRPCRouter({
       }
 
       await ctx.db.delete(roles).where(eq(roles.id, input.id));
+      invalidateUserAccessCache();
       return { success: true };
     }),
 
@@ -232,6 +234,7 @@ export const user = createTRPCRouter({
           set: { source: "manual", sourceBindingId: null },
         })
         .returning({ id: userRoles.id });
+      invalidateUserAccessCache();
       return { id: grant?.id };
     }),
 
@@ -266,6 +269,7 @@ export const user = createTRPCRouter({
             targetWhere: sql`${userRoles.source} = 'manual'`,
             set: { source: "manual", sourceBindingId: null },
           });
+        invalidateUserAccessCache();
         return { granted: "user_role" as const };
       }
 
@@ -304,6 +308,7 @@ export const user = createTRPCRouter({
       }
 
       await ctx.db.delete(userRoles).where(eq(userRoles.id, input.id));
+      invalidateUserAccessCache();
       return { success: true };
     }),
 

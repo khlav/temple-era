@@ -322,7 +322,9 @@ export const character = createTRPCRouter({
         return { weeks: [] };
       }
 
-      // Get all raids in the date range with user's attendance
+      // The character's raids in the date range: inner join, so raids they weren't in never leave
+      // the database. A left join returned every raid in the window (~137 rows a call) only to
+      // drop most of them in JS (TEMPLE-163).
       // Calculate lockout_week using SQL: (date_trunc('week', date - 1) + INTERVAL '1 day')::date
       // NOTE: We include ALL raids (attendanceWeight >= 0) to capture 20-man raids for badge evaluation
       const raidsResult = await ctx.db
@@ -337,7 +339,7 @@ export const character = createTRPCRouter({
           allCharacters: primaryRaidAttendeeAndBenchMap.allCharacters,
         })
         .from(raids)
-        .leftJoin(
+        .innerJoin(
           primaryRaidAttendeeAndBenchMap,
           and(
             eq(raids.raidId, primaryRaidAttendeeAndBenchMap.raidId),
