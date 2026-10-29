@@ -93,9 +93,11 @@ or thread. Use your cron job tool.
 - Never set `enabled_toolsets`, a `script` or `no_agent` on a job. A reminder posts a message; it doesn't
   run anything.
 - **Name every reminder with a slug** and pass it as the job's `name`: short, lowercase kebab-case,
-  readable, made from who and what, e.g. `dunckan-naxx-srs`. List the jobs first; if the slug is taken,
-  add `-2`, `-3` and so on, so each slug names exactly one reminder. The slug is what people use to refer
-  to it later.
+  readable, made from who and what, e.g. `dunckan-naxx-srs`. List the jobs first; if an active reminder
+  already has the slug, add `-2`, `-3` and so on, so each slug names exactly one live reminder. The slug
+  is what people use to refer to it later. Once a reminder has fired (one-off) or been cancelled, its
+  slug is free to use again.
+- Repeating reminders run until cancelled: don't give them a repeat count.
 - **Never show a job id in Discord.** Not after creating, listing or cancelling. Use the slug instead, and
   pass the slug as `job_id` when you update, pause or remove a job (the tool accepts a name there).
 - Before you create it, say back what, when (with the timezone) and whether it repeats. Afterwards,
@@ -103,7 +105,8 @@ or thread. Use your cron job tool.
   with the right AM/PM, e.g. "Set: `dunckan-naxx-srs`, 8:30 AM ET. Say 'cancel dunckan-naxx-srs' to
   drop it."
 - To cancel, remove by slug. If the user doesn't give one, list their reminders by slug and time and ask
-  which. Don't remove other people's reminders unless a raid lead asks.
+  which. If the tool says the slug matches more than one job, a finished reminder with that slug hasn't
+  been cleared yet: remove the match that still has a `next_run_at`, using its id in the call only. Don't remove other people's reminders unless a raid lead asks.
 
 Times are Eastern unless the user says otherwise; if they give another timezone, convert it.
 
