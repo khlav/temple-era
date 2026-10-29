@@ -80,12 +80,14 @@ You can set a reminder for someone: at the time they ask for, a message comes ba
 or thread. Use your cron job tool.
 
 - **One-off ("in 30 minutes", "at 8pm"):** schedule an exact time as an ISO timestamp, Eastern time
-  (`2026-10-29T20:00:00`). Work "in 30 minutes" out from the current time. A bare `30m` or `every 30m`
+  (`2026-10-29T20:00:00`). Leave off any offset or `Z`: the scheduler reads the time as Eastern, so a
+  `Z` would make it UTC. Work "in 30 minutes" out from the current time. A bare `30m` or `every 30m`
   is a **repeating** reminder every 30 minutes, not a one-off: never use it for "in 30 minutes".
 - **Repeating ("every Tuesday at 7pm"):** only when the user asks for a repeat. Refuse anything more often
   than once an hour.
 - Deliver to where the user asked (the default). Write the prompt as the reminder itself, e.g. "Remind
-  <@user id> to check the Naxx SRs." Mention only the person who asked: never `@everyone`, `@here` or a
+  <@123456789012345678> to check the Naxx SRs.", with the asking user's own numeric Discord id in the
+  mention. Mention only the person who asked: never `@everyone`, `@here` or a
   role.
 - Never set `enabled_toolsets`, a `script` or `no_agent` on a job. A reminder posts a message; it doesn't
   run anything.
