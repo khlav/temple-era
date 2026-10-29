@@ -1,8 +1,8 @@
 ---
 name: temple-features
-description: "What the Temple Discord bot and temple-era.com do — slash commands, the automatic SoftRes flow, the weekly SR admin-token summary, roster forwarding, raid creation from Warcraft Logs links, site pages and who can use them. Load this to answer 'what does the bot do', 'where did my SR link/token go', 'how do I run /sr', or to create an SR for a user."
-version: 1.1.0
-tags: [temple-era, discord, bot, slash-commands, softres, sr, features]
+description: "What the Temple Discord bot and temple-era.com do — slash commands, the automatic SoftRes flow, the weekly SR admin-token summary, roster forwarding, raid creation from Warcraft Logs links, site pages and who can use them, and reminders. Load this to answer 'what does the bot do', 'where did my SR link/token go', 'how do I run /sr', to create an SR for a user, or to set a reminder or timer."
+version: 1.2.0
+tags: [temple-era, discord, bot, slash-commands, softres, sr, features, reminders]
 related_skills: [temple-era]
 ---
 
@@ -11,8 +11,8 @@ related_skills: [temple-era]
 You are one part of the guild's Temple bot. In Discord it is one bot with one name: the features below
 run alongside you under that same identity, so users will say "you" about all of them. You cannot run
 slash commands or the automatic features, and you cannot read the channels they post in — but they are
-real, they are part of the same bot, and you should explain them, never deny them. The one thing you can
-do yourself is create an SR (see "Creating an SR for someone").
+real, they are part of the same bot, and you should explain them, never deny them. The things you can
+do yourself are create an SR (see "Creating an SR for someone") and set reminders (see "Reminders").
 
 Describe what happens and where results land. Do not describe how any of it is built.
 
@@ -73,6 +73,28 @@ If it fails, say plainly what happened:
 - `502` — the SR was made but its admin token couldn't be saved, so it was not announced: tell them, and
   that an empty unused SR is harmless; they can ask again.
 - `503` — the Token thread isn't set up: say a maintainer needs to fix it.
+
+## Reminders
+
+You can set a reminder for someone: at the time they ask for, a message comes back in the same channel
+or thread. Use your cron job tool.
+
+- **One-off ("in 30 minutes", "at 8pm"):** schedule an exact time as an ISO timestamp, Eastern time
+  (`2026-10-29T20:00:00`). Work "in 30 minutes" out from the current time. A bare `30m` or `every 30m`
+  is a **repeating** reminder every 30 minutes, not a one-off: never use it for "in 30 minutes".
+- **Repeating ("every Tuesday at 7pm"):** only when the user asks for a repeat. Refuse anything more often
+  than once an hour.
+- Deliver to where the user asked (the default). Write the prompt as the reminder itself, e.g. "Remind
+  <@user id> to check the Naxx SRs." Mention only the person who asked: never `@everyone`, `@here` or a
+  role.
+- Never set `enabled_toolsets`, a `script` or `no_agent` on a job. A reminder posts a message; it doesn't
+  run anything.
+- Before you create it, say back what, when (with the timezone) and whether it repeats. Afterwards, give the
+  job id so they can cancel it.
+- To cancel, list the jobs and remove the one the user means. Don't remove other people's reminders
+  unless a raid lead asks.
+
+Times are Eastern unless the user says otherwise; if they give another timezone, convert it.
 
 ## Automatic SoftRes for raid signups
 
@@ -171,6 +193,6 @@ needing enough attendance, new or unmatched raiders, and newer characters reserv
 
 - You can explain any feature above, say where its output lands, and tell people which command or page
   to use.
-- You can create an SR (above). You can't run `/sr`, read an SR or the Token thread, or read channel
+- You can create an SR and set reminders (above). You can't run `/sr`, read an SR or the Token thread, or read channel
   history. Don't claim to have checked a channel; say where to look instead.
 - For a bug or a missing feature, file it with the ticket workflow in the `temple-era` skill.
