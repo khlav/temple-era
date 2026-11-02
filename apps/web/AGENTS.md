@@ -541,10 +541,13 @@ hard-reserve field, so `createSoftResRaid()` follows the create with
 were established live and are easy to get wrong:
 
 - **It replaces the whole set**, so always send the complete intended list — never a delta.
-- **The session that created a raid already manages it**, so no admin token is needed. A _different_
-  session gets 403 until it first does `GET /raid/{id}?adminToken=<token>`; that's the retry path if one
-  is ever wanted. `createSoftResRaid()` therefore keeps its session for one more request, re-reading
-  `Set-Cookie` off the create response in case the session cookie was reissued.
+- **A session must open the admin link before it can set hard reserves** — including the session that
+  created the raid. That one used to manage it already, until SoftRes changed it (TEMPLE-167); since then
+  the POST got 403 and every new SR went out with no hard reserves. `createSoftResRaid()` therefore keeps
+  its session, does `GET /raid/{id}?adminToken=<token>` with it, then posts, re-reading `Set-Cookie` after
+  each step in case the session cookie was reissued.
+- **A 2xx/3xx proves nothing.** SoftRes answers with redirects whether or not it applied the list, so
+  success means `GET /api/raid/{id}` shows the items in `hard_reserves`. The whole step is retried once.
 - **An item that doesn't drop in the raid's instance fails the whole call with 422**, leaving the stored
   set untouched. So one misfiled id disarms its entire zone rather than dropping one item —
   `src/lib/__tests__/softres-hard-reserves.test.ts` validates every id against
