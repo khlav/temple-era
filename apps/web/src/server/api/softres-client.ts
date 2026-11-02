@@ -129,9 +129,9 @@ const DEFAULT_CREATE_SETTINGS = {
  * while Node's `undici` (what Next.js's Node runtime actually uses) yields a normal 3xx response
  * with a readable `Location` header, read directly below.
  *
- * `hardReserveItemIds`, when non-empty, is applied by a second POST after the create — SoftRes's
+ * `hardReserveItemIds`, when non-empty, is applied by a separate POST after the create — SoftRes's
  * create form carries no hard-reserve field, so this cannot be folded into the call above. That
- * POST is best-effort: a failure is logged and reported as `hardReservesApplied: false` rather
+ * step is best-effort: a failure is logged and reported as `hardReservesApplied: false` rather
  * than thrown, because by that point the admin token has already been parsed and only exists in
  * this function's locals. Throwing would strand an SR that nobody can ever administer.
  */
@@ -186,9 +186,8 @@ export async function createSoftResRaid(
   // handles both instead of assuming relative and risking a doubled "https://softres.itthttps://...".
   const adminUrl = new URL(location, "https://softres.it").toString();
 
-  // 3. Apply hard reserves. The session that created a raid is already its manager, so this
-  // needs no admin token — but it does need the session, which may have been reissued by the
-  // create POST, so re-read Set-Cookie off that response before falling back to the originals.
+  // 3. Apply hard reserves, with the session from the create — which may have been reissued by
+  // the create POST, so re-read Set-Cookie off that response before falling back to the originals.
   //
   // The whole step is wrapped, not just the request: reading the cookies and decoding the XSRF
   // token both happen before `applyHardReserves` reaches its own try, and `decodeURIComponent`
@@ -198,7 +197,12 @@ export async function createSoftResRaid(
   if (hardReserveItemIds.length > 0) {
     try {
       const refreshed = { ...cookies, ...parseSetCookieHeader(createRes.headers.getSetCookie()) };
-      hardReservesApplied = await applyHardReserves(raidId!, hardReserveItemIds, refreshed);
+      hardReservesApplied = await applyHardReserves(
+        raidId!,
+        adminUrl,
+        hardReserveItemIds,
+        refreshed,
+      );
     } catch (error) {
       // Only reachable for a throw *outside* applyHardReserves' own catch, which already
       // reports its failures by returning false — the two paths can't both log.
@@ -219,54 +223,106 @@ export async function createSoftResRaid(
   };
 }
 
+const HARD_RESERVE_ATTEMPTS = 2;
+
 /**
- * Sets a raid's hard reserves to exactly `itemIds`, using a session that already manages it.
+ * Sets a raid's hard reserves to exactly `itemIds`, then reads the raid back to confirm they
+ * stuck. One retry, since every step is idempotent.
+ *
+ * The creating session is **not** a manager of the raid any more (TEMPLE-167): SoftRes answers its
+ * `hardReserve` POST with 403 until the session first opens the admin link, as a browser following
+ * the create redirect would. That is what this does before posting.
  *
  * `POST /raid/{id}/hardReserve` **replaces** the whole set rather than adding to it, so the
  * caller passes the complete intended list. SoftRes answers 422 (leaving the stored set
- * untouched) if any id isn't available in that raid's instance.
+ * untouched) if any id isn't available in that raid's instance. A 2xx/3xx status alone proves
+ * nothing — SoftRes answers with redirects either way — so success means the public API shows the
+ * items.
  *
  * Returns whether it succeeded rather than throwing — see `createSoftResRaid`.
  */
 async function applyHardReserves(
   raidId: string,
+  adminUrl: string,
   itemIds: readonly number[],
   cookies: Record<string, string>,
 ): Promise<boolean> {
-  const xsrfToken = decodeURIComponent(cookies["XSRF-TOKEN"] ?? "");
-  try {
-    const res = await fetch(`https://softres.it/raid/${raidId}/hardReserve`, {
-      method: "POST",
-      redirect: "manual",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-        origin: "https://softres.it",
-        referer: `https://softres.it/raid/${raidId}`,
-        "x-inertia": "true",
-        "x-requested-with": "XMLHttpRequest",
-        "x-xsrf-token": xsrfToken,
-        cookie: `XSRF-TOKEN=${cookies["XSRF-TOKEN"]}; softres_session_v2=${cookies["softres_session_v2"]}`,
-      },
-      body: JSON.stringify({ items: [...itemIds] }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-
-    // A success is the same 302-to-the-raid-page redirect the create POST gives.
-    if (res.status >= 200 && res.status < 400) return true;
-
-    logger.error(
-      { raidId, itemIds, status: res.status },
-      "SoftRes rejected the hard-reserve request; the SR was created without hard reserves",
-    );
-    return false;
-  } catch (error) {
-    logger.error(
-      { raidId, itemIds, err: error },
-      "Failed to apply SoftRes hard reserves; the SR was created without them",
-    );
-    return false;
+  let failure: Record<string, unknown> = {};
+  for (let attempt = 1; attempt <= HARD_RESERVE_ATTEMPTS; attempt++) {
+    try {
+      const session = await claimRaidManagement(adminUrl, cookies);
+      const status = await postHardReserves(raidId, itemIds, session);
+      if (status < 200 || status >= 400) {
+        failure = { attempt, status };
+        continue;
+      }
+      const stored = await fetchStoredHardReserves(raidId);
+      if (stored && itemIds.every((id) => stored.includes(id))) return true;
+      failure = { attempt, status, stored };
+    } catch (error) {
+      failure = { attempt, err: error };
+    }
   }
+  // Log the raid id only — never the admin link.
+  logger.error(
+    { raidId, itemIds, ...failure },
+    "Failed to apply SoftRes hard reserves; the SR was created without them",
+  );
+  return false;
+}
+
+/**
+ * Opens a raid's admin link with `cookies`, which makes that session one of the raid's managers.
+ * Returns the cookies to use from then on, in case SoftRes reissued any.
+ */
+async function claimRaidManagement(
+  adminUrl: string,
+  cookies: Record<string, string>,
+): Promise<Record<string, string>> {
+  const res = await fetch(adminUrl, {
+    redirect: "manual",
+    headers: {
+      cookie: `XSRF-TOKEN=${cookies["XSRF-TOKEN"]}; softres_session_v2=${cookies["softres_session_v2"]}`,
+    },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  return { ...cookies, ...parseSetCookieHeader(res.headers.getSetCookie()) };
+}
+
+/** The raid's stored hard-reserve item ids per the public API, or null if they can't be read. */
+async function fetchStoredHardReserves(raidId: string): Promise<number[] | null> {
+  const res = await fetch(`https://softres.it/api/raid/${raidId}`, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) return null;
+  const raw = (await res.json()) as { hard_reserves?: number[] | null };
+  return raw.hard_reserves ?? [];
+}
+
+/** POSTs the full hard-reserve list and returns the response status. */
+async function postHardReserves(
+  raidId: string,
+  itemIds: readonly number[],
+  cookies: Record<string, string>,
+): Promise<number> {
+  const xsrfToken = decodeURIComponent(cookies["XSRF-TOKEN"] ?? "");
+  const res = await fetch(`https://softres.it/raid/${raidId}/hardReserve`, {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      origin: "https://softres.it",
+      referer: `https://softres.it/raid/${raidId}`,
+      "x-inertia": "true",
+      "x-requested-with": "XMLHttpRequest",
+      "x-xsrf-token": xsrfToken,
+      cookie: `XSRF-TOKEN=${cookies["XSRF-TOKEN"]}; softres_session_v2=${cookies["softres_session_v2"]}`,
+    },
+    body: JSON.stringify({ items: [...itemIds] }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  return res.status;
 }
 
 /** Minimal Set-Cookie parser — only needs the two cookie values' raw content, not full cookie-attribute parsing. */

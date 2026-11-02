@@ -144,72 +144,147 @@ describe("createSoftResRaid hard reserves", () => {
     vi.unstubAllGlobals();
   });
 
-  function mockCreateFlow(hardReserveStatus: number, createSetCookie: string[] = []) {
+  const ADMIN_URL = "https://softres.it/raid/1aKrV2Je?adminToken=3ca599";
+
+  function mockClaimResponse(setCookieValues: string[] = []) {
+    return mockCreateResponse(302, "/raid/1aKrV2Je", setCookieValues);
+  }
+
+  function mockReadBack(hardReserves: number[] | null) {
+    return {
+      ok: true,
+      json: () => Promise.resolve({ id: "1aKrV2Je", hard_reserves: hardReserves }),
+    } as unknown as Response;
+  }
+
+  /** Session GET and create POST, ahead of whatever the hard-reserve attempts need. */
+  function mockCreated(createSetCookie: string[] = []) {
     return vi
       .fn()
       .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
       .mockResolvedValueOnce(
         mockCreateResponse(302, "/raid/1aKrV2Je?adminToken=3ca599", createSetCookie),
-      )
-      .mockResolvedValueOnce(mockHardReserveResponse(hardReserveStatus));
+      );
   }
 
+  /** One successful attempt: admin-link GET, hardReserve POST, read-back showing `stored`. */
+  function mockCreateFlow(stored: number[], createSetCookie: string[] = []) {
+    return mockCreated(createSetCookie)
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack(stored));
+  }
+
+  it("opens the admin link with the creating session before posting", async () => {
+    // SoftRes stopped treating the creating session as a manager (TEMPLE-167): without this GET
+    // the hardReserve POST gets 403.
+    const fetchMock = mockCreateFlow([17010]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createSoftResRaid(2, [17010]);
+
+    const [url, options] = fetchMock.mock.calls[2] as [string, RequestInit];
+    expect(url).toBe(ADMIN_URL);
+    expect(options.redirect).toBe("manual");
+    expect((options.headers as Record<string, string>).cookie).toBe(
+      "XSRF-TOKEN=abc123; softres_session_v2=sess456",
+    );
+  });
+
   it("posts the full item list to the raid's hardReserve route", async () => {
-    const fetchMock = mockCreateFlow(302);
+    const fetchMock = mockCreateFlow([17010, 17011, 18563]);
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await createSoftResRaid(2, [17010, 17011, 18563]);
 
     expect(result.hardReservesApplied).toBe(true);
-    const [url, options] = fetchMock.mock.calls[2] as [string, RequestInit];
+    const [url, options] = fetchMock.mock.calls[3] as [string, RequestInit];
     expect(url).toBe("https://softres.it/raid/1aKrV2Je/hardReserve");
     expect(options.method).toBe("POST");
     // The route replaces the whole set rather than adding to it, so the complete
     // intended list has to go in every time.
     expect(JSON.parse(options.body as string)).toEqual({ items: [17010, 17011, 18563] });
-  });
-
-  it("carries the creating session's cookies, since that session already manages the raid", async () => {
-    const fetchMock = mockCreateFlow(302);
-    vi.stubGlobal("fetch", fetchMock);
-
-    await createSoftResRaid(2, [17010]);
-
-    const [, options] = fetchMock.mock.calls[2] as [string, RequestInit];
-    const headers = options.headers as Record<string, string>;
-    expect(headers.cookie).toBe("XSRF-TOKEN=abc123; softres_session_v2=sess456");
-    expect(headers["x-xsrf-token"]).toBe("abc123");
+    expect(fetchMock.mock.calls[4]?.[0]).toBe("https://softres.it/api/raid/1aKrV2Je");
   });
 
   it("prefers a session cookie reissued by the create POST over the original", async () => {
-    const fetchMock = mockCreateFlow(302, ["softres_session_v2=rotated789; Path=/; HttpOnly"]);
+    const fetchMock = mockCreateFlow([17010], ["softres_session_v2=rotated789; Path=/; HttpOnly"]);
     vi.stubGlobal("fetch", fetchMock);
 
     await createSoftResRaid(2, [17010]);
 
-    const [, options] = fetchMock.mock.calls[2] as [string, RequestInit];
+    const [, options] = fetchMock.mock.calls[3] as [string, RequestInit];
     const headers = options.headers as Record<string, string>;
     expect(headers.cookie).toBe("XSRF-TOKEN=abc123; softres_session_v2=rotated789");
+    expect(headers["x-xsrf-token"]).toBe("abc123");
+  });
+
+  it("uses a session cookie reissued by the admin-link GET for the POST", async () => {
+    const fetchMock = mockCreated()
+      .mockResolvedValueOnce(mockClaimResponse(["softres_session_v2=manager999; Path=/; HttpOnly"]))
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack([17010]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createSoftResRaid(2, [17010]);
+
+    const [, options] = fetchMock.mock.calls[3] as [string, RequestInit];
+    expect((options.headers as Record<string, string>).cookie).toBe(
+      "XSRF-TOKEN=abc123; softres_session_v2=manager999",
+    );
+  });
+
+  it("retries once and succeeds when the first attempt is rejected", async () => {
+    const fetchMock = mockCreated()
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(403))
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack([17010]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createSoftResRaid(2, [17010]);
+
+    expect(result.hardReservesApplied).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it("reports failure when the POST redirects but the items never show up", async () => {
+    // SoftRes answers with redirects whether or not it applied anything, so the status alone
+    // can't be trusted.
+    const fetchMock = mockCreated()
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack(null))
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack([17010]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createSoftResRaid(2, [17010, 17011]);
+
+    expect(result.hardReservesApplied).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
   });
 
   it("reports a rejected hard-reserve call without throwing away the admin token", async () => {
     // 422 is what SoftRes answers when an item isn't available in the raid's instance. The SR
     // itself exists and must still be administerable, so this must not throw.
-    const fetchMock = mockCreateFlow(422);
+    const fetchMock = mockCreated()
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(422))
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(422));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await createSoftResRaid(2, [17010]);
 
     expect(result.hardReservesApplied).toBe(false);
-    expect(result.adminUrl).toBe("https://softres.it/raid/1aKrV2Je?adminToken=3ca599");
+    expect(result.adminUrl).toBe(ADMIN_URL);
   });
 
-  it("reports a network failure on the hard-reserve call the same way", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
-      .mockResolvedValueOnce(mockCreateResponse(302, "/raid/1aKrV2Je?adminToken=3ca599"))
-      .mockRejectedValueOnce(new Error("socket hang up"));
+  it("reports a network failure on the hard-reserve step the same way", async () => {
+    const fetchMock = mockCreated().mockRejectedValue(new Error("socket hang up"));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await createSoftResRaid(2, [17010]);
@@ -222,20 +297,15 @@ describe("createSoftResRaid hard reserves", () => {
     // "%" alone is an invalid percent-escape, so decodeURIComponent raises URIError. The session
     // GET's own decode is guarded by nothing, but a throw there is harmless — no raid exists yet.
     // This is the reachable harmful case: the *create* response reissues a malformed XSRF, so the
-    // throw lands in applyHardReserves, before its own try, with the admin token already parsed
-    // and held only in createSoftResRaid's locals.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(mockSessionResponse(VALID_COOKIES))
-      .mockResolvedValueOnce(
-        mockCreateResponse(302, "/raid/1aKrV2Je?adminToken=3ca599", ["XSRF-TOKEN=%; Path=/"]),
-      );
+    // throw lands in the hard-reserve step with the admin token already parsed and held only in
+    // createSoftResRaid's locals.
+    const fetchMock = mockCreated(["XSRF-TOKEN=%; Path=/"]).mockResolvedValue(mockClaimResponse());
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await createSoftResRaid(2, [17010]);
 
     expect(result.hardReservesApplied).toBe(false);
-    expect(result.adminUrl).toBe("https://softres.it/raid/1aKrV2Je?adminToken=3ca599");
+    expect(result.adminUrl).toBe(ADMIN_URL);
   });
 
   it("still returns the admin token when reading the create response's cookies throws", async () => {
@@ -259,8 +329,8 @@ describe("createSoftResRaid hard reserves", () => {
     expect(result.adminToken).toBe("3ca599");
   });
 
-  it("skips the second request entirely when the list is empty", async () => {
-    const fetchMock = mockCreateFlow(302);
+  it("skips the hard-reserve step entirely when the list is empty", async () => {
+    const fetchMock = mockCreated();
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await createSoftResRaid(2, []);
