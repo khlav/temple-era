@@ -19,6 +19,12 @@ export const config = {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
+  // Clean-up raid channels (TEMPLE-169): a Raid-Helper signup posted here gets the lockout week's
+  // existing Naxx SR forwarded to it rather than an SR of its own. Optional — empty turns it off.
+  discordRaidCleanupChannelIds: (process.env.DISCORD_RAID_CLEANUP_CHANNEL_IDS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
   discordRaidHelperBotId: process.env.DISCORD_RAID_HELPER_BOT_ID!,
   discordSoftresTokenThreadId: process.env.DISCORD_SOFTRES_TOKEN_THREAD_ID!,
   // Guild-scoped slash-command registration (/sr). The value already exists in every Doppler

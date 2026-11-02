@@ -3,6 +3,7 @@ import { EnsureSoftresResponseSchema } from "@temple-era/contracts";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { hasBenchButton } from "../services/hasBenchButton.js";
+import { forwardWeekSoftresToCleanup } from "../services/cleanupSoftresForward.js";
 import { hasConfirmButton } from "../services/hasConfirmButton.js";
 import { buildPublicSoftresEmbed } from "../services/softresEmbeds.js";
 import { postWeeklyTokenEntries } from "../services/tokenThreadSummary.js";
@@ -39,7 +40,12 @@ const SIGNUP_CHECK_RETRY_DELAYS_MS = [5_000, 10_000, 20_000, 60_000];
  * config.discordRaidHelperBotId` rather than skipping bot authors.
  */
 export function scheduleRaidHelperSignupCheck(message: Message): void {
-  if (!config.discordRaidSrChannelIds.includes(message.channelId)) return;
+  if (
+    !config.discordRaidSrChannelIds.includes(message.channelId) &&
+    !isCleanupChannel(message.channelId)
+  ) {
+    return;
+  }
 
   logger.info(
     {
@@ -92,12 +98,15 @@ async function attemptSignupCheck(message: Message, attemptIndex: number): Promi
   }
 
   if (hasBenchButton(fresh)) {
-    await handleRaidHelperSignup(fresh);
+    await (isCleanupChannel(fresh.channelId)
+      ? handleCleanupSignup(fresh)
+      : handleRaidHelperSignup(fresh));
     return;
   }
 
   if (hasConfirmButton(fresh)) {
-    await handleRaidHelperRoster(fresh);
+    // A clean-up's roster post needs nothing: its SR was forwarded when the signup went up.
+    if (!isCleanupChannel(fresh.channelId)) await handleRaidHelperRoster(fresh);
     return;
   }
 
@@ -220,6 +229,31 @@ export async function handleRaidHelperSignup(message: Message): Promise<void> {
     logger.error(
       { error: error instanceof Error ? error.message : String(error), eventId: message.id },
       "Error ensuring SoftRes link",
+    );
+  }
+}
+
+function isCleanupChannel(channelId: string): boolean {
+  return config.discordRaidCleanupChannelIds.includes(channelId);
+}
+
+/**
+ * A Raid-Helper signup in a clean-up channel: reuse the lockout week's Naxx SR rather than calling
+ * `ensure-softres`, which would create a new one — see `forwardWeekSoftresToCleanup`.
+ */
+export async function handleCleanupSignup(message: Message): Promise<void> {
+  if (deduplicator.has(message.id)) {
+    logger.info({ eventId: message.id }, "Clean-up signup already processed, skipping");
+    return;
+  }
+  deduplicator.add(message.id);
+
+  try {
+    await forwardWeekSoftresToCleanup(message);
+  } catch (error) {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error), eventId: message.id },
+      "Error forwarding the week's SR to a clean-up signup",
     );
   }
 }

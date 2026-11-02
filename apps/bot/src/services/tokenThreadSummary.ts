@@ -48,6 +48,22 @@ export async function isRaidInWeeklyBlock(
   }
 }
 
+/**
+ * The rendered text of the lockout week's block containing `timestampSec`, or undefined if that
+ * week has no block yet. Throws on a lookup failure, so the caller can tell the two apart.
+ */
+export async function getWeeklyBlockDescription(
+  client: Client,
+  timestampSec: number,
+): Promise<string | undefined> {
+  const thread = await client.channels.fetch(config.discordSoftresTokenThreadId);
+  if (!thread?.isTextBased()) {
+    throw new Error("SoftRes Token thread is not fetchable or not text-based");
+  }
+  const existing = await findWeeklyBlock(client, thread, weeklyBlockFooter(timestampSec));
+  return existing?.embeds[0]?.description ?? undefined;
+}
+
 // Serializes calls so two raids created within the same tick can't race a fetch-then-edit
 // against each other and silently drop one's entry — cheap insurance since apps/bot has no
 // storage to fall back on for reconciling a lost update after the fact.

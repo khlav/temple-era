@@ -110,6 +110,14 @@ The bot operates through three main message handlers:
   normal reply and the click is answered ephemerally. The token is re-read from the original message on
   click, never stored in a custom id.
 
+- **Clean-up forward** (`cleanupSoftresForward.ts`, TEMPLE-169): a Naxx night that doesn't clear the
+  instance is finished on a clean-up raid later that lockout week, signed up for in its own channel
+  (`DISCORD_RAID_CLEANUP_CHANNEL_IDS`) and using the same SR. A Raid-Helper signup there does **not**
+  call `ensure-softres`; the bot reads the week's Naxx raid id from the Token-thread block (the only
+  place SRs are keyed by lockout week; the public post carries no date) and forwards its public
+  `SRs : ...` post into the clean-up channel. If that post is gone it posts the public link fresh.
+  Naxx only, by design (`CLEANUP_ZONE`).
+
 - **Message Deduplication** (`messageDeduplication.ts`): Prevents duplicate processing of messages. **Not an LRU cache**, despite how it reads — it is a `Map` of id → timestamp with a periodic sweep, so entries expire on a TTL and there is no size cap or eviction by access order. Memory is bounded by arrival rate × TTL window, not by a fixed capacity.
 
 ### API Integration
@@ -167,6 +175,7 @@ endpoint.)
 
 Optional variables:
 - `LOG_LEVEL` - Logging level (default: `info`)
+- `DISCORD_RAID_CLEANUP_CHANNEL_IDS` - Comma-separated Raid-Helper clean-up raid channels (empty turns the feature off; see "Clean-up forward" above)
 - `DISCORD_LOG_THREAD_CLEANUP_ENABLED` - Enable thread cleanup (default: `false`)
 - `DISCORD_LOG_THREAD_CLEANUP_DAYS` - Days before thread deletion (default: `3`)
 - `DISCORD_LOG_THREAD_CLEANUP_CRON` - Cron schedule for cleanup (default: `0 1 * * *`)

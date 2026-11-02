@@ -151,6 +151,17 @@ Later, Raid-Helper posts the roster (the post with the **Confirm / Cancel** butt
 SR link is easy to find next to the final roster. It only does this if the bot created an SR post for
 that event; if the SR was attached by hand there is nothing to forward.
 
+## Naxx clean-up raids reuse the week's SR
+
+When a Naxx night doesn't clear the whole instance, the rest is done on a clean-up raid later the same
+lockout week, signed up for in the **clean-up channel**. A clean-up does **not** get a new SR. When its
+Raid-Helper signup goes up, the bot forwards that week's Naxx "SRs : ..." post into the clean-up channel
+(or, if that post is gone, posts the same link). Reserves made for the main night carry over.
+
+"Where's the SR for the clean-up?" → it's the same SR as that week's Naxx raid, forwarded into the
+clean-up channel. If nothing was forwarded, the week's Naxx SR wasn't in the Token thread; the raid lead
+can share the main night's SR link by hand.
+
 ## SoftRes Token thread — where admin tokens live
 
 A thread for raid leads holds one red embed per raid week: **"SR Admin Tokens — Week of <date>"**.
