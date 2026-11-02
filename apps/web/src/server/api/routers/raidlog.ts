@@ -114,14 +114,15 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
   // A player WCL couldn't name was in the group but never did anything in the log (Peazie,
   // disconnected, in the 2026-11-01 clean-up: listed for one fight with no damage, healing or
   // casts). They get no attendance, and their placeholder data never touches the characters table.
-  const { resolved, unresolvedIds } = partitionParticipants(Object.values(input.participants));
+  const { resolved, unresolvedIds, attendeeIds } = partitionParticipants(
+    Object.values(input.participants),
+  );
   if (unresolvedIds.length > 0) {
-    logger.warn(
+    logger.info(
       { raidLogId: input.raidLogId, characterIds: unresolvedIds },
       "WCL listed players it couldn't name; they get no attendance",
     );
   }
-  const attendeeIds = resolved.map((p) => p.characterId);
 
   // Insert or update characters
   for (const participant of resolved) {

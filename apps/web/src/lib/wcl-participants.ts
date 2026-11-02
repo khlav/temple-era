@@ -21,10 +21,13 @@ export function isResolvedParticipant(participant: Partial<RaidParticipant>): bo
 /**
  * Splits a log's participants into real attendees and the ids of WCL's unnamed placeholders,
  * which the caller logs and leaves out. Entries with no id at all are dropped silently.
+ * `attendeeIds` is exactly the resolved players' ids: a placeholder gets no attendance even when
+ * its id is a character we know.
  */
 export function partitionParticipants(participants: Array<Partial<RaidParticipant>>): {
   resolved: RaidParticipant[];
   unresolvedIds: number[];
+  attendeeIds: number[];
 } {
   const resolved: RaidParticipant[] = [];
   const unresolvedIds: number[] = [];
@@ -34,5 +37,5 @@ export function partitionParticipants(participants: Array<Partial<RaidParticipan
       unresolvedIds.push(participant.characterId);
     }
   }
-  return { resolved, unresolvedIds };
+  return { resolved, unresolvedIds, attendeeIds: resolved.map((p) => p.characterId) };
 }
