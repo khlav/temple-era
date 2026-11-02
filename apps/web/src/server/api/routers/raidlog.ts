@@ -13,6 +13,8 @@ import { SCOPE } from "~/lib/scopes";
 import { reactivateFamiliesAfterRaid } from "~/server/services/world-buff-service";
 import { publishAchievementEvaluate } from "~/server/services/achievement-evaluate-publish";
 import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
+import { partitionParticipants } from "~/lib/wcl-participants";
+import { logger } from "~/lib/logger";
 /*
   Reusable router functions
  */
@@ -109,8 +111,30 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
       },
     });
 
+  // A player WCL couldn't name still attended, but their name/class/server are placeholders that
+  // must not overwrite the real character, and can't create one. Credit them only if we already
+  // know the character.
+  const { resolved, unresolvedIds } = partitionParticipants(Object.values(input.participants));
+  const knownUnresolvedIds =
+    unresolvedIds.length > 0
+      ? (
+          await db
+            .select({ characterId: characters.characterId })
+            .from(characters)
+            .where(inArray(characters.characterId, unresolvedIds))
+        ).map((c) => c.characterId)
+      : [];
+  const droppedIds = unresolvedIds.filter((id) => !knownUnresolvedIds.includes(id));
+  if (droppedIds.length > 0) {
+    logger.warn(
+      { raidLogId: input.raidLogId, characterIds: droppedIds },
+      "WCL listed players it couldn't name, with no matching character; they get no attendance",
+    );
+  }
+  const attendeeIds = [...resolved.map((p) => p.characterId), ...knownUnresolvedIds];
+
   // Insert or update characters
-  for (const participant of Object.values(input.participants)) {
+  for (const participant of resolved) {
     await db
       .insert(characters)
       .values({
@@ -143,20 +167,21 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
   // Clear existing attendee mappings for this raid log to handle roster changes
   await db.delete(raidLogAttendeeMap).where(eq(raidLogAttendeeMap.raidLogId, input.raidLogId));
 
-  // Insert fresh attendee mappings
-  await db.insert(raidLogAttendeeMap).values(
-    Object.values(input.participants).map((participant) => {
-      return {
+  // Insert fresh attendee mappings. Drizzle throws on an empty values(), and a log with no boss
+  // pulls yet has no participants.
+  if (attendeeIds.length > 0) {
+    await db.insert(raidLogAttendeeMap).values(
+      attendeeIds.map((characterId) => ({
         raidLogId: input.raidLogId,
-        characterId: participant.characterId,
+        characterId,
         createdById: session.user.id,
-      };
-    }),
-  );
+      })),
+    );
+  }
 
   // A world-buff "marked inactive" flag clears itself once the family raids again.
   await reactivateFamiliesAfterRaid({
-    characterIds: Object.values(input.participants).map((p) => p.characterId),
+    characterIds: attendeeIds,
     raidDate: input.startTimeUTC,
     actingUserId: session.user.id,
   });
