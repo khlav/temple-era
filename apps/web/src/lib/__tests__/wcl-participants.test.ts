@@ -30,11 +30,18 @@ describe("isResolvedParticipant", () => {
 });
 
 describe("partitionParticipants", () => {
-  it("keeps a placeholder's character id for attendance and drops entries with no id", () => {
+  it("separates real attendees from unnamed placeholders, and drops entries with no id", () => {
     const other = { ...peazie, characterId: 1, name: "Waffle" };
     expect(partitionParticipants([other, unnamedPeazie, {}])).toEqual({
       resolved: [other],
       unresolvedIds: [72736669],
+      attendeeIds: [1],
     });
+  });
+
+  it("gives a placeholder no attendance even though its id is a real character's", () => {
+    // Peazie's id is a known character, but WCL never saw them act in that log (disconnected).
+    const { attendeeIds } = partitionParticipants([unnamedPeazie]);
+    expect(attendeeIds).toEqual([]);
   });
 });
