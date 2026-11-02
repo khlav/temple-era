@@ -94,9 +94,9 @@ export function createBot(): Client {
       void handleTokenThreadMessage(message);
     } else {
       void handleMessage(message);
-      // Filters on discordRaidSrChannelIds, a channel set that is mutually exclusive with
-      // discordLogsChannelId in every real Doppler config today — safe to run unconditionally
-      // alongside handleMessage above.
+      // Filters on discordRaidSrChannelIds and discordRaidCleanupChannelIds, channel sets that are
+      // mutually exclusive with discordLogsChannelId in every real Doppler config today — safe to
+      // run unconditionally alongside handleMessage above.
       scheduleRaidHelperSignupCheck(message);
     }
   });

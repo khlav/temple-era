@@ -15,6 +15,7 @@ const {
   OTHER_USER_ID,
   SR_CHANNEL_ID,
   OTHER_CHANNEL_ID,
+  CLEANUP_CHANNEL_ID,
   SERVER_ID,
   BOT_USER_ID,
 } = vi.hoisted(() => ({
@@ -22,6 +23,7 @@ const {
   OTHER_USER_ID: "999999999999999999",
   SR_CHANNEL_ID: "222222222222222222",
   OTHER_CHANNEL_ID: "444444444444444444",
+  CLEANUP_CHANNEL_ID: "777777777777777777",
   SERVER_ID: "555555555555555555",
   BOT_USER_ID: "666666666666666666",
 }));
@@ -32,12 +34,18 @@ vi.mock("../../config/env.js", () => ({
     templeWebApiToken: "test-token",
     discordRaidHelperBotId: RAID_HELPER_BOT_ID,
     discordRaidSrChannelIds: [SR_CHANNEL_ID],
+    discordRaidCleanupChannelIds: [CLEANUP_CHANNEL_ID],
     discordServerId: SERVER_ID,
   },
 }));
 
 vi.mock("../../config/logger.js", () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+const mockForwardWeekSoftresToCleanup = vi.fn().mockResolvedValue(undefined);
+vi.mock("../../services/cleanupSoftresForward.js", () => ({
+  forwardWeekSoftresToCleanup: (...args: unknown[]) => mockForwardWeekSoftresToCleanup(...args),
 }));
 
 const mockGetZoneEmoji = vi.fn().mockReturnValue(undefined);
@@ -264,6 +272,37 @@ describe("scheduleRaidHelperSignupCheck", () => {
       "No matching SoftRes embed found for this roster post",
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("routes a clean-up channel signup to the week's-SR forward, never to ensure-softres", async () => {
+    const message = fakeMessage({
+      id: "1k",
+      authorId: RAID_HELPER_BOT_ID,
+      channelId: CLEANUP_CHANNEL_ID,
+    });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(mockForwardWeekSoftresToCleanup).toHaveBeenCalledWith(message);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does nothing with a clean-up channel roster post", async () => {
+    const message = fakeMessage({
+      id: "1m",
+      authorId: RAID_HELPER_BOT_ID,
+      channelId: CLEANUP_CHANNEL_ID,
+      components: rosterConfirmationComponents(),
+      embeds: [{ title: "NAXX CLEANUP", url: EVENT_URL }],
+    });
+
+    scheduleRaidHelperSignupCheck(message);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(message.channel.messages.fetch).not.toHaveBeenCalled();
+    expect(mockForwardWeekSoftresToCleanup).not.toHaveBeenCalled();
+    expect(message.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("treats a failed re-fetch as one retry, not a permanent failure — a later attempt can still succeed", async () => {

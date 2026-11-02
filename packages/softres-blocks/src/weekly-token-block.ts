@@ -187,6 +187,25 @@ export function blockHasRaid(description: string, raidId: string): boolean {
 }
 
 /**
+ * The raids a rendered block lists for one zone, oldest first — e.g. the week's Naxx SR, for a
+ * clean-up night that reuses it. A parsed line only carries its rendered prefix ("<emoji> Naxx"),
+ * not the zone it came from, so the match is on the short name that prefix ends with.
+ */
+export function weeklyBlockRaidsForZone(
+  description: string,
+  zone: string,
+): Array<{ raidId: string; timestampSec: number }> {
+  const name = shortZoneName(zone);
+  return parseExistingEntries(description)
+    .filter((e) => e.prefix === name || e.prefix.endsWith(` ${name}`))
+    .flatMap((e) => {
+      const raidId = raidIdOf(e.url);
+      return raidId ? [{ raidId, timestampSec: e.timestampSec }] : [];
+    })
+    .sort((a, b) => a.timestampSec - b.timestampSec);
+}
+
+/**
  * The week's "SR Admin Tokens" embed: `existingDescription` (the current message's text, if the
  * block already exists) merged with `entries`, grouped by day and chronological within each day.
  * Every entry must belong to the same raid night (possibly several zones for a doubleheader), so

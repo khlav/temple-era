@@ -5,6 +5,7 @@ import {
   buildWeeklyBlockEmbed,
   formatRaidWhen,
   weeklyBlockFooter,
+  weeklyBlockRaidsForZone,
 } from "../weekly-token-block.js";
 import { ADMIN_EMBED_COLOR } from "../embeds.js";
 
@@ -145,5 +146,40 @@ describe("weeklyBlockFooter / blockHasRaid / formatRaidWhen", () => {
 
   it("describes a raid night the way the block words it", () => {
     expect(formatRaidWhen(TUE_730PM)).toBe("Tuesday 9/15 @ 7:30pm");
+  });
+});
+
+describe("weeklyBlockRaidsForZone", () => {
+  const embed = buildWeeklyBlockEmbed(undefined, [
+    {
+      zone: "Naxxramas",
+      url: "https://softres.it/raid/naxxB?adminToken=t2",
+      emoji: "<:naxx_kelthuzad:3>",
+      timestampSec: WED_630PM,
+    },
+    {
+      zone: "Molten Core",
+      url: "https://softres.it/raid/mc1?adminToken=t3",
+      timestampSec: TUE_730PM,
+    },
+    {
+      zone: "Naxxramas",
+      url: "https://softres.it/raid/naxxA?adminToken=t1",
+      timestampSec: TUE_7PM,
+    },
+  ]);
+
+  it("lists only that zone's raids, oldest first, with or without an emoji", () => {
+    expect(weeklyBlockRaidsForZone(embed.description, "Naxxramas")).toEqual([
+      { raidId: "naxxA", timestampSec: TUE_7PM },
+      { raidId: "naxxB", timestampSec: WED_630PM },
+    ]);
+    expect(weeklyBlockRaidsForZone(embed.description, "Molten Core")).toEqual([
+      { raidId: "mc1", timestampSec: TUE_730PM },
+    ]);
+  });
+
+  it("is empty for a zone the block doesn't list", () => {
+    expect(weeklyBlockRaidsForZone(embed.description, "Blackwing Lair")).toEqual([]);
   });
 });
