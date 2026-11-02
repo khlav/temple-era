@@ -62,27 +62,29 @@ function srPost(id: string, raidId: string, authorId = BOT_USER_ID) {
   };
 }
 
-function fakeCleanupSignup(channelMessages: Record<string, ReturnType<typeof srPost>[]>) {
+/** "unreadable" makes that channel's history fetch reject, as a missing permission would. */
+function fakeCleanupSignup(
+  channelMessages: Record<string, ReturnType<typeof srPost>[] | "unreadable">,
+) {
   const send = vi.fn().mockResolvedValue(undefined);
   const client = {
     user: { id: BOT_USER_ID },
     channels: {
-      fetch: vi.fn().mockImplementation((channelId: string) =>
-        Promise.resolve({
+      fetch: vi.fn().mockImplementation((channelId: string) => {
+        const messages = channelMessages[channelId] ?? [];
+        return Promise.resolve({
           isTextBased: () => true,
           messages: {
             fetch: vi
               .fn()
               .mockImplementation(({ before }: { before?: string }) =>
-                Promise.resolve(
-                  new Collection(
-                    before ? [] : (channelMessages[channelId] ?? []).map((m) => [m.id, m]),
-                  ),
-                ),
+                messages === "unreadable"
+                  ? Promise.reject(new Error("Missing Access"))
+                  : Promise.resolve(new Collection(before ? [] : messages.map((m) => [m.id, m]))),
               ),
           },
-        }),
-      ),
+        });
+      }),
     },
   } as unknown as Client;
   const message = {
@@ -180,6 +182,36 @@ describe("forwardWeekSoftresToCleanup", () => {
     expect(embeds[0]!.data.description).toContain("Naxxramas: https://softres.it/raid/naxxRaid");
     // Never the admin link.
     expect(embeds[0]!.data.description).not.toContain("adminToken");
+  });
+
+  it("skips an SR channel it can't read and still finds the post in the next", async () => {
+    mockGetWeeklyBlockDescription.mockResolvedValue(
+      block([{ zone: "Naxxramas", raidId: "naxxRaid", timestampSec: TUE_8PM }]),
+    );
+    const naxxPost = srPost("p1", "naxxRaid");
+    const { message, send } = fakeCleanupSignup({
+      [OTHER_SR_CHANNEL]: "unreadable",
+      [SR_CHANNEL]: [naxxPost],
+    });
+
+    await forwardWeekSoftresToCleanup(message);
+
+    expect(naxxPost.forward).toHaveBeenCalledWith(message.channel);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("still posts the public link when no SR channel can be read", async () => {
+    mockGetWeeklyBlockDescription.mockResolvedValue(
+      block([{ zone: "Naxxramas", raidId: "naxxRaid", timestampSec: TUE_8PM }]),
+    );
+    const { message, send } = fakeCleanupSignup({
+      [OTHER_SR_CHANNEL]: "unreadable",
+      [SR_CHANNEL]: "unreadable",
+    });
+
+    await forwardWeekSoftresToCleanup(message);
+
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it("does nothing when the week has no Naxx SR", async () => {

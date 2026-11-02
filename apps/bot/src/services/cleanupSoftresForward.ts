@@ -1,4 +1,4 @@
-import type { Client, Message, TextBasedChannel } from "discord.js";
+import type { Client, Message } from "discord.js";
 import {
   parsePublicSoftresEmbedLinks,
   publicUrlRaidId,
@@ -47,40 +47,51 @@ export function pickWeekRaidId(
   return (before.at(-1) ?? raids[0])?.raidId;
 }
 
-/** The bot's own public "SRs : ..." post linking `raidId`, newest first across the SR channels. */
+/**
+ * The bot's own public "SRs : ..." post linking `raidId`, newest first across the SR channels.
+ * A channel that can't be read is skipped rather than failing the lookup: the fallback (posting
+ * the link fresh) doesn't need any channel's history, so one bad channel mustn't cost it.
+ */
 async function findPublicSoftresPost(client: Client, raidId: string): Promise<Message | undefined> {
   for (const channelId of config.discordRaidSrChannelIds) {
-    let channel: TextBasedChannel;
     try {
-      const fetched = await client.channels.fetch(channelId);
-      if (!fetched?.isTextBased()) continue;
-      channel = fetched;
+      const match = await findPostInChannel(client, channelId, raidId);
+      if (match) return match;
     } catch (error) {
       logger.warn(
         { channelId, error: error instanceof Error ? error.message : String(error) },
-        "Could not fetch an SR channel while looking for the week's SR post",
+        "Could not search an SR channel for the week's SR post",
       );
-      continue;
     }
+  }
+  return undefined;
+}
 
-    let before: string | undefined;
-    for (let page = 0; page < FIND_POST_MAX_PAGES; page++) {
-      // cache: false — the bot's near-zero-cache invariant (see AGENTS.md).
-      const batch = await channel.messages.fetch({ limit: 100, before, cache: false });
-      if (batch.size === 0) break;
+async function findPostInChannel(
+  client: Client,
+  channelId: string,
+  raidId: string,
+): Promise<Message | undefined> {
+  const channel = await client.channels.fetch(channelId);
+  if (!channel?.isTextBased()) return undefined;
 
-      const match = [...batch.values()].find(
-        (m) =>
-          m.author.id === client.user?.id &&
-          parsePublicSoftresEmbedLinks(m.embeds[0]?.description ?? "").some(
-            (link) => publicUrlRaidId(link.url) === raidId,
-          ),
-      );
-      if (match) return match;
+  let before: string | undefined;
+  for (let page = 0; page < FIND_POST_MAX_PAGES; page++) {
+    // cache: false — the bot's near-zero-cache invariant (see AGENTS.md).
+    const batch = await channel.messages.fetch({ limit: 100, before, cache: false });
+    if (batch.size === 0) break;
 
-      before = batch.last()?.id;
-      if (!before) break;
-    }
+    const match = [...batch.values()].find(
+      (m) =>
+        m.author.id === client.user?.id &&
+        parsePublicSoftresEmbedLinks(m.embeds[0]?.description ?? "").some(
+          (link) => publicUrlRaidId(link.url) === raidId,
+        ),
+    );
+    if (match) return match;
+
+    before = batch.last()?.id;
+    if (!before) break;
   }
   return undefined;
 }
