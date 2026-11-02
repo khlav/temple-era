@@ -111,27 +111,17 @@ const mutateInsertRaidLogWithAttendees = async (db: DB, session: Session, input:
       },
     });
 
-  // A player WCL couldn't name still attended, but their name/class/server are placeholders that
-  // must not overwrite the real character, and can't create one. Credit them only if we already
-  // know the character.
+  // A player WCL couldn't name was in the group but never did anything in the log (Peazie,
+  // disconnected, in the 2026-11-01 clean-up: listed for one fight with no damage, healing or
+  // casts). They get no attendance, and their placeholder data never touches the characters table.
   const { resolved, unresolvedIds } = partitionParticipants(Object.values(input.participants));
-  const knownUnresolvedIds =
-    unresolvedIds.length > 0
-      ? (
-          await db
-            .select({ characterId: characters.characterId })
-            .from(characters)
-            .where(inArray(characters.characterId, unresolvedIds))
-        ).map((c) => c.characterId)
-      : [];
-  const droppedIds = unresolvedIds.filter((id) => !knownUnresolvedIds.includes(id));
-  if (droppedIds.length > 0) {
+  if (unresolvedIds.length > 0) {
     logger.warn(
-      { raidLogId: input.raidLogId, characterIds: droppedIds },
-      "WCL listed players it couldn't name, with no matching character; they get no attendance",
+      { raidLogId: input.raidLogId, characterIds: unresolvedIds },
+      "WCL listed players it couldn't name; they get no attendance",
     );
   }
-  const attendeeIds = [...resolved.map((p) => p.characterId), ...knownUnresolvedIds];
+  const attendeeIds = resolved.map((p) => p.characterId);
 
   // Insert or update characters
   for (const participant of resolved) {
