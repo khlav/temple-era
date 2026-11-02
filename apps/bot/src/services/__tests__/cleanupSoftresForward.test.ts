@@ -104,9 +104,9 @@ describe("cleanupEventTimestampSec", () => {
     expect(cleanupEventTimestampSec(message)).toBe(SUN_930PM);
   });
 
-  it("falls back to when the signup was posted", () => {
+  it("is undefined rather than guessing from when the signup was posted", () => {
     const message = { embeds: [], createdTimestamp: TUE_8PM * 1000 } as unknown as Message;
-    expect(cleanupEventTimestampSec(message)).toBe(TUE_8PM);
+    expect(cleanupEventTimestampSec(message)).toBeUndefined();
   });
 });
 
@@ -222,6 +222,29 @@ describe("forwardWeekSoftresToCleanup", () => {
 
     await forwardWeekSoftresToCleanup(message);
 
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("posts the public link when forwarding the found post fails", async () => {
+    mockGetWeeklyBlockDescription.mockResolvedValue(
+      block([{ zone: "Naxxramas", raidId: "naxxRaid", timestampSec: TUE_8PM }]),
+    );
+    const naxxPost = srPost("p1", "naxxRaid");
+    naxxPost.forward.mockRejectedValue(new Error("Unknown Message"));
+    const { message, send } = fakeCleanupSignup({ [SR_CHANNEL]: [naxxPost] });
+
+    await forwardWeekSoftresToCleanup(message);
+
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing, without a block lookup, when the signup has no event date", async () => {
+    const { message, send } = fakeCleanupSignup({});
+    (message as unknown as { embeds: unknown[] }).embeds = [];
+
+    await forwardWeekSoftresToCleanup(message);
+
+    expect(mockGetWeeklyBlockDescription).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
   });
 

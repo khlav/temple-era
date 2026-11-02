@@ -24,14 +24,15 @@ const FIND_POST_MAX_PAGES = 3;
 
 /**
  * The event's scheduled time from a Raid-Helper signup embed — its date field renders as a
- * `<t:UNIX:D>` Discord timestamp. Falls back to when the signup was posted, which is in the same
- * lockout week for any clean-up scheduled after the night it continues.
+ * `<t:UNIX:D>` Discord timestamp — or undefined if it has none. No fallback to when the signup was
+ * posted: that can be a lockout week earlier than the event, and forwarding the wrong week's SR
+ * is worse than forwarding nothing.
  */
-export function cleanupEventTimestampSec(message: Message): number {
+export function cleanupEventTimestampSec(message: Message): number | undefined {
   const embed = message.embeds[0];
   const text = [embed?.description ?? "", ...(embed?.fields ?? []).map((f) => f.value)].join("\n");
   const match = /<t:(\d+):/.exec(text);
-  return match ? Number(match[1]) : Math.floor(message.createdTimestamp / 1000);
+  return match ? Number(match[1]) : undefined;
 }
 
 /**
@@ -104,6 +105,13 @@ async function findPostInChannel(
  */
 export async function forwardWeekSoftresToCleanup(message: Message): Promise<void> {
   const cleanupTimestampSec = cleanupEventTimestampSec(message);
+  if (cleanupTimestampSec === undefined) {
+    logger.warn(
+      { eventId: message.id },
+      "Clean-up signup has no event date in its embed; not guessing which week's SR to forward",
+    );
+    return;
+  }
 
   const blockDescription = await getWeeklyBlockDescription(message.client, cleanupTimestampSec);
   const raidId = pickWeekRaidId(
@@ -125,12 +133,20 @@ export async function forwardWeekSoftresToCleanup(message: Message): Promise<voi
 
   const post = await findPublicSoftresPost(message.client, raidId);
   if (post) {
-    await post.forward(message.channel);
-    logger.info(
-      { eventId: message.id, raidId, softresMessageId: post.id },
-      "Forwarded the week's Naxx SR post to the clean-up signup",
-    );
-    return;
+    try {
+      await post.forward(message.channel);
+      logger.info(
+        { eventId: message.id, raidId, softresMessageId: post.id },
+        "Forwarded the week's Naxx SR post to the clean-up signup",
+      );
+      return;
+    } catch (error) {
+      // e.g. the SR-post cleanup job deleted it since the lookup. The link is still known.
+      logger.warn(
+        { eventId: message.id, error: error instanceof Error ? error.message : String(error) },
+        "Could not forward the week's Naxx SR post; posting its public link instead",
+      );
+    }
   }
 
   await message.channel.send({
@@ -151,6 +167,6 @@ export async function forwardWeekSoftresToCleanup(message: Message): Promise<voi
   });
   logger.info(
     { eventId: message.id, raidId },
-    "Week's Naxx SR post not found; posted its public link to the clean-up signup instead",
+    "Posted the week's Naxx SR public link to the clean-up signup (original post unavailable)",
   );
 }
