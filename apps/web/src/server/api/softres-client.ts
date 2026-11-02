@@ -248,12 +248,16 @@ async function applyHardReserves(
   cookies: Record<string, string>,
 ): Promise<boolean> {
   let failure: Record<string, unknown> = {};
+  // Carried across attempts: a retry continues from any cookie SoftRes reissued, not the original.
+  let session = cookies;
   for (let attempt = 1; attempt <= HARD_RESERVE_ATTEMPTS; attempt++) {
     try {
-      const session = await claimRaidManagement(adminUrl, cookies);
+      session = await claimRaidManagement(adminUrl, session);
       const status = await postHardReserves(raidId, itemIds, session);
       if (status < 200 || status >= 400) {
         failure = { attempt, status };
+        // 422 = an item isn't in this raid's instance. Deterministic, so a retry can't help.
+        if (status === 422) break;
         continue;
       }
       const stored = await fetchStoredHardReserves(raidId);

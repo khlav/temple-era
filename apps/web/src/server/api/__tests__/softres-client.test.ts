@@ -272,8 +272,6 @@ describe("createSoftResRaid hard reserves", () => {
     // itself exists and must still be administerable, so this must not throw.
     const fetchMock = mockCreated()
       .mockResolvedValueOnce(mockClaimResponse())
-      .mockResolvedValueOnce(mockHardReserveResponse(422))
-      .mockResolvedValueOnce(mockClaimResponse())
       .mockResolvedValueOnce(mockHardReserveResponse(422));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -281,6 +279,25 @@ describe("createSoftResRaid hard reserves", () => {
 
     expect(result.hardReservesApplied).toBe(false);
     expect(result.adminUrl).toBe(ADMIN_URL);
+    // Deterministic, so no retry.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("retries from a session cookie reissued during the first attempt", async () => {
+    const fetchMock = mockCreated()
+      .mockResolvedValueOnce(mockClaimResponse(["softres_session_v2=manager999; Path=/; HttpOnly"]))
+      .mockResolvedValueOnce(mockHardReserveResponse(403))
+      .mockResolvedValueOnce(mockClaimResponse())
+      .mockResolvedValueOnce(mockHardReserveResponse(302))
+      .mockResolvedValueOnce(mockReadBack([17010]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createSoftResRaid(2, [17010]);
+
+    const [, options] = fetchMock.mock.calls[4] as [string, RequestInit];
+    expect((options.headers as Record<string, string>).cookie).toBe(
+      "XSRF-TOKEN=abc123; softres_session_v2=manager999",
+    );
   });
 
   it("reports a network failure on the hard-reserve step the same way", async () => {
