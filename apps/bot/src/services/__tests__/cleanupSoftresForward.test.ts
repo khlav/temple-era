@@ -104,6 +104,16 @@ describe("cleanupEventTimestampSec", () => {
     expect(cleanupEventTimestampSec(message)).toBe(SUN_930PM);
   });
 
+  it("skips a relative countdown that comes before the date", () => {
+    const message = {
+      embeds: [
+        { description: `starts <t:${TUE_8PM}:R>`, fields: [{ value: `<t:${SUN_930PM}:D>` }] },
+      ],
+      createdTimestamp: 0,
+    } as unknown as Message;
+    expect(cleanupEventTimestampSec(message)).toBe(SUN_930PM);
+  });
+
   it("is undefined rather than guessing from when the signup was posted", () => {
     const message = { embeds: [], createdTimestamp: TUE_8PM * 1000 } as unknown as Message;
     expect(cleanupEventTimestampSec(message)).toBeUndefined();

@@ -31,7 +31,9 @@ const FIND_POST_MAX_PAGES = 3;
 export function cleanupEventTimestampSec(message: Message): number | undefined {
   const embed = message.embeds[0];
   const text = [embed?.description ?? "", ...(embed?.fields ?? []).map((f) => f.value)].join("\n");
-  const match = /<t:(\d+):/.exec(text);
+  // Absolute date styles only (d/D/f/F), so a relative `:R` countdown or a time-only `:t` can't
+  // be taken for the date.
+  const match = /<t:(\d+):[dDfF]>/.exec(text);
   return match ? Number(match[1]) : undefined;
 }
 
