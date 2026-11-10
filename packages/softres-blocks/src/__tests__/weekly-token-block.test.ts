@@ -39,10 +39,10 @@ describe("buildWeeklyBlockEmbed", () => {
 
     expect(embed.description).toBe(
       [
-        "**Tue 9/15**",
-        `\\- <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        `\\- <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
-        `**Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
+        "- **Tue 9/15**",
+        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
+        `- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
       ].join("\n"),
     );
     expect(embed.title).toBe("SR Admin Tokens — Week of Sep 15");
@@ -110,7 +110,7 @@ describe("buildWeeklyBlockEmbed", () => {
     ]);
 
     expect(embed.description).toBe(
-      `**Tue 9/15** Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
+      `- **Tue 9/15** Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
     );
   });
 
@@ -200,7 +200,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
   it("renders the public link, with a plain-text note in place of the admin token", () => {
     const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
     expect(embed.description).toBe(
-      "**Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
+      "- **Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
     );
   });
 
@@ -283,13 +283,13 @@ describe("earlier label formats", () => {
   });
 });
 
-describe("bulleted short-day layout", () => {
-  it("reads back '- **Tue**' single-raid lines and '  - ' nested lines", () => {
+describe("unbulleted short-day layout", () => {
+  it("reads back '**Tue**' single-raid lines and '\\- ' nested lines", () => {
     const old = [
-      "- **Tue 9/15**",
-      "  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
-      "  - BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
-      "- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
+      "**Tue 9/15**",
+      "\\- MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "\\- BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
+      "**Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
     ].join("\n");
     const next = buildWeeklyBlockEmbed(old, [
       {
@@ -299,11 +299,11 @@ describe("bulleted short-day layout", () => {
       },
     ]);
     expect(next.description.split("\n")).toEqual([
-      "**Tue 9/15**",
-      "\\- MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
-      "\\- BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
-      "**Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
-      "**Thu 9/17** Ony @ 7pm — [thu1 | token: t](https://softres.it/raid/thu1?adminToken=t#ts=1789686000)",
+      "- **Tue 9/15**",
+      "  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "  - BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
+      "- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
+      "- **Thu 9/17** Ony @ 7pm — [thu1 | token: t](https://softres.it/raid/thu1?adminToken=t#ts=1789686000)",
     ]);
   });
 });

@@ -148,28 +148,25 @@ function renderDescription(entries: ResolvedEntry[]): string {
     else dayGroups.set(dayKey, [entry]);
   }
 
-  // No markdown bullets — they add indentation and spacing. Most raid days have one raid, which
-  // goes on the day's own line; a day with several gets a bold header and one line per raid,
-  // led by an escaped `\- ` so Discord shows a literal dash rather than a bullet.
+  // Most raid days have one raid, which goes on the day's own bullet; a day with several gets a
+  // header bullet and one nested bullet per raid.
   const lines: string[] = [];
   for (const group of dayGroups.values()) {
-    const day = `**${formatDayHeader(group[0]!.timestampSec, "short")}**`;
+    const day = `- **${formatDayHeader(group[0]!.timestampSec, "short")}**`;
     if (group.length === 1) {
       lines.push(`${day} ${renderEntry(group[0]!)}`);
     } else {
-      lines.push(day, ...group.map((entry) => `${NESTED_PREFIX}${renderEntry(entry)}`));
+      lines.push(day, ...group.map((entry) => `  - ${renderEntry(entry)}`));
     }
   }
   return lines.join("\n");
 }
 
-const NESTED_PREFIX = "\\- ";
-
 // Current format: an entry is "{prefix} @ {time} — [label](url#ts=UNIX)", optionally followed by
-// " <note>" (plain text) for an unlinked entry. It sits either alone on its day's line
-// ("**Tue 9/15** {entry}") or under a day header ("\- {entry}"). Earlier bulleted forms
-// ("  - {entry}", "- **Tue 9/15** {entry}") still parse. The `#ts=` fragment, not the display
-// time or day, is the recoverable sort key.
+// " <note>" (plain text) for an unlinked entry. It sits either on its day's own bullet
+// ("- **Tue 9/15** {entry}") or nested under a day header ("  - {entry}"). The briefly-used
+// unbulleted forms ("**Tue 9/15** {entry}", "\- {entry}") still parse. The `#ts=` fragment, not
+// the display time or day, is the recoverable sort key.
 const ENTRY_LINE_REGEX =
   /^(?:\\- | {2}- |(?:- )?\*\*[^*]+\*\* )(.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: .+)?$/;
 // Pre-this-feature-revision format: "<t:UNIX:f> {emoji }{zone}: {url}" (flat, no day grouping).
