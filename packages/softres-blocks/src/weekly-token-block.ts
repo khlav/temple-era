@@ -103,7 +103,7 @@ export function adminUrlRaidId(url: string): string | null {
 
 /** Plain text after an unlinked entry's link — an SR attached in Raid Helper's own setup: we can
  * link its public page, but its admin token stayed with the raid lead who created it. */
-export const UNLINKED_NOTE = "no admin code (RaidHelper SR)";
+export const UNLINKED_NOTE = "no token, Raidhelper SR";
 
 function parsePublicUrl(url: string): string | null {
   const match = /\/raid\/([\w.-]+)(?=$|#)/.exec(url);

@@ -200,7 +200,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
   it("renders the public link, with a plain-text note in place of the admin token", () => {
     const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
     expect(embed.description).toBe(
-      "- **Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
+      "- **Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
     );
   });
 
@@ -214,7 +214,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
       },
     ]);
     expect(next.description).toContain(
-      "[rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
+      "[rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
     );
     expect(next.description).toContain("[zg1 | token: t]");
   });
@@ -222,7 +222,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
   it("is replaced by the admin link once the raid lead posts it", () => {
     const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
     const next = buildWeeklyBlockEmbed(first.description, [admin]);
-    expect(next.description).not.toContain("no admin code (RaidHelper SR)");
+    expect(next.description).not.toContain("no token, Raidhelper SR");
     expect(next.description).toContain("[rh1 | token: tok]");
   });
 
@@ -248,7 +248,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
       },
     ]);
     expect(next.description).toContain(
-      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
+      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
     );
   });
 
@@ -278,7 +278,7 @@ describe("earlier label formats", () => {
       "MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
     );
     expect(next.description).toContain(
-      "Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) no admin code (RaidHelper SR)",
+      "Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) no token, Raidhelper SR",
     );
   });
 });
