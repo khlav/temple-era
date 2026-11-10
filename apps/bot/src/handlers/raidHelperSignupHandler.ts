@@ -130,7 +130,7 @@ async function attemptSignupCheck(message: Message, attemptIndex: number): Promi
  * heuristic — and if found, calls Phase 1's `ensure-softres` endpoint, then posts an embed of the
  * public (no-token) link(s) in the signup channel and merges the matching admin link(s) into
  * that lockout week's summary message in the SoftRes Token thread. An SR the raid lead attached
- * in Raid Helper's setup gets the same card, and an "unlinked" block line in place of the token.
+ * in Raid Helper's setup gets the same card, and a block line noting the token isn't available.
  */
 export async function handleRaidHelperSignup(message: Message): Promise<void> {
   if (!hasBenchButton(message)) {
@@ -190,7 +190,7 @@ export async function handleRaidHelperSignup(message: Message): Promise<void> {
 
     // Either SRs we just created (with their admin links), or — when a raid lead attached one in
     // Raid Helper's own setup — that SR, whose admin token only they have. The token block then
-    // gets its public link, rendered as an "unlinked" line.
+    // gets its public link, rendered with a note in place of the token.
     const links =
       result.created && result.links.length > 0
         ? result.links.map((link) => ({ ...link, tokenUrl: link.adminUrl }))

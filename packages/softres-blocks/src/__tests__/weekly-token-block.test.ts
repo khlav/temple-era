@@ -198,12 +198,12 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
     timestampSec: TUE_7PM,
   };
 
-  it("renders the public link with an unlinked label in place of the admin token", () => {
+  it("renders the public link, with a plain-text note in place of the admin token", () => {
     const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
     expect(embed.description).toBe(
       [
         "- **Tuesday 9/15**",
-        "  - <:mc_ragnaros:2> MC @ 7pm — [rh1 | unlinked (RaidHelper, RL has code)](https://softres.it/raid/rh1#ts=1789513200)",
+        "  - <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code from RaidHelper-generated SRs",
       ].join("\n"),
     );
   });
@@ -217,14 +217,16 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
         timestampSec: WED_630PM,
       },
     ]);
-    expect(next.description).toContain("[rh1 | unlinked (RaidHelper, RL has code)]");
+    expect(next.description).toContain(
+      "[rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code",
+    );
     expect(next.description).toContain("[zg1 | admintoken: t]");
   });
 
   it("is replaced by the admin link once the raid lead posts it", () => {
     const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
     const next = buildWeeklyBlockEmbed(first.description, [admin]);
-    expect(next.description).not.toContain("unlinked");
+    expect(next.description).not.toContain("Cannot get admin code");
     expect(next.description).toContain("[rh1 | admintoken: tok]");
   });
 
@@ -237,6 +239,21 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
   it("doesn't count as listed for blockHasRaid, so the add-token prompt still fires", () => {
     const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
     expect(blockHasRaid(embed.description, "rh1")).toBe(false);
+  });
+
+  it("reads back an entry in the earlier in-link label format", () => {
+    const old =
+      "- **Tuesday 9/15**\n  - MC @ 7pm — [rh1 | unlinked (RaidHelper, RL has code)](https://softres.it/raid/rh1#ts=1789513200)";
+    const next = buildWeeklyBlockEmbed(old, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain(
+      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code",
+    );
   });
 
   it("is found by weeklyBlockRaidsForZone, so a clean-up night can reuse it", () => {
