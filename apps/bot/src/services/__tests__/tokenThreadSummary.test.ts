@@ -117,15 +117,14 @@ describe("postWeeklyTokenEntries", () => {
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        "  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=" +
+        "**Tue 9/15**",
+        "\\- <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=" +
           TUE_7PM +
           ")",
-        "  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=" +
+        "\\- <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=" +
           TUE_730PM +
           ")",
-        "- **Wednesday 9/16**",
-        "  - ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=" +
+        "**Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=" +
           WED_630PM +
           ")",
       ].join("\n"),
@@ -143,7 +142,7 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      `- **Tuesday 9/15**\n  - Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
+      `**Tue 9/15** Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
     );
   });
 
@@ -168,10 +167,8 @@ describe("postWeeklyTokenEntries", () => {
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        `  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        "- **Thursday 9/17**",
-        `  - Naxx @ 7pm — [thu1 | token: tokN](https://softres.it/raid/thu1?adminToken=tokN#ts=${THU_7PM})`,
+        `**Tue 9/15** MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `**Thu 9/17** Naxx @ 7pm — [thu1 | token: tokN](https://softres.it/raid/thu1?adminToken=tokN#ts=${THU_7PM})`,
       ].join("\n"),
     );
   });
@@ -190,7 +187,7 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      `- **Tuesday 9/15**\n  - Ony @ 7pm — [abc-123 | token: tok_45.6](https://softres.it/raid/abc-123?adminToken=tok_45.6#ts=${TUE_7PM})`,
+      `**Tue 9/15** Ony @ 7pm — [abc-123 | token: tok_45.6](https://softres.it/raid/abc-123?adminToken=tok_45.6#ts=${TUE_7PM})`,
     );
   });
 
@@ -211,7 +208,7 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toContain(
-      `  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+      `**Tue 9/15** MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
     );
   });
 
@@ -233,10 +230,8 @@ describe("postWeeklyTokenEntries", () => {
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        "- **Wednesday 9/16**",
-        `  - Ony @ 6:30pm — [wed1 | token: tokO](https://softres.it/raid/wed1?adminToken=tokO#ts=${WED_630PM})`,
+        `**Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `**Wed 9/16** Ony @ 6:30pm — [wed1 | token: tokO](https://softres.it/raid/wed1?adminToken=tokO#ts=${WED_630PM})`,
       ].join("\n"),
     );
   });

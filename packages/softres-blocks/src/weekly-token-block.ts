@@ -66,12 +66,13 @@ function formatShortTime(timestampSec: number): string {
   return minute === "00" ? `${hour}${meridiem}` : `${hour}:${minute}${meridiem}`;
 }
 
-/** "Tuesday 9/15" for the 1st-level (day) bullet. */
-function formatDayHeader(timestampSec: number): string {
+/** "Tuesday 9/15" (prompts) or "Tue 9/15" (the block's day bullet, kept short so a single-raid
+ * day fits on one line). */
+function formatDayHeader(timestampSec: number, weekdayStyle: "long" | "short" = "long"): string {
   const date = new Date(timestampSec * 1000);
   const weekday = new Intl.DateTimeFormat("en-US", {
     timeZone: ET_TIME_ZONE,
-    weekday: "long",
+    weekday: weekdayStyle,
   }).format(date);
   const monthDay = new Intl.DateTimeFormat("en-US", {
     timeZone: ET_TIME_ZONE,
@@ -81,7 +82,7 @@ function formatDayHeader(timestampSec: number): string {
   return `${weekday} ${monthDay}`;
 }
 
-/** "Tuesday 9/29 @ 7pm" — the same day/time wording the block itself uses, for prompts that
+/** "Tuesday 9/29 @ 7pm" — the block's day/time wording with the full weekday, for prompts that
  * describe an entry before it is added. */
 export function formatRaidWhen(timestampSec: number): string {
   return `${formatDayHeader(timestampSec)} @ ${formatShortTime(timestampSec)}`;
@@ -133,8 +134,8 @@ function renderLink(url: string, timestampSec: number): string {
   return `[link](${href})`;
 }
 
-function renderEntryLine(entry: ResolvedEntry): string {
-  return `  - ${entry.prefix} @ ${formatShortTime(entry.timestampSec)} — ${renderLink(entry.url, entry.timestampSec)}`;
+function renderEntry(entry: ResolvedEntry): string {
+  return `${entry.prefix} @ ${formatShortTime(entry.timestampSec)} — ${renderLink(entry.url, entry.timestampSec)}`;
 }
 
 function renderDescription(entries: ResolvedEntry[]): string {
@@ -147,18 +148,30 @@ function renderDescription(entries: ResolvedEntry[]): string {
     else dayGroups.set(dayKey, [entry]);
   }
 
+  // No markdown bullets — they add indentation and spacing. Most raid days have one raid, which
+  // goes on the day's own line; a day with several gets a bold header and one line per raid,
+  // led by an escaped `\- ` so Discord shows a literal dash rather than a bullet.
   const lines: string[] = [];
   for (const group of dayGroups.values()) {
-    lines.push(`- **${formatDayHeader(group[0]!.timestampSec)}**`);
-    lines.push(...group.map(renderEntryLine));
+    const day = `**${formatDayHeader(group[0]!.timestampSec, "short")}**`;
+    if (group.length === 1) {
+      lines.push(`${day} ${renderEntry(group[0]!)}`);
+    } else {
+      lines.push(day, ...group.map((entry) => `${NESTED_PREFIX}${renderEntry(entry)}`));
+    }
   }
   return lines.join("\n");
 }
 
-// Current format: "  - {prefix} @ {time} — [label](url#ts=UNIX)", optionally followed by
-// " <note>" (plain text) for an unlinked entry. The `#ts=` fragment, not the display time, is the
-// recoverable sort key.
-const ENTRY_LINE_REGEX = /^ {2}- (.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: .+)?$/;
+const NESTED_PREFIX = "\\- ";
+
+// Current format: an entry is "{prefix} @ {time} — [label](url#ts=UNIX)", optionally followed by
+// " <note>" (plain text) for an unlinked entry. It sits either alone on its day's line
+// ("**Tue 9/15** {entry}") or under a day header ("\- {entry}"). Earlier bulleted forms
+// ("  - {entry}", "- **Tue 9/15** {entry}") still parse. The `#ts=` fragment, not the display
+// time or day, is the recoverable sort key.
+const ENTRY_LINE_REGEX =
+  /^(?:\\- | {2}- |(?:- )?\*\*[^*]+\*\* )(.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: .+)?$/;
 // Pre-this-feature-revision format: "<t:UNIX:f> {emoji }{zone}: {url}" (flat, no day grouping).
 // Parsed as a fallback so a format change mid-lockout-week doesn't drop that week's
 // already-posted entries on the next edit. The optional emoji group is anchored to actual
