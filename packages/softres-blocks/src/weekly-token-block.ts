@@ -3,6 +3,9 @@ import { formatLockoutWeekLabel, getEasternDayKey, getLockoutWeekKey } from "./l
 
 export interface WeeklyTokenEntry {
   zone: string;
+  /** The softres.it admin link (`/raid/<id>?adminToken=...`), or — for an SR attached in Raid
+   * Helper's own setup, whose token only the raid lead has — the public `/raid/<id>` link, which
+   * renders as an "unlinked" line. */
   url: string;
   emoji?: string;
   /** Unix seconds — the raid's actual scheduled time for `ensure-softres` entries, or the
@@ -34,7 +37,7 @@ const SHORT_ZONE_NAMES: Record<string, string> = {
 interface ResolvedEntry {
   /** e.g. "🔥 BWL" (emoji + short zone name), verbatim text for the bullet's line prefix. */
   prefix: string;
-  /** The real admin URL (no `#ts=` suffix). */
+  /** The real admin URL, or the public URL of an unlinked entry (no `#ts=` suffix). */
   url: string;
   timestampSec: number;
 }
@@ -97,7 +100,24 @@ export function adminUrlRaidId(url: string): string | null {
   return parseAdminUrl(url)?.raidId ?? null;
 }
 
-const raidIdOf = adminUrlRaidId;
+/** An SR attached in Raid Helper's own setup: we can link its public page, but its admin token
+ * stayed with the raid lead who created it. */
+export const UNLINKED_LABEL = "unlinked (RaidHelper, RL has code)";
+
+function parsePublicUrl(url: string): string | null {
+  const match = /\/raid\/([\w.-]+)(?=$|#)/.exec(url);
+  return match ? match[1]! : null;
+}
+
+/** The raid id an entry's link points at, whether it is an admin link or an unlinked entry's
+ * public one — what decides "the same raid" for merging. */
+function raidIdOf(url: string): string | null {
+  return adminUrlRaidId(url) ?? parsePublicUrl(url);
+}
+
+function isUnlinked(url: string): boolean {
+  return adminUrlRaidId(url) === null && parsePublicUrl(url) !== null;
+}
 
 /** `[raidId | admintoken: value](url)` — concise enough that the line doesn't wrap, and still a
  * real working link. Falls back to a plain link if the URL doesn't match the expected shape,
@@ -105,7 +125,12 @@ const raidIdOf = adminUrlRaidId;
  * survives a round trip through the rendered message text — softres.it ignores the fragment. */
 function renderLink(url: string, timestampSec: number): string {
   const parsed = parseAdminUrl(url);
-  const label = parsed ? `${parsed.raidId} | admintoken: ${parsed.adminToken}` : "link";
+  const publicId = parsed ? null : parsePublicUrl(url);
+  const label = parsed
+    ? `${parsed.raidId} | admintoken: ${parsed.adminToken}`
+    : publicId
+      ? `${publicId} | ${UNLINKED_LABEL}`
+      : "link";
   return `[${label}](${url}#ts=${timestampSec})`;
 }
 
@@ -159,17 +184,26 @@ function parseExistingEntries(description: string): ResolvedEntry[] {
 }
 
 /** A raid appears once: re-adding one (a corrected time, a second click) replaces its old line
- * rather than duplicating it. Entries whose URL has no parseable raid id can't be matched and are
- * kept as they are. */
+ * rather than duplicating it — including an admin link replacing that raid's unlinked line once
+ * the raid lead posts it. The one exception: an unlinked entry never replaces a line that already
+ * has the admin token, since that would throw the token away. Entries whose URL has no parseable
+ * raid id can't be matched and are kept as they are. */
 function mergeEntries(existing: ResolvedEntry[], added: ResolvedEntry[]): ResolvedEntry[] {
+  const existingAdminIds = new Set(
+    existing.map((e) => adminUrlRaidId(e.url)).filter((id): id is string => id !== null),
+  );
+  const accepted = added.filter((e) => {
+    const id = raidIdOf(e.url);
+    return !(id !== null && isUnlinked(e.url) && existingAdminIds.has(id));
+  });
   const addedIds = new Set(
-    added.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
+    accepted.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
   );
   const kept = existing.filter((e) => {
     const id = raidIdOf(e.url);
     return id === null || !addedIds.has(id);
   });
-  return [...kept, ...added];
+  return [...kept, ...accepted];
 }
 
 /**
@@ -181,9 +215,11 @@ export function weeklyBlockFooter(timestampSec: number): string {
   return `${FOOTER_MARKER_PREFIX}${getLockoutWeekKey(new Date(timestampSec * 1000))}`;
 }
 
-/** Whether a rendered block description already lists this raid id. */
+/** Whether a rendered block description already lists this raid id *with its admin token*. An
+ * unlinked line doesn't count: the token-thread prompt must still offer to add the real link
+ * when the raid lead posts it. */
 export function blockHasRaid(description: string, raidId: string): boolean {
-  return parseExistingEntries(description).some((e) => raidIdOf(e.url) === raidId);
+  return parseExistingEntries(description).some((e) => adminUrlRaidId(e.url) === raidId);
 }
 
 /**

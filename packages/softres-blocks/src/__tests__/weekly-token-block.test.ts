@@ -183,3 +183,66 @@ describe("weeklyBlockRaidsForZone", () => {
     expect(weeklyBlockRaidsForZone(embed.description, "Blackwing Lair")).toEqual([]);
   });
 });
+
+describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
+  const unlinked = {
+    zone: "Molten Core",
+    url: "https://softres.it/raid/rh1",
+    emoji: "<:mc_ragnaros:2>",
+    timestampSec: TUE_7PM,
+  };
+  const admin = {
+    zone: "Molten Core",
+    url: "https://softres.it/raid/rh1?adminToken=tok",
+    emoji: "<:mc_ragnaros:2>",
+    timestampSec: TUE_7PM,
+  };
+
+  it("renders the public link with an unlinked label in place of the admin token", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    expect(embed.description).toBe(
+      [
+        "- **Tuesday 9/15**",
+        "  - <:mc_ragnaros:2> MC @ 7pm — [rh1 | unlinked (RaidHelper, RL has code)](https://softres.it/raid/rh1#ts=1789513200)",
+      ].join("\n"),
+    );
+  });
+
+  it("survives a round trip through the rendered message", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    const next = buildWeeklyBlockEmbed(first.description, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain("[rh1 | unlinked (RaidHelper, RL has code)]");
+    expect(next.description).toContain("[zg1 | admintoken: t]");
+  });
+
+  it("is replaced by the admin link once the raid lead posts it", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    const next = buildWeeklyBlockEmbed(first.description, [admin]);
+    expect(next.description).not.toContain("unlinked");
+    expect(next.description).toContain("[rh1 | admintoken: tok]");
+  });
+
+  it("never replaces a line that already has the admin token", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [admin]);
+    const next = buildWeeklyBlockEmbed(first.description, [unlinked]);
+    expect(next.description).toBe(first.description);
+  });
+
+  it("doesn't count as listed for blockHasRaid, so the add-token prompt still fires", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    expect(blockHasRaid(embed.description, "rh1")).toBe(false);
+  });
+
+  it("is found by weeklyBlockRaidsForZone, so a clean-up night can reuse it", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [{ ...unlinked, zone: "Naxxramas" }]);
+    expect(weeklyBlockRaidsForZone(embed.description, "Naxxramas")).toEqual([
+      { raidId: "rh1", timestampSec: TUE_7PM },
+    ]);
+  });
+});

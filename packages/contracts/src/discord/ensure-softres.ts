@@ -24,11 +24,25 @@ export const EnsureSoftresCreatedLinkSchema = z.object({
   eventTimestamp: z.number(),
 });
 
+/** The SR a raid lead attached in Raid Helper's own setup (the event's `softresId`). Its admin
+ * token stayed with them, so there is only the public link. */
+export const EnsureSoftresExistingLinkSchema = z.object({
+  zone: z.string(),
+  /** softres.it's raid id — the event's `softresId`. */
+  raidId: z.string(),
+  publicUrl: z.string(),
+  eventDate: z.string(),
+  eventTimestamp: z.number(),
+});
+
 export const EnsureSoftresSuccessSchema = z.object({
   success: z.literal(true),
   /** false when softresId was already present — no SRs were created */
   created: z.boolean(),
   links: z.array(EnsureSoftresCreatedLinkSchema),
+  /** Set when `created` is false because the event already had a `softresId` whose zone could
+   * be read — so the bot can still post the public card and an "unlinked" token-block line. */
+  existing: EnsureSoftresExistingLinkSchema.optional(),
   /** The Raid-Helper event's display title (e.g. "Sunday BWL/MC @7PM"), used by the bot to
    * title the embed it posts — present even when `links` is empty. */
   eventTitle: z.string(),
