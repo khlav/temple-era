@@ -39,11 +39,10 @@ describe("buildWeeklyBlockEmbed", () => {
 
     expect(embed.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        `  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | admintoken: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
-        "- **Wednesday 9/16**",
-        `  - ZG @ 6:30pm — [wed1 | admintoken: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
+        "- **Tue 9/15**",
+        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
+        `- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
       ].join("\n"),
     );
     expect(embed.title).toBe("SR Admin Tokens — Week of Sep 15");
@@ -89,7 +88,7 @@ describe("buildWeeklyBlockEmbed", () => {
 
     expect(again.description.match(/same1 \|/g)).toHaveLength(1);
     expect(again.description).toContain("Naxx @ 7:30pm");
-    expect(again.description).toContain("admintoken: new");
+    expect(again.description).toContain("token: new");
   });
 
   it("recovers entries from the legacy flat format", () => {
@@ -111,7 +110,7 @@ describe("buildWeeklyBlockEmbed", () => {
     ]);
 
     expect(embed.description).toBe(
-      `- **Tuesday 9/15**\n  - Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
+      `- **Tue 9/15** Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
     );
   });
 
@@ -181,5 +180,141 @@ describe("weeklyBlockRaidsForZone", () => {
 
   it("is empty for a zone the block doesn't list", () => {
     expect(weeklyBlockRaidsForZone(embed.description, "Blackwing Lair")).toEqual([]);
+  });
+});
+
+describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
+  const unlinked = {
+    zone: "Molten Core",
+    url: "https://softres.it/raid/rh1",
+    emoji: "<:mc_ragnaros:2>",
+    timestampSec: TUE_7PM,
+  };
+  const admin = {
+    zone: "Molten Core",
+    url: "https://softres.it/raid/rh1?adminToken=tok",
+    emoji: "<:mc_ragnaros:2>",
+    timestampSec: TUE_7PM,
+  };
+
+  it("renders the public link, with a plain-text note in place of the admin token", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    expect(embed.description).toBe(
+      "- **Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
+    );
+  });
+
+  it("survives a round trip through the rendered message", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    const next = buildWeeklyBlockEmbed(first.description, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain(
+      "[rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
+    );
+    expect(next.description).toContain("[zg1 | token: t]");
+  });
+
+  it("is replaced by the admin link once the raid lead posts it", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    const next = buildWeeklyBlockEmbed(first.description, [admin]);
+    expect(next.description).not.toContain("no token, Raidhelper SR");
+    expect(next.description).toContain("[rh1 | token: tok]");
+  });
+
+  it("never replaces a line that already has the admin token", () => {
+    const first = buildWeeklyBlockEmbed(undefined, [admin]);
+    const next = buildWeeklyBlockEmbed(first.description, [unlinked]);
+    expect(next.description).toBe(first.description);
+  });
+
+  it("keeps only the token line when one batch carries both forms of a raid", () => {
+    for (const batch of [
+      [unlinked, admin],
+      [admin, unlinked],
+    ]) {
+      const embed = buildWeeklyBlockEmbed(undefined, batch);
+      expect(embed.description.split("\n")).toHaveLength(1);
+      expect(embed.description).toContain("[rh1 | token: tok]");
+    }
+  });
+
+  it("doesn't count as listed for blockHasRaid, so the add-token prompt still fires", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
+    expect(blockHasRaid(embed.description, "rh1")).toBe(false);
+  });
+
+  it("reads back an entry in the earlier in-link label format", () => {
+    const old =
+      "- **Tuesday 9/15**\n  - MC @ 7pm — [rh1 | unlinked (RaidHelper, RL has code)](https://softres.it/raid/rh1#ts=1789513200)";
+    const next = buildWeeklyBlockEmbed(old, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain(
+      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no token, Raidhelper SR",
+    );
+  });
+
+  it("is found by weeklyBlockRaidsForZone, so a clean-up night can reuse it", () => {
+    const embed = buildWeeklyBlockEmbed(undefined, [{ ...unlinked, zone: "Naxxramas" }]);
+    expect(weeklyBlockRaidsForZone(embed.description, "Naxxramas")).toEqual([
+      { raidId: "rh1", timestampSec: TUE_7PM },
+    ]);
+  });
+});
+
+describe("earlier label formats", () => {
+  it("re-renders an 'admintoken:' label and a piped note in the current format", () => {
+    const old = [
+      "- **Tuesday 9/15**",
+      "  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "  - Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) | Cannot get admin code from RaidHelper-generated SRs",
+    ].join("\n");
+    const next = buildWeeklyBlockEmbed(old, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain(
+      "MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+    );
+    expect(next.description).toContain(
+      "Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) no token, Raidhelper SR",
+    );
+  });
+});
+
+describe("unbulleted short-day layout", () => {
+  it("reads back '**Tue**' single-raid lines and '\\- ' nested lines", () => {
+    const old = [
+      "**Tue 9/15**",
+      "\\- MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "\\- BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
+      "**Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
+    ].join("\n");
+    const next = buildWeeklyBlockEmbed(old, [
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/thu1?adminToken=t",
+        timestampSec: 1789686000,
+      },
+    ]);
+    expect(next.description.split("\n")).toEqual([
+      "- **Tue 9/15**",
+      "  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "  - BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=1789515000)",
+      "- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=1789597800)",
+      "- **Thu 9/17** Ony @ 7pm — [thu1 | token: t](https://softres.it/raid/thu1?adminToken=t#ts=1789686000)",
+    ]);
   });
 });

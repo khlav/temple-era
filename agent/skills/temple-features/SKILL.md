@@ -118,8 +118,12 @@ event already has a SoftRes attached.
   per zone), creates them, and posts a green **"SRs : <event title>"** post in the signup channel with
   the public link(s). The title links back to the signup post. The admin link(s) go to the SoftRes Token
   thread.
-- **SR already attached** (a raid lead made one and set it on the Raid-Helper event): nothing is created
-  and nothing is posted. This is expected, not a fault.
+- **SR already attached** (a raid lead made one and set it on the Raid-Helper event): nothing is created,
+  but the bot still posts the green **"SRs : <event title>"** post with that SR's public link, and adds a
+  line to the week's Token-thread block: the SR's link, then plain text **"no token, Raidhelper
+  SR"** in place of the admin token — the raid lead who made it has the token. If
+  they post the admin link in the Token thread, the Add-to-block prompt replaces that line with the real
+  one.
 - If the zone can't be worked out from the title/channel, nothing is created — use `/sr`.
 
 ## Hard reserves on new SRs

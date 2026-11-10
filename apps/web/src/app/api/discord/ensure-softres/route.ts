@@ -10,13 +10,15 @@ import { compressResponse } from "~/lib/compression";
 import { fetchEventDetail } from "~/server/services/raid-helper-client";
 import { parseZonesFromEventTitle } from "~/lib/softres-doubleheader-parser";
 import { SOFTRES_CREATE_INSTANCE_IDS } from "~/lib/softres-create-instance-ids";
-import { createSoftResRaid } from "~/server/api/softres-client";
+import { createSoftResRaid, fetchSoftResRaidData } from "~/server/api/softres-client";
+import { getZoneForInstance } from "~/lib/raid-zones";
 import { getHardReserveItemIds } from "~/lib/softres-hard-reserves";
 import { formatEasternDateTime } from "~/lib/raid-formatting";
 
 /**
- * Given a Raid-Helper `eventId`, ensures the event has a SoftRes soft-reserve raid: no-ops if
- * `softresId` is already set, otherwise identifies the zone(s) raided from the event's title (a
+ * Given a Raid-Helper `eventId`, ensures the event has a SoftRes soft-reserve raid. If
+ * `softresId` is already set (a raid lead attached one in Raid Helper's setup) nothing is created,
+ * but that SR comes back as `existing` so the bot can still post its public card; otherwise identifies the zone(s) raided from the event's title (a
  * doubleheader event names two) and creates exactly one SoftRes SR per zone. Inert until Phase 2
  * (apps/bot) starts calling it — this route needs no database access, unlike `create-raid`.
  */
@@ -66,7 +68,28 @@ export async function POST(request: Request) {
     const eventTitle = event.displayTitle ?? event.title ?? "Raid Signup";
 
     if (event.softresId) {
-      const result: EnsureSoftresResult = { success: true, created: false, links: [], eventTitle };
+      const zone = await existingSoftresZone(event.softresId, eventTitle, event.channelName);
+      if (!zone) {
+        logger.warn(
+          { eventId, softresId: event.softresId, title: event.title },
+          "Could not identify the zone of a Raid Helper-attached SoftRes",
+        );
+      }
+      const result: EnsureSoftresResult = {
+        success: true,
+        created: false,
+        links: [],
+        eventTitle,
+        ...(zone && {
+          existing: {
+            zone,
+            raidId: event.softresId,
+            publicUrl: `https://softres.it/raid/${event.softresId}`,
+            eventDate: formatEventDate(event.startTime),
+            eventTimestamp: event.startTime,
+          },
+        }),
+      };
       return await compressResponse(result, request);
     }
 
@@ -86,10 +109,7 @@ export async function POST(request: Request) {
     // the same undocumented endpoint. Includes time-of-day, not just the date, since the bot's
     // embed shows it as the event's date/time line. "Server Time" (not "zzz"/EDT-EST) since
     // Discord members read this as WoW server time, not a literal US Eastern timezone label.
-    const eventDate = formatEasternDateTime(
-      new Date(event.startTime * 1000),
-      "EEE, MMM d 'at' h:mm a 'Server Time'",
-    );
+    const eventDate = formatEventDate(event.startTime);
     const links: Array<{
       zone: string;
       instanceId: number;
@@ -148,4 +168,32 @@ export async function POST(request: Request) {
       headers: response.headers,
     });
   }
+}
+
+/**
+ * The zone of an SR attached in Raid Helper's setup: softres.it's own answer first, since a
+ * doubleheader title names two zones but one SR covers only one. Falls back to the title only
+ * when it names exactly one zone (softres.it unreachable).
+ */
+async function existingSoftresZone(
+  softresId: string,
+  eventTitle: string,
+  channelName: string | undefined,
+): Promise<string | undefined> {
+  try {
+    const softres = await fetchSoftResRaidData(softresId);
+    const zone = softres.instance ? getZoneForInstance(softres.instance) : undefined;
+    if (zone) return zone;
+  } catch (error) {
+    logger.warn({ softresId, err: error }, "Could not read a Raid Helper-attached SoftRes");
+  }
+  const zones = parseZonesFromEventTitle(eventTitle, channelName);
+  return zones.length === 1 ? zones[0] : undefined;
+}
+
+function formatEventDate(startTimeSec: number): string {
+  return formatEasternDateTime(
+    new Date(startTimeSec * 1000),
+    "EEE, MMM d 'at' h:mm a 'Server Time'",
+  );
 }

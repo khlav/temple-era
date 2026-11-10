@@ -129,7 +129,8 @@ async function attemptSignupCheck(message: Message, attemptIndex: number): Promi
  * roster-confirmation post (which never carries a Bench button), rather than an embed-text
  * heuristic — and if found, calls Phase 1's `ensure-softres` endpoint, then posts an embed of the
  * public (no-token) link(s) in the signup channel and merges the matching admin link(s) into
- * that lockout week's summary message in the SoftRes Token thread.
+ * that lockout week's summary message in the SoftRes Token thread. An SR the raid lead attached
+ * in Raid Helper's setup gets the same card, and a block line noting the token isn't available.
  */
 export async function handleRaidHelperSignup(message: Message): Promise<void> {
   if (!hasBenchButton(message)) {
@@ -187,21 +188,30 @@ export async function handleRaidHelperSignup(message: Message): Promise<void> {
       return;
     }
 
-    if (!result.created || result.links.length === 0) {
+    // Either SRs we just created (with their admin links), or — when a raid lead attached one in
+    // Raid Helper's own setup — that SR, whose admin token only they have. The token block then
+    // gets its public link, rendered with a note in place of the token.
+    const links =
+      result.created && result.links.length > 0
+        ? result.links.map((link) => ({ ...link, tokenUrl: link.adminUrl }))
+        : result.existing
+          ? [{ ...result.existing, tokenUrl: result.existing.publicUrl }]
+          : [];
+    if (links.length === 0) {
       logger.debug({ eventId: message.id }, "No SoftRes creation needed");
       return;
     }
 
     const title = `SRs : ${result.eventTitle}`;
     const titleUrl = `https://discord.com/channels/${config.discordServerId}/${message.channelId}/${message.id}`;
-    const dateLabel = result.links[0]!.eventDate;
+    const dateLabel = links[0]!.eventDate;
 
     if (message.channel.isSendable()) {
       const publicEmbed = buildPublicSoftresEmbed({
         title,
         titleUrl,
         dateLabel,
-        links: result.links.map((link) => ({
+        links: links.map((link) => ({
           zone: link.zone,
           url: link.publicUrl,
           emoji: getZoneEmoji(link.zone),
@@ -214,16 +224,20 @@ export async function handleRaidHelperSignup(message: Message): Promise<void> {
 
     await postWeeklyTokenEntries(
       message.client,
-      result.links.map((link) => ({
+      links.map((link) => ({
         zone: link.zone,
-        url: link.adminUrl,
+        url: link.tokenUrl,
         emoji: getZoneEmoji(link.zone),
         timestampSec: link.eventTimestamp,
       })),
     );
     logger.info(
-      { eventId: message.id, zones: result.links.map((link) => link.zone) },
-      "Merged SoftRes admin link(s) into the weekly Token thread summary",
+      {
+        eventId: message.id,
+        zones: links.map((link) => link.zone),
+        raidHelperAttached: !result.created,
+      },
+      "Merged SoftRes link(s) into the weekly Token thread summary",
     );
   } catch (error) {
     logger.error(
