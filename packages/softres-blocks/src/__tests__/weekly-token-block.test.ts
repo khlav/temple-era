@@ -40,10 +40,10 @@ describe("buildWeeklyBlockEmbed", () => {
     expect(embed.description).toBe(
       [
         "- **Tuesday 9/15**",
-        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        `  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | admintoken: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
+        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=${TUE_730PM})`,
         "- **Wednesday 9/16**",
-        `  - ZG @ 6:30pm — [wed1 | admintoken: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
+        `  - ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=${WED_630PM})`,
       ].join("\n"),
     );
     expect(embed.title).toBe("SR Admin Tokens — Week of Sep 15");
@@ -89,7 +89,7 @@ describe("buildWeeklyBlockEmbed", () => {
 
     expect(again.description.match(/same1 \|/g)).toHaveLength(1);
     expect(again.description).toContain("Naxx @ 7:30pm");
-    expect(again.description).toContain("admintoken: new");
+    expect(again.description).toContain("token: new");
   });
 
   it("recovers entries from the legacy flat format", () => {
@@ -203,7 +203,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
     expect(embed.description).toBe(
       [
         "- **Tuesday 9/15**",
-        "  - <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code from RaidHelper-generated SRs",
+        "  - <:mc_ragnaros:2> MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
       ].join("\n"),
     );
   });
@@ -218,16 +218,16 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
       },
     ]);
     expect(next.description).toContain(
-      "[rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code",
+      "[rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
     );
-    expect(next.description).toContain("[zg1 | admintoken: t]");
+    expect(next.description).toContain("[zg1 | token: t]");
   });
 
   it("is replaced by the admin link once the raid lead posts it", () => {
     const first = buildWeeklyBlockEmbed(undefined, [unlinked]);
     const next = buildWeeklyBlockEmbed(first.description, [admin]);
-    expect(next.description).not.toContain("Cannot get admin code");
-    expect(next.description).toContain("[rh1 | admintoken: tok]");
+    expect(next.description).not.toContain("no admin code (RaidHelper SR)");
+    expect(next.description).toContain("[rh1 | token: tok]");
   });
 
   it("never replaces a line that already has the admin token", () => {
@@ -252,7 +252,7 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
       },
     ]);
     expect(next.description).toContain(
-      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) | Cannot get admin code",
+      "MC @ 7pm — [rh1](https://softres.it/raid/rh1#ts=1789513200) no admin code (RaidHelper SR)",
     );
   });
 
@@ -261,5 +261,28 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
     expect(weeklyBlockRaidsForZone(embed.description, "Naxxramas")).toEqual([
       { raidId: "rh1", timestampSec: TUE_7PM },
     ]);
+  });
+});
+
+describe("earlier label formats", () => {
+  it("re-renders an 'admintoken:' label and a piped note in the current format", () => {
+    const old = [
+      "- **Tuesday 9/15**",
+      "  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+      "  - Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) | Cannot get admin code from RaidHelper-generated SRs",
+    ].join("\n");
+    const next = buildWeeklyBlockEmbed(old, [
+      {
+        zone: "Zul'Gurub",
+        url: "https://softres.it/raid/zg1?adminToken=t",
+        timestampSec: WED_630PM,
+      },
+    ]);
+    expect(next.description).toContain(
+      "MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=1789513200)",
+    );
+    expect(next.description).toContain(
+      "Ony @ 7:30pm — [rh1](https://softres.it/raid/rh1#ts=1789515000) no admin code (RaidHelper SR)",
+    );
   });
 });

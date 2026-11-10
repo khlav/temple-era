@@ -102,7 +102,7 @@ export function adminUrlRaidId(url: string): string | null {
 
 /** Plain text after an unlinked entry's link — an SR attached in Raid Helper's own setup: we can
  * link its public page, but its admin token stayed with the raid lead who created it. */
-export const UNLINKED_NOTE = "Cannot get admin code from RaidHelper-generated SRs";
+export const UNLINKED_NOTE = "no admin code (RaidHelper SR)";
 
 function parsePublicUrl(url: string): string | null {
   const match = /\/raid\/([\w.-]+)(?=$|#)/.exec(url);
@@ -119,17 +119,17 @@ function isUnlinked(url: string): boolean {
   return adminUrlRaidId(url) === null && parsePublicUrl(url) !== null;
 }
 
-/** `[raidId | admintoken: value](url)` — concise enough that the line doesn't wrap, and still a
- * real working link. An unlinked entry is `[raidId](url) | <note>`, the note kept out of the link.
+/** `[raidId | token: value](url)` — concise enough that the line doesn't wrap, and still a
+ * real working link. An unlinked entry is `[raidId](url) <note>`, the note kept out of the link.
  * Falls back to a plain link if the URL doesn't match either shape, rather than dropping the
  * entry. The real URL carries a `#ts=<unix>` suffix so the timestamp survives a round trip
  * through the rendered message text — softres.it ignores the fragment. */
 function renderLink(url: string, timestampSec: number): string {
   const href = `${url}#ts=${timestampSec}`;
   const parsed = parseAdminUrl(url);
-  if (parsed) return `[${parsed.raidId} | admintoken: ${parsed.adminToken}](${href})`;
+  if (parsed) return `[${parsed.raidId} | token: ${parsed.adminToken}](${href})`;
   const publicId = parsePublicUrl(url);
-  if (publicId) return `[${publicId}](${href}) | ${UNLINKED_NOTE}`;
+  if (publicId) return `[${publicId}](${href}) ${UNLINKED_NOTE}`;
   return `[link](${href})`;
 }
 
@@ -156,9 +156,9 @@ function renderDescription(entries: ResolvedEntry[]): string {
 }
 
 // Current format: "  - {prefix} @ {time} — [label](url#ts=UNIX)", optionally followed by
-// " | <note>" for an unlinked entry. The `#ts=` fragment, not the display time, is the
+// " <note>" (plain text) for an unlinked entry. The `#ts=` fragment, not the display time, is the
 // recoverable sort key.
-const ENTRY_LINE_REGEX = /^ {2}- (.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: \| .+)?$/;
+const ENTRY_LINE_REGEX = /^ {2}- (.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: .+)?$/;
 // Pre-this-feature-revision format: "<t:UNIX:f> {emoji }{zone}: {url}" (flat, no day grouping).
 // Parsed as a fallback so a format change mid-lockout-week doesn't drop that week's
 // already-posted entries on the next edit. The optional emoji group is anchored to actual

@@ -120,8 +120,8 @@ event already has a SoftRes attached.
   thread.
 - **SR already attached** (a raid lead made one and set it on the Raid-Helper event): nothing is created,
   but the bot still posts the green **"SRs : <event title>"** post with that SR's public link, and adds a
-  line to the week's Token-thread block: the SR's link, then plain text **"| Cannot get admin code from
-  RaidHelper-generated SRs"** in place of the admin token — the raid lead who made it has the token. If
+  line to the week's Token-thread block: the SR's link, then plain text **"no admin code (RaidHelper
+  SR)"** in place of the admin token — the raid lead who made it has the token. If
   they post the admin link in the Token thread, the Add-to-block prompt replaces that line with the real
   one.
 - If the zone can't be worked out from the title/channel, nothing is created — use `/sr`.
