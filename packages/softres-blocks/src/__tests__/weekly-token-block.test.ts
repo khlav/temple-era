@@ -232,6 +232,17 @@ describe("unlinked entries (an SR attached in Raid Helper's own setup)", () => {
     expect(next.description).toBe(first.description);
   });
 
+  it("keeps only the token line when one batch carries both forms of a raid", () => {
+    for (const batch of [
+      [unlinked, admin],
+      [admin, unlinked],
+    ]) {
+      const embed = buildWeeklyBlockEmbed(undefined, batch);
+      expect(embed.description.split("\n")).toHaveLength(1);
+      expect(embed.description).toContain("[rh1 | token: tok]");
+    }
+  });
+
   it("doesn't count as listed for blockHasRaid, so the add-token prompt still fires", () => {
     const embed = buildWeeklyBlockEmbed(undefined, [unlinked]);
     expect(blockHasRaid(embed.description, "rh1")).toBe(false);

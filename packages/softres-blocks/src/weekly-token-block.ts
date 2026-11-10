@@ -195,16 +195,19 @@ function parseExistingEntries(description: string): ResolvedEntry[] {
 
 /** A raid appears once: re-adding one (a corrected time, a second click) replaces its old line
  * rather than duplicating it — including an admin link replacing that raid's unlinked line once
- * the raid lead posts it. The one exception: an unlinked entry never replaces a line that already
- * has the admin token, since that would throw the token away. Entries whose URL has no parseable
- * raid id can't be matched and are kept as they are. */
+ * the raid lead posts it. The one exception: an unlinked entry is dropped when that raid's admin
+ * token is known — already in the block or in the same batch — since keeping it would throw the
+ * token away or list the raid twice. Entries whose URL has no parseable raid id can't be matched
+ * and are kept as they are. */
 function mergeEntries(existing: ResolvedEntry[], added: ResolvedEntry[]): ResolvedEntry[] {
-  const existingAdminIds = new Set(
-    existing.map((e) => adminUrlRaidId(e.url)).filter((id): id is string => id !== null),
+  const adminIds = new Set(
+    [...existing, ...added]
+      .map((e) => adminUrlRaidId(e.url))
+      .filter((id): id is string => id !== null),
   );
   const accepted = added.filter((e) => {
     const id = raidIdOf(e.url);
-    return !(id !== null && isUnlinked(e.url) && existingAdminIds.has(id));
+    return !(id !== null && isUnlinked(e.url) && adminIds.has(id));
   });
   const addedIds = new Set(
     accepted.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
