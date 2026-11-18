@@ -13,7 +13,13 @@
 import postgres from "postgres";
 
 // Matches drizzle.config.ts — schema work needs the session-mode URL, not the transaction pooler.
-const databaseUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL;
+//
+// An empty value counts as unset, not as a URL. `src/env.js` sets `emptyStringAsUndefined`, so
+// `drizzle.config.ts` falls back to DATABASE_URL when DATABASE_MIGRATION_URL is blank; a plain `??`
+// here would keep the empty string and fail a deploy that migrates perfectly well.
+const databaseUrl = [process.env.DATABASE_MIGRATION_URL, process.env.DATABASE_URL]
+  .map((value) => value?.trim())
+  .find((value) => value);
 const LABEL = "[db-preflight]";
 const CONNECT_TIMEOUT_SECONDS = 10;
 
