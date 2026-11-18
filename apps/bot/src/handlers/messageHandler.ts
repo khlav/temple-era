@@ -7,6 +7,7 @@ import { checkUserPermissions } from "../services/permissionChecker.js";
 import { requestRaidCreation } from "../services/raidCreation.js";
 import { startPendingLogRetries } from "../services/pendingLogRetry.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
+import { raidThreadName } from "../utils/threadName.js";
 
 // Track processed messages to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
@@ -87,7 +88,7 @@ export async function handleMessage(message: Message) {
     if (outcome.kind === "incomplete") {
       // Warcraft Logs has no fight in this report yet — the link was posted at the pull. Open the
       // thread anyway and wait it out, so the raid lead sees that the bot has the log.
-      const thread = await ensureThread(message, `Raid: ${outcome.reportTitle ?? reportId}`);
+      const thread = await ensureThread(message, raidThreadName(outcome.reportTitle ?? reportId));
       if (!thread) return;
 
       startPendingLogRetries(thread, body, {
@@ -123,7 +124,7 @@ export async function handleMessage(message: Message) {
       "Raid operation successful",
     );
 
-    const thread = await ensureThread(message, `Raid: ${outcome.raidName}`);
+    const thread = await ensureThread(message, raidThreadName(outcome.raidName ?? reportId));
     if (!thread) return;
     await thread.send(outcome.raidUrl);
   } catch (error) {

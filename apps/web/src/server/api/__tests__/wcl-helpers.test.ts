@@ -78,8 +78,19 @@ describe("RaidReportDataShaper", () => {
     }
   });
 
-  it("tolerates a zoned report whose fights and masterData have not arrived", () => {
-    const shaped = RaidReportDataShaper(report({ fights: null, masterData: null }));
+  it.each([
+    ["fights", { fights: null }],
+    ["masterData", { masterData: null }],
+  ])("refuses a report whose %s has not arrived", (_field, overrides) => {
+    // Null is "Warcraft Logs did not report this", not "there was nothing". Shaping it to an empty
+    // array would make a refresh rewrite kills to none and delete every attendee of an already
+    // imported raid.
+    expect(() => RaidReportDataShaper(report(overrides))).toThrow(WclReportIncompleteError);
+  });
+
+  it("accepts a zoned report that genuinely reports no fights", () => {
+    // An empty array is an answer; only null is a gap.
+    const shaped = RaidReportDataShaper(report({ fights: [], masterData: { actors: [] } }));
 
     expect(shaped.zone).toBe("Naxxramas");
     expect(shaped.kills).toEqual([]);

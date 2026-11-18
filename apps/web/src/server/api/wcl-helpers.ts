@@ -111,12 +111,19 @@ export const RaidReportDataShaper = (apiData: RawRaidReportRequestResult) => {
   // No zone means Warcraft Logs has not seen an encounter yet. Everything downstream — the raid's
   // zone and therefore its attendance weight — depends on it, so stop here rather than importing a
   // zoneless log that would silently credit nobody.
-  if (!rawReport.zone) {
+  //
+  // `fights` and `masterData` are held to the same bar, and deliberately on `null` rather than on
+  // emptiness. Null means Warcraft Logs did not report the field; an empty array means it reported
+  // nothing in it, which is a legitimate answer. The distinction matters because this shaper feeds
+  // *refreshes* as well as first imports, and a refresh rewrites `kills` and deletes the log's
+  // attendees before re-inserting them. Defaulting a null to `[]` would turn "not reported" into
+  // "nobody was there" and wipe an imported raid's attendance.
+  if (!rawReport.zone || !rawReport.fights || !rawReport.masterData) {
     throw new WclReportIncompleteError(rawReport.code, rawReport.title ?? null);
   }
 
-  const fights = rawReport.fights ?? [];
-  const actors = rawReport.masterData?.actors ?? [];
+  const fights = rawReport.fights;
+  const actors = rawReport.masterData.actors ?? [];
   const kills = fights.filter((fight) => fight.kill);
 
   const localIdActorCollection = actors.reduce((acc, actor) => {

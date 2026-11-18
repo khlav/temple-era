@@ -2,6 +2,7 @@ import { type AnyThreadChannel } from "discord.js";
 import { type CreateRaidRequest } from "@temple-era/contracts";
 import { logger } from "../config/logger.js";
 import { requestRaidCreation } from "./raidCreation.js";
+import { raidThreadName } from "../utils/threadName.js";
 
 /**
  * A Warcraft Logs link is often posted at the pull, before the raid's first boss. Warcraft Logs
@@ -32,6 +33,20 @@ export const GAVE_UP_MESSAGE =
 
 /** Pending retries, keyed by the Discord message the log was posted in. */
 const pending = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Drops any retry pending for a Discord message, and says whether there was one. The message
+ * handler calls this when the raid lead edits the link inside Discord's 15-minute window: the edit
+ * goes to `update-raid`, which answers "No raid found" because a pending log has written no row, so
+ * without this the loop would go on to create the raid from the *replaced* link.
+ */
+export function cancelPendingLogRetry(messageId: string): boolean {
+  const timer = pending.get(messageId);
+  if (!timer) return false;
+  clearTimeout(timer);
+  pending.delete(messageId);
+  return true;
+}
 
 /** Visible for tests and for shutdown; cancels every scheduled retry. */
 export function cancelAllPendingLogRetries(): void {
@@ -72,9 +87,10 @@ async function attempt(
     );
     // Name the thread properly now that the raid exists — it was opened before anything but the
     // report title was known.
-    if (outcome.raidName && thread.name !== `Raid: ${outcome.raidName}`) {
+    const renamed = outcome.raidName ? raidThreadName(outcome.raidName) : null;
+    if (renamed && thread.name !== renamed) {
       try {
-        await thread.setName(`Raid: ${outcome.raidName}`);
+        await thread.setName(renamed);
       } catch (error) {
         logger.error(
           { ...attemptContext, error: error instanceof Error ? error.message : String(error) },
@@ -86,14 +102,23 @@ async function attempt(
     return;
   }
 
-  if (outcome.kind === "failed") {
+  if (outcome.kind === "failed" && !outcome.retryable) {
     logger.error({ ...attemptContext, error: outcome.error }, "Pending log retry failed");
     await send(thread, `❌ Could not create the raid: ${outcome.error}`, attemptContext);
     return;
   }
 
-  // Still nothing.
+  // Either Warcraft Logs still has nothing, or Temple was briefly unreachable. Both are worth
+  // another look while the window is open.
   if (attemptNumber >= MAX_ATTEMPTS) {
+    if (outcome.kind === "failed") {
+      logger.error(
+        { ...attemptContext, error: outcome.error },
+        "Giving up after repeated unreachable Temple API",
+      );
+      await send(thread, `❌ Could not create the raid: ${outcome.error}`, attemptContext);
+      return;
+    }
     logger.warn(attemptContext, "Giving up on a log with no boss data");
     await send(thread, GAVE_UP_MESSAGE, attemptContext);
     return;
@@ -111,7 +136,18 @@ function schedule(
   const key = body.discordMessageId ?? thread.id;
   const timer = setTimeout(() => {
     pending.delete(key);
-    void attempt(thread, body, attemptNumber, context);
+    // An unhandled rejection is fatal for this process (see the bot's logger setup), which would
+    // take the gateway connection down over one bad attempt.
+    void attempt(thread, body, attemptNumber, context).catch((error: unknown) => {
+      logger.error(
+        {
+          ...context,
+          attempt: attemptNumber,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "Pending-log retry threw unexpectedly",
+      );
+    });
   }, RETRY_INTERVAL_MS);
   pending.set(key, timer);
 }
