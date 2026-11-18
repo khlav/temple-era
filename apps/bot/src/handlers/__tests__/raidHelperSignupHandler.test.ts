@@ -473,6 +473,45 @@ describe("handleRaidHelperSignup", () => {
     ]);
   });
 
+  it("posts the card and an unlinked token-block line for an SR attached in Raid Helper's setup", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        created: false,
+        links: [],
+        eventTitle: "Thursday Onyxia",
+        existing: {
+          zone: "Onyxia",
+          raidId: "rh1",
+          publicUrl: "https://softres.it/raid/rh1",
+          eventDate: "Thu, Sep 17 at 7:00 PM Server Time",
+          eventTimestamp: 1789686000,
+        },
+      }),
+    );
+    const channelSend = vi.fn().mockResolvedValue(undefined);
+    const message = fakeMessage({ id: "6b", authorId: RAID_HELPER_BOT_ID, channelSend });
+
+    await handleRaidHelperSignup(message);
+
+    expect(channelSend).toHaveBeenCalledTimes(1);
+    const publicEmbed = (
+      channelSend.mock.calls[0]![0] as { embeds: { toJSON(): unknown }[] }
+    ).embeds[0]!.toJSON() as { title: string; description: string };
+    expect(publicEmbed.title).toBe("SRs : Thursday Onyxia");
+    expect(publicEmbed.description).toBe(
+      "Thu, Sep 17 at 7:00 PM Server Time\n\nOnyxia: https://softres.it/raid/rh1",
+    );
+    expect(mockPostWeeklyTokenEntries).toHaveBeenCalledWith(message.client, [
+      {
+        zone: "Onyxia",
+        url: "https://softres.it/raid/rh1",
+        emoji: undefined,
+        timestampSec: 1789686000,
+      },
+    ]);
+  });
+
   it("prefixes each zone line with that zone's emoji when one is available", async () => {
     mockGetZoneEmoji.mockImplementation((zone: string) =>
       zone === "Molten Core" ? "<:mc:222222222222222222>" : undefined,

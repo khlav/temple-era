@@ -117,15 +117,14 @@ describe("postWeeklyTokenEntries", () => {
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        "  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=" +
+        "- **Tue 9/15**",
+        "  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=" +
           TUE_7PM +
           ")",
-        "  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | admintoken: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=" +
+        "  - <:bwl_nefarian:1> BWL @ 7:30pm — [tue1 | token: tokA](https://softres.it/raid/tue1?adminToken=tokA#ts=" +
           TUE_730PM +
           ")",
-        "- **Wednesday 9/16**",
-        "  - ZG @ 6:30pm — [wed1 | admintoken: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=" +
+        "- **Wed 9/16** ZG @ 6:30pm — [wed1 | token: tokW](https://softres.it/raid/wed1?adminToken=tokW#ts=" +
           WED_630PM +
           ")",
       ].join("\n"),
@@ -143,14 +142,14 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      `- **Tuesday 9/15**\n  - Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
+      `- **Tue 9/15** Ony @ 7pm — [link](https://softres.it/weird-shape#ts=${TUE_7PM})`,
     );
   });
 
   it("edits the existing message for this week, merging and re-grouping by day", async () => {
     const existing = fakeMessage({
       footer: "lockout-week:2026-09-15",
-      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
     });
     const send = vi.fn();
     const client = fakeClient({ existingMessages: [existing], send });
@@ -168,10 +167,8 @@ describe("postWeeklyTokenEntries", () => {
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        `  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        "- **Thursday 9/17**",
-        `  - Naxx @ 7pm — [thu1 | admintoken: tokN](https://softres.it/raid/thu1?adminToken=tokN#ts=${THU_7PM})`,
+        `- **Tue 9/15** MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `- **Thu 9/17** Naxx @ 7pm — [thu1 | token: tokN](https://softres.it/raid/thu1?adminToken=tokN#ts=${THU_7PM})`,
       ].join("\n"),
     );
   });
@@ -190,7 +187,7 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = send.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
-      `- **Tuesday 9/15**\n  - Ony @ 7pm — [abc-123 | admintoken: tok_45.6](https://softres.it/raid/abc-123?adminToken=tok_45.6#ts=${TUE_7PM})`,
+      `- **Tue 9/15** Ony @ 7pm — [abc-123 | token: tok_45.6](https://softres.it/raid/abc-123?adminToken=tok_45.6#ts=${TUE_7PM})`,
     );
   });
 
@@ -211,7 +208,7 @@ describe("postWeeklyTokenEntries", () => {
 
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toContain(
-      `  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+      `- **Tue 9/15** MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
     );
   });
 
@@ -233,10 +230,8 @@ describe("postWeeklyTokenEntries", () => {
     const embed = existing.edit.mock.calls[0]![0].embeds[0];
     expect(embed.data.description).toBe(
       [
-        "- **Tuesday 9/15**",
-        `  - <:mc_ragnaros:2> MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
-        "- **Wednesday 9/16**",
-        `  - Ony @ 6:30pm — [wed1 | admintoken: tokO](https://softres.it/raid/wed1?adminToken=tokO#ts=${WED_630PM})`,
+        `- **Tue 9/15** <:mc_ragnaros:2> MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+        `- **Wed 9/16** Ony @ 6:30pm — [wed1 | token: tokO](https://softres.it/raid/wed1?adminToken=tokO#ts=${WED_630PM})`,
       ].join("\n"),
     );
   });
@@ -244,7 +239,7 @@ describe("postWeeklyTokenEntries", () => {
   it("starts a new message rather than editing a prior week's summary", async () => {
     const staleWeek = fakeMessage({
       footer: "lockout-week:2026-09-08",
-      description: `- **Tuesday 9/8**\n  - Ony @ 7pm — [x | admintoken: y](https://softres.it/raid/x?adminToken=y#ts=1000)`,
+      description: `- **Tuesday 9/8**\n  - Ony @ 7pm — [x | token: y](https://softres.it/raid/x?adminToken=y#ts=1000)`,
     });
     const send = vi.fn().mockResolvedValue(undefined);
     const client = fakeClient({ existingMessages: [staleWeek], send });
@@ -309,7 +304,7 @@ describe("postWeeklyTokenEntries", () => {
     vi.setSystemTime(new Date("2026-09-22T12:00:00Z"));
     const existing = fakeMessage({
       footer: "lockout-week:2026-09-15",
-      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | admintoken: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
+      description: `- **Tuesday 9/15**\n  - MC @ 7pm — [tue2 | token: tokB](https://softres.it/raid/tue2?adminToken=tokB#ts=${TUE_7PM})`,
     });
     const send = vi.fn();
     const client = fakeClient({ existingMessages: [existing], send });
@@ -357,7 +352,7 @@ describe("postWeeklyTokenEntries — one line per raid", () => {
     const edit = vi.fn().mockResolvedValue(undefined);
     const existing = fakeMessage({
       footer: "lockout-week:2026-09-15",
-      description: `- **Tuesday 9/15**\n  - Naxx @ 7pm — [same1 | admintoken: old](https://softres.it/raid/same1?adminToken=old#ts=${TUE_7PM})`,
+      description: `- **Tuesday 9/15**\n  - Naxx @ 7pm — [same1 | token: old](https://softres.it/raid/same1?adminToken=old#ts=${TUE_7PM})`,
       edit,
     });
     const client = fakeClient({ existingMessages: [existing] });
@@ -373,7 +368,7 @@ describe("postWeeklyTokenEntries — one line per raid", () => {
     const description = edit.mock.calls[0]![0].embeds[0].data.description as string;
     expect(description.match(/same1 \|/g)).toHaveLength(1);
     expect(description).toContain("Naxx @ 7:30pm");
-    expect(description).toContain("admintoken: new");
+    expect(description).toContain("token: new");
   });
 });
 
@@ -383,7 +378,7 @@ describe("isRaidInWeeklyBlock", () => {
       existingMessages: [
         fakeMessage({
           footer: "lockout-week:2026-09-15",
-          description: `- **Tuesday 9/15**\n  - MC @ 7pm — [abc123 | admintoken: tok](https://softres.it/raid/abc123?adminToken=tok#ts=${TUE_7PM})`,
+          description: `- **Tuesday 9/15**\n  - MC @ 7pm — [abc123 | token: tok](https://softres.it/raid/abc123?adminToken=tok#ts=${TUE_7PM})`,
         }),
       ],
     });

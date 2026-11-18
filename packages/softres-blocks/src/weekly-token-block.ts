@@ -3,6 +3,9 @@ import { formatLockoutWeekLabel, getEasternDayKey, getLockoutWeekKey } from "./l
 
 export interface WeeklyTokenEntry {
   zone: string;
+  /** The softres.it admin link (`/raid/<id>?adminToken=...`), or — for an SR attached in Raid
+   * Helper's own setup, whose token only the raid lead has — the public `/raid/<id>` link, which
+   * renders as a link to that page with a plain-text note in place of the token. */
   url: string;
   emoji?: string;
   /** Unix seconds — the raid's actual scheduled time for `ensure-softres` entries, or the
@@ -34,7 +37,7 @@ const SHORT_ZONE_NAMES: Record<string, string> = {
 interface ResolvedEntry {
   /** e.g. "🔥 BWL" (emoji + short zone name), verbatim text for the bullet's line prefix. */
   prefix: string;
-  /** The real admin URL (no `#ts=` suffix). */
+  /** The real admin URL, or the public URL of an unlinked entry (no `#ts=` suffix). */
   url: string;
   timestampSec: number;
 }
@@ -63,12 +66,13 @@ function formatShortTime(timestampSec: number): string {
   return minute === "00" ? `${hour}${meridiem}` : `${hour}:${minute}${meridiem}`;
 }
 
-/** "Tuesday 9/15" for the 1st-level (day) bullet. */
-function formatDayHeader(timestampSec: number): string {
+/** "Tuesday 9/15" (prompts) or "Tue 9/15" (the block's day bullet, kept short so a single-raid
+ * day fits on one line). */
+function formatDayHeader(timestampSec: number, weekdayStyle: "long" | "short" = "long"): string {
   const date = new Date(timestampSec * 1000);
   const weekday = new Intl.DateTimeFormat("en-US", {
     timeZone: ET_TIME_ZONE,
-    weekday: "long",
+    weekday: weekdayStyle,
   }).format(date);
   const monthDay = new Intl.DateTimeFormat("en-US", {
     timeZone: ET_TIME_ZONE,
@@ -78,7 +82,7 @@ function formatDayHeader(timestampSec: number): string {
   return `${weekday} ${monthDay}`;
 }
 
-/** "Tuesday 9/29 @ 7pm" — the same day/time wording the block itself uses, for prompts that
+/** "Tuesday 9/29 @ 7pm" — the block's day/time wording with the full weekday, for prompts that
  * describe an entry before it is added. */
 export function formatRaidWhen(timestampSec: number): string {
   return `${formatDayHeader(timestampSec)} @ ${formatShortTime(timestampSec)}`;
@@ -97,20 +101,41 @@ export function adminUrlRaidId(url: string): string | null {
   return parseAdminUrl(url)?.raidId ?? null;
 }
 
-const raidIdOf = adminUrlRaidId;
+/** Plain text after an unlinked entry's link — an SR attached in Raid Helper's own setup: we can
+ * link its public page, but its admin token stayed with the raid lead who created it. */
+export const UNLINKED_NOTE = "no token, Raidhelper SR";
 
-/** `[raidId | admintoken: value](url)` — concise enough that the line doesn't wrap, and still a
- * real working link. Falls back to a plain link if the URL doesn't match the expected shape,
- * rather than dropping the entry. The real URL carries a `#ts=<unix>` suffix so the timestamp
- * survives a round trip through the rendered message text — softres.it ignores the fragment. */
-function renderLink(url: string, timestampSec: number): string {
-  const parsed = parseAdminUrl(url);
-  const label = parsed ? `${parsed.raidId} | admintoken: ${parsed.adminToken}` : "link";
-  return `[${label}](${url}#ts=${timestampSec})`;
+function parsePublicUrl(url: string): string | null {
+  const match = /\/raid\/([\w.-]+)(?=$|#)/.exec(url);
+  return match ? match[1]! : null;
 }
 
-function renderEntryLine(entry: ResolvedEntry): string {
-  return `  - ${entry.prefix} @ ${formatShortTime(entry.timestampSec)} — ${renderLink(entry.url, entry.timestampSec)}`;
+/** The raid id an entry's link points at, whether it is an admin link or an unlinked entry's
+ * public one — what decides "the same raid" for merging. */
+function raidIdOf(url: string): string | null {
+  return adminUrlRaidId(url) ?? parsePublicUrl(url);
+}
+
+function isUnlinked(url: string): boolean {
+  return adminUrlRaidId(url) === null && parsePublicUrl(url) !== null;
+}
+
+/** `[raidId | token: value](url)` — concise enough that the line doesn't wrap, and still a
+ * real working link. An unlinked entry is `[raidId](url) <note>`, the note kept out of the link.
+ * Falls back to a plain link if the URL doesn't match either shape, rather than dropping the
+ * entry. The real URL carries a `#ts=<unix>` suffix so the timestamp survives a round trip
+ * through the rendered message text — softres.it ignores the fragment. */
+function renderLink(url: string, timestampSec: number): string {
+  const href = `${url}#ts=${timestampSec}`;
+  const parsed = parseAdminUrl(url);
+  if (parsed) return `[${parsed.raidId} | token: ${parsed.adminToken}](${href})`;
+  const publicId = parsePublicUrl(url);
+  if (publicId) return `[${publicId}](${href}) ${UNLINKED_NOTE}`;
+  return `[link](${href})`;
+}
+
+function renderEntry(entry: ResolvedEntry): string {
+  return `${entry.prefix} @ ${formatShortTime(entry.timestampSec)} — ${renderLink(entry.url, entry.timestampSec)}`;
 }
 
 function renderDescription(entries: ResolvedEntry[]): string {
@@ -123,17 +148,27 @@ function renderDescription(entries: ResolvedEntry[]): string {
     else dayGroups.set(dayKey, [entry]);
   }
 
+  // Most raid days have one raid, which goes on the day's own bullet; a day with several gets a
+  // header bullet and one nested bullet per raid.
   const lines: string[] = [];
   for (const group of dayGroups.values()) {
-    lines.push(`- **${formatDayHeader(group[0]!.timestampSec)}**`);
-    lines.push(...group.map(renderEntryLine));
+    const day = `- **${formatDayHeader(group[0]!.timestampSec, "short")}**`;
+    if (group.length === 1) {
+      lines.push(`${day} ${renderEntry(group[0]!)}`);
+    } else {
+      lines.push(day, ...group.map((entry) => `  - ${renderEntry(entry)}`));
+    }
   }
   return lines.join("\n");
 }
 
-// Current format: "  - {prefix} @ {time} — [label](url#ts=UNIX)". The `#ts=` fragment, not the
-// display time, is the recoverable sort key.
-const ENTRY_LINE_REGEX = /^ {2}- (.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)$/;
+// Current format: an entry is "{prefix} @ {time} — [label](url#ts=UNIX)", optionally followed by
+// " <note>" (plain text) for an unlinked entry. It sits either on its day's own bullet
+// ("- **Tue 9/15** {entry}") or nested under a day header ("  - {entry}"). The briefly-used
+// unbulleted forms ("**Tue 9/15** {entry}", "\- {entry}") still parse. The `#ts=` fragment, not
+// the display time or day, is the recoverable sort key.
+const ENTRY_LINE_REGEX =
+  /^(?:\\- | {2}- |(?:- )?\*\*[^*]+\*\* )(.+?) @ \S+ — \[.+?\]\((.+?)#ts=(\d+)\)(?: .+)?$/;
 // Pre-this-feature-revision format: "<t:UNIX:f> {emoji }{zone}: {url}" (flat, no day grouping).
 // Parsed as a fallback so a format change mid-lockout-week doesn't drop that week's
 // already-posted entries on the next edit. The optional emoji group is anchored to actual
@@ -159,17 +194,29 @@ function parseExistingEntries(description: string): ResolvedEntry[] {
 }
 
 /** A raid appears once: re-adding one (a corrected time, a second click) replaces its old line
- * rather than duplicating it. Entries whose URL has no parseable raid id can't be matched and are
- * kept as they are. */
+ * rather than duplicating it — including an admin link replacing that raid's unlinked line once
+ * the raid lead posts it. The one exception: an unlinked entry is dropped when that raid's admin
+ * token is known — already in the block or in the same batch — since keeping it would throw the
+ * token away or list the raid twice. Entries whose URL has no parseable raid id can't be matched
+ * and are kept as they are. */
 function mergeEntries(existing: ResolvedEntry[], added: ResolvedEntry[]): ResolvedEntry[] {
+  const adminIds = new Set(
+    [...existing, ...added]
+      .map((e) => adminUrlRaidId(e.url))
+      .filter((id): id is string => id !== null),
+  );
+  const accepted = added.filter((e) => {
+    const id = raidIdOf(e.url);
+    return !(id !== null && isUnlinked(e.url) && adminIds.has(id));
+  });
   const addedIds = new Set(
-    added.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
+    accepted.map((e) => raidIdOf(e.url)).filter((id): id is string => id !== null),
   );
   const kept = existing.filter((e) => {
     const id = raidIdOf(e.url);
     return id === null || !addedIds.has(id);
   });
-  return [...kept, ...added];
+  return [...kept, ...accepted];
 }
 
 /**
@@ -181,9 +228,11 @@ export function weeklyBlockFooter(timestampSec: number): string {
   return `${FOOTER_MARKER_PREFIX}${getLockoutWeekKey(new Date(timestampSec * 1000))}`;
 }
 
-/** Whether a rendered block description already lists this raid id. */
+/** Whether a rendered block description already lists this raid id *with its admin token*. An
+ * unlinked line doesn't count: the token-thread prompt must still offer to add the real link
+ * when the raid lead posts it. */
 export function blockHasRaid(description: string, raidId: string): boolean {
-  return parseExistingEntries(description).some((e) => raidIdOf(e.url) === raidId);
+  return parseExistingEntries(description).some((e) => adminUrlRaidId(e.url) === raidId);
 }
 
 /**

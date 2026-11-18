@@ -18,8 +18,10 @@ vi.mock("~/server/services/raid-helper-client", () => ({
 }));
 
 const mockCreateSoftResRaid = vi.fn();
+const mockFetchSoftResRaidData = vi.fn();
 vi.mock("~/server/api/softres-client", () => ({
   createSoftResRaid: (...args: unknown[]) => mockCreateSoftResRaid(...args),
+  fetchSoftResRaidData: (...args: unknown[]) => mockFetchSoftResRaidData(...args),
 }));
 
 function makeRequest(body: unknown, authorization = "Bearer test-token") {
@@ -53,13 +55,14 @@ describe("POST /api/discord/ensure-softres", () => {
     expect(mockFetchEventDetail).not.toHaveBeenCalled();
   });
 
-  it("no-ops when softresId is already present", async () => {
+  it("returns the Raid Helper-attached SR as `existing`, zoned by softres.it, without creating one", async () => {
     mockFetchEventDetail.mockResolvedValue({
       softresId: "existing-raid-id",
-      title: "Thursday Onyxia",
-      channelName: "onyxia-signups",
+      title: "Sunday BWL/MC @7PM",
+      channelName: "bwl-signups",
       startTime: TEST_START_TIME,
     });
+    mockFetchSoftResRaidData.mockResolvedValue({ instance: "mc" });
 
     const { POST } = await import("~/app/api/discord/ensure-softres/route");
     const response = await POST(makeRequest({ eventId: "123456789012345678" }));
@@ -70,7 +73,52 @@ describe("POST /api/discord/ensure-softres", () => {
       success: true,
       created: false,
       links: [],
-      eventTitle: "Thursday Onyxia",
+      eventTitle: "Sunday BWL/MC @7PM",
+      existing: {
+        zone: "Molten Core",
+        raidId: "existing-raid-id",
+        publicUrl: "https://softres.it/raid/existing-raid-id",
+        eventDate: TEST_EVENT_DATE,
+        eventTimestamp: TEST_START_TIME,
+      },
+    });
+    expect(mockFetchSoftResRaidData).toHaveBeenCalledWith("existing-raid-id");
+    expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a single-zone title when softres.it can't be read", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: "existing-raid-id",
+      title: "Thursday Onyxia",
+      channelName: "onyxia-signups",
+      startTime: TEST_START_TIME,
+    });
+    mockFetchSoftResRaidData.mockRejectedValue(new Error("down"));
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const body = await (await POST(makeRequest({ eventId: "123456789012345678" }))).json();
+
+    expect(body.existing.zone).toBe("Onyxia");
+    expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
+  });
+
+  it("omits `existing` when neither softres.it nor a single-zone title gives the zone", async () => {
+    mockFetchEventDetail.mockResolvedValue({
+      softresId: "existing-raid-id",
+      title: "Sunday BWL/MC @7PM",
+      channelName: "bwl-signups",
+      startTime: TEST_START_TIME,
+    });
+    mockFetchSoftResRaidData.mockRejectedValue(new Error("down"));
+
+    const { POST } = await import("~/app/api/discord/ensure-softres/route");
+    const body = await (await POST(makeRequest({ eventId: "123456789012345678" }))).json();
+
+    expect(body).toEqual({
+      success: true,
+      created: false,
+      links: [],
+      eventTitle: "Sunday BWL/MC @7PM",
     });
     expect(mockCreateSoftResRaid).not.toHaveBeenCalled();
   });
