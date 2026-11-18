@@ -378,9 +378,20 @@ async function repointPendingLogUnguarded(message: Message, wclUrl: string): Pro
     return;
   }
 
+  // The rename keeps its own guard. Discord rate-limits thread renames far harder than messages
+  // (two per ten minutes), so a refused rename is both likely and harmless — but letting it reach
+  // the outer catch would skip the link below, and the wait has already been cancelled, so the
+  // thread would end up with neither the raid link nor another check.
   const renamed = outcome.raidName ? raidThreadName(outcome.raidName) : null;
   if (renamed && thread.name !== renamed) {
-    await thread.setName(renamed);
+    try {
+      await thread.setName(renamed);
+    } catch (error) {
+      logger.error(
+        { ...context, error: error instanceof Error ? error.message : String(error) },
+        "Could not rename re-pointed thread",
+      );
+    }
   }
   await thread.send(outcome.raidUrl);
 }

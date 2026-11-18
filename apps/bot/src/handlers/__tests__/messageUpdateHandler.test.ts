@@ -162,6 +162,27 @@ describe("handleMessageUpdate — editing a log that is still waiting on Warcraf
     await expect(handleMessageUpdate(oldMessage, newMessage)).resolves.toBeUndefined();
   });
 
+  it("still posts the raid link when Discord refuses the rename", async () => {
+    // Renames are rate-limited far harder than messages, and the wait is already cancelled by now,
+    // so losing the link here would leave the thread with nothing at all.
+    cancelMock.mockReturnValue(true);
+    createMock.mockResolvedValue({
+      kind: "created",
+      isNew: true,
+      raidId: 971,
+      raidName: "Naxxramas",
+      raidUrl: "https://www.temple-era.com/raids/971/naxxramas",
+    });
+    const { newMessage, oldMessage, thread } = makeMessages({
+      setName: vi.fn().mockRejectedValue(new Error("rate limited")),
+    });
+
+    await handleMessageUpdate(oldMessage, newMessage);
+
+    expect(thread.setName).toHaveBeenCalledWith("Raid: Naxxramas");
+    expect(thread.send).toHaveBeenCalledWith("https://www.temple-era.com/raids/971/naxxramas");
+  });
+
   it("leaves an ordinary edit on the update-raid path", async () => {
     cancelMock.mockReturnValue(false);
     const { newMessage, oldMessage } = makeMessages();
