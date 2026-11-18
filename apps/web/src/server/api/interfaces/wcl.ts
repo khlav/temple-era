@@ -34,20 +34,25 @@ export interface RawRaidLogReportResult {
     id: number;
     name: string;
   };
+  /**
+   * Null until Warcraft Logs has seen an encounter. A live log uploaded at the pull — before the
+   * raid's first boss — arrives with no zone, no fights and sometimes no masterData, so every one
+   * of these is nullable in practice however the schema reads.
+   */
   zone: {
     id: number;
     name: string;
-  };
-  fights: RawFightResult[];
+  } | null;
+  fights: RawFightResult[] | null;
   masterData: {
     actors: RawActorResult[];
-  };
+  } | null;
 }
 
 export interface RawRaidReportRequestResult {
   data: {
     reportData: {
-      report: RawRaidLogReportResult;
+      report: RawRaidLogReportResult | null;
     };
   };
 }

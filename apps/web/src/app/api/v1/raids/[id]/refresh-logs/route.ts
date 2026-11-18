@@ -5,7 +5,12 @@ import { db } from "~/server/db";
 import { raids, raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
-import { GetWCLGraphQLQuery, RaidReportDataShaper, Slugify } from "~/server/api/wcl-helpers";
+import {
+  GetWCLGraphQLQuery,
+  RaidReportDataShaper,
+  Slugify,
+  WclReportIncompleteError,
+} from "~/server/api/wcl-helpers";
 import type { RawRaidReportRequestResult } from "~/server/api/interfaces/wcl";
 import { SCOPE } from "~/lib/scopes";
 import { invalidateAttendanceByZoneCache } from "~/server/services/raid-attendance-by-zone";
@@ -49,7 +54,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     for (const { raidLogId } of raidLogRows) {
       const rawResponse = await GetWCLGraphQLQuery(RaidReportQuery, { reportID: raidLogId });
-      const wclLog = RaidReportDataShaper((await rawResponse.json()) as RawRaidReportRequestResult);
+      let wclLog;
+      try {
+        wclLog = RaidReportDataShaper((await rawResponse.json()) as RawRaidReportRequestResult);
+      } catch (error) {
+        // A log Warcraft Logs has not finished processing has no zone. Leave the stored row alone
+        // rather than overwriting a good zone with nothing, and leave it out of `refreshed`.
+        if (error instanceof WclReportIncompleteError) {
+          logger.info({ raidLogId }, "Skipping refresh: Warcraft Logs report has no zone yet");
+          continue;
+        }
+        throw error;
+      }
 
       await db
         .insert(raidLogs)

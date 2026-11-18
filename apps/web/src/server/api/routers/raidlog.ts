@@ -1,10 +1,15 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure, scopedProcedure } from "~/server/api/trpc";
 import { raidLogs, characters, raidLogAttendeeMap } from "~/server/db/schema";
 import type { db } from "~/server/db";
 import { aliasedTable, eq, inArray, sql } from "drizzle-orm";
 import { RaidReportQuery } from "~/server/api/wcl-queries";
-import { GetWCLGraphQLQuery, RaidReportDataShaper } from "~/server/api/wcl-helpers";
+import {
+  GetWCLGraphQLQuery,
+  RaidReportDataShaper,
+  WclReportIncompleteError,
+} from "~/server/api/wcl-helpers";
 import type { RaidLog, RaidParticipantCollection } from "~/server/api/interfaces/raid";
 import type { Session } from "next-auth";
 import { convertParticipantArrayToCollection } from "~/server/api/routers/character";
@@ -283,7 +288,22 @@ export const raidLog = createTRPCRouter({
     .input(z.string())
     .query(async ({ ctx, input }) => {
       // Always fetch fresh data from WCL and update database
-      const wclLog = await queryGetWclLogById(input);
+      let wclLog;
+      try {
+        wclLog = await queryGetWclLogById(input);
+      } catch (error) {
+        // A log posted at the pull has no zone yet. Surface that as its own code so the caller can
+        // tell "come back in a few minutes" apart from "this will never work", and write nothing:
+        // a zoneless raid_log row would carry attendance weight 0.
+        if (error instanceof WclReportIncompleteError) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: error.message,
+            cause: error,
+          });
+        }
+        throw error;
+      }
       await mutateInsertRaidLogWithAttendees(ctx.db, ctx.session, wclLog);
       return await queryGetRaidLogById(ctx.db, input);
     }),

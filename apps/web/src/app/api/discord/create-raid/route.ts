@@ -17,6 +17,7 @@ import { compressResponse } from "~/lib/compression";
 import { resolveUserAccess } from "~/server/services/access-service";
 import { SCOPE } from "~/lib/scopes";
 import { raidPath } from "~/lib/slug";
+import { WclReportIncompleteError } from "~/server/api/wcl-helpers";
 
 export async function POST(request: Request) {
   try {
@@ -182,7 +183,34 @@ export async function POST(request: Request) {
     }
 
     // 6. Import WCL log (fetches from WCL API, imports attendees)
-    const raidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
+    let raidLog;
+    try {
+      raidLog = await caller.raidLog.importAndGetRaidLogByRaidLogId(reportId);
+    } catch (error) {
+      // A log posted at the pull has no zone yet, so there is nothing to create. Say so plainly
+      // instead of letting it fall through to the catch-all 500: the bot opens the thread on this
+      // answer and retries, where a 500 left the raid lead with no thread and no message at all.
+      const incomplete =
+        error instanceof WclReportIncompleteError
+          ? error
+          : (error as { cause?: unknown })?.cause instanceof WclReportIncompleteError
+            ? (error as { cause: WclReportIncompleteError }).cause
+            : null;
+      if (incomplete) {
+        logger.info(
+          { reportId, discordUserId },
+          "Warcraft Logs report has no encounter data yet; raid not created",
+        );
+        const payload: CreateRaidResult = {
+          success: false,
+          error: "No boss data in this Warcraft Logs report yet",
+          logIncomplete: true,
+          ...(incomplete.title ? { reportTitle: incomplete.title } : {}),
+        };
+        return await compressResponse(payload, request);
+      }
+      throw error;
+    }
 
     if (!raidLog) {
       return await compressResponse(

@@ -186,6 +186,13 @@ Raid managers post a Warcraft Logs link in the raid-logs channel. The bot create
 temple-era.com, then opens a thread named for the raid with a link to it. Editing the message swaps the
 log the raid is built from.
 
+**A log posted at the pull.** Warcraft Logs doesn't know the zone until it has seen a fight, so a link
+posted before the raid's first boss has nothing to build a raid from yet. The bot still opens the thread
+and says it found no boss data, then checks every 15 minutes for an hour and posts the raid link in that
+same thread as soon as the data lands. If the hour passes with still nothing, it says so and stops — the
+raid lead posts the link again once the raid is underway. So "I posted the log and nothing happened" is
+answered by looking in the thread: there will be a message either way.
+
 In that thread, a message like `bench Name1 Name2` records those characters as the raid's bench; the bot
 replies with which names matched and which did not.
 

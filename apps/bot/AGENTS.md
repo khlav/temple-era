@@ -118,6 +118,19 @@ The bot operates through three main message handlers:
   `SRs : ...` post into the clean-up channel. If that post is gone it posts the public link fresh.
   Naxx only, by design (`CLEANUP_ZONE`).
 
+- **Pending-log retry** (`pendingLogRetry.ts`): a Warcraft Logs link posted at the pull has no zone
+  yet, so `create-raid` answers `logIncomplete` rather than creating anything. The handler opens the
+  thread anyway, says there is no boss data, and retries the same call every 15 minutes for an hour,
+  posting the raid link (and renaming the thread) on the first attempt that succeeds. The thread is
+  named from the WCL report title until the raid exists. **The timer is in-process**: a bot restart
+  inside that hour drops the retry and leaves the thread's "I'll check back" message with no
+  follow-up. Accepted because the window is short and the bot has no durable store; move it to QStash
+  on the web side if that stops being good enough.
+
+- **Raid creation call** (`raidCreation.ts`): the one `POST /api/discord/create-raid` call, parsed into
+  `created` / `incomplete` / `failed`. Both the message handler and the retry loop go through it — don't
+  inline a second copy of that fetch.
+
 - **Message Deduplication** (`messageDeduplication.ts`): Prevents duplicate processing of messages. **Not an LRU cache**, despite how it reads — it is a `Map` of id → timestamp with a periodic sweep, so entries expire on a TTL and there is no size cap or eviction by access order. Memory is bounded by arrival rate × TTL window, not by a fixed capacity.
 
 ### API Integration

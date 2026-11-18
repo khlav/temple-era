@@ -32,6 +32,18 @@ export const CreateRaidSuccessSchema = z.object({
 export const CreateRaidFailureSchema = z.object({
   success: z.literal(false),
   error: z.string(),
+  /**
+   * The Warcraft Logs report exists but has no encounter data yet — a log posted at the pull,
+   * before the raid's first boss. Distinct from an ordinary failure because it is a "not yet":
+   * the same call will succeed once Warcraft Logs has seen a fight, so the bot opens the thread
+   * and retries rather than going silent.
+   */
+  logIncomplete: z.boolean().optional(),
+  /**
+   * The report's title, which survives on an otherwise-empty report. Only thing available to name
+   * a thread with before the raid exists. Present only alongside `logIncomplete`.
+   */
+  reportTitle: z.string().optional(),
 });
 
 /** What the route emits with a 200. Annotate route payloads with this. */
