@@ -470,6 +470,16 @@ The website provides REST API endpoints for the Discord bot at `apps/bot`:
 - All require `Authorization: Bearer {TEMPLE_WEB_API_TOKEN}` header
 - Helper functions in `src/server/api/discord-helpers.ts`
 
+**A Warcraft Logs report with no encounter data is a "not yet", not an error.** A link posted at the
+pull comes back from WCL with `zone`, `fights` and `masterData` all null. `RaidReportDataShaper`
+(`src/server/api/wcl-helpers.ts`) throws `WclReportIncompleteError` for it, the import procedure turns
+that into a tRPC `PRECONDITION_FAILED`, and `create-raid` answers `{ success: false, logIncomplete:
+true, reportTitle }` so the bot can open the thread and retry instead of going silent. Nothing is
+written: a zoneless `raid_log` would give its raid attendance weight 0 and silently credit nobody.
+Relatedly, `GetWCLGraphQLQuery` now **throws** on a failed WCL call — it used to return `{ error }` with
+no `data`, which the shaper then dereferenced into an unreadable `TypeError`, so a WCL outage and a
+malformed report were indistinguishable.
+
 **Request and response shapes live in `@temple-era/contracts`** (`packages/contracts`), not in
 the route files. Each handler parses its body with the request schema and annotates its 200
 payload with the matching `*Result` type, so a shape change that the bot has not been updated

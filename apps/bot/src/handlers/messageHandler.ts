@@ -1,10 +1,13 @@
-import { type Message } from "discord.js";
-import { CreateRaidResponseSchema, type CreateRaidRequest } from "@temple-era/contracts";
+import { type AnyThreadChannel, type Message } from "discord.js";
+import { type CreateRaidRequest } from "@temple-era/contracts";
 import { extractReportId, extractWarcraftLogsUrls } from "@temple-era/wcl";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
+import { requestRaidCreation } from "../services/raidCreation.js";
+import { startPendingLogRetries } from "../services/pendingLogRetry.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
+import { raidThreadName } from "../utils/threadName.js";
 
 // Track processed messages to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
@@ -75,100 +78,55 @@ export async function handleMessage(message: Message) {
       discordMessageId: message.id,
     };
 
-    const response = await fetch(`${config.apiBaseUrl}/api/discord/create-raid`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.templeWebApiToken}`,
-      },
-      body: JSON.stringify(body),
+    const outcome = await requestRaidCreation(body, {
+      user: message.author.tag,
+      userId: message.author.id,
+      wclUrl: firstUrl,
+      messageId: message.id,
     });
 
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      logger.warn(
-        {
-          endpoint: "/api/discord/create-raid",
-          user: message.author.tag,
-          userId: message.author.id,
-          statusCode: response.status,
-        },
-        "API endpoint not available yet",
-      );
+    if (outcome.kind === "incomplete") {
+      // Warcraft Logs has no fight in this report yet — the link was posted at the pull. Open the
+      // thread anyway and wait it out, so the raid lead sees that the bot has the log.
+      const thread = await ensureThread(message, raidThreadName(outcome.reportTitle ?? reportId));
+      if (!thread) return;
+
+      startPendingLogRetries(thread, body, {
+        user: message.author.tag,
+        userId: message.author.id,
+        wclUrl: firstUrl,
+        messageId: message.id,
+      });
       return;
     }
 
-    const parsed = CreateRaidResponseSchema.safeParse(payload);
-    if (!parsed.success) {
+    if (outcome.kind === "failed") {
       logger.error(
         {
-          endpoint: "/api/discord/create-raid",
-          user: message.author.tag,
-          userId: message.author.id,
-          statusCode: response.status,
-          error: parsed.error.message,
-        },
-        "Unexpected response shape from create-raid",
-      );
-      return;
-    }
-    const result = parsed.data;
-
-    if ("success" in result && result.success) {
-      const raidStatus = result.isNew ? "created" : "found existing";
-      logger.info(
-        {
-          status: raidStatus,
-          raidName: result.raidName,
-          raidId: result.raidId,
-          user: message.author.tag,
-          userId: message.author.id,
-        },
-        "Raid operation successful",
-      );
-
-      // Check if thread already exists for this message
-      if (message.thread) {
-        logger.info(
-          {
-            threadId: message.thread.id,
-            raidId: result.raidId,
-          },
-          "Thread already exists, posting raid link",
-        );
-        await message.thread.send(result.raidUrl);
-      } else {
-        // Create thread with raid name
-        const thread = await message.startThread({
-          name: `Raid: ${result.raidName}`,
-          autoArchiveDuration: 60, // 1 hour (valid Discord enum value)
-        });
-
-        logger.info(
-          {
-            threadId: thread.id,
-            threadName: thread.name,
-            raidId: result.raidId,
-          },
-          "Created new thread for raid",
-        );
-
-        // Post simple raid link in the thread
-        await thread.send(result.raidUrl);
-      }
-    } else {
-      logger.error(
-        {
-          error: result.error,
+          error: outcome.error,
           user: message.author.tag,
           userId: message.author.id,
           wclUrl: firstUrl,
         },
         "Failed to create raid",
       );
+      return;
     }
+
+    logger.info(
+      {
+        status: outcome.isNew ? "created" : "found existing",
+        raidName: outcome.raidName,
+        raidId: outcome.raidId,
+        user: message.author.tag,
+        userId: message.author.id,
+      },
+      "Raid operation successful",
+    );
+
+    const thread = await ensureThread(message, raidThreadName(outcome.raidName ?? reportId));
+    if (!thread) return;
+    await thread.send(outcome.raidUrl);
   } catch (error) {
     logger.error(
       {
@@ -179,5 +137,35 @@ export async function handleMessage(message: Message) {
       },
       "Error creating raid automatically",
     );
+  }
+}
+
+/**
+ * The message's existing thread, or a new one. Returns null when Discord refuses — the caller has
+ * nowhere to post in that case, and the failure is already logged.
+ */
+async function ensureThread(message: Message, name: string): Promise<AnyThreadChannel | null> {
+  if (message.thread) {
+    logger.info({ threadId: message.thread.id }, "Thread already exists");
+    return message.thread;
+  }
+
+  try {
+    const thread = await message.startThread({
+      name,
+      autoArchiveDuration: 60, // 1 hour (valid Discord enum value)
+    });
+    logger.info({ threadId: thread.id, threadName: thread.name }, "Created new thread for raid");
+    return thread;
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        messageId: message.id,
+        threadName: name,
+      },
+      "Could not create thread",
+    );
+    return null;
   }
 }

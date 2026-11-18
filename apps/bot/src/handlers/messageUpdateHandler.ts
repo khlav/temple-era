@@ -1,10 +1,17 @@
 import { type Message } from "discord.js";
-import { UpdateRaidResponseSchema, type UpdateRaidRequest } from "@temple-era/contracts";
+import {
+  UpdateRaidResponseSchema,
+  type CreateRaidRequest,
+  type UpdateRaidRequest,
+} from "@temple-era/contracts";
 import { extractReportId, extractWarcraftLogsUrls } from "@temple-era/wcl";
 import { config } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { checkUserPermissions } from "../services/permissionChecker.js";
 import { MessageDeduplicator } from "../utils/messageDeduplication.js";
+import { cancelPendingLogRetry, startPendingLogRetries } from "../services/pendingLogRetry.js";
+import { requestRaidCreation } from "../services/raidCreation.js";
+import { raidThreadName } from "../utils/threadName.js";
 
 // Track recently processed message updates to prevent duplicate processing
 const deduplicator = new MessageDeduplicator();
@@ -101,6 +108,14 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
   // Only proceed if user is a raid manager
   if (!permissionResult.hasAccount || !permissionResult.canManageRaidLogs) {
     // Return silently (same as create flow - no permission spam)
+    return;
+  }
+
+  // A log still waiting on Warcraft Logs has written no raid_log row, so `update-raid` would answer
+  // "No raid found for this Discord message" and the pending loop would go on to create the raid
+  // from the link that was just replaced. Re-point the wait at the new link instead.
+  if (cancelPendingLogRetry(newMessage.id)) {
+    await repointPendingLog(newMessage, firstUrl);
     return;
   }
 
@@ -302,4 +317,81 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
       }
     }
   }
+}
+
+/**
+ * Restarts the pending-log wait against an edited message's new Warcraft Logs link. The thread
+ * already exists — it was opened when the first link came in — so this either posts the raid link
+ * into it or resumes waiting there.
+ */
+async function repointPendingLog(message: Message, wclUrl: string): Promise<void> {
+  try {
+    await repointPendingLogUnguarded(message, wclUrl);
+  } catch (error) {
+    // Every Discord call below can reject, and this runs outside `handleMessageUpdate`'s own try
+    // block — an escaping rejection would take the gateway connection down with it.
+    logger.error(
+      {
+        messageId: message.id,
+        wclUrl,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Could not re-point pending log after an edit",
+    );
+  }
+}
+
+async function repointPendingLogUnguarded(message: Message, wclUrl: string): Promise<void> {
+  const context = {
+    user: message.author.tag,
+    userId: message.author.id,
+    wclUrl,
+    messageId: message.id,
+  };
+  logger.info(context, "Edited message re-points a pending log at a new Warcraft Logs link");
+
+  const body: CreateRaidRequest = {
+    discordUserId: message.author.id,
+    wclUrl,
+    discordMessageId: message.id,
+  };
+
+  const thread = message.thread;
+  const outcome = await requestRaidCreation(body, context);
+
+  // A blip while re-pointing must not cost the wait we just cancelled: resume it, exactly as a
+  // report that still has no boss data would.
+  if (outcome.kind === "incomplete" || (outcome.kind === "failed" && outcome.retryable)) {
+    if (thread) startPendingLogRetries(thread, body, context);
+    else logger.warn(context, "Re-pointed pending log has no thread to wait in");
+    return;
+  }
+
+  if (!thread) {
+    logger.warn(context, "Re-pointed pending log has no thread to answer in");
+    return;
+  }
+
+  if (outcome.kind === "failed") {
+    logger.error({ ...context, error: outcome.error }, "Re-pointed pending log failed");
+    await thread.send(`❌ Could not create the raid: ${outcome.error}`);
+    return;
+  }
+
+  // The rename keeps its own guard. Discord rate-limits thread renames far harder than messages
+  // (two per ten minutes), so a refused rename is both likely and harmless — but letting it reach
+  // the outer catch would skip the link below, and the wait has already been cancelled, so the
+  // thread would end up with neither the raid link nor another check.
+  const renamed = outcome.raidName ? raidThreadName(outcome.raidName) : null;
+  if (renamed && thread.name !== renamed) {
+    try {
+      await thread.setName(renamed);
+    } catch (error) {
+      logger.error(
+        { ...context, error: error instanceof Error ? error.message : String(error) },
+        "Could not rename re-pointed thread",
+      );
+    }
+  }
+  await thread.send(outcome.raidUrl);
 }
