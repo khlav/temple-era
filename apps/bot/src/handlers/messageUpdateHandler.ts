@@ -325,6 +325,23 @@ export async function handleMessageUpdate(oldMessage: Message, newMessage: Messa
  * into it or resumes waiting there.
  */
 async function repointPendingLog(message: Message, wclUrl: string): Promise<void> {
+  try {
+    await repointPendingLogUnguarded(message, wclUrl);
+  } catch (error) {
+    // Every Discord call below can reject, and this runs outside `handleMessageUpdate`'s own try
+    // block — an escaping rejection would take the gateway connection down with it.
+    logger.error(
+      {
+        messageId: message.id,
+        wclUrl,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Could not re-point pending log after an edit",
+    );
+  }
+}
+
+async function repointPendingLogUnguarded(message: Message, wclUrl: string): Promise<void> {
   const context = {
     user: message.author.tag,
     userId: message.author.id,
@@ -342,8 +359,11 @@ async function repointPendingLog(message: Message, wclUrl: string): Promise<void
   const thread = message.thread;
   const outcome = await requestRaidCreation(body, context);
 
-  if (outcome.kind === "incomplete") {
+  // A blip while re-pointing must not cost the wait we just cancelled: resume it, exactly as a
+  // report that still has no boss data would.
+  if (outcome.kind === "incomplete" || (outcome.kind === "failed" && outcome.retryable)) {
     if (thread) startPendingLogRetries(thread, body, context);
+    else logger.warn(context, "Re-pointed pending log has no thread to wait in");
     return;
   }
 
@@ -360,14 +380,7 @@ async function repointPendingLog(message: Message, wclUrl: string): Promise<void
 
   const renamed = outcome.raidName ? raidThreadName(outcome.raidName) : null;
   if (renamed && thread.name !== renamed) {
-    try {
-      await thread.setName(renamed);
-    } catch (error) {
-      logger.error(
-        { ...context, error: error instanceof Error ? error.message : String(error) },
-        "Could not rename re-pointed thread",
-      );
-    }
+    await thread.setName(renamed);
   }
   await thread.send(outcome.raidUrl);
 }
