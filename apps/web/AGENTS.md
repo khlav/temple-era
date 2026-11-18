@@ -144,6 +144,16 @@ Hooks are managed by **lefthook** from the repo root (`lefthook.yml` + `.lefthoo
 
 **Important**: `pnpm db:deploy` runs `drizzle-kit migrate`, which outputs PostgreSQL `NOTICE` messages (e.g., "schema already exists, skipping"). These are **not errors** — they are normal idempotent migration notices. Only check the exit code to determine success.
 
+`db:deploy` runs `scripts/db/assert-migration-connection.mjs` first, which connects to
+`DATABASE_MIGRATION_URL` and exits non-zero with the host and the actual cause if it cannot.
+`drizzle-kit migrate` renders progress as a spinner and writes a connection failure into that same
+line, so an unreachable database reaches a build log as nothing but
+`[⣻] applying migrations... ELIFECYCLE Command failed with exit code 1`. On 2026-11-18 a suspended
+Supabase staging project surfaced only as a Vercel "deployment has failed", and the hour it cost
+went into application code that was fine. The preflight names the common Supabase causes apart — a
+paused project, a stale project ref, bad credentials, an unresolvable host — because they point
+somewhere different. It never runs migrations; `drizzle-kit migrate` still does.
+
 `pnpm build` compiles only and never touches the database. It does still validate
 the environment via `@t3-oss/env-nextjs`, so run it under Doppler:
 
