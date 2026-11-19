@@ -7,6 +7,7 @@
     "build": "next build",
     "db:clone-prod": "bash scripts/db/clone-prod.sh",
     "db:clone-prod:doppler": "doppler run -- bash scripts/db/clone-prod.sh",
+    "smoke": "node scripts/smoke/assert-json-responses.mjs",
     "db:deploy": "node scripts/db/assert-migration-connection.mjs && drizzle-kit migrate && node scripts/db/kill-idle-connections.mjs",
     "db:generate": "drizzle-kit generate",
     "db:local:deploy": "doppler run --config dev_personal -- pnpm db:deploy",

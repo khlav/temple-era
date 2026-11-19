@@ -1,0 +1,47 @@
+name: Post-deploy smoke
+
+# Every check this repo had before this one tested reachability or an exit code: CI builds with
+# no database, the migration preflight proves the database answers, Vercel reports the build.
+# None of them reads a response body. The 2026-11-18 outage slipped through all of them — a Next
+# patch bump made every API response unparseable while still answering 200 with correct data, and
+# it ran for ~22 hours because the only symptom was in a browser console.
+#
+# So this runs after a production deploy goes live and asserts that what the site returns is JSON
+# a client can parse. It needs no secrets: it uses public routes and the `/api/discord/*`
+# unauthenticated path, which returns its error through the same response helper the bot's real
+# calls use.
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # `deployment_status` fires for every state and every environment, including the bot's
+    # Northflank deploys and each preview. Only a live production web deploy is testable here:
+    # preview URLs sit behind Vercel Authentication, which would answer 302 to every request.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # No `pnpm install` — the script is dependency-free on purpose, so a smoke test of a live
+      # site cannot fail for a reason that has nothing to do with the live site.
+      - name: Assert the deployed build returns parseable JSON
+        env:
+          # The production alias, not the deployment URL: deployment URLs are protected.
+          SMOKE_BASE_URL: https://www.temple-era.com
+          # Makes the run wait for the alias to actually carry this deploy, so it cannot pass
+          # against the build this one replaced.
+          SMOKE_EXPECTED_COMMIT: ${{ github.event.deployment.sha }}
+        run: node apps/web/scripts/smoke/assert-json-responses.mjs

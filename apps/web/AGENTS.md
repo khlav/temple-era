@@ -474,6 +474,32 @@ Vercel compresses responses at the edge on its own. Return `NextResponse.json(..
 Hand-rolled compression also defeats streaming — the tRPC route had to buffer each batch with
 `response.text()` to compress it.
 
+#### Post-deploy smoke test
+
+`.github/workflows/post-deploy-smoke.yml` runs after every **production** deploy goes live and
+asserts that the site returns JSON a client can parse —
+`pnpm web smoke` runs the same script (`scripts/smoke/assert-json-responses.mjs`) against any
+`SMOKE_BASE_URL`.
+
+It exists because nothing else here reads a response body. CI builds with no database, the
+migration preflight proves the database answers, Vercel reports the build: all of which were green
+throughout the outage above, which answered 200 with correct data for 22 hours.
+
+Two things about it are deliberate:
+
+- **No secrets.** It uses public routes plus the `/api/discord/*` *unauthenticated* path, which
+  returns `{"error":"Unauthorized"}` through the same response helper the bot's real calls use. A
+  smoke test that needed a token would mean duplicating a Doppler secret into GitHub.
+- **It waits for the build it deployed.** The production alias moves a moment after the deploy
+  reports success, so the script polls `/api/health` until it sees the deployed SHA. Without that
+  it could pass against the build it replaced and prove nothing. `/api/health` is public and
+  returns `{ status, commit, environment }`; `commit` is `VERCEL_GIT_COMMIT_SHA`, null locally. If
+  it ever reports null in production, the script warns and still runs the assertions rather than
+  failing a healthy deploy.
+
+Preview deployments are not covered — their URLs sit behind Vercel Authentication and answer 302
+to everything. Testing those would need a Protection Bypass for Automation secret.
+
 #### API Design
 
 - Use tRPC for internal APIs (client <> server)
