@@ -26,6 +26,8 @@ jobs:
       github.event.deployment_status.state == 'success' &&
       github.event.deployment.environment == 'Production'
     runs-on: ubuntu-latest
+    # The script bounds each request and its own freshness wait; this is the outer backstop.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

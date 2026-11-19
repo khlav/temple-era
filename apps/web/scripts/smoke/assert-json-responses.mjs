@@ -22,6 +22,10 @@ const expectedCommit = process.env.SMOKE_EXPECTED_COMMIT?.trim() || null;
 // Overridable so the freshness gate itself can be exercised without a five-minute test.
 const FRESHNESS_TIMEOUT_MS = Number(process.env.SMOKE_FRESHNESS_TIMEOUT_MS ?? 5 * 60 * 1000);
 const POLL_INTERVAL_MS = 10_000;
+// Each request is bounded on its own. The freshness deadline is only re-checked between
+// requests, so a connection that is accepted and then never answered would otherwise park the
+// await inside the poll loop indefinitely and the five-minute budget would never expire.
+const REQUEST_TIMEOUT_MS = 20_000;
 const GZIP_MAGIC = [0x1f, 0x8b];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,9 +36,19 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * interesting case into an opaque parse error with no way to say what arrived instead.
  */
 async function read(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  return { response, bytes };
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return { response, bytes };
+  } catch (error) {
+    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      throw new Error(`${path} did not answer within ${REQUEST_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  }
 }
 
 function describeBody(bytes) {
