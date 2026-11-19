@@ -1,41 +1,19 @@
 import { NextResponse } from "next/server";
-import { gzip } from "zlib";
-import { logger } from "~/lib/logger";
-import { promisify } from "util";
-
-const gzipAsync = promisify(gzip);
 
 /**
- * Compresses a JSON response if the client supports gzip encoding.
- * Falls back to uncompressed JSON if the client doesn't support gzip.
+ * JSON response helper for the `/api/discord/*` routes.
  *
- * @param data - The data to serialize as JSON
- * @param request - The incoming request to check for Accept-Encoding header
- * @returns A NextResponse with compressed or uncompressed JSON
+ * This used to gzip the body here and set `Content-Encoding: gzip`. Next 16.4.5 added
+ * `content-encoding` to the FORBIDDEN_HEADERS it strips from a Route Handler's Response
+ * (`next/dist/server/send-response.js`) — without decompressing the body. So from the 16.4.6
+ * bump (PR #199) onward every caller got raw gzip bytes labelled `application/json` and died on
+ * `JSON.parse`, which took out the Discord bot and, via the same trick in the tRPC route, every
+ * client-side query on the site. Vercel compresses responses on the way out anyway, so doing it
+ * by hand bought nothing and now costs correctness.
+ *
+ * Kept as an async two-argument function so the ~50 call sites are untouched; `request` is no
+ * longer read.
  */
-export async function compressResponse(data: unknown, request: Request): Promise<NextResponse> {
-  const acceptEncoding = request.headers.get("accept-encoding") || "";
-  const supportsGzip = acceptEncoding.includes("gzip");
-
-  if (!supportsGzip) {
-    // Fallback to uncompressed JSON
-    return NextResponse.json(data);
-  }
-
-  try {
-    const jsonString = JSON.stringify(data);
-    const compressed = await gzipAsync(Buffer.from(jsonString, "utf-8"));
-
-    return new NextResponse(new Blob([new Uint8Array(compressed)]), {
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Encoding": "gzip",
-        Vary: "Accept-Encoding",
-      },
-    });
-  } catch (error) {
-    // If compression fails, fall back to uncompressed
-    logger.error({ err: error }, "Compression error, falling back to uncompressed");
-    return NextResponse.json(data);
-  }
+export async function compressResponse(data: unknown, _request?: Request): Promise<NextResponse> {
+  return NextResponse.json(data);
 }

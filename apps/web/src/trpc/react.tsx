@@ -53,11 +53,10 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           headers: () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
-            headers.set("Accept-Encoding", "gzip");
             return headers;
           },
-          // Browser's native fetch automatically handles gzip decompression
-          // when Content-Encoding: gzip is present, so no custom fetch needed
+          // Accept-Encoding is a forbidden header name, so the browser dropped the explicit
+          // `gzip` this used to set. Content negotiation is the browser's and Vercel's job.
         }),
       ],
     }),

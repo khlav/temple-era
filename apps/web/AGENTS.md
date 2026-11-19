@@ -460,6 +460,20 @@ Environment variables are validated at build time via `@t3-oss/env-nextjs` with 
 - Use class-variance-authority (cva) for component variants
 - Responsive design with mobile-first approach
 
+#### Never set `Content-Encoding` on a response
+
+Next **strips** `content-encoding` from a Route Handler's `Response` (it is in `FORBIDDEN_HEADERS`
+in `next/dist/server/send-response.js`, added in 16.4.5) and does **not** decompress the body. So a
+handler that gzips its own payload ships raw gzip bytes labelled `application/json`, and every
+caller dies on `JSON.parse`. That is exactly what the 16.4.1 → 16.4.6 bump did on 2026-11-18: the
+tRPC route and `src/lib/compression.ts` (all seven `/api/discord/*` routes) had both been
+hand-gzipping since long before, so the site's client-side queries and the Discord bot broke
+together, with a 200 and a plausible content-type on every response.
+
+Vercel compresses responses at the edge on its own. Return `NextResponse.json(...)` and let it.
+Hand-rolled compression also defeats streaming — the tRPC route had to buffer each batch with
+`response.text()` to compress it.
+
 #### API Design
 
 - Use tRPC for internal APIs (client <> server)
