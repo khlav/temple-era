@@ -11,6 +11,9 @@ import { type RaidZone } from "~/lib/raid-zones";
  *
  * Fixed alias table, not a general-purpose NLP parser — the guild's own title conventions are
  * consistent (traced against real examples), so a bounded lookup is both sufficient and testable.
+ * The one concession to a human typing the title is `matchSegmentByNearMiss` below: a single-edit
+ * typo in an abbreviation still resolves, because a title that half-parses silently loses that
+ * raid's soft reserves entirely.
  */
 
 // Common abbreviations raid leads actually use in Raid-Helper titles/channel names,
@@ -72,5 +75,59 @@ function matchSegmentToZone(segment: string): RaidZone | undefined {
   for (const [alias, zone] of Object.entries(ZONE_ALIASES)) {
     if (lower.includes(alias)) return zone;
   }
+  return matchSegmentByNearMiss(lower);
+}
+
+// A near miss is only considered for aliases of at least this length. "mc"/"zg"/"kt" are too
+// short for an edit-distance guess to mean anything — every three-letter word in a title would
+// be one edit from one of them.
+const MIN_FUZZY_ALIAS_LENGTH = 3;
+
+/**
+ * One-typo tolerance, the reason this exists: on 2026-11-22 a Saturday doubleheader went up as
+ * "Saturday ZG/AG20 @ 6:00PM". `AG20` matched no alias, so the event got exactly one SR — ZG —
+ * and the AQ20 half of the night had no soft-reserve link at all until a human noticed, four
+ * days later. Nothing in the flow could tell "this title names one zone" from "this title names
+ * two and we understood one of them", so the miss was silent.
+ *
+ * Deliberately narrow: an alias of at least `MIN_FUZZY_ALIAS_LENGTH` characters, a single edit,
+ * and the whole word has to be the near miss — a near miss *inside* a longer word is a
+ * coincidence, not a typo. An ambiguous word (one edit from aliases naming different zones, e.g.
+ * "AQ30" sitting between AQ20 and AQ40) resolves to nothing rather than to a guess, since
+ * creating an SR for the wrong raid is worse than creating none.
+ */
+function matchSegmentByNearMiss(lowerSegment: string): RaidZone | undefined {
+  for (const word of lowerSegment.split(/[^a-z0-9']+/)) {
+    if (word.length < MIN_FUZZY_ALIAS_LENGTH) continue;
+    const candidates = new Set<RaidZone>();
+    for (const [alias, zone] of Object.entries(ZONE_ALIASES)) {
+      if (alias.length < MIN_FUZZY_ALIAS_LENGTH) continue;
+      if (isWithinOneEdit(word, alias)) candidates.add(zone);
+    }
+    if (candidates.size === 1) return [...candidates][0];
+  }
   return undefined;
+}
+
+/** Levenshtein distance <= 1, without building the full matrix for two short strings. */
+function isWithinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  if (longer.length - shorter.length > 1) return false;
+
+  if (shorter.length === longer.length) {
+    let differences = 0;
+    for (let i = 0; i < shorter.length; i++) {
+      if (shorter[i] !== longer[i] && ++differences > 1) return false;
+    }
+    return true;
+  }
+
+  // One insertion: the strings must agree either side of a single skipped character in `longer`.
+  for (let i = 0; i < shorter.length; i++) {
+    if (shorter[i] !== longer[i]) {
+      return shorter.slice(i) === longer.slice(i + 1);
+    }
+  }
+  return true;
 }
