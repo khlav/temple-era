@@ -604,7 +604,22 @@ export const character = createTRPCRouter({
         "Molten Core": "mc",
       } as const satisfies Record<CancelledCreditZone, string>;
 
+      // Same eligibility as the view: only a raider with a creditable raid (attended or bench) in
+      // the 6 completed lockout weeks gets cancelled credit. Without this, an inactive character
+      // would see credits in the grid under a 0% attendance bar.
+      const scoringStart = new Date(currentWeekStart);
+      scoringStart.setDate(scoringStart.getDate() - 6 * 7);
+      const scoringStartStr = scoringStart.toISOString().split("T")[0] ?? "";
+      const isRaider = filteredRaids.some(
+        (r) =>
+          (r.attendanceWeight ?? 0) > 0 &&
+          !!r.date &&
+          r.date >= scoringStartStr &&
+          r.date < currentWeekStartStr,
+      );
+
       for (const week of weekMap.values()) {
+        if (!isRaider) break;
         // Only completed weeks: a raid later this week may still happen.
         if (week.weekStart >= currentWeekStartStr) continue;
         for (const zone of CANCELLED_CREDIT_ZONES) {
