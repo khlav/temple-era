@@ -239,8 +239,9 @@ export function AttendanceHeatmapGrid({
           </TooltipTrigger>
           <TooltipContent className="bg-secondary text-muted-foreground">
             <div className="text-xs">
-              No {ZONE_LABELS[zone]} raid this week. Everyone gets credit (+
-              {weekData.attendanceWeight}).
+              {isGrayed
+                ? `No ${ZONE_LABELS[zone]} raid this week. Not needed: the week is already at +3.`
+                : `No ${ZONE_LABELS[zone]} raid this week. Everyone gets credit (+${weekData.attendanceWeight}).`}
             </div>
           </TooltipContent>
         </Tooltip>
