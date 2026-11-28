@@ -50,6 +50,13 @@
       "when": 1793191033160,
       "tag": "0006_raid_plan_part_version_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795838193230,
+      "tag": "0007_cancelled_raid_attendance_credit",
+      "breakpoints": true
     }
   ]
 }

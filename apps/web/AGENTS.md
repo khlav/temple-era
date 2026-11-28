@@ -231,6 +231,14 @@ See `src/` for the directory layout — organized by feature under `components/`
 - **Character Mapping**: Characters can be linked to a "primary" character for consolidated attendance
 - **Database Views**: Complex queries are materialized as views (e.g., `primary_raid_attendance_l6_lockout_wk`)
 - **Attendance Calculation**: 6-week rolling window based on raid dates and attendance weights
+  - **Cancelled-raid credit** (TEMPLE-172): in a completed lockout week with no creditable raid
+    (`attendance_weight > 0`) for Naxx, AQ40, BWL or MC, every raider gets that zone's default
+    weight (`~/lib/raid-weights.ts`), still under the 3-per-week cap. "Raider" means a creditable
+    raid, attended or bench, in the 6 completed weeks. It is calculation only, never raid rows.
+    Two places implement it and must stay in step: `views.primary_raid_attendance_l6lockoutwk`
+    (`drizzle/0007`), which every attendance % reads, and `getWeeklyPrimaryCharacterAttendance`
+    (the heatmap grid, via `~/lib/cancelled-raid-credit.ts`). The weighted-attendance achievement
+    deliberately does not apply it.
 - `templar_enabled` on `auth_user` — user opt-in for the Templar Discord bot proxy
 - `api_token_encrypted` on `auth_user` — AES-256-GCM encrypted copy of the API token, used exclusively by the proxy
 
