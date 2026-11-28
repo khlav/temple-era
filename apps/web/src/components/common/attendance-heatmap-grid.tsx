@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Armchair } from "lucide-react";
+import { Armchair, CalendarX } from "lucide-react";
 import { api } from "~/trpc/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -52,6 +52,7 @@ export interface HeatmapData {
       naxxramas?: {
         attended: boolean;
         attendanceWeight: number;
+        cancelled?: boolean;
         raids: Array<{
           name: string;
           status: "attendee" | "bench";
@@ -61,6 +62,7 @@ export interface HeatmapData {
       aq40?: {
         attended: boolean;
         attendanceWeight: number;
+        cancelled?: boolean;
         raids: Array<{
           name: string;
           status: "attendee" | "bench";
@@ -70,6 +72,7 @@ export interface HeatmapData {
       bwl?: {
         attended: boolean;
         attendanceWeight: number;
+        cancelled?: boolean;
         raids: Array<{
           name: string;
           status: "attendee" | "bench";
@@ -79,6 +82,7 @@ export interface HeatmapData {
       mc?: {
         attended: boolean;
         attendanceWeight: number;
+        cancelled?: boolean;
         raids: Array<{
           name: string;
           status: "attendee" | "bench";
@@ -159,6 +163,7 @@ export function AttendanceHeatmapGrid({
             characterNames?: string[];
           }>;
           isGrayed?: boolean;
+          cancelled?: boolean;
         }
       | undefined,
     isHistorical: boolean = false,
@@ -216,6 +221,31 @@ export function AttendanceHeatmapGrid({
         })}
       </div>
     );
+
+    // Temple hosted no creditable raid for this zone this week: everyone gets the credit
+    if (weekData.cancelled) {
+      const iconClass = isGrayed ? "text-gray-600 dark:text-gray-500" : zoneTextColor;
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`relative flex h-4 w-4 items-center justify-center overflow-hidden ${
+                isHistorical ? "opacity-30" : ""
+              }`}
+              style={isMC ? { clipPath: "polygon(0 0, 0 100%, 100% 0)" } : undefined}
+            >
+              <CalendarX size={16} className={iconClass} />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="bg-secondary text-muted-foreground">
+            <div className="text-xs">
+              No {ZONE_LABELS[zone]} raid this week. Everyone gets credit (+
+              {weekData.attendanceWeight}).
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
 
     // If all raids were bench, show bench icon
     if (allBench) {

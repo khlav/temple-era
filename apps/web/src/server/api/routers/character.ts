@@ -12,6 +12,11 @@ import type { RaidParticipant, RaidParticipantCollection } from "~/server/api/in
 import { getEasternNow } from "~/lib/raid-formatting";
 import { SCOPE } from "~/lib/scopes";
 import {
+  CANCELLED_CREDIT_ZONES,
+  getCancelledRaidCredit,
+  type CancelledCreditZone,
+} from "~/lib/cancelled-raid-credit";
+import {
   getRaidAttendanceByZone,
   getRaidBenchByZone,
 } from "~/server/services/raid-attendance-by-zone";
@@ -378,6 +383,7 @@ export const character = createTRPCRouter({
             naxxramas?: {
               attended: boolean;
               attendanceWeight: number;
+              cancelled?: boolean;
               raids: Array<{
                 name: string;
                 status: "attendee" | "bench";
@@ -387,6 +393,7 @@ export const character = createTRPCRouter({
             aq40?: {
               attended: boolean;
               attendanceWeight: number;
+              cancelled?: boolean;
               raids: Array<{
                 name: string;
                 status: "attendee" | "bench";
@@ -396,6 +403,7 @@ export const character = createTRPCRouter({
             bwl?: {
               attended: boolean;
               attendanceWeight: number;
+              cancelled?: boolean;
               raids: Array<{
                 name: string;
                 status: "attendee" | "bench";
@@ -405,6 +413,7 @@ export const character = createTRPCRouter({
             mc?: {
               attended: boolean;
               attendanceWeight: number;
+              cancelled?: boolean;
               raids: Array<{
                 name: string;
                 status: "attendee" | "bench";
@@ -567,6 +576,63 @@ export const character = createTRPCRouter({
             status,
             characterNames,
           });
+        }
+      }
+
+      // Cancelled-raid credit: in a completed lockout week where Temple hosted no creditable raid
+      // for a credited zone, every raider gets that zone's credit. Mirrors
+      // views.primary_raid_attendance_l6lockoutwk (drizzle/0007).
+      const hostedRows = await ctx.db
+        .selectDistinct({
+          zone: raids.zone,
+          lockoutWeek: sql<string>`(date_trunc('week', ${raids.date}::date - 1) + INTERVAL '1 day')::date::text`,
+        })
+        .from(raids)
+        .where(
+          and(
+            gte(raids.date, startDateStr),
+            lte(raids.date, endDateStr),
+            sql`${raids.attendanceWeight} > 0`,
+          ),
+        );
+      const hosted = new Set(hostedRows.map((r) => `${r.lockoutWeek}|${r.zone}`));
+      const currentWeekStartStr = currentWeekStart.toISOString().split("T")[0] ?? "";
+      const zoneKeys = {
+        Naxxramas: "naxxramas",
+        "Temple of Ahn'Qiraj": "aq40",
+        "Blackwing Lair": "bwl",
+        "Molten Core": "mc",
+      } as const satisfies Record<CancelledCreditZone, string>;
+
+      for (const week of weekMap.values()) {
+        // Only completed weeks: a raid later this week may still happen.
+        if (week.weekStart >= currentWeekStartStr) continue;
+        for (const zone of CANCELLED_CREDIT_ZONES) {
+          if (hosted.has(`${week.weekStart}|${zone}`)) continue;
+          const key = zoneKeys[zone];
+          const credit = getCancelledRaidCredit(zone);
+          const existing = week.zones[key];
+          if (existing) {
+            // Only zero-weight raids of this zone were attended; the cancelled credit applies.
+            existing.attended = true;
+            existing.attendanceWeight = credit;
+            existing.cancelled = true;
+          } else if (key === "mc") {
+            week.zones.mc = {
+              attended: true,
+              attendanceWeight: credit,
+              raids: [],
+              isGrayed: false,
+              cancelled: true,
+            };
+          } else {
+            week.zones[key] = {
+              attended: true,
+              attendanceWeight: credit,
+              raids: [],
+              cancelled: true,
+            };
+          }
         }
       }
 

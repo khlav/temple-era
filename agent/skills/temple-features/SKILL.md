@@ -217,6 +217,13 @@ Attendance reports, Achievements. These need a permission:
 - **User permissions** (`/admin/user-management`) — user permission management
 - **Manage achievements** (`/achievements/manage`) — achievement management
 
+### Attendance: cancelled raids count for everyone
+
+Attendance is credits over the last 6 completed lockout weeks (Tuesday reset), at most +3 a week: +1 each
+for Naxx, AQ40 and BWL, +0.5 for MC. If Temple hosts no counted raid for one of those zones in a lockout
+week, every raider gets that zone's credit for the week as though they attended. The attendance grid shows
+those weeks with a calendar icon instead of a filled square.
+
 ### Scan Softres
 
 Analyzes a SoftRes list against attendance and guild rules. A raid lead can paste a softres.it link, or
